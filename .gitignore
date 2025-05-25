@@ -253,3 +253,10 @@ storybook-static/
 # Temporary files
 .tmp/
 .temp/
+
+# StarkNet reference repositories
+create-starknet-dapp/
+starknext/
+demo-dapp-starknet/
+starknet-project-starter/
+hackathon-starknet/
