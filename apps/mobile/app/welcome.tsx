@@ -21,10 +21,10 @@ import {
   ArrowRight,
   ChevronRight,
 } from "lucide-react-native";
-import AnimatedGradientBackground from "@/components/AnimatedGradientBackground";
-import colors from "@/constants/colors";
-import { theme } from "@/constants/theme";
-import { useOnboardingStore } from "@/store/onboardingStore";
+import AnimatedGradientBackground from "../components/AnimatedGradientBackground";
+import colors from "../constants/colors";
+import { theme } from "../constants/theme";
+import { useOnboardingStore } from "../store/onboardingStore";
 
 const { width } = Dimensions.get("window");
 

@@ -6,12 +6,12 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { Platform } from "react-native";
 import { ErrorBoundary } from "./error-boundary";
-import colors from "@/constants/colors";
-import { useOnboardingStore } from "@/store/onboardingStore";
+import colors from "../constants/colors";
+import { useOnboardingStore } from "../store/onboardingStore";
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: "(tabs)",
+  initialRouteName: "tabs",
 };
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -65,7 +65,7 @@ function RootLayoutNav() {
         },
       }}
     >
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="tabs" options={{ headerShown: false }} />
       <Stack.Screen name="modal" options={{ presentation: "modal" }} />
       <Stack.Screen name="recording/[id]" options={{ headerShown: true }} />
     </Stack>

@@ -15,10 +15,10 @@ import {
   Clock,
   Calendar,
 } from "lucide-react-native";
-import { RecordingFilter } from "@/types/recording";
-import { useRecordingsStore } from "@/store/recordingsStore";
-import { theme, globalStyles } from "@/constants/theme";
-import colors from "@/constants/colors";
+import { RecordingFilter } from "../types/recording";
+import { useRecordingsStore } from "../store/recordingsStore";
+import { theme, globalStyles } from "../constants/theme";
+import colors from "../constants/colors";
 import TagBadge from "./TagBadge";
 
 interface FilterModalProps {

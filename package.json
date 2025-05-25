@@ -8,16 +8,27 @@
   ],
   "scripts": {
     "dev": "turbo run dev",
-    "dev:web": "turbo run dev --filter=web",
-    "dev:mobile": "turbo run dev --filter=mobile",
-    "build": "turbo run build",
+    "dev:web": "turbo run dev --filter=@voisss/web",
+    "dev:mobile": "turbo run dev --filter=@voisss/mobile",
+    "dev:flutter": "cd apps/mobile-flutter && flutter run",
+    "build": "turbo run build --filter=!@voisss/contracts",
+    "build:all": "pnpm build:packages && pnpm build:apps",
+    "build:packages": "turbo run build --filter=@voisss/shared --filter=@voisss/ui",
+    "build:apps": "turbo run build --filter=@voisss/web --filter=@voisss/mobile",
+    "build:contracts": "cd packages/contracts && scarb build",
+    "build:flutter": "cd apps/mobile-flutter && flutter build ios",
     "test": "turbo run test",
+    "test:flutter": "cd apps/mobile-flutter && flutter test",
     "lint": "turbo run lint",
-    "clean": "turbo run clean && rm -rf node_modules"
+    "clean": "turbo run clean && rm -rf node_modules",
+    "setup": "pnpm install && pnpm build:packages",
+    "dev:all": "concurrently \"pnpm dev:web\" \"pnpm dev:mobile\"",
+    "check:flutter": "cd apps/mobile-flutter && flutter doctor"
   },
   "devDependencies": {
-    "turbo": "^1.12.5",
-    "typescript": "^5.3.3"
+    "turbo": "^2.5.3",
+    "typescript": "^5.3.3",
+    "concurrently": "^8.2.2"
   },
   "packageManager": "pnpm@8.15.4"
 }

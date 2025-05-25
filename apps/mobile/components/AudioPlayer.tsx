@@ -7,9 +7,9 @@ import {
   Platform,
 } from "react-native";
 import { Play, Pause, SkipBack, SkipForward } from "lucide-react-native";
-import { theme, globalStyles } from "@/constants/theme";
-import colors from "@/constants/colors";
-import { formatDuration } from "@/utils/formatters";
+import { theme, globalStyles } from "../constants/theme";
+import colors from "../constants/colors";
+import { formatDuration } from "../utils/formatters";
 
 interface AudioPlayerProps {
   duration: number;

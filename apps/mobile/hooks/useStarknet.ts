@@ -1,11 +1,26 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Account, Provider, Contract, RpcProvider } from 'starknet';
+
+/**
+ * Starknet Hook for React Native
+ *
+ * Current Implementation: Mock/Demo version for React Native compatibility
+ *
+ * Future Enhancement Options:
+ * 1. Integrate starknet.js with proper React Native polyfills
+ * 2. Create a bridge to native Dart code using starknet.dart
+ * 3. Use WebView-based wallet connections (ArgentX mobile, Braavos mobile)
+ *
+ * For production, consider:
+ * - Using official Starknet mobile wallet SDKs
+ * - Implementing proper wallet connection flows
+ * - Adding real transaction signing capabilities
+ */
 
 interface StarknetState {
   isConnected: boolean;
   isConnecting: boolean;
-  account: Account | null;
-  provider: Provider | null;
+  account: string | null;
+  provider: any | null;
   error: string | null;
 }
 
@@ -29,10 +44,12 @@ export function useStarknet(): StarknetState & StarknetActions {
 
   // Initialize provider on mount
   useEffect(() => {
-    const provider = new RpcProvider({
-      nodeUrl: STARKNET_TESTNET_RPC, // Using testnet for development
-    });
-    
+    // Mock provider for React Native compatibility
+    const provider = {
+      nodeUrl: STARKNET_TESTNET_RPC,
+      getBalance: async (address: string) => '1000000000000000000', // 1 ETH in wei
+    };
+
     setState(prev => ({
       ...prev,
       provider,
@@ -41,28 +58,24 @@ export function useStarknet(): StarknetState & StarknetActions {
 
   const connect = useCallback(async () => {
     setState(prev => ({ ...prev, isConnecting: true, error: null }));
-    
+
     try {
       // For mobile, we'll simulate a connection for now
       // In a real implementation, you'd integrate with a mobile wallet
       // like ArgentX mobile or Braavos mobile
-      
+
       // Simulate connection delay
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // For demo purposes, create a mock account
+
+      // For demo purposes, create a mock account address
       // In production, this would come from the wallet connection
-      const mockAccount = new Account(
-        state.provider!,
-        '0x1234567890abcdef', // Mock address
-        '0x1234567890abcdef'  // Mock private key (never do this in production!)
-      );
-      
+      const mockAccountAddress = '0x1234567890abcdef1234567890abcdef12345678';
+
       setState(prev => ({
         ...prev,
         isConnected: true,
         isConnecting: false,
-        account: mockAccount,
+        account: mockAccountAddress,
       }));
     } catch (error) {
       setState(prev => ({
@@ -88,13 +101,10 @@ export function useStarknet(): StarknetState & StarknetActions {
     }
 
     try {
-      // Get ETH balance (ETH contract address on Starknet)
-      const ethContractAddress = '0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7';
-      
-      // This is a simplified balance check
-      // In a real app, you'd use the proper contract ABI
-      const balance = await state.provider.getBalance(state.account.address);
-      return balance.toString();
+      // Mock balance check for React Native compatibility
+      // In a real app, you'd use the proper Starknet SDK
+      const balance = await state.provider.getBalance(state.account);
+      return balance;
     } catch (error) {
       console.error('Failed to get balance:', error);
       return null;

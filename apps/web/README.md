@@ -4,6 +4,16 @@
 
 The web app provides a comprehensive interface for discovering, managing, and sharing voice recordings on Starknet. Built with Next.js 15, Starknet.js, and modern web technologies.
 
+## ✅ **CURRENT STATUS: WORKING**
+
+- ✅ **Development Server**: Running on http://localhost:3001
+- ✅ **Build System**: Next.js building successfully
+- ✅ **Starknet Integration**: StarknetConfig with providers setup
+- ✅ **Shared Components**: Using @voisss/ui and @voisss/shared packages
+- ✅ **Tailwind CSS**: Styling system working correctly
+- ✅ **TypeScript**: Full type safety implemented
+- ✅ **Hot Reload**: Development workflow optimized
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -48,7 +58,7 @@ The web app provides a comprehensive interface for discovering, managing, and sh
    pnpm dev
    ```
 
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
+   Open [http://localhost:3001](http://localhost:3001) in your browser.
 
 ## 🛠 Tech Stack
 

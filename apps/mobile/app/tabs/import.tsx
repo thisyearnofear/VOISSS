@@ -35,19 +35,19 @@ import {
   Sparkles,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { globalStyles, theme } from "@/constants/theme";
-import colors from "@/constants/colors";
-import { useRecordingsStore } from "@/store/recordingsStore";
-import { Recording, Tag } from "@/types/recording";
+import { globalStyles, theme } from "../../constants/theme";
+import colors from "../../constants/colors";
+import { useRecordingsStore } from "../../store/recordingsStore";
+import { Recording, Tag } from "../../types/recording";
 import {
   formatDuration,
   formatFileSize,
   formatRelativeTime,
-} from "@/utils/formatters";
-import TagBadge from "@/components/TagBadge";
-import BottomSheet from "@/components/BottomSheet";
-import AnimatedGradientBackground from "@/components/AnimatedGradientBackground";
-import ErrorBoundary from "@/components/ErrorBoundary";
+} from "../../utils/formatters";
+import TagBadge from "../../components/TagBadge";
+import BottomSheet from "../../components/BottomSheet";
+import AnimatedGradientBackground from "../../components/AnimatedGradientBackground";
+import ErrorBoundary from "../../components/ErrorBoundary";
 
 // Mock import sources
 const importSources = [

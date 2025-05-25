@@ -29,13 +29,17 @@ import {
   useRecording,
   useRecordingsStore,
   useRecordingTags,
-} from "@/store/recordingsStore";
-import { globalStyles, theme } from "@/constants/theme";
-import colors from "@/constants/colors";
-import AudioPlayer from "@/components/AudioPlayer";
-import TagBadge from "@/components/TagBadge";
-import RecordingOptionsModal from "@/components/RecordingOptionsModal";
-import { formatDate, formatDuration, formatFileSize } from "@/utils/formatters";
+} from "../../store/recordingsStore";
+import { globalStyles, theme } from "../../constants/theme";
+import colors from "../../constants/colors";
+import AudioPlayer from "../../components/AudioPlayer";
+import TagBadge from "../../components/TagBadge";
+import RecordingOptionsModal from "../../components/RecordingOptionsModal";
+import {
+  formatDate,
+  formatDuration,
+  formatFileSize,
+} from "../../utils/formatters";
 
 export default function RecordingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

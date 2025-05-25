@@ -39,10 +39,10 @@ import {
   Clock,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import colors from "@/constants/colors";
-import { theme, globalStyles } from "@/constants/theme";
-import { useOnboardingStore } from "@/store/onboardingStore";
-import { formatDuration } from "@/utils/formatters";
+import colors from "../../constants/colors";
+import { theme, globalStyles } from "../../constants/theme";
+import { useOnboardingStore } from "../../store/onboardingStore";
+import { formatDuration } from "../../utils/formatters";
 
 // Top navigation items
 const topNavItems = [

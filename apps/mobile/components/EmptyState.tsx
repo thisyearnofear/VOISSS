@@ -1,8 +1,8 @@
 import React from "react";
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { FileAudio, Import, Search as SearchIcon } from "lucide-react-native";
-import { theme, globalStyles } from "@/constants/theme";
-import colors from "@/constants/colors";
+import { theme, globalStyles } from "../constants/theme";
+import colors from "../constants/colors";
 
 interface EmptyStateProps {
   title: string;

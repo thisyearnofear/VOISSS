@@ -1,11 +1,11 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Heart, MoreVertical, Play } from "lucide-react-native";
-import { Recording } from "@/types/recording";
-import { formatDuration, formatRelativeTime } from "@/utils/formatters";
-import { useRecordingTags } from "@/store/recordingsStore";
-import { theme, globalStyles } from "@/constants/theme";
-import colors from "@/constants/colors";
+import { Recording } from "../types/recording";
+import { formatDuration, formatRelativeTime } from "../utils/formatters";
+import { useRecordingTags } from "../store/recordingsStore";
+import { theme, globalStyles } from "../constants/theme";
+import colors from "../constants/colors";
 import TagBadge from "./TagBadge";
 
 interface RecordingItemProps {

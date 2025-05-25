@@ -15,8 +15,19 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "composite": true
+    "composite": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true
   },
-  "include": ["src/**/*"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/index.ts",
+    "src/types.ts",
+    "src/utils.ts",
+    "src/constants.ts",
+    "src/theme.ts",
+    "src/starknet/index.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

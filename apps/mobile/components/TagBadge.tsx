@@ -1,10 +1,10 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { X } from "lucide-react-native";
-import { Tag } from "@/types/recording";
-import { theme } from "@/constants/theme";
-import colors from "@/constants/colors";
-import { useRecordingsStore } from "@/store/recordingsStore";
+import { Tag } from "../types/recording";
+import { theme } from "../constants/theme";
+import colors from "../constants/colors";
+import { useRecordingsStore } from "../store/recordingsStore";
 
 interface TagBadgeProps {
   tag?: Tag;

@@ -10,9 +10,9 @@ import {
   Copy,
   X,
 } from "lucide-react-native";
-import { theme, globalStyles } from "@/constants/theme";
-import colors from "@/constants/colors";
-import { Recording } from "@/types/recording";
+import { theme, globalStyles } from "../constants/theme";
+import colors from "../constants/colors";
+import { Recording } from "../types/recording";
 
 interface RecordingOptionsModalProps {
   visible: boolean;

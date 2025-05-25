@@ -4,6 +4,16 @@
 
 The mobile app provides a native, high-performance interface for recording, organizing, and sharing voice content on Starknet. Designed for iOS and Android with offline-first architecture.
 
+## ✅ **CURRENT STATUS: WORKING**
+
+- ✅ **Development Server**: Running with Expo tunnel
+- ✅ **QR Code Access**: Available for testing on physical devices
+- ✅ **Metro Bundler**: Building and hot reloading successfully
+- ✅ **Cross-platform**: iOS, Android, and Web builds working
+- ✅ **Shared Components**: Using @voisss/ui and @voisss/shared packages
+- ✅ **Expo Router**: File-based navigation implemented
+- ✅ **Development Workflow**: Optimized for monorepo structure
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -25,12 +35,11 @@ The mobile app provides a native, high-performance interface for recording, orga
 2. **Start the development server**:
 
    ```bash
-   # From project root
+   # From project root (RECOMMENDED for monorepo)
    pnpm dev:mobile
-
-   # Or from apps/mobile directory
-   pnpm start
    ```
+
+   > **⚠️ Important**: Always run from the project root to ensure proper workspace dependency resolution in this monorepo setup.
 
 3. **Test on device/simulator**:
    - **Physical Device**: Scan QR code with Expo Go app
@@ -77,8 +86,8 @@ The mobile app provides a native, high-performance interface for recording, orga
 apps/mobile/
 ├── app/                  # Expo Router pages
 │   ├── tabs/            # Tab navigation screens
-│   ├── hooks/           # Mobile-specific hooks (useStarknet)
 │   └── _layout.tsx      # Root layout
+├── hooks/               # Mobile-specific hooks (useStarknet)
 ├── components/          # Mobile-specific React components
 ├── constants/           # App constants and theme
 ├── store/              # Zustand state management
@@ -97,7 +106,7 @@ The app integrates with Starknet mobile wallets through Starknet.dart:
 
 ```typescript
 // Example: Connect to Starknet wallet
-import { useStarknet } from "@/hooks/useStarknet";
+import { useStarknet } from "../hooks/useStarknet";
 
 const { connect, isConnected, account } = useStarknet();
 
@@ -123,29 +132,35 @@ await storeRecordingMetadata(metadata);
 ## 🧪 Testing & Building
 
 ```bash
-# Start development server
-pnpm start
+# Start development server (from project root)
+pnpm dev:mobile
 
-# Run on specific platforms
-pnpm run ios          # iOS Simulator
-pnpm run android      # Android Emulator
-pnpm run web          # Web browser
+# Run on specific platforms (press keys in terminal)
+# i - iOS Simulator
+# a - Android Emulator
+# w - Web browser
 
-# Build for production
-pnpm run build
+# Build for production (from project root)
+pnpm build
 
-# Create production builds
-expo build:ios        # iOS App Store
-expo build:android    # Google Play Store
+# Or build mobile only
+turbo run build --filter=mobile
 ```
 
 ## 🔧 Available Scripts
 
+**From project root (recommended):**
+
+- `pnpm dev:mobile` - Start mobile development server
+- `pnpm build` - Build all apps including mobile
+- `pnpm lint` - Lint all packages
+- `pnpm clean` - Clean all build artifacts
+
+**From apps/mobile directory (if needed):**
+
 - `pnpm start` - Start Expo development server
-- `pnpm dev` - Alias for start with tunnel
-- `pnpm build` - Build for production
-- `pnpm lint` - Run ESLint
-- `pnpm clean` - Clean build artifacts
+- `pnpm build` - Build mobile app only
+- `pnpm clean` - Clean mobile build artifacts
 
 ## 📱 Platform-Specific Notes
 
@@ -175,8 +190,10 @@ expo build:android    # Google Play Store
 1. **Metro bundler fails to start**:
 
    ```bash
+   # From project root
    pnpm clean
    pnpm install
+   pnpm dev:mobile
    ```
 
 2. **Starknet connection issues**:

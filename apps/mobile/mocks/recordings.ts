@@ -1,5 +1,5 @@
-import { Recording, Tag } from "@/types/recording";
-import colors from "@/constants/colors";
+import { Recording, Tag } from "../types/recording";
+import colors from "../constants/colors";
 
 // Mock tags
 export const mockTags: Tag[] = [

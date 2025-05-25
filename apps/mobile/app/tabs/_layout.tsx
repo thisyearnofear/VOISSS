@@ -1,8 +1,8 @@
 import React from "react";
 import { Tabs } from "expo-router";
 import { FileAudio, Settings, Import } from "lucide-react-native";
-import colors from "@/constants/colors";
-import { useStarknetStatus } from "@/hooks/useStarknet";
+import colors from "../../constants/colors";
+import { useStarknetStatus } from "../../hooks/useStarknet";
 import { View, Text, StyleSheet } from "react-native";
 
 export default function TabsLayout() {

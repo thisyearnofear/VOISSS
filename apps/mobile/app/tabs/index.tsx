@@ -12,15 +12,18 @@ import { Plus } from "lucide-react-native";
 import {
   useFilteredRecordings,
   useRecordingsStore,
-} from "@/store/recordingsStore";
-import { globalStyles } from "@/constants/theme";
-import colors from "@/constants/colors";
-import RecordingItem from "@/components/RecordingItem";
-import SearchBar from "@/components/SearchBar";
-import FilterModal from "@/components/FilterModal";
-import RecordingOptionsModal from "@/components/RecordingOptionsModal";
-import { ImportEmptyState, SearchEmptyState } from "@/components/EmptyState";
-import { Recording } from "@/types/recording";
+} from "../../store/recordingsStore";
+import { globalStyles } from "../../constants/theme";
+import colors from "../../constants/colors";
+import RecordingItem from "../../components/RecordingItem";
+import SearchBar from "../../components/SearchBar";
+import FilterModal from "../../components/FilterModal";
+import RecordingOptionsModal from "../../components/RecordingOptionsModal";
+import {
+  ImportEmptyState,
+  SearchEmptyState,
+} from "../../components/EmptyState";
+import { Recording } from "../../types/recording";
 
 export default function RecordingsScreen() {
   const router = useRouter();
