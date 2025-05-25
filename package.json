@@ -1,0 +1,36 @@
+{
+  "name": "voisss",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Next-generation voice recording platform built for Starknet Reignite Hackathon",
+  "keywords": [
+    "voice",
+    "recording",
+    "starknet",
+    "blockchain",
+    "decentralized",
+    "hackathon"
+  ],
+  "author": "VOISSS Team",
+  "license": "MIT",
+  "scripts": {
+    "dev": "pnpm --filter @voisss/web dev",
+    "dev:web": "pnpm --filter @voisss/web dev",
+    "dev:mobile": "pnpm --filter @voisss/mobile dev",
+    "build": "pnpm -r build",
+    "build:web": "pnpm --filter @voisss/web build",
+    "build:mobile": "pnpm --filter @voisss/mobile build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r clean && rm -rf node_modules",
+    "install:all": "pnpm install"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "name": "@voisss/ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared UI components for VOISSS platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "lint": "eslint src --ext .ts,.tsx",
+    "test": "jest",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@voisss/shared": "workspace:*",
+    "clsx": "^2.0.0",
+    "tailwind-merge": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/node": "^20",
+    "typescript": "^5",
+    "eslint": "^9",
+    "jest": "^29",
+    "@storybook/react": "^7",
+    "@storybook/react-vite": "^7"
+  },
+  "peerDependencies": {
+    "react": ">=18.2.0",
+    "react-dom": ">=18.2.0"
+  }
+}
