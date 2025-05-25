@@ -274,10 +274,14 @@ hackathon-starknet/
 build/
 flutter_*.png
 flutter_*.log
+pubspec.lock
+devtools_options.yaml
 **/ios/Flutter/Generated.xcconfig
 **/ios/Flutter/ephemeral/
 **/ios/Flutter/flutter_export_environment.sh
 **/ios/Runner/GeneratedPluginRegistrant.*
+**/ios/Runner/Info.plist
+**/ios/
 **/android/app/debug
 **/android/app/profile
 **/android/app/release
