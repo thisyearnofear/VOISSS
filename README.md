@@ -1,17 +1,20 @@
-# VOISSS
+# VOISSS 🎤
 
-**Built exclusively for the Starknet Reignite Hackathon**
+> **Built exclusively for the Starknet Re{ignite} Hackathon**
 
-VOISSS is a next-generation voice recording platform designed to transform how we capture, organize, and share audio content. This comprehensive solution includes both a **Decentralised App** and **Mobile App** working together to offer users a complete voice recording ecosystem on Starknet.
+VOISSS is a next-generation decentralized voice recording platform that transforms how we capture, organize, and share audio content. Built as a comprehensive monorepo solution with both **Web dApp** and **Mobile App** working together to offer users a complete voice recording ecosystem on Starknet.
 
-![VOISSS App](https://images.unsplash.com/photo-1590602847861-f357a9332bbc?q=80&w=2070&auto=format&fit=crop)
+![VOISSS Platform](https://images.unsplash.com/photo-1590602847861-f357a9332bbc?q=80&w=2070&auto=format&fit=crop)
 
-## 🏆 Starknet Hackathon: Re{ignite}
+## 🏆 Starknet Re{ignite} Hackathon
 
-**Hackathon TG Group**: https://t.me/+jG3_jEJF8YFmOTY1
-**Workshop Calendar**: https://tinyurl.com/4zk6ru24
+**🔗 Links:**
 
-VOISSS is being developed exclusively for the Starknet Re{ignite} hackathon, competing in both tracks:
+- **Hackathon TG Group**: https://t.me/+jG3_jEJF8YFmOTY1
+- **Workshop Calendar**: https://tinyurl.com/4zk6ru24
+- **GitHub Repository**: https://github.com/thisyearnofear/VOISSS
+
+**🏅 Competing Tracks:**
 
 ### 🥇 Build Mobile Apps with Starknet.dart ($10,000 USD)
 
@@ -25,7 +28,7 @@ VOISSS is being developed exclusively for the Starknet Re{ignite} hackathon, com
 - **2nd Prize**: 2 x $2,000 in STRK
 - **3rd Prize**: 3 x $1,000 in STRK
 
-**Total Prize Pool**: Over $33,000 STRK + up to $25,000 additional funding + Startup House opportunity in Cannes
+**💰 Total Prize Pool**: Over $33,000 STRK + up to $25,000 additional funding + Startup House opportunity in Cannes
 
 ## 🎯 The Problem
 
@@ -59,20 +62,35 @@ VOISSS addresses these challenges through a dual-platform approach:
 
 ## 🛠 Tech Stack & Architecture
 
-VOISSS is built as a **monorepo** using npm workspaces, enabling shared code and consistent development across platforms.
+VOISSS is built as a **monorepo** using pnpm workspaces and Turbo for optimal development experience and code sharing across platforms.
 
-### 📁 Monorepo Structure
+### 📁 Project Structure
 
 ```
 voisss/
 ├── apps/
-│   ├── mobile/          # React Native + Expo + Starknet.dart
-│   └── web/             # Next.js + Starknet
+│   ├── mobile/                 # React Native + Expo + Starknet.dart
+│   │   ├── app/               # Expo Router pages
+│   │   ├── components/        # Mobile-specific components
+│   │   ├── hooks/             # Mobile-specific hooks (useStarknet)
+│   │   └── package.json
+│   └── web/                   # Next.js + Starknet.js
+│       ├── src/               # Web app source
+│       ├── public/            # Static assets
+│       └── package.json
 ├── packages/
-│   ├── shared/          # Common types, utilities, constants
-│   ├── contracts/       # Starknet smart contracts (Cairo)
-│   └── ui/              # Shared React components
-└── package.json         # Root workspace configuration
+│   ├── shared/                # Common types, utilities, constants
+│   │   ├── src/types/         # Shared TypeScript types
+│   │   └── src/utils/         # Shared utility functions
+│   ├── contracts/             # Starknet smart contracts (Cairo)
+│   │   ├── src/               # Cairo contract source
+│   │   └── Scarb.toml         # Cairo project config
+│   └── ui/                    # Shared React components
+│       ├── src/components/    # Cross-platform components
+│       └── src/styles/        # Shared styling
+├── turbo.json                 # Turbo build configuration
+├── pnpm-workspace.yaml        # pnpm workspace config
+└── package.json               # Root workspace configuration
 ```
 
 ### 📱 Mobile App (`apps/mobile`)
@@ -80,22 +98,25 @@ voisss/
 - **Framework**: React Native with Expo 53
 - **Blockchain**: Starknet.dart for mobile blockchain integration
 - **Navigation**: Expo Router for file-based routing
-- **Audio Processing**: Expo AV for recording and playback
-- **Shared Dependencies**: `@voisss/shared`, `@voisss/ui`
+- **Audio**: Expo AV for recording and playback
+- **Styling**: NativeWind (Tailwind for React Native)
+- **State**: Zustand for state management
+- **Dependencies**: `@voisss/shared`, `@voisss/ui`
 
 ### 🌐 Web App (`apps/web`)
 
 - **Framework**: Next.js 15.3.2 with TypeScript
-- **Blockchain**: Starknet.js for web blockchain integration
+- **Blockchain**: Starknet.js + Starknet React for web integration
 - **Styling**: Tailwind CSS 4
-- **Build Tool**: Turbopack for fast development
-- **Shared Dependencies**: `@voisss/shared`, `@voisss/ui`
+- **Build**: Turbopack for fast development
+- **State**: React Context + Zustand
+- **Dependencies**: `@voisss/shared`, `@voisss/ui`
 
 ### 📦 Shared Packages
 
-- **`@voisss/shared`**: Common types, utilities, and constants
-- **`@voisss/contracts`**: Starknet smart contracts in Cairo
-- **`@voisss/ui`**: Reusable React components for both platforms
+- **`@voisss/shared`**: Common types, utilities, constants, and business logic
+- **`@voisss/contracts`**: Starknet smart contracts written in Cairo
+- **`@voisss/ui`**: Cross-platform React components and design system
 
 ### 🏛 Architectural Decision: Monorepo
 
@@ -147,18 +168,21 @@ This architectural choice optimizes for the hackathon timeline while maintaining
 - **User Experience**: Smooth, gesture-based interactions with accessibility in mind
 - **Cross-Platform**: Seamless experience between mobile and web applications
 
-## 🏗 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js 18+
-- **pnpm 8+** (recommended package manager for monorepos)
-- Expo CLI (for mobile development)
-- Starknet development environment (Scarb, Starkli)
+- **Node.js 18+**
+- **pnpm 8+** (recommended for monorepos)
+- **Git** for version control
 
 ### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/thisyearnofear/VOISSS.git
+cd VOISSS
+
 # Install pnpm globally (if not already installed)
 npm install -g pnpm
 
@@ -166,51 +190,52 @@ npm install -g pnpm
 pnpm install
 ```
 
-### Development
+### Development Commands
 
 ```bash
-# Start web app development server
-pnpm dev
-# or specifically
+# 🌐 Start web app (Next.js)
 pnpm dev:web
+# Opens http://localhost:3000
 
-# Start mobile app development
+# 📱 Start mobile app (Expo)
 pnpm dev:mobile
+# Shows QR code for Expo Go app
 
-# Build all apps
+# 🏗️ Build all apps
 pnpm build
 
-# Run tests across all packages
+# 🧪 Run tests across all packages
 pnpm test
 
-# Lint all packages
+# 🔍 Lint all packages
 pnpm lint
+
+# 🧹 Clean all build artifacts
+pnpm clean
 ```
 
 ### Individual App Development
 
-```bash
-# Web app (Next.js)
-cd apps/web
-pnpm dev
-# Open http://localhost:3000
+For detailed setup instructions for each app, see:
 
-# Mobile app (React Native + Expo)
-cd apps/mobile
-pnpm start
-```
+- **Web App**: [`apps/web/README.md`](./apps/web/README.md)
+- **Mobile App**: [`apps/mobile/README.md`](./apps/mobile/README.md)
 
 ### Package Development
 
 ```bash
-# Shared package
+# Shared utilities and types
 cd packages/shared
 pnpm dev  # Watch mode for TypeScript compilation
 
-# Smart contracts
+# Smart contracts (Cairo)
 cd packages/contracts
 pnpm build  # Build Cairo contracts
 pnpm test   # Run contract tests
+
+# UI components
+cd packages/ui
+pnpm dev  # Watch mode for component development
 ```
 
 ## 📋 Hackathon Acceptance Criteria
@@ -247,13 +272,81 @@ VOISSS is designed for long-term value, not "hack-and-forget":
 - **Fast-track Support**: Starkware Marketing support and ecosystem listing
 - **Startup House**: Potential selection for Cannes Startup House program
 
-## 📚 Resources
+## � Troubleshooting
 
-- [Starknet.dart Documentation](https://starknetdart.dev/)
-- [Starknet.dart GitHub](https://github.com/focustree/starknet.dart)
-- [Mobile Wallet Example](https://starknetdart.dev/examples/mobile-wallet)
-- [Starknet Counter Example](https://starknetdart.dev/examples/starknet-counter)
+### Common Issues
+
+#### Installation Problems
+
+```bash
+# Clear all caches and reinstall
+pnpm clean
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
+```
+
+#### Mobile App Issues
+
+- **Metro bundler fails**: Clear Expo cache with `expo start -c`
+- **Starknet connection**: Ensure testnet network and wallet compatibility
+- **Audio permissions**: Check device microphone permissions
+
+#### Web App Issues
+
+- **Build failures**: Check Node.js version (18+) and clear Next.js cache
+- **Wallet connection**: Ensure browser wallet extension is installed and unlocked
+
+#### Package Issues
+
+- **Workspace dependencies**: Run `pnpm install` from project root
+- **Type errors**: Ensure all packages are built with `pnpm build`
+
+### Getting Help
+
+1. **Check existing issues**: [GitHub Issues](https://github.com/thisyearnofear/VOISSS/issues)
+2. **Hackathon support**: [Telegram Group](https://t.me/+jG3_jEJF8YFmOTY1)
+3. **Starknet resources**: [Starknet Documentation](https://docs.starknet.io/)
+
+## �📚 Resources & Documentation
+
+### Starknet Development
+
+- [Starknet.dart Documentation](https://starknetdart.dev/) - Mobile blockchain integration
+- [Starknet.js Documentation](https://starknetjs.com/) - Web blockchain integration
+- [Cairo Book](https://book.cairo-lang.org/) - Smart contract development
+- [Starknet Foundry](https://foundry-rs.github.io/starknet-foundry/) - Testing framework
+
+### Framework Documentation
+
+- [Next.js Documentation](https://nextjs.org/docs) - Web framework
+- [Expo Documentation](https://docs.expo.dev/) - Mobile framework
+- [React Native Documentation](https://reactnative.dev/docs/getting-started) - Mobile development
+
+### Example Projects
+
+- [Mobile Wallet Example](https://starknetdart.dev/examples/mobile-wallet) - Starknet.dart integration
+- [Starknet Counter Example](https://starknetdart.dev/examples/starknet-counter) - Basic contract interaction
+- [Demo dApp Starknet](https://github.com/argentlabs/demo-dapp-starknet) - Web dApp example
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](./CONTRIBUTING.md) for details.
+
+### Development Workflow
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes and test thoroughly
+4. Commit with conventional commits: `git commit -m "feat: add amazing feature"`
+5. Push to your fork: `git push origin feature/amazing-feature`
+6. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
 ---
 
-**Are you ready to Re{ignite} the future of voice recording?** 🎤✨
+**🎤 Ready to Re{ignite} the future of voice recording on Starknet?**
+
+Join us in building the next generation of decentralized audio platforms! ✨
