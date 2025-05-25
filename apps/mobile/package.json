@@ -7,6 +7,7 @@
     "start-web": "expo start --web --tunnel",
     "start-web-dev": "DEBUG=expo* expo start --web --tunnel",
     "dev": "expo start --tunnel",
+    "dev:tunnel": "expo start --tunnel",
     "build": "expo export",
     "lint": "eslint .",
     "clean": "rm -rf .expo .turbo node_modules"
@@ -18,8 +19,10 @@
     "@voisss/shared": "workspace:*",
     "@voisss/ui": "workspace:*",
     "expo": "^53.0.9",
+    "expo-audio": "^0.4.5",
     "expo-blur": "~14.1.4",
     "expo-constants": "~17.1.6",
+    "expo-file-system": "^18.1.10",
     "expo-font": "~13.3.1",
     "expo-haptics": "~14.1.4",
     "expo-image": "~2.1.7",

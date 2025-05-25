@@ -222,6 +222,10 @@ pnpm dev:web
 # 📱 Start mobile React Native app (Expo)
 pnpm dev:mobile
 # Shows QR code for Expo Go app ✅ WORKING
+# 🔧 IMPORTANT: Uses tunnel mode for Expo Go compatibility
+# - Expo Go: Scan QR code (works with tunnel)
+# - Web testing: http://localhost:8082 (when 8081 is busy)
+# - Simulators: Press 'i' for iOS, 'a' for Android
 
 # 📱 Start mobile Flutter app (Chrome)
 pnpm dev:flutter
@@ -255,13 +259,142 @@ pnpm clean
 - ✅ **Development Scripts**: All dev commands working with correct package names
 - ✅ **Flutter SDK**: Installed and configured (v3.32.0)
 
-### 🔄 **NEXT STEPS**
+### 🔄 **ENHANCEMENT ROADMAP**
 
-- 🔄 **Voice Recording**: Implement actual recording functionality across all apps
-- 🔄 **Starknet Integration**: Complete wallet connection and smart contract interaction
-- 🔄 **Audio Storage**: Implement decentralized storage for voice recordings
-- 🔄 **Smart Contracts**: Deploy Cairo contracts for voice recording management
-- 🔄 **UI Enhancement**: Add advanced features and polish user experience
+## 📋 **Detailed Enhancement Plan for VOISSS**
+
+### **Current State Analysis:**
+
+✅ **Strengths:**
+
+- Complete three-app ecosystem (Web, React Native, Flutter)
+- Working monorepo with shared packages
+- Basic Starknet integration scaffolding
+- Flutter app has actual voice recording functionality implemented
+- Consistent project structure and build pipeline
+
+🔄 **Areas for Enhancement:**
+
+- Voice recording is only fully implemented in Flutter app
+- Starknet integration is mostly mocked/demo across all apps
+- Styling inconsistencies between apps
+- Missing smart contracts for voice storage
+- No cross-app functionality/synchronization
+
+### **Enhancement Phases:**
+
+#### **Phase 1: 🎤 Implement Real Voice Recording Functionality**
+
+**Priority: HIGH** - Core feature of the platform
+
+**Web App (Next.js):**
+
+- [x] ✅ Implement Web Audio API for browser recording
+- [x] ✅ Add waveform visualization using Web Audio API
+- [x] ✅ Create recording controls and playback functionality
+- [x] ✅ Add audio file export and download
+
+**React Native App:**
+
+- [x] ✅ Implement Expo AV recording (currently scaffolded)
+- [x] ✅ Add real-time waveform visualization
+- [x] ✅ Integrate with device audio permissions
+- [x] ✅ Add recording quality settings
+
+**Flutter App:**
+
+- [x] ✅ Already implemented - use as reference for other apps
+- [ ] Enhance with additional features like audio effects
+- [ ] Add recording metadata and tagging
+
+#### **Phase 2: 🔗 Enhance Starknet Integration**
+
+**Priority: HIGH** - Core blockchain functionality
+
+**Smart Contracts:**
+
+- [ ] Create VoiceStorage contract for metadata storage
+- [ ] Implement UserRegistry for user profiles
+- [ ] Add IPFS integration for decentralized audio storage
+- [ ] Deploy contracts to Starknet testnet
+
+**Web App:**
+
+- [ ] Replace mock Starknet provider with real starknet-react integration
+- [ ] Implement wallet connection (ArgentX, Braavos)
+- [ ] Add contract interaction for storing recording metadata
+- [ ] Create transaction history and status tracking
+
+**Mobile Apps:**
+
+- [ ] Enhance React Native with proper starknet.js integration
+- [ ] Improve Flutter starknet.dart integration beyond demo mode
+- [ ] Add mobile wallet connection flows
+- [ ] Implement cross-platform wallet state synchronization
+
+#### **Phase 3: 🎨 Consistent Styling & Brand Identity**
+
+**Priority: MEDIUM** - User experience enhancement
+
+**Design System:**
+
+- [ ] Expand shared UI package with comprehensive component library
+- [ ] Create consistent color palette, typography, and spacing
+- [ ] Implement dark/light theme support across all apps
+- [ ] Add VOISSS brand guidelines and assets
+
+**Cross-Platform Consistency:**
+
+- [ ] Standardize button styles, cards, and layouts
+- [ ] Ensure consistent VOISSS branding
+- [ ] Create shared icons and illustrations
+- [ ] Implement responsive design patterns
+
+#### **Phase 4: 🏗️ Smart Contract Development & Deployment**
+
+**Priority: HIGH** - Blockchain foundation
+
+**Core Contracts:**
+
+- [ ] VoiceStorage: Recording metadata, IPFS hashes, ownership
+- [ ] UserRegistry: User profiles, reputation, social features
+- [ ] Marketplace: Future monetization features
+- [ ] AccessControl: Privacy and sharing permissions
+
+**Integration:**
+
+- [ ] Deploy to Starknet testnet
+- [ ] Generate TypeScript bindings for web app
+- [ ] Create Dart bindings for Flutter app
+- [ ] Add contract testing and verification
+
+#### **Phase 5: 🌐 Cross-App Features & Synchronization**
+
+**Priority: MEDIUM** - Unified ecosystem
+
+**Data Synchronization:**
+
+- [ ] Implement recording synchronization across apps
+- [ ] Add user profile sync via blockchain
+- [ ] Create unified recording library
+- [ ] Add cross-device playback history
+
+**Social Features:**
+
+- [ ] User following and discovery
+- [ ] Public recording sharing
+- [ ] Community features and trending content
+- [ ] Creator monetization tools
+
+### **Implementation Timeline:**
+
+- **Phase 1**: 1-2 days (Core voice recording)
+- **Phase 2**: 2-3 days (Starknet integration)
+- **Phase 3**: 1-2 days (Styling & UX)
+- **Phase 4**: 2-3 days (Smart contracts)
+- **Phase 5**: 1-2 days (Cross-app features)
+
+**Total Estimated Time**: 7-12 days for complete enhancement
 
 ## 🎉 **DEPLOYMENT SUCCESS SUMMARY**
 

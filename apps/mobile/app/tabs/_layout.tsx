@@ -1,6 +1,6 @@
 import React from "react";
 import { Tabs } from "expo-router";
-import { FileAudio, Settings, Import } from "lucide-react-native";
+import { FileAudio, Settings, Import, Mic } from "lucide-react-native";
 import colors from "../../constants/colors";
 import { useStarknetStatus } from "../../hooks/useStarknet";
 import { View, Text, StyleSheet } from "react-native";
@@ -49,6 +49,13 @@ export default function TabsLayout() {
               </Text>
             </View>
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="record"
+        options={{
+          title: "Record",
+          tabBarIcon: ({ color }) => <Mic size={24} color={color} />,
         }}
       />
       <Tabs.Screen

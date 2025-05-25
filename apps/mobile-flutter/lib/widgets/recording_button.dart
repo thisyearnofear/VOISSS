@@ -51,45 +51,66 @@ class RecordingButton extends StatelessWidget {
               ),
               const SizedBox(height: 16),
             ],
-            
-            // Recording Button
+
+            // Recording Button with Enhanced Animation
             GestureDetector(
-              onTap: recordings.isRecording 
+              onTap: recordings.isRecording
                 ? () => _stopRecording(context)
                 : () => _startRecording(context),
-              child: Container(
-                width: 120,
-                height: 120,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: recordings.isRecording ? 140 : 120,
+                height: recordings.isRecording ? 140 : 120,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: recordings.isRecording 
-                    ? Colors.red 
+                  color: recordings.isRecording
+                    ? Colors.red
                     : const Color(0xFF7C5DFA),
                   boxShadow: [
                     BoxShadow(
-                      color: (recordings.isRecording 
-                        ? Colors.red 
-                        : const Color(0xFF7C5DFA)).withOpacity(0.3),
-                      blurRadius: 20,
-                      spreadRadius: 5,
+                      color: (recordings.isRecording
+                        ? Colors.red
+                        : const Color(0xFF7C5DFA)).withOpacity(0.4),
+                      blurRadius: recordings.isRecording ? 30 : 20,
+                      spreadRadius: recordings.isRecording ? 10 : 5,
                     ),
                   ],
                 ),
-                child: Icon(
-                  recordings.isRecording 
-                    ? Icons.stop 
-                    : Icons.mic,
-                  size: 48,
-                  color: Colors.white,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Pulse animation for recording
+                    if (recordings.isRecording)
+                      AnimatedContainer(
+                        duration: const Duration(seconds: 1),
+                        width: 160,
+                        height: 160,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.red.withOpacity(0.3),
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                    // Main icon
+                    Icon(
+                      recordings.isRecording
+                        ? Icons.stop_rounded
+                        : Icons.mic_rounded,
+                      size: recordings.isRecording ? 56 : 48,
+                      color: Colors.white,
+                    ),
+                  ],
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             Text(
-              recordings.isRecording 
-                ? 'Tap to stop recording' 
+              recordings.isRecording
+                ? 'Tap to stop recording'
                 : 'Tap to start recording',
               style: TextStyle(
                 fontSize: 16,
@@ -111,7 +132,7 @@ class RecordingButton extends StatelessWidget {
 
   Future<void> _startRecording(BuildContext context) async {
     final recordings = context.read<RecordingsProvider>();
-    
+
     try {
       await recordings.startRecording();
     } catch (e) {
@@ -128,10 +149,10 @@ class RecordingButton extends StatelessWidget {
 
   Future<void> _stopRecording(BuildContext context) async {
     final recordings = context.read<RecordingsProvider>();
-    
+
     try {
       await recordings.stopRecording();
-      
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

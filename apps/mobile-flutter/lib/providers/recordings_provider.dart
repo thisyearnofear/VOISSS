@@ -5,17 +5,19 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import '../models/recording.dart';
+import '../services/starknet_recording_service.dart';
 
 class RecordingsProvider extends ChangeNotifier {
   final AudioRecorder _recorder = AudioRecorder();
   final AudioPlayer _player = AudioPlayer();
-  
+  final StarknetRecordingService _starknetService = StarknetRecordingService();
+
   List<Recording> _recordings = [];
   bool _isRecording = false;
   bool _isPlaying = false;
   String? _currentlyPlaying;
   Duration _recordingDuration = Duration.zero;
-  
+
   // Getters
   List<Recording> get recordings => _recordings;
   bool get isRecording => _isRecording;
@@ -26,7 +28,7 @@ class RecordingsProvider extends ChangeNotifier {
   Future<bool> requestPermissions() async {
     final microphoneStatus = await Permission.microphone.request();
     final storageStatus = await Permission.storage.request();
-    
+
     return microphoneStatus.isGranted && storageStatus.isGranted;
   }
 
@@ -69,11 +71,11 @@ class RecordingsProvider extends ChangeNotifier {
     try {
       final path = await _recorder.stop();
       _isRecording = false;
-      
+
       if (path != null) {
         final file = File(path);
         final fileSize = await file.length();
-        
+
         final recording = Recording(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           title: 'Recording ${_recordings.length + 1}',
@@ -83,10 +85,10 @@ class RecordingsProvider extends ChangeNotifier {
           fileSize: fileSize,
           tags: [],
         );
-        
+
         _recordings.insert(0, recording);
       }
-      
+
       _recordingDuration = Duration.zero;
       notifyListeners();
     } catch (e) {
@@ -98,7 +100,7 @@ class RecordingsProvider extends ChangeNotifier {
 
   Future<void> playRecording(String recordingId) async {
     final recording = _recordings.firstWhere((r) => r.id == recordingId);
-    
+
     if (_isPlaying && _currentlyPlaying == recordingId) {
       await _player.pause();
       _isPlaying = false;
@@ -107,11 +109,11 @@ class RecordingsProvider extends ChangeNotifier {
       if (_isPlaying) {
         await _player.stop();
       }
-      
+
       await _player.play(DeviceFileSource(recording.filePath));
       _isPlaying = true;
       _currentlyPlaying = recordingId;
-      
+
       // Listen for completion
       _player.onPlayerComplete.listen((_) {
         _isPlaying = false;
@@ -119,26 +121,26 @@ class RecordingsProvider extends ChangeNotifier {
         notifyListeners();
       });
     }
-    
+
     notifyListeners();
   }
 
   Future<void> deleteRecording(String recordingId) async {
     final recording = _recordings.firstWhere((r) => r.id == recordingId);
-    
+
     // Stop playing if this recording is currently playing
     if (_currentlyPlaying == recordingId) {
       await _player.stop();
       _isPlaying = false;
       _currentlyPlaying = null;
     }
-    
+
     // Delete the file
     final file = File(recording.filePath);
     if (await file.exists()) {
       await file.delete();
     }
-    
+
     // Remove from list
     _recordings.removeWhere((r) => r.id == recordingId);
     notifyListeners();
@@ -177,11 +179,11 @@ class RecordingsProvider extends ChangeNotifier {
   void _startDurationTimer() {
     Future.doWhile(() async {
       if (!_isRecording) return false;
-      
+
       await Future.delayed(const Duration(seconds: 1));
       _recordingDuration = Duration(seconds: _recordingDuration.inSeconds + 1);
       notifyListeners();
-      
+
       return _isRecording;
     });
   }

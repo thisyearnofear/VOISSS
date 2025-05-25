@@ -6,12 +6,17 @@
   "scripts": {
     "build": "scarb build",
     "test": "scarb test",
-    "deploy:testnet": "starkli deploy --network testnet",
+    "deploy": "tsx scripts/deploy.ts",
+    "deploy:testnet": "tsx scripts/deploy.ts",
     "deploy:mainnet": "starkli deploy --network mainnet",
     "clean": "scarb clean"
   },
+  "dependencies": {
+    "starknet": "^6.24.1"
+  },
   "devDependencies": {
     "@types/node": "^20",
-    "typescript": "^5"
+    "typescript": "^5",
+    "tsx": "^4.7.0"
   }
 }

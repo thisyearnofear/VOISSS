@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "scheme": "voisss",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#000000"
@@ -18,6 +18,10 @@
       "adaptiveIcon": {
         "backgroundColor": "#000000"
       }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
     },
     "plugins": ["expo-router"],
     "experiments": {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/starknet_provider.dart';
+import '../screens/wallet_connection_screen.dart';
 
 class WalletSelector extends StatelessWidget {
   const WalletSelector({super.key});
@@ -27,7 +28,7 @@ class WalletSelector extends StatelessWidget {
                 color: Color(0xFF7C5DFA),
               ),
               const SizedBox(height: 16),
-              
+
               const Text(
                 'Connect Your Starknet Wallet',
                 style: TextStyle(
@@ -38,7 +39,7 @@ class WalletSelector extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
-              
+
               Text(
                 'Connect your wallet to store recordings on Starknet blockchain',
                 style: TextStyle(
@@ -47,7 +48,7 @@ class WalletSelector extends StatelessWidget {
                 ),
                 textAlign: TextAlign.center,
               ),
-              
+
               if (starknet.error != null) ...[
                 const SizedBox(height: 16),
                 Container(
@@ -81,15 +82,15 @@ class WalletSelector extends StatelessWidget {
                   ),
                 ),
               ],
-              
+
               const SizedBox(height: 20),
-              
+
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: starknet.isConnecting 
-                    ? null 
-                    : () => _connectWallet(context),
+                  onPressed: starknet.isConnecting
+                    ? null
+                    : () => _openWalletConnectionScreen(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF7C5DFA),
                     foregroundColor: Colors.white,
@@ -117,9 +118,9 @@ class WalletSelector extends StatelessWidget {
                       ),
                 ),
               ),
-              
+
               const SizedBox(height: 12),
-              
+
               Text(
                 'Supported: ArgentX • Braavos • Demo Mode',
                 style: TextStyle(
@@ -135,29 +136,12 @@ class WalletSelector extends StatelessWidget {
     );
   }
 
-  Future<void> _connectWallet(BuildContext context) async {
-    final starknet = context.read<StarknetProvider>();
-    
-    try {
-      await starknet.connectWallet();
-      
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Wallet connected successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to connect wallet: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+  void _openWalletConnectionScreen(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const WalletConnectionScreen(),
+      ),
+    );
   }
 }

@@ -183,7 +183,10 @@ export default function RecordingsScreen() {
           ListEmptyComponent={renderEmptyState}
         />
 
-        <TouchableOpacity style={styles.fabButton}>
+        <TouchableOpacity
+          style={styles.fabButton}
+          onPress={() => router.push("/tabs/record")}
+        >
           <Plus size={24} color={colors.dark.text} />
         </TouchableOpacity>
 

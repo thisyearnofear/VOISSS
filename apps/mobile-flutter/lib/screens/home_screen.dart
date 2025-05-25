@@ -6,6 +6,7 @@ import '../widgets/wallet_selector.dart';
 import '../widgets/account_address.dart';
 import '../widgets/recording_button.dart';
 import '../widgets/recordings_list.dart';
+import '../screens/wallet_connection_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -65,14 +66,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   return const AccountAddress();
                 },
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Recording Section
               const RecordingButton(),
-              
+
               const SizedBox(height: 24),
-              
+
               // Recordings List
               const Expanded(
                 child: RecordingsList(),
@@ -86,7 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showWalletInfo(BuildContext context) {
     final starknet = context.read<StarknetProvider>();
-    
+
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1A1A1A),
@@ -108,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             Text(
               'Address:',
               style: TextStyle(
@@ -125,9 +126,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: Colors.white,
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
