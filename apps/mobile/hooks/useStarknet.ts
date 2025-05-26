@@ -22,12 +22,16 @@ interface StarknetState {
   account: string | null;
   provider: any | null;
   error: string | null;
+  chainId: string | null;
+  balance: string | null;
 }
 
 interface StarknetActions {
   connect: () => Promise<void>;
   disconnect: () => void;
   getBalance: () => Promise<string | null>;
+  sendTransaction: (calls: any[]) => Promise<string>;
+  signMessage: (message: string) => Promise<string>;
 }
 
 const STARKNET_MAINNET_RPC = 'https://starknet-mainnet.public.blastapi.io';

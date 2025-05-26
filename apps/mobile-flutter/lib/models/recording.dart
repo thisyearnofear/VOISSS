@@ -1,3 +1,18 @@
+enum RecordingCategory {
+  general('General', '🎤'),
+  music('Music', '🎵'),
+  podcast('Podcast', '🎙️'),
+  meeting('Meeting', '💼'),
+  memo('Voice Memo', '📝'),
+  interview('Interview', '🎯'),
+  lecture('Lecture', '🎓'),
+  story('Story', '📚');
+
+  const RecordingCategory(this.displayName, this.emoji);
+  final String displayName;
+  final String emoji;
+}
+
 class Recording {
   final String id;
   final String title;
@@ -8,6 +23,11 @@ class Recording {
   final List<String> tags;
   final String? ipfsHash;
   final String? starknetTxHash;
+  final String? description;
+  final RecordingCategory category;
+  final bool isPublic;
+  final bool isFavorite;
+  final int playCount;
 
   const Recording({
     required this.id,
@@ -19,6 +39,11 @@ class Recording {
     required this.tags,
     this.ipfsHash,
     this.starknetTxHash,
+    this.description,
+    this.category = RecordingCategory.general,
+    this.isPublic = false,
+    this.isFavorite = false,
+    this.playCount = 0,
   });
 
   Recording copyWith({

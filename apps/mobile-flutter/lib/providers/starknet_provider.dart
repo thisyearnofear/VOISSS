@@ -52,20 +52,52 @@ class StarknetProvider extends ChangeNotifier {
     _clearError();
 
     try {
+      // Enhanced connection flow with better error handling
       // For mobile development, we'll provide multiple connection options:
       // 1. Import existing account with private key (for development)
       // 2. Connect to ArgentX mobile wallet (production)
       // 3. Connect to Braavos mobile wallet (production)
 
+      // Check network connectivity first
+      await _checkNetworkConnectivity();
+
       // For hackathon demo, we'll use a development account
       // In production, this would integrate with mobile wallet apps
-
       await _connectDevelopmentAccount();
+
+      // Verify connection by checking balance
+      await _verifyConnection();
 
     } catch (e) {
       _error = 'Failed to connect wallet: ${e.toString()}';
+      print('Wallet connection error: $e');
     } finally {
       _setConnecting(false);
+    }
+  }
+
+  Future<void> _checkNetworkConnectivity() async {
+    try {
+      // Test RPC connection
+      final chainId = await _provider?.getChainId();
+      if (chainId == null) {
+        throw Exception('Unable to connect to Starknet network');
+      }
+    } catch (e) {
+      throw Exception('Network connectivity issue: $e');
+    }
+  }
+
+  Future<void> _verifyConnection() async {
+    if (_account != null && _accountAddress != null) {
+      try {
+        // Test the connection by getting balance
+        final balance = await getBalance();
+        print('Connection verified. Balance: $balance ETH');
+      } catch (e) {
+        print('Warning: Could not verify balance: $e');
+        // Don't throw here as connection might still be valid
+      }
     }
   }
 

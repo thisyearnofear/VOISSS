@@ -1,4 +1,4 @@
-import { Account, Contract, CallData, RpcProvider } from 'starknet';
+import { Account, Contract, CallData, RpcProvider, InvokeFunctionResponse } from 'starknet';
 
 export interface RecordingMetadata {
   title: string;
@@ -24,6 +24,26 @@ export interface Recording {
   playCount: number;
 }
 
+export interface TransactionStatus {
+  status: 'pending' | 'success' | 'failed';
+  hash?: string;
+  error?: string;
+}
+
+export interface UserProfile {
+  address: string;
+  username: string;
+  displayName: string;
+  bio: string;
+  avatarIpfs: string;
+  createdAt: number;
+  totalRecordings: number;
+  totalPlays: number;
+  followersCount: number;
+  followingCount: number;
+  isVerified: boolean;
+}
+
 export class StarknetRecordingService {
   private provider: RpcProvider;
   private voiceStorageContract: Contract;
@@ -40,19 +60,19 @@ export class StarknetRecordingService {
     accessControlAbi: any
   ) {
     this.provider = new RpcProvider({ nodeUrl: providerUrl });
-    
+
     this.voiceStorageContract = new Contract(
       voiceStorageAbi,
       voiceStorageAddress,
       this.provider
     );
-    
+
     this.userRegistryContract = new Contract(
       userRegistryAbi,
       userRegistryAddress,
       this.provider
     );
-    
+
     this.accessControlContract = new Contract(
       accessControlAbi,
       accessControlAddress,
@@ -62,42 +82,61 @@ export class StarknetRecordingService {
 
   async storeRecording(
     account: Account,
-    metadata: RecordingMetadata
+    metadata: RecordingMetadata,
+    onStatusChange?: (status: TransactionStatus) => void
   ): Promise<string> {
     try {
+      // Validate inputs
+      if (!account || !metadata.title || !metadata.ipfsHash) {
+        throw new Error('Invalid recording metadata or account');
+      }
+
+      onStatusChange?.({ status: 'pending', hash: undefined });
+
       // Connect account to contract
       this.voiceStorageContract.connect(account);
 
-      // Prepare metadata for contract call
-      const calldata = CallData.compile({
-        metadata: {
+      // Prepare metadata for contract call - following demo-dapp pattern
+      const calldata = CallData.compile([
+        {
           title: metadata.title,
           description: metadata.description,
           ipfs_hash: metadata.ipfsHash,
           duration: metadata.duration,
           file_size: metadata.fileSize,
           is_public: metadata.isPublic,
-          tags: metadata.tags,
         }
-      });
+      ]);
 
       // Execute the transaction
-      const result = await this.voiceStorageContract.store_recording(calldata);
-      
-      // Wait for transaction confirmation
-      await this.provider.waitForTransaction(result.transaction_hash);
+      const result: InvokeFunctionResponse = await this.voiceStorageContract.store_recording(calldata);
 
-      return result.transaction_hash;
+      onStatusChange?.({ status: 'pending', hash: result.transaction_hash });
+
+      // Wait for transaction confirmation with timeout
+      const receipt = await this.provider.waitForTransaction(result.transaction_hash, {
+        retryInterval: 1000,
+        successStates: ['ACCEPTED_ON_L2', 'ACCEPTED_ON_L1'],
+      });
+
+      if (receipt.isSuccess()) {
+        onStatusChange?.({ status: 'success', hash: result.transaction_hash });
+        return result.transaction_hash;
+      } else {
+        throw new Error('Transaction failed');
+      }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Failed to store recording on Starknet:', error);
-      throw new Error(`Failed to store recording: ${error}`);
+      onStatusChange?.({ status: 'failed', error: errorMessage });
+      throw new Error(`Failed to store recording: ${errorMessage}`);
     }
   }
 
   async getRecording(recordingId: string): Promise<Recording | null> {
     try {
       const result = await this.voiceStorageContract.get_recording(recordingId);
-      
+
       return {
         id: result.id.toString(),
         owner: result.owner,
@@ -120,7 +159,7 @@ export class StarknetRecordingService {
   async getUserRecordings(userAddress: string): Promise<Recording[]> {
     try {
       const recordingIds = await this.voiceStorageContract.get_user_recordings(userAddress);
-      
+
       const recordings: Recording[] = [];
       for (const id of recordingIds) {
         const recording = await this.getRecording(id.toString());
@@ -128,7 +167,7 @@ export class StarknetRecordingService {
           recordings.push(recording);
         }
       }
-      
+
       return recordings;
     } catch (error) {
       console.error('Failed to get user recordings:', error);
@@ -139,7 +178,7 @@ export class StarknetRecordingService {
   async getPublicRecordings(offset: number = 0, limit: number = 20): Promise<Recording[]> {
     try {
       const recordingIds = await this.voiceStorageContract.get_public_recordings(offset, limit);
-      
+
       const recordings: Recording[] = [];
       for (const id of recordingIds) {
         const recording = await this.getRecording(id.toString());
@@ -147,7 +186,7 @@ export class StarknetRecordingService {
           recordings.push(recording);
         }
       }
-      
+
       return recordings;
     } catch (error) {
       console.error('Failed to get public recordings:', error);
@@ -158,7 +197,7 @@ export class StarknetRecordingService {
   async incrementPlayCount(account: Account, recordingId: string): Promise<void> {
     try {
       this.voiceStorageContract.connect(account);
-      
+
       const result = await this.voiceStorageContract.increment_play_count(recordingId);
       await this.provider.waitForTransaction(result.transaction_hash);
     } catch (error) {
@@ -200,7 +239,7 @@ export class StarknetRecordingService {
   async deleteRecording(account: Account, recordingId: string): Promise<string> {
     try {
       this.voiceStorageContract.connect(account);
-      
+
       const result = await this.voiceStorageContract.delete_recording(recordingId);
       await this.provider.waitForTransaction(result.transaction_hash);
 
@@ -246,7 +285,7 @@ export class StarknetRecordingService {
   async getUserProfile(userAddress: string) {
     try {
       const result = await this.userRegistryContract.get_profile(userAddress);
-      
+
       return {
         address: result.address,
         username: result.username,
@@ -276,14 +315,14 @@ export class StarknetRecordingService {
   ): Promise<string> {
     try {
       this.accessControlContract.connect(account);
-      
+
       const result = await this.accessControlContract.grant_access(
         recordingId,
         userAddress,
         permissionType,
         expiresAt
       );
-      
+
       await this.provider.waitForTransaction(result.transaction_hash);
       return result.transaction_hash;
     } catch (error) {
@@ -303,7 +342,7 @@ export class StarknetRecordingService {
         userAddress,
         permissionType
       );
-      
+
       return result;
     } catch (error) {
       console.error('Failed to check access:', error);

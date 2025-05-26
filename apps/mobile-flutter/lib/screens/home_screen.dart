@@ -6,6 +6,7 @@ import '../widgets/wallet_selector.dart';
 import '../widgets/account_address.dart';
 import '../widgets/recording_button.dart';
 import '../widgets/recordings_list.dart';
+import '../widgets/sync_status_widget.dart';
 import '../screens/wallet_connection_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -66,6 +67,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   return const AccountAddress();
                 },
               ),
+
+              const SizedBox(height: 16),
+
+              // Sync Status
+              const SyncStatusWidget(),
 
               const SizedBox(height: 24),
 

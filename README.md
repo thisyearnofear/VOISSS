@@ -1,8 +1,17 @@
 # VOISSS 🎤
 
-> **Built exclusively for the Starknet Re{ignite} Hackathon**
+[![Starknet](https://img.shields.io/badge/Starknet-Sepolia-blue)](https://sepolia.starkscan.co/)
+[![Next.js](https://img.shields.io/badge/Next.js-15.3.2-black)](https://nextjs.org/)
+[![Flutter](https://img.shields.io/badge/Flutter-3.32.0-blue)](https://flutter.dev/)
+[![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
 
-VOISSS is a next-generation decentralized voice recording platform that transforms how we capture, organize, and share audio content. Built as a comprehensive monorepo solution with **Web dApp**, **Mobile React Native App**, and **Mobile Flutter App** working together to offer users a complete voice recording ecosystem on Starknet.
+> **🏆 Built exclusively for the Starknet Re{ignite} Hackathon**
+
+**VOISSS** is a next-generation **decentralized voice recording platform** that transforms how we capture, organize, and share audio content. Built as a comprehensive three-app ecosystem showcasing different Starknet integration approaches:
+
+- 🌐 **Web dApp** (Next.js + starknet.js) - Desktop/browser experience
+- 📱 **React Native Mobile** (Expo + starknet.js) - Cross-platform mobile
+- 📱 **Flutter Mobile** (starknet.dart) - Native mobile performance
 
 ![VOISSS Platform](https://images.unsplash.com/photo-1590602847861-f357a9332bbc?q=80&w=2070&auto=format&fit=crop)
 
@@ -387,15 +396,42 @@ pnpm clean
 - [ ] Community features and trending content
 - [ ] Creator monetization tools
 
-### **Implementation Timeline:**
+## 🗺️ **POST-HACKATHON ROADMAP**
 
-- **Phase 1**: 1-2 days (Core voice recording)
-- **Phase 2**: 2-3 days (Starknet integration)
-- **Phase 3**: 1-2 days (Styling & UX)
-- **Phase 4**: 2-3 days (Smart contracts)
-- **Phase 5**: 1-2 days (Cross-app features)
+### **Phase 1: Enhanced Organization (Q1 2025)**
 
-**Total Estimated Time**: 7-12 days for complete enhancement
+- **Smart Categorization**: AI-powered auto-tagging and content analysis
+- **Advanced Search**: Full-text search across recordings with filters
+- **Custom Collections**: User-created playlists and folders
+- **Tag Management**: Visual tag system with color coding
+
+### **Phase 2: Social & Sharing Features (Q1 2025)**
+
+- **Social Sharing**: Direct integration with Twitter, Telegram, Discord
+- **Access Controls**: Granular permissions with time-based expiration
+- **Public Discovery**: Trending recordings and creator profiles
+- **Collaboration**: Shared recordings and team workspaces
+
+### **Phase 3: Creator Economy (Q2 2025)**
+
+- **Monetization**: Direct payments and subscription models
+- **NFT Integration**: Voice recordings as tradeable NFTs
+- **Creator Tools**: Analytics, audience insights, revenue tracking
+- **Marketplace**: Decentralized marketplace for voice content
+
+### **Phase 4: Advanced Features (Q2-Q3 2025)**
+
+- **Audio Editing**: Basic editing tools (trim, fade, normalize)
+- **Transcription**: AI-powered speech-to-text with search
+- **Multi-language**: Support for global languages and accents
+- **Offline Mode**: Local storage with sync when online
+
+### **Phase 5: Enterprise & Integration (Q3-Q4 2025)**
+
+- **API Platform**: Developer APIs for third-party integrations
+- **Enterprise Tools**: Team management, compliance, bulk operations
+- **Cross-chain**: Support for other blockchain networks
+- **Mobile Wallets**: Native integration with ArgentX/Braavos mobile
 
 ## 🎉 **DEPLOYMENT SUCCESS SUMMARY**
 

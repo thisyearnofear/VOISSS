@@ -1,8 +1,17 @@
-'use client';
+"use client";
 
-import React, { useState, useRef, useEffect } from 'react';
-import { useAccount } from '@starknet-react/core';
-import { StarknetRecordingService, RecordingMetadata } from '@voisss/shared';
+import React, { useState, useRef, useEffect } from "react";
+import { useAccount } from "@starknet-react/core";
+
+interface RecordingMetadata {
+  title: string;
+  description: string;
+  ipfsHash: string;
+  duration: number;
+  fileSize: number;
+  isPublic: boolean;
+  tags: string[];
+}
 
 interface Recording {
   id: string;
@@ -15,12 +24,14 @@ interface Recording {
 }
 
 export default function StarknetRecordingStudio() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, account } = useAccount();
   const [isRecording, setIsRecording] = useState(false);
   const [recordings, setRecordings] = useState<Recording[]>([]);
-  const [currentRecording, setCurrentRecording] = useState<Recording | null>(null);
+  const [currentRecording, setCurrentRecording] = useState<Recording | null>(
+    null
+  );
   const [showSaveOptions, setShowSaveOptions] = useState(false);
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState("");
   const [isPublic, setIsPublic] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [waveformData, setWaveformData] = useState<number[]>([]);
@@ -39,21 +50,21 @@ export default function StarknetRecordingStudio() {
         clearInterval(intervalRef.current);
       }
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current.getTracks().forEach((track) => track.stop());
       }
     };
   }, []);
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           sampleRate: 44100,
-        }
+        },
       });
-      
+
       streamRef.current = stream;
 
       // Set up audio context for waveform visualization
@@ -61,18 +72,18 @@ export default function StarknetRecordingStudio() {
       analyserRef.current = audioContextRef.current.createAnalyser();
       const source = audioContextRef.current.createMediaStreamSource(stream);
       source.connect(analyserRef.current);
-      
+
       analyserRef.current.fftSize = 256;
       const bufferLength = analyserRef.current.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
 
       // Set up MediaRecorder
       mediaRecorderRef.current = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
+        mimeType: "audio/webm;codecs=opus",
       });
-      
+
       chunksRef.current = [];
-      
+
       mediaRecorderRef.current.ondataavailable = (event) => {
         if (event.data.size > 0) {
           chunksRef.current.push(event.data);
@@ -80,7 +91,7 @@ export default function StarknetRecordingStudio() {
       };
 
       mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
         const recording: Recording = {
           id: Date.now().toString(),
           title: `Recording ${new Date().toLocaleTimeString()}`,
@@ -89,7 +100,7 @@ export default function StarknetRecordingStudio() {
           timestamp: new Date(),
           onChain: false,
         };
-        
+
         setCurrentRecording(recording);
         setShowSaveOptions(true);
         setTitle(recording.title);
@@ -104,7 +115,9 @@ export default function StarknetRecordingStudio() {
       const updateWaveform = () => {
         if (analyserRef.current) {
           analyserRef.current.getByteFrequencyData(dataArray);
-          const normalizedData = Array.from(dataArray).map(value => value / 255);
+          const normalizedData = Array.from(dataArray).map(
+            (value) => value / 255
+          );
           setWaveformData(normalizedData.slice(0, 50)); // Show first 50 frequency bins
         }
       };
@@ -115,10 +128,9 @@ export default function StarknetRecordingStudio() {
         setDuration(Math.floor((Date.now() - startTime) / 1000));
         updateWaveform();
       }, 100);
-
     } catch (error) {
-      console.error('Error starting recording:', error);
-      alert('Failed to start recording. Please check microphone permissions.');
+      console.error("Error starting recording:", error);
+      alert("Failed to start recording. Please check microphone permissions.");
     }
   };
 
@@ -126,16 +138,16 @@ export default function StarknetRecordingStudio() {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      
+
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-      
+
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current.getTracks().forEach((track) => track.stop());
       }
-      
+
       if (audioContextRef.current) {
         audioContextRef.current.close();
       }
@@ -144,24 +156,24 @@ export default function StarknetRecordingStudio() {
 
   const saveRecording = async () => {
     if (!currentRecording || !isConnected || !address) {
-      alert('Please connect your wallet to save recordings on-chain');
+      alert("Please connect your wallet to save recordings on-chain");
       return;
     }
 
     setIsUploading(true);
-    
+
     try {
       // In a real implementation, you would:
       // 1. Upload audio file to IPFS
       // 2. Get IPFS hash
       // 3. Store metadata on Starknet
-      
+
       // For demo purposes, we'll simulate this
       const ipfsHash = `Qm${Math.random().toString(36).substring(2, 15)}`;
-      
+
       const metadata: RecordingMetadata = {
         title,
-        description: '',
+        description: "",
         ipfsHash,
         duration: currentRecording.duration,
         fileSize: currentRecording.blob.size,
@@ -169,27 +181,31 @@ export default function StarknetRecordingStudio() {
         tags: [],
       };
 
-      // Simulate contract interaction
-      console.log('Storing recording metadata on Starknet:', metadata);
-      
+      // Simulate contract interaction for demo
+      console.log("Storing recording metadata on Starknet:", metadata);
+
       // For demo, we'll just add it to local state with mock transaction hash
       const updatedRecording: Recording = {
         ...currentRecording,
         title,
-        onChain: true,
-        transactionHash: `0x${Math.random().toString(16).substring(2, 18)}`,
+        onChain: isConnected,
+        transactionHash: isConnected
+          ? `0x${Math.random().toString(16).substring(2, 18)}`
+          : undefined,
       };
 
-      setRecordings(prev => [...prev, updatedRecording]);
+      setRecordings((prev) => [...prev, updatedRecording]);
       setCurrentRecording(null);
       setShowSaveOptions(false);
-      setTitle('');
+      setTitle("");
       setIsPublic(false);
-      
-      alert('Recording saved successfully! (Demo mode - not actually on-chain yet)');
+
+      alert(
+        "Recording saved successfully! (Demo mode - not actually on-chain yet)"
+      );
     } catch (error) {
-      console.error('Error saving recording:', error);
-      alert('Failed to save recording');
+      console.error("Error saving recording:", error);
+      alert("Failed to save recording");
     } finally {
       setIsUploading(false);
     }
@@ -198,14 +214,16 @@ export default function StarknetRecordingStudio() {
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   const renderWaveform = () => {
     if (!isRecording && waveformData.length === 0) {
       return (
         <div className="h-24 bg-[#2A2A2A] rounded-lg flex items-center justify-center">
-          <p className="text-gray-400">Waveform will appear here during recording</p>
+          <p className="text-gray-400">
+            Waveform will appear here during recording
+          </p>
         </div>
       );
     }
@@ -243,9 +261,7 @@ export default function StarknetRecordingStudio() {
       </div>
 
       {/* Waveform Visualization */}
-      <div className="mb-8">
-        {renderWaveform()}
-      </div>
+      <div className="mb-8">{renderWaveform()}</div>
 
       {/* Duration Display */}
       {(isRecording || duration > 0) && (
@@ -269,10 +285,10 @@ export default function StarknetRecordingStudio() {
             className="voisss-recording-button idle"
           >
             <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
-              <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
-              <path d="M12 18v4"/>
-              <path d="M8 22h8"/>
+              <path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" />
+              <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
+              <path d="M12 18v4" />
+              <path d="M8 22h8" />
             </svg>
           </button>
         )}
@@ -283,7 +299,7 @@ export default function StarknetRecordingStudio() {
             className="voisss-recording-button recording"
           >
             <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-              <rect x="6" y="6" width="12" height="12" rx="2"/>
+              <rect x="6" y="6" width="12" height="12" rx="2" />
             </svg>
           </button>
         )}
@@ -324,14 +340,14 @@ export default function StarknetRecordingStudio() {
               disabled={isUploading || !title.trim()}
               className="voisss-btn-secondary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isUploading ? 'Saving...' : 'Save to Starknet'}
+              {isUploading ? "Saving..." : "Save to Starknet"}
             </button>
             <button
               onClick={() => {
                 const url = URL.createObjectURL(currentRecording.blob);
-                const a = document.createElement('a');
+                const a = document.createElement("a");
                 a.href = url;
-                a.download = `${title || 'recording'}.webm`;
+                a.download = `${title || "recording"}.webm`;
                 a.click();
                 URL.revokeObjectURL(url);
               }}
@@ -354,9 +370,12 @@ export default function StarknetRecordingStudio() {
               <div key={recording.id} className="voisss-card">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-medium text-white">{recording.title}</h4>
+                    <h4 className="font-medium text-white">
+                      {recording.title}
+                    </h4>
                     <p className="text-sm text-gray-400">
-                      {formatDuration(recording.duration)} • {recording.timestamp.toLocaleString()}
+                      {formatDuration(recording.duration)} •{" "}
+                      {recording.timestamp.toLocaleString()}
                       {recording.onChain && (
                         <span className="ml-2 text-green-400">✓ On-chain</span>
                       )}
@@ -370,7 +389,9 @@ export default function StarknetRecordingStudio() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
-                        const audio = new Audio(URL.createObjectURL(recording.blob));
+                        const audio = new Audio(
+                          URL.createObjectURL(recording.blob)
+                        );
                         audio.play();
                       }}
                       className="voisss-btn-primary"

@@ -1,30 +1,65 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useAccount, useConnect, useDisconnect } from "@starknet-react/core";
-import { connect } from "starknetkit";
+import { StarknetkitConnector, useStarknetkitConnectModal } from "starknetkit";
+import { handleWebwalletLogoutEvent } from "starknetkit/webwallet";
 
 export default function WalletConnector() {
   const { address, isConnected } = useAccount();
   const { connect: connectStarknet, connectors } = useConnect();
   const { disconnect } = useDisconnect();
+  const [isClient, setIsClient] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+
+  // Enhanced Starknetkit modal integration
+  const { starknetkitConnectModal } = useStarknetkitConnectModal({
+    connectors: connectors as any,
+    modalTheme: "dark",
+  });
+
+  // Handle client-side rendering
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Handle webwallet logout events
+  useEffect(() => {
+    handleWebwalletLogoutEvent(disconnect);
+  }, [disconnect]);
 
   const handleConnect = async () => {
     try {
-      const { connector } = await connect({
-        connectors: connectors,
-      });
-      if (connector) {
-        await connectStarknet({ connector });
+      setConnectionError(null);
+      const { connector } = await starknetkitConnectModal();
+      if (!connector) {
+        return;
       }
+      await connectStarknet({ connector: connector as any });
     } catch (error) {
       console.error("Failed to connect wallet:", error);
+      setConnectionError(
+        error instanceof Error ? error.message : "Failed to connect wallet"
+      );
+    }
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      await disconnect();
+      setConnectionError(null);
+    } catch (error) {
+      console.error("Failed to disconnect wallet:", error);
     }
   };
 
   const formatAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
+
+  if (!isClient) {
+    return null;
+  }
 
   if (isConnected && address) {
     return (

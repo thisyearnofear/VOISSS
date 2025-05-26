@@ -4,6 +4,7 @@ import { useState } from "react";
 import RecordingStudio from "../components/RecordingStudio";
 import StarknetRecordingStudio from "../components/StarknetRecordingStudio";
 import WalletConnector from "../components/WalletConnector";
+import CrossPlatformSync from "../components/CrossPlatformSync";
 import { useAccount } from "@starknet-react/core";
 
 export default function Home() {
@@ -58,9 +59,10 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Wallet Connection */}
-        <div className="mb-12 max-w-md mx-auto">
+        {/* Wallet Connection & Sync Status */}
+        <div className="mb-12 max-w-md mx-auto space-y-4">
           <WalletConnector />
+          <CrossPlatformSync />
         </div>
 
         {/* Recording Studio */}
@@ -156,22 +158,14 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex gap-4 items-center justify-center flex-col sm:flex-row">
+          <div className="text-center">
             <a
-              className="rounded-full bg-blue-600 text-white hover:bg-blue-700 font-medium px-6 py-3 transition-colors"
-              href="https://t.me/+jG3_jEJF8YFmOTY1"
+              className="text-gray-400 hover:text-white transition-colors text-sm"
+              href="https://farcaster.xyz/papa"
               target="_blank"
               rel="noopener noreferrer"
             >
-              🚀 Join Hackathon
-            </a>
-            <a
-              className="rounded-full border border-gray-600 text-gray-300 hover:bg-gray-800 font-medium px-6 py-3 transition-colors"
-              href="https://starknetdart.dev/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              📚 Starknet.dart Docs
+              built by papa
             </a>
           </div>
         </div>
