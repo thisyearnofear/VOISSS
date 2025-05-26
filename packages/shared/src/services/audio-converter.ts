@@ -55,12 +55,8 @@ export class AudioConverter {
     };
 
     try {
-      // For web platform, use Web Audio API
-      if (this.audioContext) {
-        return await this.convertWithWebAudio(audioBlob, defaultOptions);
-      }
-      
-      // Fallback: return original with metadata
+      // For now, skip complex conversion and just optimize the existing audio
+      // This avoids the MediaRecorder captureStream() issues
       return await this.analyzeAndOptimize(audioBlob, defaultOptions);
     } catch (error) {
       console.error('Audio conversion failed:', error);
@@ -166,17 +162,17 @@ export class AudioConverter {
     return new Promise((resolve, reject) => {
       // Create audio element to play the source
       const audio = new Audio(URL.createObjectURL(audioBlob));
-      
+
       // Create MediaStream from audio
       const stream = (audio as any).captureStream ? (audio as any).captureStream() : null;
-      
+
       if (!stream) {
         reject(new Error('Cannot create MediaStream from audio'));
         return;
       }
 
       const mimeType = this.getMediaRecorderMimeType(options.targetFormat);
-      
+
       if (!MediaRecorder.isTypeSupported(mimeType)) {
         reject(new Error(`Format ${options.targetFormat} not supported`));
         return;
@@ -218,17 +214,17 @@ export class AudioConverter {
     const numberOfChannels = audioBuffer.numberOfChannels;
     const sampleRate = audioBuffer.sampleRate;
     const length = audioBuffer.length * numberOfChannels * 2;
-    
+
     const buffer = new ArrayBuffer(44 + length);
     const view = new DataView(buffer);
-    
+
     // WAV header
     const writeString = (offset: number, string: string) => {
       for (let i = 0; i < string.length; i++) {
         view.setUint8(offset + i, string.charCodeAt(i));
       }
     };
-    
+
     writeString(0, 'RIFF');
     view.setUint32(4, 36 + length, true);
     writeString(8, 'WAVE');
@@ -242,7 +238,7 @@ export class AudioConverter {
     view.setUint16(34, 16, true);
     writeString(36, 'data');
     view.setUint32(40, length, true);
-    
+
     // Convert audio data
     let offset = 44;
     for (let i = 0; i < audioBuffer.length; i++) {
@@ -253,7 +249,7 @@ export class AudioConverter {
         offset += 2;
       }
     }
-    
+
     return new Blob([buffer], { type: 'audio/wav' });
   }
 
@@ -266,7 +262,7 @@ export class AudioConverter {
   ): Promise<ConversionResult> {
     // Get basic info
     const duration = await this.getAudioDuration(audioBlob);
-    
+
     // If the blob is already in a good format and size, return as-is
     if (audioBlob.size < 10 * 1024 * 1024) { // Less than 10MB
       return {
@@ -378,7 +374,7 @@ export class AudioConverter {
         quality: 'lossless',
       },
     };
-    
+
     return settings[quality];
   }
 

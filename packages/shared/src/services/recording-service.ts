@@ -5,8 +5,7 @@
 
 import { IPFSService, AudioMetadata, IPFSUploadResult } from './ipfs-service';
 import { AudioConverter, AudioConversionOptions, ConversionResult } from './audio-converter';
-import { StarknetRecordingService, RecordingMetadata, TransactionStatus } from './starknet-recording';
-import { Account } from 'starknet';
+import { StarknetRecordingService, RecordingMetadata, TransactionStatus, AccountType } from './starknet-recording';
 
 export interface RecordingPipelineOptions {
   title: string;
@@ -53,7 +52,7 @@ export class RecordingService {
   async processRecording(
     audioBlob: Blob,
     options: RecordingPipelineOptions,
-    account?: Account,
+    account?: AccountType,
     onProgress?: (progress: PipelineProgress) => void
   ): Promise<RecordingPipelineResult> {
     try {
@@ -65,9 +64,9 @@ export class RecordingService {
 
       // Step 1: Convert audio if needed
       let processedAudio: ConversionResult;
-      
+
       if (options.convertAudio !== false) {
-        const conversionOptions = options.quality 
+        const conversionOptions = options.quality
           ? AudioConverter.getQualitySettings(options.quality)
           : { targetFormat: 'mp3' as const, bitRate: 128, sampleRate: 44100 };
 
@@ -165,7 +164,7 @@ export class RecordingService {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      
+
       onProgress?.({
         stage: 'error',
         progress: 0,
@@ -306,11 +305,11 @@ export function estimateUploadTime(fileSizeBytes: number): number {
  */
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 Bytes';
-  
+
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
+
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 

@@ -14,6 +14,12 @@ export const metadata: Metadata = {
     "Next-generation voice recording platform built for Starknet Reignite Hackathon. Transform how you capture, organize, and share audio content with decentralized storage and community features.",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{

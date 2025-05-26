@@ -2,40 +2,25 @@
 
 import React, { useEffect, useState } from "react";
 import { useAccount, useConnect, useDisconnect } from "@starknet-react/core";
-import { StarknetkitConnector, useStarknetkitConnectModal } from "starknetkit";
-import { handleWebwalletLogoutEvent } from "starknetkit/webwallet";
 
 export default function WalletConnector() {
   const { address, isConnected } = useAccount();
-  const { connect: connectStarknet, connectors } = useConnect();
+  const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
   const [isClient, setIsClient] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
-
-  // Enhanced Starknetkit modal integration
-  const { starknetkitConnectModal } = useStarknetkitConnectModal({
-    connectors: connectors as any,
-    modalTheme: "dark",
-  });
+  const [showConnectors, setShowConnectors] = useState(false);
 
   // Handle client-side rendering
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Handle webwallet logout events
-  useEffect(() => {
-    handleWebwalletLogoutEvent(disconnect);
-  }, [disconnect]);
-
-  const handleConnect = async () => {
+  const handleConnect = async (connector: any) => {
     try {
       setConnectionError(null);
-      const { connector } = await starknetkitConnectModal();
-      if (!connector) {
-        return;
-      }
-      await connectStarknet({ connector: connector as any });
+      await connect({ connector });
+      setShowConnectors(false);
     } catch (error) {
       console.error("Failed to connect wallet:", error);
       setConnectionError(
@@ -43,7 +28,6 @@ export default function WalletConnector() {
       );
     }
   };
-
   const handleDisconnect = async () => {
     try {
       await disconnect();
@@ -74,7 +58,7 @@ export default function WalletConnector() {
             </p>
           </div>
           <button
-            onClick={() => disconnect()}
+            onClick={handleDisconnect}
             className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
           >
             Disconnect
@@ -111,9 +95,55 @@ export default function WalletConnector() {
         </p>
       </div>
 
-      <button onClick={handleConnect} className="voisss-btn-primary w-full">
-        Connect Wallet
-      </button>
+      {!showConnectors ? (
+        <button
+          onClick={() => setShowConnectors(true)}
+          className="voisss-btn-primary w-full"
+        >
+          Connect Wallet
+        </button>
+      ) : (
+        <div className="space-y-3">
+          <div className="text-center mb-4">
+            <h4 className="text-lg font-semibold text-white mb-2">
+              Choose Wallet
+            </h4>
+            <p className="text-sm text-gray-400">
+              Select your preferred Starknet wallet
+            </p>
+          </div>
+
+          {connectors.map((connector) => (
+            <button
+              key={connector.id}
+              onClick={() => handleConnect(connector)}
+              className="w-full p-3 bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-lg transition-colors flex items-center justify-between"
+            >
+              <span className="text-white font-medium">{connector.name}</span>
+              <div className="w-6 h-6 bg-[#7C5DFA] rounded-full flex items-center justify-center">
+                <svg
+                  className="w-3 h-3 text-white"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+            </button>
+          ))}
+
+          <button
+            onClick={() => setShowConnectors(false)}
+            className="w-full p-2 text-gray-400 hover:text-white transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       {connectionError && (
         <div className="mt-4 p-3 bg-red-900 border border-red-700 rounded-lg">

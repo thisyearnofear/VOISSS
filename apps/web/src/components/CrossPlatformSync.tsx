@@ -76,15 +76,15 @@ export default function CrossPlatformSync() {
 
   if (!isConnected) {
     return (
-      <div className="voisss-card border-yellow-500/20 bg-yellow-500/5">
+      <div className="border border-yellow-500/20 bg-yellow-500/5 rounded-xl p-4">
         <div className="flex items-center space-x-3">
           <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
           <div>
             <h3 className="text-sm font-medium text-yellow-400">
-              Offline Mode
+              Sync Unavailable
             </h3>
             <p className="text-xs text-gray-400">
-              Connect wallet to sync across devices
+              Connect wallet to sync between Web and Flutter apps
             </p>
           </div>
         </div>
@@ -93,11 +93,15 @@ export default function CrossPlatformSync() {
   }
 
   return (
-    <div className="voisss-card">
+    <div className="bg-[#2A2A2A] border border-[#3A3A3A] rounded-xl p-4">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-white">
-          Cross-Platform Sync
-        </h3>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-white">Sync Status</span>
+          <div className="flex items-center gap-1 px-2 py-1 bg-green-500/20 border border-green-500/30 rounded-full">
+            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+            <span className="text-green-400 text-xs font-medium">Active</span>
+          </div>
+        </div>
         <div className="flex items-center space-x-2">
           <div
             className={`w-2 h-2 rounded-full ${
@@ -146,45 +150,71 @@ export default function CrossPlatformSync() {
         )}
       </button>
 
-      <div className="mt-4 p-3 bg-gray-800/50 rounded-lg">
-        <h4 className="text-sm font-medium text-white mb-2">How it works:</h4>
+      <div className="mt-4 p-3 bg-[#1A1A1A] rounded-lg">
+        <h4 className="text-sm font-medium text-white mb-2">
+          Current Ecosystem:
+        </h4>
         <ul className="text-xs text-gray-400 space-y-1">
-          <li>• Recordings stored on Starknet blockchain</li>
-          <li>• Audio files stored on IPFS for decentralization</li>
-          <li>• Access from any device with your wallet</li>
-          <li>• Automatic sync when online</li>
+          <li>• Web dApp: Full recording and management features</li>
+          <li>• Flutter Mobile: Native performance with starknet.dart</li>
+          <li>• React Native: Coming soon with Expo integration</li>
+          <li>• All recordings sync via Starknet + IPFS</li>
         </ul>
       </div>
 
       {/* Device Indicators */}
-      <div className="mt-4 flex justify-center space-x-4">
+      <div className="mt-4 flex justify-center items-center space-x-3">
         <div className="text-center">
-          <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center mb-1">
-            <span className="text-blue-400 text-xs">🌐</span>
+          <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center mb-1 border border-blue-500/30">
+            <span className="text-blue-400 text-sm">🌐</span>
           </div>
-          <span className="text-xs text-gray-400">Web</span>
+          <span className="text-xs text-blue-400 font-medium">Web</span>
         </div>
 
         <div className="flex items-center">
-          <div className="w-8 h-0.5 bg-gray-600"></div>
+          <svg
+            className="w-6 h-6 text-[#7C5DFA]"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+            />
+          </svg>
         </div>
 
         <div className="text-center">
-          <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center mb-1">
-            <span className="text-purple-400 text-xs">📱</span>
+          <div className="w-10 h-10 bg-[#7C5DFA]/20 rounded-lg flex items-center justify-center mb-1 border border-[#7C5DFA]/30">
+            <span className="text-[#7C5DFA] text-sm">🚀</span>
           </div>
-          <span className="text-xs text-gray-400">Flutter</span>
+          <span className="text-xs text-[#7C5DFA] font-medium">Flutter</span>
         </div>
 
         <div className="flex items-center">
-          <div className="w-8 h-0.5 bg-gray-600"></div>
+          <svg
+            className="w-6 h-6 text-[#7C5DFA]"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+            />
+          </svg>
         </div>
 
         <div className="text-center">
-          <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center mb-1">
-            <span className="text-green-400 text-xs">⛓️</span>
+          <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center mb-1 border border-green-500/30">
+            <span className="text-green-400 text-sm">⛓️</span>
           </div>
-          <span className="text-xs text-gray-400">Starknet</span>
+          <span className="text-xs text-green-400 font-medium">Starknet</span>
         </div>
       </div>
     </div>

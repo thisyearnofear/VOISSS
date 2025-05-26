@@ -1,4 +1,5 @@
 import { Account, Contract, CallData, RpcProvider, InvokeFunctionResponse } from 'starknet';
+import { VOICE_STORAGE_ABI, USER_REGISTRY_ABI, ACCESS_CONTROL_ABI } from '../contracts/abis';
 
 export interface RecordingMetadata {
   title: string;
@@ -44,6 +45,17 @@ export interface UserProfile {
   isVerified: boolean;
 }
 
+// Type for wallet connector account (from @starknet-react/core)
+export interface WalletAccount {
+  address: string;
+  execute: (calls: any[]) => Promise<{ transaction_hash: string }>;
+  estimateInvokeFee?: (calls: any[], options?: any) => Promise<any>;
+  [key: string]: any;
+}
+
+// Union type for account parameter
+export type AccountType = Account | WalletAccount;
+
 export class StarknetRecordingService {
   private provider: RpcProvider;
   private voiceStorageContract: Contract;
@@ -81,7 +93,7 @@ export class StarknetRecordingService {
   }
 
   async storeRecording(
-    account: Account,
+    account: AccountType,
     metadata: RecordingMetadata,
     onStatusChange?: (status: TransactionStatus) => void
   ): Promise<string> {
@@ -93,33 +105,120 @@ export class StarknetRecordingService {
 
       onStatusChange?.({ status: 'pending', hash: undefined });
 
-      // Connect account to contract
-      this.voiceStorageContract.connect(account);
+      // Check if this is a wallet connector account or starknet.js Account
+      const isWalletAccount = this.isWalletAccount(account);
 
-      // Prepare metadata for contract call
-      const calldata = CallData.compile([
-        {
-          title: metadata.title,
-          description: metadata.description,
-          ipfs_hash: metadata.ipfsHash,
-          duration: metadata.duration,
-          file_size: metadata.fileSize,
-          is_public: metadata.isPublic,
-        }
-      ]);
-
-      // Enhanced fee estimation with fallback mechanism
-      try {
-        return await this.executeWithSTRKFees(account, calldata, onStatusChange);
-      } catch (strkError) {
-        console.warn('STRK fee estimation failed, falling back to ETH:', strkError);
-        return await this.executeWithETHFees(account, calldata, onStatusChange);
+      if (isWalletAccount) {
+        // Handle wallet connector account (from @starknet-react/core)
+        return await this.storeRecordingWithWallet(account as WalletAccount, metadata, onStatusChange);
+      } else {
+        // Handle starknet.js Account
+        return await this.storeRecordingWithAccount(account as Account, metadata, onStatusChange);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Failed to store recording on Starknet:', error);
       onStatusChange?.({ status: 'failed', error: errorMessage });
+
+      // Provide more helpful error messages for common issues
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch') || error.message.includes('ERR_NAME_NOT_RESOLVED')) {
+          throw new Error('Network connectivity issue. The Starknet RPC endpoint may be temporarily unavailable. Please try again later or check your wallet\'s network settings.');
+        }
+        if (error.message.includes('User rejected') || error.message.includes('User denied')) {
+          throw new Error('Transaction was rejected by user.');
+        }
+        if (error.message.includes('Insufficient funds')) {
+          throw new Error('Insufficient funds for transaction fees. Please ensure you have enough ETH in your wallet.');
+        }
+      }
+
       throw new Error(`Failed to store recording: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Check if account is a wallet connector account
+   */
+  private isWalletAccount(account: AccountType): boolean {
+    return 'execute' in account && typeof account.execute === 'function';
+  }
+
+  /**
+   * Store recording using wallet connector account
+   */
+  private async storeRecordingWithWallet(
+    account: WalletAccount,
+    metadata: RecordingMetadata,
+    onStatusChange?: (status: TransactionStatus) => void
+  ): Promise<string> {
+    // Prepare call data for wallet execution
+    const calldata = CallData.compile({
+      metadata: {
+        title: this.stringToFelt252(metadata.title || 'Untitled'),
+        description: this.stringToFelt252(metadata.description || ''),
+        ipfs_hash: this.stringToFelt252(metadata.ipfsHash || ''),
+        duration: this.sanitizeNumber(metadata.duration),
+        file_size: this.sanitizeNumber(metadata.fileSize),
+        is_public: metadata.isPublic || false,
+      }
+    });
+
+    // Execute transaction using wallet
+    const result = await account.execute([
+      {
+        contractAddress: this.voiceStorageContract.address,
+        entrypoint: 'store_recording',
+        calldata: calldata,
+      }
+    ]);
+
+    onStatusChange?.({ status: 'pending', hash: result.transaction_hash });
+
+    // Wait for confirmation
+    const receipt = await this.provider.waitForTransaction(result.transaction_hash, {
+      retryInterval: 2000,
+      successStates: ['ACCEPTED_ON_L2', 'ACCEPTED_ON_L1'],
+    });
+
+    if (receipt.isSuccess()) {
+      onStatusChange?.({ status: 'success', hash: result.transaction_hash });
+      return result.transaction_hash;
+    } else {
+      throw new Error('Transaction failed');
+    }
+  }
+
+  /**
+   * Store recording using starknet.js Account (legacy method)
+   */
+  private async storeRecordingWithAccount(
+    account: Account,
+    metadata: RecordingMetadata,
+    onStatusChange?: (status: TransactionStatus) => void
+  ): Promise<string> {
+    // Connect account to contract
+    this.voiceStorageContract.connect(account);
+
+    // Prepare metadata for contract call - matches the RecordingMetadata struct
+    // Convert strings to felt252 format and ensure no empty values
+    const calldata = CallData.compile({
+      metadata: {
+        title: this.stringToFelt252(metadata.title || 'Untitled'),
+        description: this.stringToFelt252(metadata.description || ''),
+        ipfs_hash: this.stringToFelt252(metadata.ipfsHash || ''),
+        duration: this.sanitizeNumber(metadata.duration),
+        file_size: this.sanitizeNumber(metadata.fileSize),
+        is_public: metadata.isPublic || false,
+      }
+    });
+
+    // Enhanced fee estimation with fallback mechanism
+    try {
+      return await this.executeWithSTRKFees(account, calldata, onStatusChange);
+    } catch (strkError) {
+      console.warn('STRK fee estimation failed, falling back to ETH:', strkError);
+      return await this.executeWithETHFees(account, calldata, onStatusChange);
     }
   }
 
@@ -242,7 +341,7 @@ export class StarknetRecordingService {
         fileSize: Number(result.file_size),
         createdAt: Number(result.created_at),
         isPublic: result.is_public,
-        tags: result.tags,
+        tags: [], // Not in the contract struct, but kept for interface compatibility
         playCount: Number(result.play_count),
       };
     } catch (error) {
@@ -311,13 +410,12 @@ export class StarknetRecordingService {
       const calldata = CallData.compile({
         recording_id: recordingId,
         metadata: {
-          title: metadata.title,
-          description: metadata.description,
-          ipfs_hash: metadata.ipfsHash,
-          duration: metadata.duration,
-          file_size: metadata.fileSize,
-          is_public: metadata.isPublic,
-          tags: metadata.tags,
+          title: this.stringToFelt252(metadata.title || 'Untitled'),
+          description: this.stringToFelt252(metadata.description || ''),
+          ipfs_hash: this.stringToFelt252(metadata.ipfsHash || ''),
+          duration: this.sanitizeNumber(metadata.duration),
+          file_size: this.sanitizeNumber(metadata.fileSize),
+          is_public: metadata.isPublic || false,
         }
       });
 
@@ -444,6 +542,37 @@ export class StarknetRecordingService {
       return false;
     }
   }
+
+  /**
+   * Convert string to felt252 format for Starknet
+   */
+  private stringToFelt252(str: string): string {
+    if (!str) return '0x0';
+
+    // Convert string to hex, ensuring it fits in felt252 (max 31 bytes)
+    const encoder = new TextEncoder();
+    const bytes = encoder.encode(str.slice(0, 31)); // Limit to 31 bytes for felt252
+    const hex = Array.from(bytes)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    return '0x' + hex;
+  }
+
+  /**
+   * Sanitize numeric values for Starknet felt252
+   */
+  private sanitizeNumber(value: number | undefined | null): number {
+    if (value === null || value === undefined || !isFinite(value) || isNaN(value)) {
+      return 0;
+    }
+
+    // Ensure the number is a positive integer within felt252 range
+    const sanitized = Math.floor(Math.abs(value));
+
+    // felt252 max value is 2^251 - 1, but for practical purposes, limit to safe integer range
+    return Math.min(sanitized, Number.MAX_SAFE_INTEGER);
+  }
 }
 
 /**
@@ -458,10 +587,10 @@ export function createStarknetRecordingService(): StarknetRecordingService {
   const userRegistryAddress = process.env.NEXT_PUBLIC_USER_REGISTRY_CONTRACT || '0x0';
   const accessControlAddress = process.env.NEXT_PUBLIC_ACCESS_CONTROL_CONTRACT || '0x0';
 
-  // For now, use empty ABIs - in production these would be imported from contracts
-  const voiceStorageAbi = [];
-  const userRegistryAbi = [];
-  const accessControlAbi = [];
+  // Use the proper ABIs extracted from compiled contracts
+  const voiceStorageAbi = VOICE_STORAGE_ABI;
+  const userRegistryAbi = USER_REGISTRY_ABI;
+  const accessControlAbi = ACCESS_CONTROL_ABI;
 
   return new StarknetRecordingService(
     providerUrl,

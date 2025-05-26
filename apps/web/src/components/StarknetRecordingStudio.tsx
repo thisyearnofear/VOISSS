@@ -57,6 +57,8 @@ interface Recording {
   ipfsHash?: string;
   ipfsUrl?: string;
   fileSize?: number;
+  isHidden?: boolean; // For user to hide recordings from their feed
+  customTitle?: string; // User-defined title override
 }
 
 export default function StarknetRecordingStudio() {
@@ -77,6 +79,10 @@ export default function StarknetRecordingStudio() {
   );
   const [recordingService, setRecordingService] =
     useState<RecordingService | null>(null);
+  const [isLoadingRecordings, setIsLoadingRecordings] = useState(false);
+  const [editingRecording, setEditingRecording] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [showHidden, setShowHidden] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -84,6 +90,161 @@ export default function StarknetRecordingStudio() {
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Local storage key for recordings
+  const getStorageKey = (userAddress: string) =>
+    `voisss_recordings_${userAddress}`;
+
+  // Load recordings from local storage
+  const loadLocalRecordings = (userAddress: string): Recording[] => {
+    try {
+      const stored = localStorage.getItem(getStorageKey(userAddress));
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return parsed.map((r: any) => ({
+          ...r,
+          timestamp: new Date(r.timestamp),
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to load local recordings:", error);
+    }
+    return [];
+  };
+
+  // Save recordings to local storage
+  const saveLocalRecordings = (
+    userAddress: string,
+    recordings: Recording[]
+  ) => {
+    try {
+      localStorage.setItem(
+        getStorageKey(userAddress),
+        JSON.stringify(recordings)
+      );
+    } catch (error) {
+      console.error("Failed to save local recordings:", error);
+    }
+  };
+
+  // Load recordings from Starknet
+  const loadStarknetRecordings = async (userAddress: string) => {
+    if (!recordingService) return [];
+
+    try {
+      setIsLoadingRecordings(true);
+      // We need to access the starknet service directly
+      const starknetService = createStarknetRecordingService();
+      const starknetRecordings = await starknetService.getUserRecordings(
+        userAddress
+      );
+
+      // Debug: Log the raw Starknet recordings to understand the data structure
+      console.log("Raw Starknet recordings:", starknetRecordings);
+
+      // Convert Starknet recordings to our Recording interface
+      return starknetRecordings
+        .filter((sr) => sr && sr.id) // Filter out null/undefined recordings
+        .map(
+          (sr): Recording => ({
+            id: String(sr.id || ""),
+            title: String(sr.title || "Untitled Recording"),
+            duration: Number(sr.duration || 0),
+            timestamp: new Date(Number(sr.createdAt || 0) * 1000), // Convert Unix timestamp
+            onChain: true,
+            transactionHash: undefined, // We don't store this in the contract
+            ipfsHash: sr.ipfsHash ? String(sr.ipfsHash) : undefined,
+            ipfsUrl: sr.ipfsHash
+              ? recordingService.getPlaybackUrl(String(sr.ipfsHash))
+              : undefined,
+            fileSize: Number(sr.fileSize || 0),
+          })
+        );
+    } catch (error) {
+      console.error("Failed to load Starknet recordings:", error);
+      return [];
+    } finally {
+      setIsLoadingRecordings(false);
+    }
+  };
+
+  // Load all recordings (local + Starknet)
+  const loadAllRecordings = async (userAddress: string) => {
+    const localRecordings = loadLocalRecordings(userAddress);
+    const starknetRecordings = await loadStarknetRecordings(userAddress);
+
+    // Merge recordings, avoiding duplicates based on transaction hash or IPFS hash
+    const allRecordings = [...localRecordings];
+
+    starknetRecordings.forEach((starknetRec) => {
+      const exists = allRecordings.some(
+        (localRec) =>
+          (localRec.transactionHash &&
+            localRec.transactionHash === starknetRec.transactionHash) ||
+          (localRec.ipfsHash && localRec.ipfsHash === starknetRec.ipfsHash)
+      );
+
+      if (!exists) {
+        allRecordings.push(starknetRec);
+      }
+    });
+
+    // Sort by timestamp (newest first)
+    allRecordings.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+    setRecordings(allRecordings);
+  };
+
+  // Recording management functions
+  const updateRecording = (id: string, updates: Partial<Recording>) => {
+    const updatedRecordings = recordings.map((recording) =>
+      recording.id === id ? { ...recording, ...updates } : recording
+    );
+    setRecordings(updatedRecordings);
+
+    // Save to local storage if user is connected
+    if (address) {
+      saveLocalRecordings(address, updatedRecordings);
+    }
+  };
+
+  const toggleRecordingVisibility = (id: string) => {
+    const recording = recordings.find((r) => r.id === id);
+    if (recording) {
+      updateRecording(id, { isHidden: !recording.isHidden });
+    }
+  };
+
+  const startEditingTitle = (recording: Recording) => {
+    setEditingRecording(recording.id);
+    setEditTitle(recording.customTitle || recording.title);
+  };
+
+  const saveEditedTitle = () => {
+    if (editingRecording && editTitle.trim()) {
+      updateRecording(editingRecording, { customTitle: editTitle.trim() });
+      setEditingRecording(null);
+      setEditTitle("");
+    }
+  };
+
+  const cancelEditingTitle = () => {
+    setEditingRecording(null);
+    setEditTitle("");
+  };
+
+  // Get display title for a recording
+  const getDisplayTitle = (recording: Recording): string => {
+    if (recording.customTitle) return recording.customTitle;
+    if (recording.title && recording.title !== recording.id)
+      return recording.title;
+    return `Recording ${recording.timestamp.toLocaleTimeString()}`;
+  };
+
+  // Filter recordings based on visibility
+  const visibleRecordings = recordings.filter(
+    (recording) => showHidden || !recording.isHidden
+  );
 
   // Initialize recording service
   useEffect(() => {
@@ -123,6 +284,16 @@ export default function StarknetRecordingStudio() {
       }
     };
   }, []);
+
+  // Load recordings when wallet connects
+  useEffect(() => {
+    if (isConnected && address && recordingService) {
+      loadAllRecordings(address);
+    } else if (!isConnected) {
+      // Clear recordings when wallet disconnects
+      setRecordings([]);
+    }
+  }, [isConnected, address, recordingService]);
 
   const startRecording = async () => {
     try {
@@ -270,7 +441,14 @@ export default function StarknetRecordingStudio() {
           fileSize: currentRecording.blob.size,
         };
 
-        setRecordings((prev) => [...prev, updatedRecording]);
+        const newRecordings = [...recordings, updatedRecording];
+        setRecordings(newRecordings);
+
+        // Save to local storage if user is connected
+        if (address) {
+          saveLocalRecordings(address, newRecordings);
+        }
+
         setCurrentRecording(null);
         setShowSaveOptions(false);
         setTitle("");
@@ -335,193 +513,641 @@ export default function StarknetRecordingStudio() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto voisss-card shadow-2xl">
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-white mb-2">
-          🎤 Starknet Recording Studio
-        </h2>
-        <p className="text-gray-400">
-          Record high-quality audio and store metadata on Starknet
-        </p>
-        {!isConnected && (
-          <p className="text-yellow-400 text-sm mt-2">
-            ⚠️ Connect your wallet to save recordings on-chain
-          </p>
-        )}
-      </div>
-
-      {/* Waveform Visualization */}
-      <div className="mb-8">{renderWaveform()}</div>
-
-      {/* Duration Display */}
-      {(isRecording || duration > 0) && (
-        <div className="text-center mb-6">
-          <div className="text-3xl font-mono text-white">
-            {formatDuration(duration)}
-          </div>
-          {isRecording && (
-            <div className="text-red-400 text-sm mt-1 animate-pulse">
-              ● Recording...
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Recording Controls */}
-      <div className="flex justify-center mb-8">
-        {!isRecording && !showSaveOptions && (
-          <button
-            onClick={startRecording}
-            className="voisss-recording-button idle"
-          >
-            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+    <div className="max-w-4xl mx-auto voisss-section-spacing">
+      {/* Header Section */}
+      <div className="voisss-card text-center">
+        <div className="mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#7C5DFA] to-[#9C88FF] rounded-full mb-4">
+            <svg
+              className="w-8 h-8 text-white"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" />
               <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
               <path d="M12 18v4" />
               <path d="M8 22h8" />
             </svg>
-          </button>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+            Starknet Recording Studio
+          </h1>
+          <p className="text-gray-400 text-base sm:text-lg px-4">
+            Record high-quality audio and store metadata on Starknet blockchain
+          </p>
+        </div>
+
+        {/* Connection Status */}
+        <div className="flex items-center justify-center gap-2 mb-6">
+          {isConnected ? (
+            <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 border border-green-500/30 rounded-full">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-green-400 text-sm font-medium">
+                Wallet Connected
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/20 border border-yellow-500/30 rounded-full">
+              <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+              <span className="text-yellow-400 text-sm font-medium">
+                Connect wallet to save on-chain
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Recording Interface */}
+      <div className="voisss-card">
+        {/* Waveform Visualization */}
+        <div className="mb-8">{renderWaveform()}</div>
+
+        {/* Duration Display */}
+        {(isRecording || duration > 0) && (
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-3 px-6 py-3 bg-[#2A2A2A] rounded-xl border border-[#3A3A3A]">
+              <div className="text-4xl font-mono text-white">
+                {formatDuration(duration)}
+              </div>
+              {isRecording && (
+                <div className="flex items-center gap-2 text-red-400">
+                  <div className="w-3 h-3 bg-red-400 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium">REC</span>
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
-        {isRecording && (
-          <button
-            onClick={stopRecording}
-            className="voisss-recording-button recording"
-          >
-            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-              <rect x="6" y="6" width="12" height="12" rx="2" />
-            </svg>
-          </button>
-        )}
+        {/* Recording Controls */}
+        <div className="flex justify-center mb-8">
+          {!isRecording && !showSaveOptions && (
+            <button
+              onClick={startRecording}
+              className="group relative w-20 h-20 bg-gradient-to-br from-[#7C5DFA] to-[#9C88FF] rounded-full flex items-center justify-center hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-[#7C5DFA]/25"
+            >
+              <svg
+                className="w-10 h-10 text-white group-hover:scale-110 transition-transform duration-200"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" />
+                <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
+                <path d="M12 18v4" />
+                <path d="M8 22h8" />
+              </svg>
+              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-sm text-gray-400 whitespace-nowrap">
+                Click to start recording
+              </div>
+            </button>
+          )}
+
+          {isRecording && (
+            <button
+              onClick={stopRecording}
+              className="group relative w-20 h-20 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-red-500/25"
+            >
+              <svg
+                className="w-8 h-8 text-white group-hover:scale-110 transition-transform duration-200"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <rect x="6" y="6" width="12" height="12" rx="2" />
+              </svg>
+              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-sm text-gray-400 whitespace-nowrap">
+                Click to stop
+              </div>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Save Options */}
       {showSaveOptions && currentRecording && (
-        <div className="space-y-4 mb-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Recording Title
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter recording title..."
-              className="voisss-input w-full"
-            />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="isPublic"
-              checked={isPublic}
-              onChange={(e) => setIsPublic(e.target.checked)}
-              className="w-4 h-4 text-[#7C5DFA] bg-[#2A2A2A] border-[#3A3A3A] rounded focus:ring-[#7C5DFA]"
-            />
-            <label htmlFor="isPublic" className="text-sm text-gray-300">
-              Make this recording public
-            </label>
-          </div>
-
-          {/* Upload Progress */}
-          {uploadProgress && (
-            <div className="mb-4 p-4 bg-[#2A2A2A] rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-300">
-                  {uploadProgress.message}
-                </span>
-                <span className="text-sm text-gray-400">
-                  {uploadProgress.progress}%
-                </span>
-              </div>
-              <div className="w-full bg-[#1A1A1A] rounded-full h-2">
-                <div
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    uploadProgress.stage === "error"
-                      ? "bg-red-500"
-                      : "bg-[#7C5DFA]"
-                  }`}
-                  style={{ width: `${uploadProgress.progress}%` }}
+        <div className="voisss-card">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center">
+              <svg
+                className="w-6 h-6 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
                 />
-              </div>
-              {uploadProgress.error && (
-                <p className="text-red-400 text-sm mt-2">
-                  {uploadProgress.error}
-                </p>
-              )}
+              </svg>
             </div>
-          )}
+            <div>
+              <h3 className="text-xl font-semibold text-white">
+                Recording Complete!
+              </h3>
+              <p className="text-gray-400">
+                Configure your recording settings below
+              </p>
+            </div>
+          </div>
 
-          <div className="flex gap-3">
-            <button
-              onClick={saveRecording}
-              disabled={isUploading || !title.trim() || !recordingService}
-              className="voisss-btn-secondary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isUploading
-                ? "Saving..."
-                : isConnected
-                ? "Save to IPFS + Starknet"
-                : "Save to IPFS"}
-            </button>
-            <button
-              onClick={() => {
-                if (currentRecording?.blob) {
-                  const url = URL.createObjectURL(currentRecording.blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = `${title || "recording"}.webm`;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }
-              }}
-              className="voisss-btn-primary flex-1"
-              disabled={!currentRecording?.blob}
-            >
-              Download
-            </button>
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-3">
+                Recording Title
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter a descriptive title for your recording..."
+                className="w-full px-4 py-3 bg-[#2A2A2A] border border-[#3A3A3A] rounded-xl text-white placeholder-gray-500 focus:border-[#7C5DFA] focus:ring-1 focus:ring-[#7C5DFA] transition-colors voisss-mobile-input"
+              />
+            </div>
+
+            <div className="flex items-center gap-3 p-4 bg-[#2A2A2A] rounded-xl border border-[#3A3A3A]">
+              <input
+                type="checkbox"
+                id="isPublic"
+                checked={isPublic}
+                onChange={(e) => setIsPublic(e.target.checked)}
+                className="w-5 h-5 text-[#7C5DFA] bg-[#1A1A1A] border-[#3A3A3A] rounded focus:ring-[#7C5DFA] focus:ring-2"
+              />
+              <div>
+                <label
+                  htmlFor="isPublic"
+                  className="text-white font-medium cursor-pointer"
+                >
+                  Make this recording public
+                </label>
+                <p className="text-sm text-gray-400">
+                  Public recordings can be discovered and played by other users
+                </p>
+              </div>
+            </div>
+
+            {/* IPFS Permanence Notice */}
+            <div className="flex items-start gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+              <div className="w-5 h-5 text-blue-400 mt-0.5">
+                <svg fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-blue-400 text-sm font-medium">
+                  Permanent Storage
+                </p>
+                <p className="text-blue-300/80 text-xs mt-1">
+                  Your recording will be stored permanently on IPFS and cannot
+                  be deleted. You can hide it from your feed but the file
+                  remains accessible via its hash.
+                </p>
+              </div>
+            </div>
+
+            {/* Upload Progress */}
+            {uploadProgress && (
+              <div className="p-6 bg-[#2A2A2A] rounded-xl border border-[#3A3A3A]">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    {uploadProgress.stage === "error" ? (
+                      <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                        <svg
+                          className="w-4 h-4 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </div>
+                    ) : uploadProgress.stage === "complete" ? (
+                      <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg
+                          className="w-4 h-4 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </div>
+                    ) : (
+                      <div className="w-6 h-6 border-2 border-[#7C5DFA] border-t-transparent rounded-full animate-spin"></div>
+                    )}
+                    <span className="text-white font-medium">
+                      {uploadProgress.message}
+                    </span>
+                  </div>
+                  <span className="text-sm text-gray-400 font-mono">
+                    {uploadProgress.progress}%
+                  </span>
+                </div>
+                <div className="w-full bg-[#1A1A1A] rounded-full h-3">
+                  <div
+                    className={`h-3 rounded-full transition-all duration-300 ${
+                      uploadProgress.stage === "error"
+                        ? "bg-red-500"
+                        : uploadProgress.stage === "complete"
+                        ? "bg-green-500"
+                        : "bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF]"
+                    }`}
+                    style={{ width: `${uploadProgress.progress}%` }}
+                  />
+                </div>
+                {uploadProgress.error && (
+                  <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                    <p className="text-red-400 text-sm">
+                      {uploadProgress.error}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button
+                onClick={saveRecording}
+                disabled={isUploading || !title.trim() || !recordingService}
+                className="flex-1 px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white font-semibold rounded-xl hover:from-[#6B4CE6] hover:to-[#8B7AFF] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
+              >
+                {isUploading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                      />
+                    </svg>
+                    {isConnected ? "Save to IPFS + Starknet" : "Save to IPFS"}
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  if (currentRecording?.blob) {
+                    const url = URL.createObjectURL(currentRecording.blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `${title || "recording"}.webm`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }
+                }}
+                className="px-4 sm:px-6 py-3 sm:py-4 bg-[#2A2A2A] border border-[#3A3A3A] text-white font-semibold rounded-xl hover:bg-[#3A3A3A] transition-colors duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
+                disabled={!currentRecording?.blob}
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                Download
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* Recordings List */}
-      {recordings.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold text-white mb-4">
-            Your Recordings ({recordings.length})
-          </h3>
-          <div className="space-y-3">
-            {recordings.map((recording) => (
-              <div key={recording.id} className="voisss-card">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium text-white">
-                      {recording.title}
-                    </h4>
-                    <p className="text-sm text-gray-400">
-                      {formatDuration(recording.duration)} •{" "}
-                      {recording.fileSize && formatFileSize(recording.fileSize)}{" "}
-                      • {recording.timestamp.toLocaleString()}
-                      {recording.onChain && (
-                        <span className="ml-2 text-green-400">✓ On-chain</span>
+      {(recordings.length > 0 || isLoadingRecordings) && (
+        <div className="voisss-card">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#7C5DFA] to-[#9C88FF] rounded-full flex items-center justify-center">
+              {isLoadingRecordings ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <svg
+                  className="w-5 h-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                  />
+                </svg>
+              )}
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-white">
+                Your Recordings
+              </h3>
+              <p className="text-gray-400">
+                {isLoadingRecordings
+                  ? "Loading recordings from Starknet..."
+                  : `${visibleRecordings.length} recording${
+                      visibleRecordings.length !== 1 ? "s" : ""
+                    } visible${
+                      recordings.length !== visibleRecordings.length
+                        ? ` (${
+                            recordings.length - visibleRecordings.length
+                          } hidden)`
+                        : ""
+                    }`}
+              </p>
+            </div>
+
+            {/* Filter Controls */}
+            {recordings.length > 0 && (
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                <button
+                  onClick={() => setShowHidden(!showHidden)}
+                  className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                    showHidden
+                      ? "bg-[#7C5DFA] text-white"
+                      : "bg-[#2A2A2A] text-gray-400 hover:text-white"
+                  }`}
+                >
+                  {showHidden ? "Hide Hidden" : "Show Hidden"} (
+                  {recordings.length - visibleRecordings.length})
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            {visibleRecordings.map((recording) => (
+              <div key={recording.id} className="voisss-recording-card">
+                <div className="voisss-recording-header">
+                  <div className="voisss-recording-content">
+                    <div className="flex items-center gap-3 mb-3">
+                      {editingRecording === recording.id ? (
+                        <div className="flex items-center gap-2 flex-1">
+                          <input
+                            type="text"
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            className="flex-1 px-3 py-1 bg-[#1A1A1A] border border-[#3A3A3A] rounded text-white text-lg font-semibold focus:border-[#7C5DFA] focus:ring-1 focus:ring-[#7C5DFA] voisss-mobile-input"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") saveEditedTitle();
+                              if (e.key === "Escape") cancelEditingTitle();
+                            }}
+                            autoFocus
+                          />
+                          <button
+                            onClick={saveEditedTitle}
+                            className="p-1 text-green-400 hover:text-green-300"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={cancelEditingTitle}
+                            className="p-1 text-red-400 hover:text-red-300"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <h4 className="text-lg font-semibold text-white">
+                            {getDisplayTitle(recording)}
+                          </h4>
+                          <button
+                            onClick={() => startEditingTitle(recording)}
+                            className="p-1 text-gray-400 hover:text-white transition-colors"
+                            title="Edit title"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
+                            </svg>
+                          </button>
+                        </>
                       )}
-                      {recording.ipfsHash && (
-                        <span className="ml-2 text-blue-400">📁 IPFS</span>
-                      )}
-                    </p>
-                    {recording.transactionHash && (
-                      <p className="text-xs text-gray-500 font-mono">
-                        TX: {recording.transactionHash}
-                      </p>
-                    )}
-                    {recording.ipfsHash && (
-                      <p className="text-xs text-gray-500 font-mono">
-                        IPFS: {recording.ipfsHash}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        {recording.onChain && (
+                          <div className="flex items-center gap-1 px-2 py-1 bg-green-500/20 border border-green-500/30 rounded-full">
+                            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                            <span className="text-green-400 text-xs font-medium">
+                              On-chain
+                            </span>
+                          </div>
+                        )}
+                        {recording.ipfsHash && (
+                          <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/20 border border-blue-500/30 rounded-full">
+                            <svg
+                              className="w-3 h-3 text-blue-400"
+                              fill="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                            </svg>
+                            <span className="text-blue-400 text-xs font-medium">
+                              IPFS
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="voisss-metadata-grid mb-4 text-sm">
+                      <div className="flex items-center gap-2 text-gray-400">
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <span>{formatDuration(recording.duration)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-400">
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                          />
+                        </svg>
+                        <span>{formatFileSize(recording.fileSize || 0)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-400">
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
+                        </svg>
+                        <span>{recording.timestamp.toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-400">
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <span>{recording.timestamp.toLocaleTimeString()}</span>
+                      </div>
+                    </div>
+
+                    {/* Transaction and IPFS Details */}
+                    {(recording.transactionHash || recording.ipfsHash) && (
+                      <div className="space-y-2 mb-4">
+                        {recording.transactionHash && (
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className="text-gray-500 font-medium">
+                              TX:
+                            </span>
+                            <code className="voisss-hash-display text-gray-400">
+                              {typeof recording.transactionHash === "string"
+                                ? `${recording.transactionHash.slice(
+                                    0,
+                                    10
+                                  )}...${recording.transactionHash.slice(-6)}`
+                                : String(recording.transactionHash)}
+                            </code>
+                          </div>
+                        )}
+                        {recording.ipfsHash && (
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className="text-gray-500 font-medium">
+                              IPFS:
+                            </span>
+                            <code className="voisss-hash-display text-gray-400">
+                              {typeof recording.ipfsHash === "string"
+                                ? `${recording.ipfsHash.slice(
+                                    0,
+                                    10
+                                  )}...${recording.ipfsHash.slice(-6)}`
+                                : String(recording.ipfsHash)}
+                            </code>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
-                  <div className="flex gap-2">
+
+                  {/* Action Buttons */}
+                  <div className="voisss-action-buttons">
+                    <button
+                      onClick={() => toggleRecordingVisibility(recording.id)}
+                      className={`${
+                        recording.isHidden
+                          ? "voisss-action-btn-warning"
+                          : "voisss-action-btn-tertiary"
+                      }`}
+                      title={
+                        recording.isHidden ? "Show in feed" : "Hide from feed"
+                      }
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        {recording.isHidden ? (
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          />
+                        ) : (
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
+                          />
+                        )}
+                      </svg>
+                      {recording.isHidden ? "Show" : "Hide"}
+                    </button>
                     <button
                       onClick={() => {
                         let audioUrl: string;
@@ -552,20 +1178,45 @@ export default function StarknetRecordingStudio() {
                           audio.onended = () => URL.revokeObjectURL(audioUrl);
                         }
                       }}
-                      className="voisss-btn-primary"
+                      className="voisss-action-btn-primary"
                       disabled={!recording.blob && !recording.ipfsHash}
                     >
+                      <svg
+                        className="w-4 h-4"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
                       Play
                     </button>
                     {recording.ipfsUrl && (
-                      <a
-                        href={recording.ipfsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="voisss-btn-secondary text-center flex items-center"
+                      <button
+                        onClick={() => {
+                          if (recordingService) {
+                            const ipfsUrl = recordingService.getPlaybackUrl(
+                              recording.ipfsHash!
+                            );
+                            window.open(ipfsUrl, "_blank");
+                          }
+                        }}
+                        className="voisss-action-btn-secondary"
                       >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                          />
+                        </svg>
                         View on IPFS
-                      </a>
+                      </button>
                     )}
                   </div>
                 </div>
