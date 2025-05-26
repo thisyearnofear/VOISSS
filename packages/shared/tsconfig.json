@@ -19,15 +19,6 @@
     "resolveJsonModule": true,
     "isolatedModules": true
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/index.ts",
-    "src/types.ts",
-    "src/utils.ts",
-    "src/constants.ts",
-    "src/theme.ts",
-    "src/starknet/index.ts"
-  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["node_modules", "dist"]
 }

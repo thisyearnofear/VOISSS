@@ -115,6 +115,12 @@ export default function WalletConnector() {
         Connect Wallet
       </button>
 
+      {connectionError && (
+        <div className="mt-4 p-3 bg-red-900 border border-red-700 rounded-lg">
+          <p className="text-red-300 text-sm">{connectionError}</p>
+        </div>
+      )}
+
       <div className="mt-4 text-xs text-gray-500">
         Supports ArgentX, Braavos, and other Starknet wallets
       </div>

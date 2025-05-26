@@ -75,12 +75,14 @@ export function calculateQualityScore(metadata: {
   channels: number;
 }): number {
   const { sampleRate, bitRate, channels } = metadata;
-  
+
   // Normalize values (0-1 scale)
   const sampleRateScore = Math.min(sampleRate / 48000, 1);
   const bitRateScore = Math.min(bitRate / 320000, 1);
   const channelsScore = channels >= 2 ? 1 : 0.7;
-  
+
   // Weighted average
   return (sampleRateScore * 0.4 + bitRateScore * 0.4 + channelsScore * 0.2) * 100;
 }
+
+

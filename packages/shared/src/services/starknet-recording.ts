@@ -96,7 +96,7 @@ export class StarknetRecordingService {
       // Connect account to contract
       this.voiceStorageContract.connect(account);
 
-      // Prepare metadata for contract call - following demo-dapp pattern
+      // Prepare metadata for contract call
       const calldata = CallData.compile([
         {
           title: metadata.title,
@@ -108,28 +108,123 @@ export class StarknetRecordingService {
         }
       ]);
 
-      // Execute the transaction
-      const result: InvokeFunctionResponse = await this.voiceStorageContract.store_recording(calldata);
-
-      onStatusChange?.({ status: 'pending', hash: result.transaction_hash });
-
-      // Wait for transaction confirmation with timeout
-      const receipt = await this.provider.waitForTransaction(result.transaction_hash, {
-        retryInterval: 1000,
-        successStates: ['ACCEPTED_ON_L2', 'ACCEPTED_ON_L1'],
-      });
-
-      if (receipt.isSuccess()) {
-        onStatusChange?.({ status: 'success', hash: result.transaction_hash });
-        return result.transaction_hash;
-      } else {
-        throw new Error('Transaction failed');
+      // Enhanced fee estimation with fallback mechanism
+      try {
+        return await this.executeWithSTRKFees(account, calldata, onStatusChange);
+      } catch (strkError) {
+        console.warn('STRK fee estimation failed, falling back to ETH:', strkError);
+        return await this.executeWithETHFees(account, calldata, onStatusChange);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Failed to store recording on Starknet:', error);
       onStatusChange?.({ status: 'failed', error: errorMessage });
       throw new Error(`Failed to store recording: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Execute transaction with STRK fees (preferred method)
+   */
+  private async executeWithSTRKFees(
+    account: Account,
+    calldata: any,
+    onStatusChange?: (status: TransactionStatus) => void
+  ): Promise<string> {
+    // Estimate fees with STRK
+    const { suggestedMaxFee, resourceBounds: estimatedResourceBounds } =
+      await account.estimateInvokeFee(
+        {
+          contractAddress: this.voiceStorageContract.address,
+          entrypoint: "store_recording",
+          calldata,
+        },
+        {
+          version: "0x3",
+        }
+      );
+
+    // Add 50% buffer to suggested fee for reliability
+    const maxFee = (suggestedMaxFee * BigInt(15)) / BigInt(10);
+
+    // Enhance resource bounds for better success rate
+    const resourceBounds = {
+      ...estimatedResourceBounds,
+      l1_gas: {
+        ...estimatedResourceBounds.l1_gas,
+        max_amount: "0x28", // Minimum gas amount
+      },
+    };
+
+    // Execute transaction
+    const result: InvokeFunctionResponse = await this.voiceStorageContract.store_recording(calldata, {
+      maxFee,
+      resourceBounds,
+      version: "0x3",
+    });
+
+    onStatusChange?.({ status: 'pending', hash: result.transaction_hash });
+
+    // Wait for confirmation with enhanced timeout
+    const receipt = await this.provider.waitForTransaction(result.transaction_hash, {
+      retryInterval: 2000,
+      successStates: ['ACCEPTED_ON_L2', 'ACCEPTED_ON_L1'],
+    });
+
+    if (receipt.isSuccess()) {
+      onStatusChange?.({ status: 'success', hash: result.transaction_hash });
+      return result.transaction_hash;
+    } else {
+      throw new Error('Transaction failed with STRK fees');
+    }
+  }
+
+  /**
+   * Execute transaction with ETH fees (fallback method)
+   */
+  private async executeWithETHFees(
+    account: Account,
+    calldata: any,
+    onStatusChange?: (status: TransactionStatus) => void
+  ): Promise<string> {
+    // Estimate fees with ETH (legacy method)
+    const { suggestedMaxFee, resourceBounds: estimatedResourceBounds } =
+      await account.estimateInvokeFee({
+        contractAddress: this.voiceStorageContract.address,
+        entrypoint: "store_recording",
+        calldata,
+      });
+
+    // Add 50% buffer to suggested fee
+    const maxFee = (suggestedMaxFee * BigInt(15)) / BigInt(10);
+
+    const resourceBounds = {
+      ...estimatedResourceBounds,
+      l1_gas: {
+        ...estimatedResourceBounds.l1_gas,
+        max_amount: "0x28",
+      },
+    };
+
+    // Execute transaction with ETH fees
+    const result: InvokeFunctionResponse = await this.voiceStorageContract.store_recording(calldata, {
+      maxFee,
+      resourceBounds,
+    });
+
+    onStatusChange?.({ status: 'pending', hash: result.transaction_hash });
+
+    // Wait for confirmation
+    const receipt = await this.provider.waitForTransaction(result.transaction_hash, {
+      retryInterval: 2000,
+      successStates: ['ACCEPTED_ON_L2', 'ACCEPTED_ON_L1'],
+    });
+
+    if (receipt.isSuccess()) {
+      onStatusChange?.({ status: 'success', hash: result.transaction_hash });
+      return result.transaction_hash;
+    } else {
+      throw new Error('Transaction failed with ETH fees');
     }
   }
 
@@ -349,4 +444,32 @@ export class StarknetRecordingService {
       return false;
     }
   }
+}
+
+/**
+ * Create StarknetRecordingService with default configuration
+ */
+export function createStarknetRecordingService(): StarknetRecordingService {
+  // Default configuration for development
+  const providerUrl = process.env.NEXT_PUBLIC_STARKNET_RPC_URL || 'https://starknet-sepolia.public.blastapi.io';
+
+  // These would be set after contract deployment
+  const voiceStorageAddress = process.env.NEXT_PUBLIC_VOICE_STORAGE_CONTRACT || '0x0';
+  const userRegistryAddress = process.env.NEXT_PUBLIC_USER_REGISTRY_CONTRACT || '0x0';
+  const accessControlAddress = process.env.NEXT_PUBLIC_ACCESS_CONTROL_CONTRACT || '0x0';
+
+  // For now, use empty ABIs - in production these would be imported from contracts
+  const voiceStorageAbi = [];
+  const userRegistryAbi = [];
+  const accessControlAbi = [];
+
+  return new StarknetRecordingService(
+    providerUrl,
+    voiceStorageAddress,
+    userRegistryAddress,
+    accessControlAddress,
+    voiceStorageAbi,
+    userRegistryAbi,
+    accessControlAbi
+  );
 }

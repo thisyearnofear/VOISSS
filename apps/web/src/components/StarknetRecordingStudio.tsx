@@ -2,7 +2,13 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useAccount } from "@starknet-react/core";
+import {
+  createIPFSService,
+  createStarknetRecordingService,
+  createRecordingService,
+} from "@voisss/shared";
 
+// Local interfaces until exports are fixed
 interface RecordingMetadata {
   title: string;
   description: string;
@@ -13,14 +19,44 @@ interface RecordingMetadata {
   tags: string[];
 }
 
+interface PipelineProgress {
+  stage: "converting" | "uploading" | "storing" | "complete" | "error";
+  progress: number;
+  message: string;
+  error?: string;
+}
+
+interface RecordingService {
+  processRecording: (
+    blob: Blob,
+    options: any,
+    account?: any,
+    onProgress?: (progress: PipelineProgress) => void
+  ) => Promise<any>;
+  getPlaybackUrl: (ipfsHash: string) => string;
+  dispose: () => void;
+}
+
+// Utility functions
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+};
+
 interface Recording {
   id: string;
   title: string;
-  blob: Blob;
+  blob?: Blob; // Optional for IPFS-stored recordings
   duration: number;
   timestamp: Date;
   onChain?: boolean;
   transactionHash?: string;
+  ipfsHash?: string;
+  ipfsUrl?: string;
+  fileSize?: number;
 }
 
 export default function StarknetRecordingStudio() {
@@ -36,6 +72,11 @@ export default function StarknetRecordingStudio() {
   const [isUploading, setIsUploading] = useState(false);
   const [waveformData, setWaveformData] = useState<number[]>([]);
   const [duration, setDuration] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState<PipelineProgress | null>(
+    null
+  );
+  const [recordingService, setRecordingService] =
+    useState<RecordingService | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -44,13 +85,41 @@ export default function StarknetRecordingStudio() {
   const chunksRef = useRef<Blob[]>([]);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Initialize recording service
   useEffect(() => {
+    const initializeServices = async () => {
+      try {
+        // Create IPFS service (you'll need to set environment variables)
+        const ipfsService = createIPFSService();
+
+        // Create Starknet service
+        const starknetService = createStarknetRecordingService();
+
+        // Create recording service
+        const service = createRecordingService(ipfsService, starknetService);
+        setRecordingService(service);
+
+        // Test IPFS connection
+        const isConnected = await ipfsService.testConnection();
+        if (!isConnected) {
+          console.warn("IPFS connection test failed - uploads may not work");
+        }
+      } catch (error) {
+        console.error("Failed to initialize recording services:", error);
+      }
+    };
+
+    initializeServices();
+
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      if (recordingService) {
+        recordingService.dispose();
       }
     };
   }, []);
@@ -155,57 +224,78 @@ export default function StarknetRecordingStudio() {
   };
 
   const saveRecording = async () => {
-    if (!currentRecording || !isConnected || !address) {
-      alert("Please connect your wallet to save recordings on-chain");
+    if (!currentRecording || !currentRecording.blob) {
+      alert("No recording to save");
+      return;
+    }
+
+    if (!recordingService) {
+      alert("Recording service not initialized");
+      return;
+    }
+
+    if (!title.trim()) {
+      alert("Please enter a title for your recording");
       return;
     }
 
     setIsUploading(true);
+    setUploadProgress(null);
 
     try {
-      // In a real implementation, you would:
-      // 1. Upload audio file to IPFS
-      // 2. Get IPFS hash
-      // 3. Store metadata on Starknet
-
-      // For demo purposes, we'll simulate this
-      const ipfsHash = `Qm${Math.random().toString(36).substring(2, 15)}`;
-
-      const metadata: RecordingMetadata = {
-        title,
-        description: "",
-        ipfsHash,
-        duration: currentRecording.duration,
-        fileSize: currentRecording.blob.size,
-        isPublic,
-        tags: [],
-      };
-
-      // Simulate contract interaction for demo
-      console.log("Storing recording metadata on Starknet:", metadata);
-
-      // For demo, we'll just add it to local state with mock transaction hash
-      const updatedRecording: Recording = {
-        ...currentRecording,
-        title,
-        onChain: isConnected,
-        transactionHash: isConnected
-          ? `0x${Math.random().toString(16).substring(2, 18)}`
-          : undefined,
-      };
-
-      setRecordings((prev) => [...prev, updatedRecording]);
-      setCurrentRecording(null);
-      setShowSaveOptions(false);
-      setTitle("");
-      setIsPublic(false);
-
-      alert(
-        "Recording saved successfully! (Demo mode - not actually on-chain yet)"
+      const result = await recordingService.processRecording(
+        currentRecording.blob,
+        {
+          title: title.trim(),
+          description: "",
+          isPublic,
+          tags: [],
+          quality: "medium",
+          convertAudio: true,
+        },
+        account || undefined,
+        (progress: PipelineProgress) => {
+          setUploadProgress(progress);
+        }
       );
+
+      if (result.success) {
+        const updatedRecording: Recording = {
+          ...currentRecording,
+          title: title.trim(),
+          onChain: !!result.transactionHash,
+          transactionHash: result.transactionHash,
+          ipfsHash: result.ipfsHash,
+          ipfsUrl: result.ipfsUrl,
+          fileSize: currentRecording.blob.size,
+        };
+
+        setRecordings((prev) => [...prev, updatedRecording]);
+        setCurrentRecording(null);
+        setShowSaveOptions(false);
+        setTitle("");
+        setIsPublic(false);
+        setUploadProgress(null);
+
+        const message = result.transactionHash
+          ? "Recording saved successfully to IPFS and Starknet!"
+          : "Recording saved to IPFS! Connect wallet to store on Starknet.";
+
+        alert(message);
+      } else {
+        throw new Error(result.error || "Failed to save recording");
+      }
     } catch (error) {
       console.error("Error saving recording:", error);
-      alert("Failed to save recording");
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to save recording";
+      alert(`Failed to save recording: ${errorMessage}`);
+      setUploadProgress({
+        stage: "error",
+        progress: 0,
+        message: "Save failed",
+        error: errorMessage,
+      });
     } finally {
       setIsUploading(false);
     }
@@ -334,24 +424,60 @@ export default function StarknetRecordingStudio() {
             </label>
           </div>
 
+          {/* Upload Progress */}
+          {uploadProgress && (
+            <div className="mb-4 p-4 bg-[#2A2A2A] rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-300">
+                  {uploadProgress.message}
+                </span>
+                <span className="text-sm text-gray-400">
+                  {uploadProgress.progress}%
+                </span>
+              </div>
+              <div className="w-full bg-[#1A1A1A] rounded-full h-2">
+                <div
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    uploadProgress.stage === "error"
+                      ? "bg-red-500"
+                      : "bg-[#7C5DFA]"
+                  }`}
+                  style={{ width: `${uploadProgress.progress}%` }}
+                />
+              </div>
+              {uploadProgress.error && (
+                <p className="text-red-400 text-sm mt-2">
+                  {uploadProgress.error}
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="flex gap-3">
             <button
               onClick={saveRecording}
-              disabled={isUploading || !title.trim()}
+              disabled={isUploading || !title.trim() || !recordingService}
               className="voisss-btn-secondary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isUploading ? "Saving..." : "Save to Starknet"}
+              {isUploading
+                ? "Saving..."
+                : isConnected
+                ? "Save to IPFS + Starknet"
+                : "Save to IPFS"}
             </button>
             <button
               onClick={() => {
-                const url = URL.createObjectURL(currentRecording.blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `${title || "recording"}.webm`;
-                a.click();
-                URL.revokeObjectURL(url);
+                if (currentRecording?.blob) {
+                  const url = URL.createObjectURL(currentRecording.blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `${title || "recording"}.webm`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }
               }}
               className="voisss-btn-primary flex-1"
+              disabled={!currentRecording?.blob}
             >
               Download
             </button>
@@ -375,9 +501,13 @@ export default function StarknetRecordingStudio() {
                     </h4>
                     <p className="text-sm text-gray-400">
                       {formatDuration(recording.duration)} •{" "}
-                      {recording.timestamp.toLocaleString()}
+                      {recording.fileSize && formatFileSize(recording.fileSize)}{" "}
+                      • {recording.timestamp.toLocaleString()}
                       {recording.onChain && (
                         <span className="ml-2 text-green-400">✓ On-chain</span>
+                      )}
+                      {recording.ipfsHash && (
+                        <span className="ml-2 text-blue-400">📁 IPFS</span>
                       )}
                     </p>
                     {recording.transactionHash && (
@@ -385,19 +515,58 @@ export default function StarknetRecordingStudio() {
                         TX: {recording.transactionHash}
                       </p>
                     )}
+                    {recording.ipfsHash && (
+                      <p className="text-xs text-gray-500 font-mono">
+                        IPFS: {recording.ipfsHash}
+                      </p>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
-                        const audio = new Audio(
-                          URL.createObjectURL(recording.blob)
-                        );
-                        audio.play();
+                        let audioUrl: string;
+
+                        if (recording.ipfsUrl && recordingService) {
+                          // Play from IPFS
+                          audioUrl = recordingService.getPlaybackUrl(
+                            recording.ipfsHash!
+                          );
+                        } else if (recording.blob) {
+                          // Play from local blob
+                          audioUrl = URL.createObjectURL(recording.blob);
+                        } else {
+                          alert("Audio not available for playback");
+                          return;
+                        }
+
+                        const audio = new Audio(audioUrl);
+                        audio.play().catch((error) => {
+                          console.error("Playback failed:", error);
+                          alert(
+                            "Failed to play audio. The file may not be available."
+                          );
+                        });
+
+                        // Clean up blob URL if it was created
+                        if (recording.blob && !recording.ipfsUrl) {
+                          audio.onended = () => URL.revokeObjectURL(audioUrl);
+                        }
                       }}
                       className="voisss-btn-primary"
+                      disabled={!recording.blob && !recording.ipfsHash}
                     >
                       Play
                     </button>
+                    {recording.ipfsUrl && (
+                      <a
+                        href={recording.ipfsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="voisss-btn-secondary text-center flex items-center"
+                      >
+                        View on IPFS
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>

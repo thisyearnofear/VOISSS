@@ -206,6 +206,7 @@ This architectural choice optimizes for the hackathon timeline while maintaining
 - **Node.js 18+**
 - **pnpm 8+** (recommended for monorepos)
 - **Git** for version control
+- **IPFS Provider Account** (Pinata recommended) for real voice functionality
 
 ### Installation
 
@@ -254,6 +255,32 @@ pnpm lint
 pnpm clean
 ```
 
+### 🔧 **IPFS Setup (Required for Real Voice Functionality)**
+
+To enable real voice recording and IPFS storage, set up environment variables:
+
+1. **Copy environment template:**
+
+```bash
+cp apps/web/.env.example apps/web/.env.local
+```
+
+2. **Get Pinata API credentials** (recommended):
+   - Sign up at [pinata.cloud](https://pinata.cloud)
+   - Create API key with pinning permissions
+   - Add to `.env.local`:
+
+```bash
+NEXT_PUBLIC_IPFS_PROVIDER=pinata
+NEXT_PUBLIC_IPFS_API_KEY=your_pinata_api_key
+NEXT_PUBLIC_IPFS_API_SECRET=your_pinata_api_secret
+NEXT_PUBLIC_IPFS_GATEWAY_URL=https://gateway.pinata.cloud/ipfs/
+```
+
+3. **Alternative providers** (Infura, Web3.Storage, local IPFS node) are also supported - see `.env.example` for configuration options.
+
+**Without IPFS setup:** The app will still work but recordings won't be permanently stored.
+
 ## ✅ Current Development Status
 
 ### ✅ **COMPLETED & WORKING**
@@ -267,6 +294,38 @@ pnpm clean
 - ✅ **UI Components**: Button, RecordingCard, WaveformVisualizer, WalletConnector
 - ✅ **Development Scripts**: All dev commands working with correct package names
 - ✅ **Flutter SDK**: Installed and configured (v3.32.0)
+
+## 🎉 **MAJOR MILESTONE: Real Voice Functionality Implemented!**
+
+### 🚀 **Phase 3 Complete: From Demo to Production**
+
+**VOISSS has achieved a major breakthrough!** We've successfully implemented **real voice functionality** with complete IPFS integration, transforming the platform from a sophisticated demo into a **fully functional decentralized voice recording application**.
+
+#### **🎤 What's Now Working:**
+
+- **✅ Real Audio Recording**: Web Audio API with actual microphone capture
+- **✅ IPFS File Storage**: Actual audio files stored on IPFS (no more mocks!)
+- **✅ Audio Format Conversion**: Cross-platform standardization (MP3, WAV, OGG, WebM, M4A)
+- **✅ Complete Pipeline**: Recording → Conversion → IPFS Upload → Starknet Storage
+- **✅ Progress Tracking**: Real-time progress indicators with stage-by-stage feedback
+- **✅ IPFS Playback**: Play recordings directly from IPFS with fallback support
+- **✅ Enhanced Transactions**: STRK/ETH fee fallback with 50% safety buffer
+- **✅ Error Recovery**: Comprehensive error handling at each pipeline stage
+
+#### **🏗️ Technical Architecture:**
+
+```
+🎤 Recording → 🔄 Audio Conversion → 📁 IPFS Upload → ⛓️ Starknet Storage
+     ↓              ↓                    ↓              ↓
+  Real Audio    Format Std.         Real IPFS     Enhanced Tx
+```
+
+#### **📊 Impact:**
+
+- **From Mock to Real**: Replaced all placeholder implementations with working functionality
+- **Production Ready**: Real file storage, playback, and blockchain integration
+- **User Experience**: Progress indicators, error handling, and status feedback
+- **Hackathon Ready**: Fully functional demo for Starknet Re{ignite} submission
 
 ### 🔄 **ENHANCEMENT ROADMAP**
 
@@ -318,20 +377,22 @@ pnpm clean
 
 #### **Phase 2: 🔗 Enhance Starknet Integration**
 
-**Priority: HIGH** - Core blockchain functionality
+**Priority: HIGH** - Core blockchain functionality ✅ **ENHANCED**
 
 **Smart Contracts:**
 
-- [ ] Create VoiceStorage contract for metadata storage
-- [ ] Implement UserRegistry for user profiles
-- [ ] Add IPFS integration for decentralized audio storage
-- [ ] Deploy contracts to Starknet testnet
+- [x] ✅ Create VoiceStorage contract for metadata storage
+- [x] ✅ Implement UserRegistry for user profiles
+- [x] ✅ Add IPFS integration for decentralized audio storage
+- [x] ✅ Deploy contracts to Starknet testnet
 
 **Web App:**
 
-- [ ] Replace mock Starknet provider with real starknet-react integration
-- [ ] Implement wallet connection (ArgentX, Braavos)
-- [ ] Add contract interaction for storing recording metadata
+- [x] ✅ **Enhanced Transaction Handling**: Advanced fee estimation with STRK/ETH fallback
+- [x] ✅ Replace mock Starknet provider with real starknet-react integration
+- [x] ✅ Implement wallet connection (ArgentX, Braavos)
+- [x] ✅ Add contract interaction for storing recording metadata
+- [ ] Better Wallet Connection: Installation detection and retry logic (roadmap)
 - [ ] Create transaction history and status tracking
 
 **Mobile Apps:**
@@ -341,7 +402,40 @@ pnpm clean
 - [ ] Add mobile wallet connection flows
 - [ ] Implement cross-platform wallet state synchronization
 
-#### **Phase 3: 🎨 Consistent Styling & Brand Identity**
+#### **Phase 3: 🎤 Real Voice Functionality Implementation**
+
+**Priority: HIGH** - Core platform functionality ✅ **COMPLETED**
+
+**IPFS Integration:**
+
+- [x] ✅ **Multi-provider IPFS Service**: Pinata, Infura, Web3.Storage, local node support
+- [x] ✅ **Real File Uploads**: Actual audio file storage on IPFS (no more mocks)
+- [x] ✅ **Metadata Handling**: Proper audio metadata with duration, file size, format
+- [x] ✅ **Connection Testing**: Built-in IPFS connectivity validation
+
+**Audio Processing:**
+
+- [x] ✅ **Format Conversion**: Cross-platform audio standardization (MP3, WAV, OGG, WebM, M4A)
+- [x] ✅ **Quality Optimization**: Multiple quality levels (low, medium, high, lossless)
+- [x] ✅ **Web Audio API**: Real-time audio processing and conversion
+- [x] ✅ **MIME Type Handling**: Proper format detection and conversion
+
+**Complete Recording Pipeline:**
+
+- [x] ✅ **End-to-End Workflow**: Recording → Conversion → IPFS Upload → Starknet Storage
+- [x] ✅ **Progress Tracking**: Real-time progress indicators with stage-by-stage feedback
+- [x] ✅ **Enhanced Transaction Handling**: STRK/ETH fee fallback with 50% safety buffer
+- [x] ✅ **Error Recovery**: Comprehensive error handling at each pipeline stage
+
+**Web App Enhancements:**
+
+- [x] ✅ **Real Recording Service**: Replaced all mock implementations with working functionality
+- [x] ✅ **Progress Indicators**: Visual progress bars during upload/storage operations
+- [x] ✅ **IPFS Playback**: Play recordings directly from IPFS with fallback support
+- [x] ✅ **File Information Display**: Shows actual file sizes, IPFS hashes, and metadata
+- [x] ✅ **Enhanced UX**: Better error messages, status feedback, and user guidance
+
+#### **Phase 4: 🎨 Consistent Styling & Brand Identity**
 
 **Priority: MEDIUM** - User experience enhancement
 
@@ -359,7 +453,7 @@ pnpm clean
 - [ ] Create shared icons and illustrations
 - [ ] Implement responsive design patterns
 
-#### **Phase 4: 🏗️ Smart Contract Development & Deployment**
+#### **Phase 5: 🏗️ Smart Contract Development & Deployment**
 
 **Priority: HIGH** - Blockchain foundation ✅ **COMPLETED**
 
@@ -378,7 +472,25 @@ pnpm clean
 - [x] ✅ **Flutter Integration**: Mobile app configured with deployed addresses
 - [x] ✅ **Contract Testing**: Deployment verified and working
 
-#### **Phase 5: 🌐 Cross-App Features & Synchronization**
+#### **Phase 6: 🚀 Advanced Starknet Features**
+
+**Priority: MEDIUM** - Enhanced blockchain functionality
+
+**Session Keys for Mobile UX:**
+
+- [ ] Implement session keys for gasless transactions
+- [ ] Allow batch recording operations without wallet prompts
+- [ ] Add session management and security controls
+- [ ] Integrate with mobile wallet apps (ArgentX, Braavos)
+
+**Token & Payment Utilities:**
+
+- [ ] Add proper decimal handling for STRK payments
+- [ ] Implement balance formatting and display
+- [ ] Create payment utilities for future monetization
+- [ ] Add support for custom token payments
+
+#### **Phase 7: 🌐 Cross-App Features & Synchronization**
 
 **Priority: MEDIUM** - Unified ecosystem
 
@@ -398,35 +510,35 @@ pnpm clean
 
 ## 🗺️ **POST-HACKATHON ROADMAP**
 
-### **Phase 1: Enhanced Organization (Q1 2025)**
+### **Phase 1: Enhanced Organization **
 
 - **Smart Categorization**: AI-powered auto-tagging and content analysis
 - **Advanced Search**: Full-text search across recordings with filters
 - **Custom Collections**: User-created playlists and folders
 - **Tag Management**: Visual tag system with color coding
 
-### **Phase 2: Social & Sharing Features (Q1 2025)**
+### **Phase 2: Social & Sharing Features **
 
 - **Social Sharing**: Direct integration with Twitter, Telegram, Discord
 - **Access Controls**: Granular permissions with time-based expiration
 - **Public Discovery**: Trending recordings and creator profiles
 - **Collaboration**: Shared recordings and team workspaces
 
-### **Phase 3: Creator Economy (Q2 2025)**
+### **Phase 3: Creator Economy **
 
 - **Monetization**: Direct payments and subscription models
 - **NFT Integration**: Voice recordings as tradeable NFTs
 - **Creator Tools**: Analytics, audience insights, revenue tracking
 - **Marketplace**: Decentralized marketplace for voice content
 
-### **Phase 4: Advanced Features (Q2-Q3 2025)**
+### **Phase 4: Advanced Features **
 
 - **Audio Editing**: Basic editing tools (trim, fade, normalize)
 - **Transcription**: AI-powered speech-to-text with search
 - **Multi-language**: Support for global languages and accents
 - **Offline Mode**: Local storage with sync when online
 
-### **Phase 5: Enterprise & Integration (Q3-Q4 2025)**
+### **Phase 5: Enterprise & Integration **
 
 - **API Platform**: Developer APIs for third-party integrations
 - **Enterprise Tools**: Team management, compliance, bulk operations
@@ -503,7 +615,7 @@ All VOISSS smart contracts are now live on Starknet Sepolia testnet:
 
 ### 🚀 **Ready for Hackathon Development**
 
-Your project demonstrates:
+The project demonstrates:
 
 - **Technical Versatility**: Three different platforms and approaches
 - **Starknet Integration**: Both starknet.js and starknet.dart SDKs
@@ -561,19 +673,6 @@ pnpm dev  # Watch mode for component development
 - **Business Potential**: Creator economy and content monetization opportunities
 - **Innovation**: Novel approach to decentralized audio content ownership
 - **User Experience**: Smooth cross-platform interaction design
-
-## 🌟 Beyond the Hackathon
-
-VOISSS is designed for long-term value, not "hack-and-forget":
-
-- **Gas Rebate**: First 3 months post-launch (up to $1,000 STRK)
-- **Security Credit**: Subsidized audit for 1st prize winner (up to $10,000 STRK)
-- **Fast-track Support**: Starkware Marketing support and ecosystem listing
-- **Startup House**: Potential selection for Cannes Startup House program
-
-## � Troubleshooting
-
-### Common Issues
 
 #### Installation Problems
 
@@ -646,6 +745,6 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 ---
 
-**🎤 Ready to Re{ignite} the future of voice recording on Starknet?**
+**🎤 Ready to Re{ignite} the future of voice on Starknet?**
 
-Join us in building the next generation of decentralized audio platforms! ✨
+the next generation of decentralized audio is upon us ✨
