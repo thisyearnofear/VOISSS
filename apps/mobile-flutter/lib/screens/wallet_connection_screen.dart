@@ -26,7 +26,7 @@ class WalletConnectionScreen extends StatelessWidget {
   }
 
   Widget _buildConnectionView(BuildContext context, StarknetProvider starknet) {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -52,9 +52,9 @@ class WalletConnectionScreen extends StatelessWidget {
               color: Colors.white,
             ),
           ),
-          
+
           const SizedBox(height: 32),
-          
+
           // Title
           const Text(
             'Connect to Starknet',
@@ -65,9 +65,9 @@ class WalletConnectionScreen extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Description
           Text(
             'Connect your Starknet wallet to store recordings on-chain and access decentralized features',
@@ -78,9 +78,9 @@ class WalletConnectionScreen extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
-          
+
           const SizedBox(height: 48),
-          
+
           // Network Selector
           Container(
             padding: const EdgeInsets.all(16),
@@ -123,9 +123,9 @@ class WalletConnectionScreen extends StatelessWidget {
               ],
             ),
           ),
-          
+
           const SizedBox(height: 32),
-          
+
           // Connection Options
           Column(
             children: [
@@ -138,9 +138,9 @@ class WalletConnectionScreen extends StatelessWidget {
                 onTap: starknet.isConnecting ? null : () => starknet.connectWallet(),
                 isPrimary: true,
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // ArgentX Wallet
               _buildConnectionButton(
                 context: context,
@@ -150,9 +150,9 @@ class WalletConnectionScreen extends StatelessWidget {
                 onTap: () => starknet.connectArgentXWallet(),
                 isPrimary: false,
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Braavos Wallet
               _buildConnectionButton(
                 context: context,
@@ -164,7 +164,7 @@ class WalletConnectionScreen extends StatelessWidget {
               ),
             ],
           ),
-          
+
           if (starknet.isConnecting) ...[
             const SizedBox(height: 32),
             const CircularProgressIndicator(
@@ -176,7 +176,7 @@ class WalletConnectionScreen extends StatelessWidget {
               style: TextStyle(color: Colors.white),
             ),
           ],
-          
+
           if (starknet.error != null) ...[
             const SizedBox(height: 32),
             Container(
@@ -206,7 +206,7 @@ class WalletConnectionScreen extends StatelessWidget {
   }
 
   Widget _buildConnectedView(BuildContext context, StarknetProvider starknet) {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -226,9 +226,9 @@ class WalletConnectionScreen extends StatelessWidget {
               color: Colors.green,
             ),
           ),
-          
+
           const SizedBox(height: 32),
-          
+
           const Text(
             'Wallet Connected!',
             style: TextStyle(
@@ -237,9 +237,9 @@ class WalletConnectionScreen extends StatelessWidget {
               color: Colors.white,
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           Text(
             'You can now store recordings on Starknet',
             style: TextStyle(
@@ -247,9 +247,9 @@ class WalletConnectionScreen extends StatelessWidget {
               color: Colors.grey[400],
             ),
           ),
-          
+
           const SizedBox(height: 32),
-          
+
           // Account Info
           Container(
             padding: const EdgeInsets.all(20),
@@ -293,9 +293,9 @@ class WalletConnectionScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 20),
-                
+
                 Row(
                   children: [
                     const Icon(
@@ -316,9 +316,9 @@ class WalletConnectionScreen extends StatelessWidget {
               ],
             ),
           ),
-          
+
           const SizedBox(height: 32),
-          
+
           // Action Buttons
           Row(
             children: [

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
 import 'providers/starknet_provider.dart';
 import 'providers/recordings_provider.dart';
+import 'services/ipfs_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,7 +19,24 @@ class VoisssApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => StarknetProvider()),
-        ChangeNotifierProvider(create: (_) => RecordingsProvider()),
+        ChangeNotifierProvider(
+          create: (_) {
+            final recordingsProvider = RecordingsProvider();
+
+            // Initialize IPFS service with Pinata configuration
+            // Using the same credentials as the web app for cross-platform compatibility
+            final ipfsConfig = IPFSConfig(
+              provider: 'pinata',
+              apiKey: '1cceb4d49bc293158533',
+              apiSecret: 'b5b9cc59fa5235fb0005b5f513c83dbb552c0a3a195d282b7033bc7484e9e295',
+              gatewayUrl: 'https://gateway.pinata.cloud/ipfs/',
+            );
+
+            recordingsProvider.initializeIPFS(ipfsConfig);
+
+            return recordingsProvider;
+          },
+        ),
       ],
       child: MaterialApp(
         title: 'VOISSS Flutter',

@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:starknet/starknet.dart';
+import 'package:starknet_provider/starknet_provider.dart';
 
 class RecordingMetadata {
   final String title;
@@ -80,61 +81,27 @@ class Recording {
 class StarknetRecordingService {
   static const String _testnetRpcUrl = 'https://starknet-sepolia.public.blastapi.io/rpc/v0_7';
   static const String _chainId = '0x534e5f5345504f4c4941'; // SN_SEPOLIA
-  
+
   // Contract addresses (will be populated after deployment)
   static const String _voiceStorageAddress = '';
   static const String _userRegistryAddress = '';
   static const String _accessControlAddress = '';
 
   late final JsonRpcProvider _provider;
-  Contract? _voiceStorageContract;
-  Contract? _userRegistryContract;
-  Contract? _accessControlContract;
 
   StarknetRecordingService() {
     _provider = JsonRpcProvider(nodeUri: Uri.parse(_testnetRpcUrl));
-    _initializeContracts();
-  }
-
-  void _initializeContracts() {
-    // Initialize contracts when addresses are available
-    if (_voiceStorageAddress.isNotEmpty) {
-      _voiceStorageContract = Contract(
-        address: Felt.fromHexString(_voiceStorageAddress),
-        abi: _getVoiceStorageAbi(),
-        provider: _provider,
-      );
-    }
-
-    if (_userRegistryAddress.isNotEmpty) {
-      _userRegistryContract = Contract(
-        address: Felt.fromHexString(_userRegistryAddress),
-        abi: _getUserRegistryAbi(),
-        provider: _provider,
-      );
-    }
-
-    if (_accessControlAddress.isNotEmpty) {
-      _accessControlContract = Contract(
-        address: Felt.fromHexString(_accessControlAddress),
-        abi: _getAccessControlAbi(),
-        provider: _provider,
-      );
-    }
   }
 
   Future<String> storeRecording({
     required Account account,
     required RecordingMetadata metadata,
   }) async {
-    if (_voiceStorageContract == null) {
-      throw Exception('Voice storage contract not initialized');
+    if (_voiceStorageAddress.isEmpty) {
+      throw Exception('Voice storage contract address not set');
     }
 
     try {
-      // Connect account to contract
-      _voiceStorageContract!.connect(account);
-
       // Prepare call data
       final calldata = [
         Felt.fromString(metadata.title),
@@ -143,29 +110,50 @@ class StarknetRecordingService {
         Felt.fromInt(metadata.duration),
         Felt.fromInt(metadata.fileSize),
         Felt.fromInt(metadata.isPublic ? 1 : 0),
+        Felt.fromInt(metadata.tags.length),
+        ...metadata.tags.map((tag) => Felt.fromString(tag)),
       ];
 
-      // Execute the transaction
-      final result = await _voiceStorageContract!.invoke(
-        functionName: 'store_recording',
-        calldata: calldata,
+      // Execute the transaction using Account.execute
+      final result = await account.execute(
+        functionCalls: [
+          FunctionCall(
+            contractAddress: Felt.fromHexString(_voiceStorageAddress),
+            entryPointSelector: getSelectorByName('store_recording'),
+            calldata: calldata,
+          ),
+        ],
       );
 
-      return result.transactionHash;
+      final txHash = result.when(
+        result: (result) => result.transaction_hash,
+        error: (error) => throw Exception('Transaction failed: ${error.message}'),
+      );
+
+      return txHash;
     } catch (error) {
       throw Exception('Failed to store recording on Starknet: $error');
     }
   }
 
   Future<Recording?> getRecording(String recordingId) async {
-    if (_voiceStorageContract == null) {
-      throw Exception('Voice storage contract not initialized');
+    if (_voiceStorageAddress.isEmpty) {
+      throw Exception('Voice storage contract address not set');
     }
 
     try {
-      final result = await _voiceStorageContract!.call(
-        functionName: 'get_recording',
-        calldata: [Felt.fromString(recordingId)],
+      final callResult = await _provider.call(
+        request: FunctionCall(
+          contractAddress: Felt.fromHexString(_voiceStorageAddress),
+          entryPointSelector: getSelectorByName('get_recording'),
+          calldata: [Felt.fromString(recordingId)],
+        ),
+        blockId: BlockId.latest,
+      );
+
+      final result = callResult.when(
+        result: (result) => result,
+        error: (error) => throw Exception('Call failed: ${error.message}'),
       );
 
       if (result.isNotEmpty) {
@@ -179,14 +167,23 @@ class StarknetRecordingService {
   }
 
   Future<List<Recording>> getUserRecordings(String userAddress) async {
-    if (_voiceStorageContract == null) {
-      throw Exception('Voice storage contract not initialized');
+    if (_voiceStorageAddress.isEmpty) {
+      throw Exception('Voice storage contract address not set');
     }
 
     try {
-      final result = await _voiceStorageContract!.call(
-        functionName: 'get_user_recordings',
-        calldata: [Felt.fromHexString(userAddress)],
+      final callResult = await _provider.call(
+        request: FunctionCall(
+          contractAddress: Felt.fromHexString(_voiceStorageAddress),
+          entryPointSelector: getSelectorByName('get_user_recordings'),
+          calldata: [Felt.fromHexString(userAddress)],
+        ),
+        blockId: BlockId.latest,
+      );
+
+      final result = callResult.when(
+        result: (result) => result,
+        error: (error) => throw Exception('Call failed: ${error.message}'),
       );
 
       final recordings = <Recording>[];
@@ -208,17 +205,26 @@ class StarknetRecordingService {
     int offset = 0,
     int limit = 20,
   }) async {
-    if (_voiceStorageContract == null) {
-      throw Exception('Voice storage contract not initialized');
+    if (_voiceStorageAddress.isEmpty) {
+      throw Exception('Voice storage contract address not set');
     }
 
     try {
-      final result = await _voiceStorageContract!.call(
-        functionName: 'get_public_recordings',
-        calldata: [
-          Felt.fromInt(offset),
-          Felt.fromInt(limit),
-        ],
+      final callResult = await _provider.call(
+        request: FunctionCall(
+          contractAddress: Felt.fromHexString(_voiceStorageAddress),
+          entryPointSelector: getSelectorByName('get_public_recordings'),
+          calldata: [
+            Felt.fromInt(offset),
+            Felt.fromInt(limit),
+          ],
+        ),
+        blockId: BlockId.latest,
+      );
+
+      final result = callResult.when(
+        result: (result) => result,
+        error: (error) => throw Exception('Call failed: ${error.message}'),
       );
 
       final recordings = <Recording>[];
@@ -240,16 +246,19 @@ class StarknetRecordingService {
     required Account account,
     required String recordingId,
   }) async {
-    if (_voiceStorageContract == null) {
-      throw Exception('Voice storage contract not initialized');
+    if (_voiceStorageAddress.isEmpty) {
+      throw Exception('Voice storage contract address not set');
     }
 
     try {
-      _voiceStorageContract!.connect(account);
-
-      await _voiceStorageContract!.invoke(
-        functionName: 'increment_play_count',
-        calldata: [Felt.fromString(recordingId)],
+      await account.execute(
+        functionCalls: [
+          FunctionCall(
+            contractAddress: Felt.fromHexString(_voiceStorageAddress),
+            entryPointSelector: getSelectorByName('increment_play_count'),
+            calldata: [Felt.fromString(recordingId)],
+          ),
+        ],
       );
     } catch (error) {
       print('Failed to increment play count: $error');

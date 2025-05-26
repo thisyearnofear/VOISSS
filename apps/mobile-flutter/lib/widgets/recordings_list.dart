@@ -13,32 +13,39 @@ class RecordingsList extends StatelessWidget {
       builder: (context, recordings, child) {
         if (recordings.recordings.isEmpty) {
           return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.mic_none,
-                  size: 64,
-                  color: Colors.grey[600],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No recordings yet',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey[400],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Tap the microphone to start recording',
-                  style: TextStyle(
-                    fontSize: 14,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.mic_none,
+                    size: 48, // Reduced size to fit better
                     color: Colors.grey[600],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12), // Reduced spacing
+                  Text(
+                    'No recordings yet',
+                    style: TextStyle(
+                      fontSize: 16, // Reduced font size
+                      color: Colors.grey[400],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 6), // Reduced spacing
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text(
+                      'Tap the microphone to start recording',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12, // Reduced font size
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         }
@@ -55,7 +62,7 @@ class RecordingsList extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             Expanded(
               child: ListView.builder(
                 itemCount: recordings.recordings.length,
@@ -112,7 +119,8 @@ class RecordingsList extends StatelessWidget {
 
   Future<void> _storeOnStarknet(BuildContext context, Recording recording) async {
     final starknet = context.read<StarknetProvider>();
-    
+    final recordings = context.read<RecordingsProvider>();
+
     if (!starknet.isConnected) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -124,39 +132,81 @@ class RecordingsList extends StatelessWidget {
     }
 
     try {
-      // Show loading dialog
+      // Show loading dialog with progress
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const AlertDialog(
-          backgroundColor: Color(0xFF1A1A1A),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text(
-                'Storing on Starknet...',
-                style: TextStyle(color: Colors.white),
+        builder: (context) => Consumer<RecordingsProvider>(
+          builder: (context, recordings, child) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1A1A1A),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(
+                    value: recordings.isUploading ? recordings.uploadProgress : null,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    recordings.isUploading
+                        ? 'Uploading to IPFS... ${(recordings.uploadProgress * 100).toInt()}%'
+                        : 'Storing on Starknet...',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  if (recordings.isUploading) ...[
+                    const SizedBox(height: 8),
+                    const Text(
+                      '🌐 Permanent storage on IPFS',
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ],
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       );
 
+      // Step 1: Upload to IPFS first
+      final ipfsResult = await recordings.uploadRecordingToIPFS(recording.id);
+
+      if (ipfsResult == null) {
+        throw Exception('Failed to upload to IPFS');
+      }
+
+      // Step 2: Store metadata on Starknet with real IPFS hash
       await starknet.storeRecordingMetadata(
         title: recording.title,
+        description: 'Voice recording created on ${recording.formattedDate}',
         duration: recording.duration.inSeconds,
+        fileSize: recording.fileSize,
+        isPublic: true,
         tags: recording.tags,
-        ipfsHash: 'QmExample...', // In real app, upload to IPFS first
+        ipfsHash: ipfsResult.hash,
       );
 
       if (context.mounted) {
         Navigator.pop(context); // Close loading dialog
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Recording metadata stored on Starknet!'),
+          SnackBar(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('✅ Recording stored successfully!'),
+                const SizedBox(height: 4),
+                Text(
+                  '🌐 IPFS: ${ipfsResult.hash.substring(0, 12)}...',
+                  style: const TextStyle(fontSize: 12, color: Colors.white70),
+                ),
+                const Text(
+                  '⛓️ Metadata stored on Starknet',
+                  style: TextStyle(fontSize: 12, color: Colors.white70),
+                ),
+              ],
+            ),
             backgroundColor: Colors.green,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -165,7 +215,7 @@ class RecordingsList extends StatelessWidget {
         Navigator.pop(context); // Close loading dialog
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to store on Starknet: ${e.toString()}'),
+            content: Text('❌ Failed to store: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -253,9 +303,9 @@ class RecordingTile extends StatelessWidget {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 8),
-          
+
           Row(
             children: [
               Text(
@@ -283,7 +333,7 @@ class RecordingTile extends StatelessWidget {
               ),
             ],
           ),
-          
+
           if (recording.starknetTxHash != null) ...[
             const SizedBox(height: 8),
             Container(

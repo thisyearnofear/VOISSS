@@ -17,7 +17,8 @@ dependencies:
 
   # Starknet integration
   starknet: ^0.1.2+1
-  # starknet_flutter: ^0.1.0  # Temporarily disabled due to API compatibility
+  starknet_provider: ^0.1.1+2
+  # starknet_flutter: ^0.1.0  # Will add back after core integration works
 
   # UI and state management
   cupertino_icons: ^1.0.2
@@ -31,7 +32,7 @@ dependencies:
 
   # File handling
   path_provider: ^2.1.1
-  file_picker: ^6.1.1
+  file_picker: ^8.0.0+1
 
   # HTTP and networking
   http: ^1.1.0

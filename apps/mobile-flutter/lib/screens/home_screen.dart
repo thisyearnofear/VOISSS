@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/starknet_provider.dart';
-import '../providers/recordings_provider.dart';
 import '../widgets/wallet_selector.dart';
 import '../widgets/account_address.dart';
 import '../widgets/recording_button.dart';
 import '../widgets/recordings_list.dart';
 import '../widgets/sync_status_widget.dart';
-import '../screens/wallet_connection_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -54,38 +53,68 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              // Starknet Connection Section
-              Consumer<StarknetProvider>(
-                builder: (context, starknet, child) {
-                  if (!starknet.isConnected) {
-                    return const WalletSelector();
+        child: Column(
+          children: [
+            // Main content
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    // Starknet Connection Section
+                    Consumer<StarknetProvider>(
+                      builder: (context, starknet, child) {
+                        if (!starknet.isConnected) {
+                          return const WalletSelector();
+                        }
+                        return const AccountAddress();
+                      },
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Recording Section
+                    const RecordingButton(),
+
+                    const SizedBox(height: 16),
+
+                    // Sync Status (moved below recording button)
+                    const SyncStatusWidget(),
+
+                    const SizedBox(height: 24),
+
+                    // Recordings List
+                    const Expanded(
+                      child: RecordingsList(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Footer - "Built by papa"
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: GestureDetector(
+                onTap: () async {
+                  // Open papa's Farcaster profile
+                  final uri = Uri.parse('https://farcaster.xyz/papa');
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
                   }
-                  return const AccountAddress();
                 },
+                child: Text(
+                  'built by papa',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                    decoration: TextDecoration.underline,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
-
-              const SizedBox(height: 16),
-
-              // Sync Status
-              const SyncStatusWidget(),
-
-              const SizedBox(height: 24),
-
-              // Recording Section
-              const RecordingButton(),
-
-              const SizedBox(height: 24),
-
-              // Recordings List
-              const Expanded(
-                child: RecordingsList(),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

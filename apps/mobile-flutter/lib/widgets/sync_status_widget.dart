@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/starknet_provider.dart';
 import '../providers/recordings_provider.dart';
+import '../services/sync_service.dart';
 
 class SyncStatusWidget extends StatefulWidget {
   const SyncStatusWidget({super.key});
@@ -84,132 +85,80 @@ class _SyncStatusWidgetState extends State<SyncStatusWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
+          // Compact Header with Sync Button
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Cross-Platform Sync',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
-              ),
-              Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Online',
-                    style: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Sync Stats
-          Column(
-            children: [
-              _buildStatRow('Last sync:', _formatLastSync(_lastSync)),
-              const SizedBox(height: 8),
-              _buildStatRow('Total recordings:', '${recordings.recordings.length}'),
-              const SizedBox(height: 8),
-              _buildStatRow('Wallet:', _formatAddress(starknet.accountAddress)),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Sync Button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _isSyncing ? null : () => _syncWithBlockchain(starknet),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7C5DFA),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: _isSyncing
-                  ? Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+              // Left side - Status info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            shape: BoxShape.circle,
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Text('Syncing...'),
+                        Text(
+                          'Cross-Platform Sync',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
                       ],
-                    )
-                  : Text('Sync Now'),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // How it works
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'How it works:',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ...[
-                  '• Recordings stored on Starknet blockchain',
-                  '• Audio files stored on IPFS for decentralization',
-                  '• Access from any device with your wallet',
-                  '• Automatic sync when online',
-                ].map((text) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    text,
-                    style: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: 12,
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Last sync: ${_formatLastSync(_lastSync)}',
+                      style: TextStyle(
+                        color: Colors.grey[400],
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Right side - Sync button
+              ElevatedButton(
+                onPressed: _isSyncing ? null : () => _syncWithBlockchain(starknet),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7C5DFA),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                )),
-              ],
-            ),
+                  minimumSize: Size(80, 32),
+                ),
+                child: _isSyncing
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Text(
+                        'Sync',
+                        style: TextStyle(fontSize: 12),
+                      ),
+              ),
+            ],
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
-          // Device Indicators
+          // Device Indicators (compact)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -289,7 +238,7 @@ class _SyncStatusWidgetState extends State<SyncStatusWidget> {
     if (date == null) return 'Never';
     final now = DateTime.now();
     final difference = now.difference(date);
-    
+
     if (difference.inMinutes < 1) return 'Just now';
     if (difference.inMinutes < 60) return '${difference.inMinutes}m ago';
     if (difference.inHours < 24) return '${difference.inHours}h ago';
@@ -308,26 +257,32 @@ class _SyncStatusWidgetState extends State<SyncStatusWidget> {
     });
 
     try {
-      // Simulate blockchain sync
-      // In real implementation, this would:
-      // 1. Query VoiceStorage contract for user's recordings
-      // 2. Compare with local storage
-      // 3. Download missing recordings from IPFS
-      // 4. Upload pending local recordings
+      // Get recordings provider from context
+      final recordings = context.read<RecordingsProvider>();
 
-      await Future.delayed(const Duration(seconds: 2));
+      // Initialize sync service if not already done
+      recordings.initializeSync(starknet);
 
-      setState(() {
-        _lastSync = DateTime.now();
-      });
+      // Perform real sync with blockchain and IPFS
+      final syncResult = await recordings.performSync();
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ Sync completed successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
+      if (syncResult != null) {
+        setState(() {
+          _lastSync = syncResult.lastSync ?? DateTime.now();
+        });
+
+        if (mounted) {
+          final message = syncResult.status == SyncStatus.success
+              ? '✅ Sync completed: ${syncResult.recordingsDownloaded ?? 0} downloaded, ${syncResult.recordingsUploaded ?? 0} uploaded'
+              : '❌ ${syncResult.message ?? 'Sync failed'}';
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: syncResult.status == SyncStatus.success ? Colors.green : Colors.red,
+            ),
+          );
+        }
       }
     } catch (error) {
       if (mounted) {

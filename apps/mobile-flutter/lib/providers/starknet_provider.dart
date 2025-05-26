@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:starknet/starknet.dart';
+import 'package:starknet_provider/starknet_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
@@ -79,7 +80,7 @@ class StarknetProvider extends ChangeNotifier {
   Future<void> _checkNetworkConnectivity() async {
     try {
       // Test RPC connection
-      final chainId = await _provider?.getChainId();
+      final chainId = await _provider?.chainId();
       if (chainId == null) {
         throw Exception('Unable to connect to Starknet network');
       }
@@ -109,17 +110,34 @@ class StarknetProvider extends ChangeNotifier {
       throw Exception('Provider not initialized');
     }
 
-    // Generate or use a development private key
+    // Use your actual testnet account
     // WARNING: Never use this in production!
-    const devPrivateKey = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
-    const devAccountAddress = '0x1234567890abcdef1234567890abcdef12345678';
+    // This is your controlled testnet account for hackathon development
+    const devPrivateKey = '0x022470b5fd0d809f8d475787bffc1b4686dd50a9e320a68e8c7b7495157468e0';
+    const devAccountAddress = '0x06796FC91477e32037D79886bFc2F3fBD74c24Eba62183BB9F8FC6c59Fa29738';
 
     try {
+      // Validate that the private key is within valid range before creating signer
+      final privateKeyFelt = Felt.fromHexString(devPrivateKey);
+      if (!_isValidFieldElement(privateKeyFelt)) {
+        throw Exception('Private key is not a valid field element');
+      }
+
+      // Validate that the account address is within valid range
+      final accountAddressFelt = Felt.fromHexString(devAccountAddress);
+      if (!_isValidFieldElement(accountAddressFelt)) {
+        throw Exception('Account address is not a valid field element');
+      }
+
+      // Create signer from private key
+      final signer = Signer(privateKey: privateKeyFelt);
+
       // Create account instance
       _account = Account(
         provider: _provider!,
-        accountAddress: Felt.fromHexString(devAccountAddress),
-        privateKey: Felt.fromHexString(devPrivateKey),
+        signer: signer,
+        accountAddress: accountAddressFelt,
+        chainId: Felt.fromHexString('0x534e5f5345504f4c4941'), // Sepolia chain ID
       );
 
       _accountAddress = devAccountAddress;
@@ -136,15 +154,29 @@ class StarknetProvider extends ChangeNotifier {
     }
   }
 
+  // Helper method to validate field elements
+  bool _isValidFieldElement(Felt felt) {
+    // Starknet field modulus: 2^251 + 17 * 2^192 + 1
+    // For safety, we'll check if the value is less than 2^251
+    final maxValue = BigInt.from(2).pow(251);
+    final feltValue = felt.toBigInt();
+    return feltValue < maxValue;
+  }
+
   Future<void> connectArgentXWallet() async {
     // This would integrate with ArgentX mobile wallet
-    // For now, we'll show how this would work
+    // For Chrome/web testing, we'll show a helpful message
 
     try {
-      // In production, this would:
-      // 1. Check if ArgentX is installed
-      // 2. Open ArgentX app with connection request
-      // 3. Handle the response with account details
+      _setConnecting(true);
+      _clearError();
+
+      // Check if we're on web/Chrome
+      if (kIsWeb) {
+        _error = 'ArgentX wallet is not available in web browsers. Please use the Development Account for testing.';
+        _setConnecting(false);
+        return;
+      }
 
       const argentXScheme = 'argentx://connect';
       final uri = Uri.parse(argentXScheme);
@@ -153,30 +185,42 @@ class StarknetProvider extends ChangeNotifier {
         await launchUrl(uri);
         // Handle response in app lifecycle
       } else {
-        throw Exception('ArgentX wallet not installed');
+        throw Exception('ArgentX wallet not installed. Please install ArgentX mobile app.');
       }
 
     } catch (e) {
-      throw Exception('Failed to connect ArgentX: $e');
+      _error = 'ArgentX wallet not available: ${e.toString()}';
+      _setConnecting(false);
     }
   }
 
   Future<void> connectBraavosWallet() async {
     // This would integrate with Braavos mobile wallet
-    // Similar to ArgentX integration
+    // For Chrome/web testing, we'll show a helpful message
 
     try {
+      _setConnecting(true);
+      _clearError();
+
+      // Check if we're on web/Chrome
+      if (kIsWeb) {
+        _error = 'Braavos wallet is not available in web browsers. Please use the Development Account for testing.';
+        _setConnecting(false);
+        return;
+      }
+
       const braavosScheme = 'braavos://connect';
       final uri = Uri.parse(braavosScheme);
 
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
       } else {
-        throw Exception('Braavos wallet not installed');
+        throw Exception('Braavos wallet not installed. Please install Braavos mobile app.');
       }
 
     } catch (e) {
-      throw Exception('Failed to connect Braavos: $e');
+      _error = 'Braavos wallet not available: ${e.toString()}';
+      _setConnecting(false);
     }
   }
 
@@ -230,27 +274,33 @@ class StarknetProvider extends ChangeNotifier {
 
     try {
       // Real contract interaction
-      final result = await _account!.execute([
-        Call(
-          contractAddress: Felt.fromHexString(_voiceStorageAddress),
-          entrypoint: 'store_recording',
-          calldata: [
-            // RecordingMetadata struct
-            Felt.fromString(title),
-            Felt.fromString(description),
-            Felt.fromString(ipfsHash),
-            Felt.fromInt(duration),
-            Felt.fromInt(fileSize),
-            Felt.fromInt(isPublic ? 1 : 0),
-            // Tags array (simplified for demo)
-            Felt.fromInt(tags.length),
-            ...tags.map((tag) => Felt.fromString(tag)),
-          ],
-        ),
-      ]);
+      final result = await _account!.execute(
+        functionCalls: [
+          FunctionCall(
+            contractAddress: Felt.fromHexString(_voiceStorageAddress),
+            entryPointSelector: getSelectorByName('store_recording'),
+            calldata: [
+              // RecordingMetadata struct
+              _stringToFelt(title),
+              _stringToFelt(description),
+              _stringToFelt(ipfsHash),
+              Felt.fromInt(duration),
+              Felt.fromInt(fileSize),
+              Felt.fromInt(isPublic ? 1 : 0),
+              // Tags array (simplified for demo)
+              Felt.fromInt(tags.length),
+              ...tags.map((tag) => _stringToFelt(tag)),
+            ],
+          ),
+        ],
+      );
 
-      print('✅ Recording metadata stored on Starknet: ${result.transactionHash}');
-      return result.transactionHash;
+      final txHash = result.when(
+        result: (result) => result.transaction_hash,
+        error: (error) => throw Exception('Transaction failed: ${error.message}'),
+      );
+      print('✅ Recording metadata stored on Starknet: $txHash');
+      return txHash;
 
     } catch (e) {
       _error = 'Failed to store metadata: ${e.toString()}';
@@ -269,10 +319,18 @@ class StarknetProvider extends ChangeNotifier {
     }
 
     try {
-      final result = await _provider!.call(
-        contractAddress: Felt.fromHexString(_voiceStorageAddress),
-        entrypoint: 'get_recording',
-        calldata: [Felt.fromString(recordingId)],
+      final callResult = await _provider!.call(
+        request: FunctionCall(
+          contractAddress: Felt.fromHexString(_voiceStorageAddress),
+          entryPointSelector: getSelectorByName('get_recording'),
+          calldata: [_stringToFelt(recordingId)],
+        ),
+        blockId: BlockId.latest,
+      );
+
+      final result = callResult.when(
+        result: (result) => result,
+        error: (error) => throw Exception('Call failed: ${error.message}'),
       );
 
       if (result.isNotEmpty) {
@@ -296,10 +354,18 @@ class StarknetProvider extends ChangeNotifier {
     }
 
     try {
-      final result = await _provider!.call(
-        contractAddress: Felt.fromHexString(_voiceStorageAddress),
-        entrypoint: 'get_user_recordings',
-        calldata: [Felt.fromHexString(_accountAddress!)],
+      final callResult = await _provider!.call(
+        request: FunctionCall(
+          contractAddress: Felt.fromHexString(_voiceStorageAddress),
+          entryPointSelector: getSelectorByName('get_user_recordings'),
+          calldata: [Felt.fromHexString(_accountAddress!)],
+        ),
+        blockId: BlockId.latest,
+      );
+
+      final result = callResult.when(
+        result: (result) => result,
+        error: (error) => throw Exception('Call failed: ${error.message}'),
       );
 
       return result.map((felt) => felt.toString()).toList();
@@ -374,10 +440,20 @@ class StarknetProvider extends ChangeNotifier {
     // Recreate account if we have saved credentials
     if (_isConnected && _accountAddress != null && _privateKey != null && _provider != null) {
       try {
+        // Validate saved values before using them
+        final privateKeyFelt = Felt.fromHexString(_privateKey!);
+        final accountAddressFelt = Felt.fromHexString(_accountAddress!);
+
+        if (!_isValidFieldElement(privateKeyFelt) || !_isValidFieldElement(accountAddressFelt)) {
+          throw Exception('Saved credentials contain invalid field elements');
+        }
+
+        final signer = Signer(privateKey: privateKeyFelt);
         _account = Account(
           provider: _provider!,
-          accountAddress: Felt.fromHexString(_accountAddress!),
-          privateKey: Felt.fromHexString(_privateKey!),
+          signer: signer,
+          accountAddress: accountAddressFelt,
+          chainId: Felt.fromHexString('0x534e5f5345504f4c4941'), // Sepolia chain ID
         );
         print('✅ Restored Starknet connection: $_accountAddress');
       } catch (e) {
@@ -401,10 +477,19 @@ class StarknetProvider extends ChangeNotifier {
       // Reconnect account if connected
       if (_isConnected && _accountAddress != null && _privateKey != null) {
         try {
+          final privateKeyFelt = Felt.fromHexString(_privateKey!);
+          final accountAddressFelt = Felt.fromHexString(_accountAddress!);
+
+          if (!_isValidFieldElement(privateKeyFelt) || !_isValidFieldElement(accountAddressFelt)) {
+            throw Exception('Invalid field elements for network reconnection');
+          }
+
+          final signer = Signer(privateKey: privateKeyFelt);
           _account = Account(
             provider: _provider!,
-            accountAddress: Felt.fromHexString(_accountAddress!),
-            privateKey: Felt.fromHexString(_privateKey!),
+            signer: signer,
+            accountAddress: accountAddressFelt,
+            chainId: Felt.fromHexString('0x534e5f5345504f4c4941'), // Sepolia chain ID
           );
         } catch (e) {
           print('Failed to reconnect after network switch: $e');
@@ -413,6 +498,70 @@ class StarknetProvider extends ChangeNotifier {
 
       await _saveConnectionState();
       notifyListeners();
+    }
+  }
+
+  // Helper method to safely convert strings to Felt
+  Felt _stringToFelt(String str) {
+    // For demo purposes, we'll use a simple hash of the string
+    // In production, you'd use proper string encoding for Cairo
+    final bytes = str.codeUnits;
+    var hash = 0;
+    for (final byte in bytes) {
+      hash = (hash * 31 + byte) & 0x7FFFFFFF; // Keep it within safe range
+    }
+    return Felt.fromInt(hash);
+  }
+
+  // Sync functionality for cross-platform compatibility
+  Future<List<Map<String, dynamic>>> getUserRecordingsFromChain() async {
+    if (!_isConnected || _provider == null || _accountAddress == null) {
+      throw Exception('Not connected to Starknet');
+    }
+
+    if (_voiceStorageAddress.isEmpty) {
+      return []; // Return empty list if contract not deployed
+    }
+
+    try {
+      final callResult = await _provider!.call(
+        request: FunctionCall(
+          contractAddress: Felt.fromHexString(_voiceStorageAddress),
+          entryPointSelector: getSelectorByName('get_user_recordings'),
+          calldata: [Felt.fromHexString(_accountAddress!)],
+        ),
+        blockId: BlockId.latest,
+      );
+
+      final result = callResult.when(
+        result: (result) => result,
+        error: (error) => throw Exception('Call failed: ${error.message}'),
+      );
+
+      // Parse results into recording metadata
+      List<Map<String, dynamic>> recordings = [];
+      for (int i = 0; i < result.length; i += 10) { // Assuming 10 fields per recording
+        if (i + 9 < result.length) {
+          recordings.add({
+            'id': result[i].toString(),
+            'owner': result[i + 1].toHexString(),
+            'title': result[i + 2].toString(),
+            'description': result[i + 3].toString(),
+            'ipfs_hash': result[i + 4].toString(),
+            'duration': result[i + 5].toInt(),
+            'file_size': result[i + 6].toInt(),
+            'created_at': result[i + 7].toInt(),
+            'is_public': result[i + 8].toInt() == 1,
+            'play_count': result[i + 9].toInt(),
+          });
+        }
+      }
+
+      return recordings;
+
+    } catch (e) {
+      print('Failed to get user recordings from chain: $e');
+      return [];
     }
   }
 }
