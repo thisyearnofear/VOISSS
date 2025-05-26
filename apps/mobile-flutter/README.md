@@ -29,13 +29,19 @@ This is the **third app** in the VOISSS ecosystem, designed to showcase native m
 - **Audio playback** with native controls
 - **File management** with local storage
 
-### ⛓️ Starknet Integration
+### ⛓️ Starknet Integration ✅ **DEPLOYED & READY**
 
 - **Official starknet.dart SDK** integration
 - **Native wallet connection** support
 - **On-chain metadata storage** for recordings
 - **Balance checking** and transaction handling
 - **Testnet support** (Starknet Sepolia)
+
+**Live Contracts on Starknet Sepolia:**
+
+- **UserRegistry**: `0x52bb03f52e7c07d6f7053b0fc7c52c9e0c7d73ceb36fab93db3d7bbc578bb63`
+- **VoiceStorage**: `0x545b48dd76469e984b5622e5841d2affa30155980829399e7ec7447012922e2`
+- **AccessControl**: `0x5db925a0dfe7ab9137121613ef66a32ceb48acbc9cc33091d804dd9feb983b5`
 
 ### 📱 Native Mobile Features
 

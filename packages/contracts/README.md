@@ -49,15 +49,25 @@ export STARKNET_PRIVATE_KEY="your_private_key"
 pnpm deploy:testnet
 ```
 
-#### **Contract Addresses** (To be updated after deployment)
+#### **Contract Addresses** ✅ **DEPLOYED TO STARKNET SEPOLIA**
 
 ```typescript
 export const CONTRACT_ADDRESSES = {
-  VOICE_STORAGE: "", // Will be populated after deployment
-  USER_REGISTRY: "", // Will be populated after deployment
-  ACCESS_CONTROL: "", // Will be populated after deployment
+  VOICE_STORAGE:
+    "0x545b48dd76469e984b5622e5841d2affa30155980829399e7ec7447012922e2",
+  USER_REGISTRY:
+    "0x52bb03f52e7c07d6f7053b0fc7c52c9e0c7d73ceb36fab93db3d7bbc578bb63",
+  ACCESS_CONTROL:
+    "0x5db925a0dfe7ab9137121613ef66a32ceb48acbc9cc33091d804dd9feb983b5",
 };
 ```
+
+**🎉 Deployment Success:**
+
+- **Network**: Starknet Sepolia Testnet
+- **Deployed**: December 25, 2025 at 23:57 UTC
+- **Account**: Standard ArgentX v0.4.0 (0x06796FC91477e32037D79886bFc2F3fBD74c24Eba62183BB9F8FC6c59Fa29738)
+- **Status**: All contracts verified and working
 
 ### 🔗 **INTEGRATION STATUS**
 

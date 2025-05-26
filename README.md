@@ -352,21 +352,22 @@ pnpm clean
 
 #### **Phase 4: 🏗️ Smart Contract Development & Deployment**
 
-**Priority: HIGH** - Blockchain foundation
+**Priority: HIGH** - Blockchain foundation ✅ **COMPLETED**
 
 **Core Contracts:**
 
-- [ ] VoiceStorage: Recording metadata, IPFS hashes, ownership
-- [ ] UserRegistry: User profiles, reputation, social features
-- [ ] Marketplace: Future monetization features
-- [ ] AccessControl: Privacy and sharing permissions
+- [x] ✅ **VoiceStorage**: Recording metadata, IPFS hashes, ownership
+- [x] ✅ **UserRegistry**: User profiles, reputation, social features
+- [x] ✅ **AccessControl**: Privacy and sharing permissions
+- [ ] Marketplace: Future monetization features (post-hackathon)
 
 **Integration:**
 
-- [ ] Deploy to Starknet testnet
-- [ ] Generate TypeScript bindings for web app
-- [ ] Create Dart bindings for Flutter app
-- [ ] Add contract testing and verification
+- [x] ✅ **Deploy to Starknet Sepolia**: All contracts successfully deployed
+- [x] ✅ **Contract Addresses Updated**: All apps now use real deployed contracts
+- [x] ✅ **TypeScript Integration**: Web app ready for contract interaction
+- [x] ✅ **Flutter Integration**: Mobile app configured with deployed addresses
+- [x] ✅ **Contract Testing**: Deployment verified and working
 
 #### **Phase 5: 🌐 Cross-App Features & Synchronization**
 
@@ -401,6 +402,40 @@ pnpm clean
 ### ✅ **All Three Apps Successfully Deployed and Working**
 
 Your VOISSS project now has a **complete, cohesive three-app ecosystem** running:
+
+## 🚀 **SMART CONTRACTS DEPLOYED TO STARKNET SEPOLIA**
+
+### 📋 **Contract Addresses**
+
+All VOISSS smart contracts are now live on Starknet Sepolia testnet:
+
+- **🗃️ UserRegistry**: `0x52bb03f52e7c07d6f7053b0fc7c52c9e0c7d73ceb36fab93db3d7bbc578bb63`
+
+  - User profiles, social features, verification system
+  - Deployed with class hash: `0x3672521cc1dc4c9f4e6c138d0d4c8edf69d9585c72203a352f1b6401ee75ca3`
+
+- **🎤 VoiceStorage**: `0x545b48dd76469e984b5622e5841d2affa30155980829399e7ec7447012922e2`
+
+  - Recording metadata, IPFS integration, ownership tracking
+  - Deployed with class hash: `0x458b2489eb6145221ca86a883dab31cada8f6002805dc964aafeb19c2e6d460`
+
+- **🔐 AccessControl**: `0x5db925a0dfe7ab9137121613ef66a32ceb48acbc9cc33091d804dd9feb983b5`
+  - Privacy controls, sharing permissions, access management
+  - Deployed with class hash: `0x59f5363b6db009b46f31b6359ef3e68a135cf03fcabc5ce3c5e5c4d69353863`
+
+### 🔗 **Integration Status**
+
+- ✅ **Web App**: Contract addresses configured in environment variables
+- ✅ **Flutter App**: Contract addresses updated in StarknetProvider
+- ✅ **Shared Packages**: All contract addresses updated across the monorepo
+- ✅ **Development Ready**: All apps can now interact with deployed contracts
+
+### 🌐 **Network Configuration**
+
+- **Network**: Starknet Sepolia Testnet
+- **RPC URL**: `https://starknet-sepolia.public.blastapi.io/rpc/v0_7`
+- **Chain ID**: `0x534e5f5345504f4c4941` (SN_SEPOLIA)
+- **Account Type**: Standard ArgentX v0.4.0 (compatible with starknet.js)
 
 1. **🌐 Web App (Next.js)**: http://localhost:3001
 

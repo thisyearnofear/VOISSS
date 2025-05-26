@@ -44,8 +44,15 @@ The web app provides a comprehensive interface for discovering, managing, and sh
    Edit `.env.local` with your configuration:
 
    ```env
+   # Starknet Configuration
+   NEXT_PUBLIC_STARKNET_RPC_URL=https://starknet-sepolia.public.blastapi.io/rpc/v0_7
    NEXT_PUBLIC_STARKNET_NETWORK=sepolia
-   NEXT_PUBLIC_RPC_URL=https://starknet-sepolia.public.blastapi.io
+   NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=your-project-id
+
+   # Contract Addresses (Deployed on Starknet Sepolia)
+   NEXT_PUBLIC_VOICE_STORAGE_ADDRESS=0x545b48dd76469e984b5622e5841d2affa30155980829399e7ec7447012922e2
+   NEXT_PUBLIC_USER_REGISTRY_ADDRESS=0x52bb03f52e7c07d6f7053b0fc7c52c9e0c7d73ceb36fab93db3d7bbc578bb63
+   NEXT_PUBLIC_ACCESS_CONTROL_ADDRESS=0x5db925a0dfe7ab9137121613ef66a32ceb48acbc9cc33091d804dd9feb983b5
    ```
 
 3. **Start development server**:
@@ -77,11 +84,19 @@ The web app provides a comprehensive interface for discovering, managing, and sh
 - Support for ArgentX, Braavos, and other Starknet wallets
 - Automatic network detection and switching
 
-### Smart Contract Interaction
+### Smart Contract Interaction ✅ **DEPLOYED & READY**
 
-- Type-safe contract bindings using Cainome
+**Live Contracts on Starknet Sepolia:**
+
+- **UserRegistry**: `0x52bb03f52e7c07d6f7053b0fc7c52c9e0c7d73ceb36fab93db3d7bbc578bb63`
+- **VoiceStorage**: `0x545b48dd76469e984b5622e5841d2affa30155980829399e7ec7447012922e2`
+- **AccessControl**: `0x5db925a0dfe7ab9137121613ef66a32ceb48acbc9cc33091d804dd9feb983b5`
+
+**Features:**
+
 - Recording metadata storage on Starknet
-- Creator monetization through smart contracts
+- User profile and social features
+- Privacy controls and access management
 - Decentralized ownership verification
 
 ### Key Features

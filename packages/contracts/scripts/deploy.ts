@@ -1,9 +1,13 @@
-import { Account, RpcProvider, Contract, json, CallData } from 'starknet';
+import { Account, RpcProvider, Contract, json, CallData, hash } from 'starknet';
 import fs from 'fs';
 import path from 'path';
+import { config } from 'dotenv';
+
+// Load environment variables from .env file
+config();
 
 // Configuration
-const PROVIDER_URL = 'https://starknet-sepolia.public.blastapi.io/rpc/v0_7';
+const PROVIDER_URL = 'https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_7/iwvOBCfQU1TQzUSouRsw2';
 const ACCOUNT_ADDRESS = process.env.STARKNET_ACCOUNT_ADDRESS;
 const PRIVATE_KEY = process.env.STARKNET_PRIVATE_KEY;
 
@@ -20,11 +24,11 @@ class ContractDeployer {
 
   constructor() {
     this.provider = new RpcProvider({ nodeUrl: PROVIDER_URL });
-    
+
     if (!ACCOUNT_ADDRESS || !PRIVATE_KEY) {
       throw new Error('Please set STARKNET_ACCOUNT_ADDRESS and STARKNET_PRIVATE_KEY environment variables');
     }
-    
+
     this.account = new Account(this.provider, ACCOUNT_ADDRESS, PRIVATE_KEY);
   }
 
@@ -35,35 +39,50 @@ class ContractDeployer {
     try {
       console.log(`\n🚀 Deploying ${contractName}...`);
 
-      // Read the compiled contract
-      const contractPath = path.join(__dirname, '..', 'target', 'dev', `voisss_contracts_${contractName}.contract_class.json`);
-      
-      if (!fs.existsSync(contractPath)) {
-        throw new Error(`Contract file not found: ${contractPath}. Please run 'scarb build' first.`);
+      // Read the Sierra contract class (contract_class.json)
+      const sierraPath = path.join(__dirname, '..', 'target', 'dev', `voisss_contracts_${contractName}.contract_class.json`);
+      // Read the compiled contract class (compiled_contract_class.json) for CASM
+      const casmPath = path.join(__dirname, '..', 'target', 'dev', `voisss_contracts_${contractName}.compiled_contract_class.json`);
+
+      if (!fs.existsSync(sierraPath)) {
+        throw new Error(`Sierra contract file not found: ${sierraPath}. Please run 'scarb build' first.`);
       }
 
-      const compiledContract = json.parse(fs.readFileSync(contractPath, 'utf8'));
+      if (!fs.existsSync(casmPath)) {
+        throw new Error(`CASM contract file not found: ${casmPath}. Please run 'scarb build' first.`);
+      }
 
-      // Declare the contract
+      const sierraContract = json.parse(fs.readFileSync(sierraPath, 'utf8'));
+      const casmContract = json.parse(fs.readFileSync(casmPath, 'utf8'));
+
+      // Compute the compiled class hash from the CASM contract
+      const compiledClassHash = hash.computeCompiledClassHash(casmContract);
+
+      // Declare the contract with both Sierra and CASM using V2 (more compatible)
       console.log(`📝 Declaring ${contractName}...`);
       const declareResponse = await this.account.declare({
-        contract: compiledContract,
+        contract: sierraContract,
+        compiledClassHash: compiledClassHash,
+      }, {
+        maxFee: '50000000000000000', // 0.05 ETH max fee
       });
 
       console.log(`✅ ${contractName} declared with class hash: ${declareResponse.class_hash}`);
-      
+
       // Wait for declaration transaction
       await this.provider.waitForTransaction(declareResponse.transaction_hash);
 
-      // Deploy the contract
+      // Deploy the contract using V2 (more compatible)
       console.log(`🏗️ Deploying ${contractName} instance...`);
       const deployResponse = await this.account.deployContract({
         classHash: declareResponse.class_hash,
         constructorCalldata: constructorArgs,
+      }, {
+        maxFee: '50000000000000000', // 0.05 ETH max fee
       });
 
       console.log(`✅ ${contractName} deployed at: ${deployResponse.contract_address}`);
-      
+
       // Wait for deployment transaction
       await this.provider.waitForTransaction(deployResponse.transaction_hash);
 

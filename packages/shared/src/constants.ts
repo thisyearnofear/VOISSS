@@ -18,8 +18,9 @@ export const STARKNET_CONFIG = {
     DEVNET: 'devnet',
   },
   CONTRACT_ADDRESSES: {
-    VOICE_STORAGE: '0x...', // To be deployed
-    USER_REGISTRY: '0x...', // To be deployed
+    VOICE_STORAGE: '0x545b48dd76469e984b5622e5841d2affa30155980829399e7ec7447012922e2',
+    USER_REGISTRY: '0x52bb03f52e7c07d6f7053b0fc7c52c9e0c7d73ceb36fab93db3d7bbc578bb63',
+    ACCESS_CONTROL: '0x5db925a0dfe7ab9137121613ef66a32ceb48acbc9cc33091d804dd9feb983b5',
   },
   RPC_URLS: {
     MAINNET: 'https://starknet-mainnet.public.blastapi.io',

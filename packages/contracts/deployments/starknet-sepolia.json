@@ -1,0 +1,21 @@
+{
+  "network": "starknet-sepolia",
+  "timestamp": "2025-05-25T23:57:53.448Z",
+  "contracts": {
+    "UserRegistry": {
+      "address": "0x52bb03f52e7c07d6f7053b0fc7c52c9e0c7d73ceb36fab93db3d7bbc578bb63",
+      "classHash": "0x3672521cc1dc4c9f4e6c138d0d4c8edf69d9585c72203a352f1b6401ee75ca3",
+      "transactionHash": "0x1969e88f5a9090e79408e9d2a732fbb6aa1f6d6923a1940762e31b3c45cf3f8"
+    },
+    "VoiceStorage": {
+      "address": "0x545b48dd76469e984b5622e5841d2affa30155980829399e7ec7447012922e2",
+      "classHash": "0x458b2489eb6145221ca86a883dab31cada8f6002805dc964aafeb19c2e6d460",
+      "transactionHash": "0x153bbba2a6a1f70a4529e43675e7b9e56c8afd9d69e6120e3c94b5d803a8660"
+    },
+    "AccessControl": {
+      "address": "0x5db925a0dfe7ab9137121613ef66a32ceb48acbc9cc33091d804dd9feb983b5",
+      "classHash": "0x59f5363b6db009b46f31b6359ef3e68a135cf03fcabc5ce3c5e5c4d69353863",
+      "transactionHash": "0x6b226091e3d17ffb17f58000d504ed9201e64f6007b545a5bd58ad2296487a"
+    }
+  }
+}

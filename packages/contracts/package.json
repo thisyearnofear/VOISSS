@@ -9,14 +9,17 @@
     "deploy": "tsx scripts/deploy.ts",
     "deploy:testnet": "tsx scripts/deploy.ts",
     "deploy:mainnet": "starkli deploy --network mainnet",
-    "clean": "scarb clean"
+    "clean": "scarb clean",
+    "setup-account": "tsx scripts/setup-account.ts",
+    "check-account": "tsx scripts/check-account.ts"
   },
   "dependencies": {
+    "dotenv": "^16.4.7",
     "starknet": "^6.24.1"
   },
   "devDependencies": {
     "@types/node": "^20",
-    "typescript": "^5",
-    "tsx": "^4.7.0"
+    "tsx": "^4.7.0",
+    "typescript": "^5"
   }
 }

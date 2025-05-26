@@ -17,10 +17,10 @@ class StarknetProvider extends ChangeNotifier {
   JsonRpcProvider? _provider;
   Account? _account;
 
-  // Contract addresses (will be updated after deployment)
-  static const String _voiceStorageAddress = '';
-  static const String _userRegistryAddress = '';
-  static const String _accessControlAddress = '';
+  // Contract addresses (deployed on Starknet Sepolia)
+  static const String _voiceStorageAddress = '0x545b48dd76469e984b5622e5841d2affa30155980829399e7ec7447012922e2';
+  static const String _userRegistryAddress = '0x52bb03f52e7c07d6f7053b0fc7c52c9e0c7d73ceb36fab93db3d7bbc578bb63';
+  static const String _accessControlAddress = '0x5db925a0dfe7ab9137121613ef66a32ceb48acbc9cc33091d804dd9feb983b5';
 
   // Network configurations
   static const Map<String, String> _networkUrls = {
