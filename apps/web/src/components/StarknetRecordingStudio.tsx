@@ -2,11 +2,17 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useAccount } from "@starknet-react/core";
+import { useSearchParams } from "next/navigation";
 import {
   createIPFSService,
   createStarknetRecordingService,
   createRecordingService,
-} from "@voisss/shared";
+  missionService,
+  Mission,
+  MissionContext,
+  VoiceRecording as Recording,
+} from "@repo/shared";
+import MissionRecordingInterface from "./socialfi/MissionRecordingInterface";
 
 // Local interfaces until exports are fixed
 interface RecordingMetadata {
@@ -17,6 +23,7 @@ interface RecordingMetadata {
   fileSize: number;
   isPublic: boolean;
   tags: string[];
+  missionContext?: MissionContext;
 }
 
 interface PipelineProgress {
@@ -46,23 +53,9 @@ const formatFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
-interface Recording {
-  id: string;
-  title: string;
-  blob?: Blob; // Optional for IPFS-stored recordings
-  duration: number;
-  timestamp: Date;
-  onChain?: boolean;
-  transactionHash?: string;
-  ipfsHash?: string;
-  ipfsUrl?: string;
-  fileSize?: number;
-  isHidden?: boolean; // For user to hide recordings from their feed
-  customTitle?: string; // User-defined title override
-}
-
 export default function StarknetRecordingStudio() {
   const { address, isConnected, account } = useAccount();
+  const [mission, setMission] = useState<Mission | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [currentRecording, setCurrentRecording] = useState<Recording | null>(
@@ -89,7 +82,8 @@ export default function StarknetRecordingStudio() {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchParams = useSearchParams();
 
   // Local storage key for recordings
   const getStorageKey = (userAddress: string) =>
@@ -144,9 +138,9 @@ export default function StarknetRecordingStudio() {
 
       // Convert Starknet recordings to our Recording interface
       return starknetRecordings
-        .filter((sr) => sr && sr.id) // Filter out null/undefined recordings
+        .filter((sr: any) => sr && sr.id) // Filter out null/undefined recordings
         .map(
-          (sr): Recording => ({
+          (sr: any): Recording => ({
             id: String(sr.id || ""),
             title: String(sr.title || "Untitled Recording"),
             duration: Number(sr.duration || 0),
@@ -176,9 +170,9 @@ export default function StarknetRecordingStudio() {
     // Merge recordings, avoiding duplicates based on transaction hash or IPFS hash
     const allRecordings = [...localRecordings];
 
-    starknetRecordings.forEach((starknetRec) => {
+    starknetRecordings.forEach((starknetRec: Recording) => {
       const exists = allRecordings.some(
-        (localRec) =>
+        (localRec: Recording) =>
           (localRec.transactionHash &&
             localRec.transactionHash === starknetRec.transactionHash) ||
           (localRec.ipfsHash && localRec.ipfsHash === starknetRec.ipfsHash)
@@ -197,7 +191,7 @@ export default function StarknetRecordingStudio() {
 
   // Recording management functions
   const updateRecording = (id: string, updates: Partial<Recording>) => {
-    const updatedRecordings = recordings.map((recording) =>
+    const updatedRecordings = recordings.map((recording: Recording) =>
       recording.id === id ? { ...recording, ...updates } : recording
     );
     setRecordings(updatedRecordings);
@@ -209,7 +203,7 @@ export default function StarknetRecordingStudio() {
   };
 
   const toggleRecordingVisibility = (id: string) => {
-    const recording = recordings.find((r) => r.id === id);
+    const recording = recordings.find((r: Recording) => r.id === id);
     if (recording) {
       updateRecording(id, { isHidden: !recording.isHidden });
     }
@@ -243,7 +237,7 @@ export default function StarknetRecordingStudio() {
 
   // Filter recordings based on visibility
   const visibleRecordings = recordings.filter(
-    (recording) => showHidden || !recording.isHidden
+    (recording: Recording) => showHidden || !recording.isHidden
   );
 
   // Initialize recording service
@@ -277,13 +271,27 @@ export default function StarknetRecordingStudio() {
         clearInterval(intervalRef.current);
       }
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current
+          .getTracks()
+          .forEach((track: MediaStreamTrack) => track.stop());
       }
       if (recordingService) {
         recordingService.dispose();
       }
     };
   }, []);
+
+  // Load mission from URL
+  useEffect(() => {
+    const missionId = searchParams.get("missionId");
+    if (missionId) {
+      const foundMission = missionService.getMissionById(missionId);
+      if (foundMission) {
+        setMission(foundMission);
+        setTitle(foundMission.title);
+      }
+    }
+  }, [searchParams]);
 
   // Load recordings when wallet connects
   useEffect(() => {
@@ -324,7 +332,7 @@ export default function StarknetRecordingStudio() {
 
       chunksRef.current = [];
 
-      mediaRecorderRef.current.ondataavailable = (event) => {
+      mediaRecorderRef.current.ondataavailable = (event: BlobEvent) => {
         if (event.data.size > 0) {
           chunksRef.current.push(event.data);
         }
@@ -334,11 +342,27 @@ export default function StarknetRecordingStudio() {
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
         const recording: Recording = {
           id: Date.now().toString(),
-          title: `Recording ${new Date().toLocaleTimeString()}`,
+          title: mission
+            ? mission.title
+            : `Recording ${new Date().toLocaleTimeString()}`,
           blob,
           duration,
           timestamp: new Date(),
           onChain: false,
+          missionContext: mission
+            ? {
+                missionId: mission.id,
+                title: mission.title,
+                description: mission.description,
+                topic: mission.topic,
+                difficulty: mission.difficulty,
+                reward: mission.reward,
+                targetDuration: mission.targetDuration,
+                examples: mission.examples,
+                contextSuggestions: mission.contextSuggestions,
+                acceptedAt: new Date(),
+              }
+            : undefined,
         };
 
         setCurrentRecording(recording);
@@ -385,7 +409,9 @@ export default function StarknetRecordingStudio() {
       }
 
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current
+          .getTracks()
+          .forEach((track: MediaStreamTrack) => track.stop());
       }
 
       if (audioContextRef.current) {
@@ -418,11 +444,25 @@ export default function StarknetRecordingStudio() {
         currentRecording.blob,
         {
           title: title.trim(),
-          description: "",
+          description: mission ? mission.description : "",
           isPublic,
-          tags: [],
+          tags: mission ? [mission.topic] : [],
           quality: "medium",
           convertAudio: true,
+          missionContext: mission
+            ? {
+                missionId: mission.id,
+                title: mission.title,
+                description: mission.description,
+                topic: mission.topic,
+                difficulty: mission.difficulty,
+                reward: mission.reward,
+                targetDuration: mission.targetDuration,
+                examples: mission.examples,
+                contextSuggestions: mission.contextSuggestions,
+                acceptedAt: new Date(),
+              }
+            : undefined,
         },
         account || undefined,
         (progress: PipelineProgress) => {
@@ -439,6 +479,8 @@ export default function StarknetRecordingStudio() {
           ipfsHash: result.ipfsHash,
           ipfsUrl: result.ipfsUrl,
           fileSize: currentRecording.blob.size,
+          isCompleted: !!mission,
+          completedAt: mission ? new Date() : undefined,
         };
 
         const newRecordings = [...recordings, updatedRecording];
@@ -498,7 +540,7 @@ export default function StarknetRecordingStudio() {
 
     return (
       <div className="h-24 bg-[#2A2A2A] rounded-lg flex items-end justify-center gap-1 p-2">
-        {waveformData.map((value, index) => (
+        {waveformData.map((value: number, index: number) => (
           <div
             key={index}
             className="voisss-waveform-bar"
@@ -514,6 +556,26 @@ export default function StarknetRecordingStudio() {
 
   return (
     <div className="max-w-4xl mx-auto voisss-section-spacing">
+      {/* Mission Context */}
+      {mission && (
+        <div className="mb-8">
+          <MissionRecordingInterface
+            missionContext={{
+              missionId: mission.id,
+              title: mission.title,
+              description: mission.description,
+              topic: mission.topic,
+              difficulty: mission.difficulty,
+              reward: mission.reward,
+              targetDuration: mission.targetDuration,
+              examples: mission.examples,
+              contextSuggestions: mission.contextSuggestions,
+              acceptedAt: new Date(), // This should be set when the user accepts the mission
+            }}
+          />
+        </div>
+      )}
+
       {/* Header Section */}
       <div className="voisss-card text-center">
         <div className="mb-6">
@@ -659,7 +721,9 @@ export default function StarknetRecordingStudio() {
               <input
                 type="text"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setTitle(e.target.value)
+                }
                 placeholder="Enter a descriptive title for your recording..."
                 className="w-full px-4 py-3 bg-[#2A2A2A] border border-[#3A3A3A] rounded-xl text-white placeholder-gray-500 focus:border-[#7C5DFA] focus:ring-1 focus:ring-[#7C5DFA] transition-colors voisss-mobile-input"
               />
@@ -670,7 +734,9 @@ export default function StarknetRecordingStudio() {
                 type="checkbox"
                 id="isPublic"
                 checked={isPublic}
-                onChange={(e) => setIsPublic(e.target.checked)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setIsPublic(e.target.checked)
+                }
                 className="w-5 h-5 text-[#7C5DFA] bg-[#1A1A1A] border-[#3A3A3A] rounded focus:ring-[#7C5DFA] focus:ring-2"
               />
               <div>
@@ -900,7 +966,7 @@ export default function StarknetRecordingStudio() {
           </div>
 
           <div className="space-y-4">
-            {visibleRecordings.map((recording) => (
+            {visibleRecordings.map((recording: Recording) => (
               <div key={recording.id} className="voisss-recording-card">
                 <div className="voisss-recording-header">
                   <div className="voisss-recording-content">
@@ -910,9 +976,13 @@ export default function StarknetRecordingStudio() {
                           <input
                             type="text"
                             value={editTitle}
-                            onChange={(e) => setEditTitle(e.target.value)}
+                            onChange={(
+                              e: React.ChangeEvent<HTMLInputElement>
+                            ) => setEditTitle(e.target.value)}
                             className="flex-1 px-3 py-1 bg-[#1A1A1A] border border-[#3A3A3A] rounded text-white text-lg font-semibold focus:border-[#7C5DFA] focus:ring-1 focus:ring-[#7C5DFA] voisss-mobile-input"
-                            onKeyDown={(e) => {
+                            onKeyDown={(
+                              e: React.KeyboardEvent<HTMLInputElement>
+                            ) => {
                               if (e.key === "Enter") saveEditedTitle();
                               if (e.key === "Escape") cancelEditingTitle();
                             }}

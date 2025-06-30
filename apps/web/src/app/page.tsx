@@ -65,7 +65,7 @@ export default function Home() {
         </div>
 
         {/* Recording Studio */}
-        <div className="mb-8 sm:mb-12">
+        <div id="recording-section" className="mb-8 sm:mb-12">
           {isConnected ? (
             <StarknetRecordingStudio />
           ) : (
@@ -140,8 +140,43 @@ export default function Home() {
           </div>
         )}
 
-        {/* Platform Info & Ecosystem */}
+        {/* SocialFi Mission CTA */}
         <div className="text-center mt-12 sm:mt-16 max-w-4xl mx-auto">
+          <div className="voisss-card mb-8">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#7C5DFA] to-[#9C88FF] rounded-full mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
+                🎯 New: SocialFi Missions
+              </h2>
+              <p className="text-lg text-gray-300 mb-6">
+                Record candid conversations on trending topics and earn STRK tokens for authentic perspectives
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <a
+                  href="/missions"
+                  className="px-6 py-3 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white font-semibold rounded-xl hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Explore Missions
+                </a>
+                <button
+                  onClick={() => {
+                    document.getElementById('recording-section')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="px-6 py-3 bg-[#2A2A2A] border border-[#3A3A3A] text-white font-semibold rounded-xl hover:bg-[#3A3A3A] transition-colors"
+                >
+                  Start Recording
+                </button>
+              </div>
+            </div>
+          </div>
+
           <p className="text-base sm:text-lg mb-6 sm:mb-8 text-gray-300 px-4">
             Transform how you capture, organize, and share audio content with
             our comprehensive three-app ecosystem on Starknet.

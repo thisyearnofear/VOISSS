@@ -1,0 +1,80 @@
+"use client";
+
+import { useState } from "react";
+import { Mission } from "@voisss/shared";
+import MissionBoard from "../../components/socialfi/MissionBoard";
+import WalletConnector from "../../components/WalletConnector";
+import { useAccount } from "@starknet-react/core";
+
+export default function MissionsPage() {
+  const { isConnected } = useAccount();
+  const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
+
+  const handleMissionSelect = (mission: Mission) => {
+    setSelectedMission(mission);
+    // TODO: Navigate to recording interface with mission context
+    console.log("Selected mission:", mission);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0A0A0A] text-white">
+      <div className="voisss-container py-6 sm:py-8">
+        {/* Header */}
+        <div className="text-center mb-8 sm:mb-12">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold voisss-gradient-text mb-4">
+            VOISSS Missions
+          </h1>
+          <p className="text-lg sm:text-xl text-gray-300 mb-2">
+            SocialFi Platform for Authentic Conversations
+          </p>
+          <p className="text-sm text-gray-400">
+            Record candid conversations, earn STRK tokens, and contribute to the global dialogue
+          </p>
+        </div>
+
+        {/* Wallet Connection */}
+        {!isConnected && (
+          <div className="mb-8 sm:mb-12 max-w-md mx-auto">
+            <WalletConnector />
+          </div>
+        )}
+
+        {/* Mission Board */}
+        <MissionBoard onMissionSelect={handleMissionSelect} />
+
+        {/* Navigation */}
+        <div className="text-center mt-12">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a
+              href="/"
+              className="px-6 py-3 bg-[#2A2A2A] border border-[#3A3A3A] text-white font-semibold rounded-xl hover:bg-[#3A3A3A] transition-colors"
+            >
+              ← Back to Recording Studio
+            </a>
+            <button
+              onClick={() => {
+                // TODO: Navigate to discovery/feed page
+                alert("Discovery feed coming soon!");
+              }}
+              className="px-6 py-3 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white font-semibold rounded-xl hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-200"
+            >
+              Explore Community →
+            </button>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center mt-16">
+          <a
+            className="text-gray-400 hover:text-white transition-colors text-sm"
+            href="https://farcaster.xyz/papa"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            built by papa
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}

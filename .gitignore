@@ -73,7 +73,7 @@ jspm_packages/
 .parcel-cache
 
 # Next.js build output
-.next
+.next/
 out/
 
 # Nuxt.js build / generate output
@@ -126,11 +126,13 @@ web-build/
 .metro-health-check*
 
 # Flipper
-ios/Pods/
+# Flipper - moved to platform-specific section
+# ios/Pods/
 
 # CocoaPods
-ios/Pods/
-ios/Podfile.lock
+# CocoaPods - moved to platform-specific section
+# ios/Pods/
+# ios/Podfile.lock
 
 # Android/IntelliJ
 build/
@@ -238,10 +240,10 @@ Temporary Items
 *.flac
 
 # Build artifacts
-apps/*/build/
-apps/*/dist/
-packages/*/build/
-packages/*/dist/
+apps/**/build/
+apps/**/dist/
+packages/**/build/
+packages/**/dist/
 
 # Test coverage
 coverage/
@@ -265,23 +267,49 @@ hackathon-starknet/
 .turbo/
 
 # Flutter
+# Flutter / Dart
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages
 .pub-cache/
 .pub/
-build/
+# build/ # This is too broad, handled by platform-specific ignores
 flutter_*.png
 flutter_*.log
 pubspec.lock
 devtools_options.yaml
-**/ios/Flutter/Generated.xcconfig
-**/ios/Flutter/ephemeral/
-**/ios/Flutter/flutter_export_environment.sh
-**/ios/Runner/GeneratedPluginRegistrant.*
-**/ios/Runner/Info.plist
-**/ios/
-**/android/app/debug
-**/android/app/profile
-**/android/app/release
+
+# Flutter iOS
+apps/mobile-flutter/ios/Pods/
+apps/mobile-flutter/ios/Podfile.lock
+apps/mobile-flutter/ios/Flutter/App.framework
+apps/mobile-flutter/ios/Flutter/engine
+apps/mobile-flutter/ios/Flutter/flutter_assets/
+apps/mobile-flutter/ios/Flutter/Generated.xcconfig
+apps/mobile-flutter/ios/Flutter/ephemeral/
+apps/mobile-flutter/ios/Flutter/flutter_export_environment.sh
+apps/mobile-flutter/ios/Runner/GeneratedPluginRegistrant.*
+# Keep Info.plist, it's usually tracked
+# apps/mobile-flutter/ios/Runner/Info.plist
+
+# Flutter Android
+apps/mobile-flutter/android/.gradle/
+apps/mobile-flutter/android/app/build/
+apps/mobile-flutter/android/build/
+apps/mobile-flutter/android/app/debug/
+apps/mobile-flutter/android/app/profile/
+apps/mobile-flutter/android/app/release/
+
+# React Native Android
+apps/mobile/android/app/build/
+apps/mobile/android/build/
+apps/mobile/android/.gradle/
+apps/mobile/android/app/src/main/assets/index.android.bundle
+apps/mobile/android/app/src/main/res/drawable-*/
+apps/mobile/android/app/src/main/res/raw/
+
+# React Native iOS
+apps/mobile/ios/build/
+apps/mobile/ios/Pods/
+apps/mobile/ios/Podfile.lock
