@@ -1,52 +1,51 @@
 import React from "react";
-import { MissionContext } from "@repo/shared/types";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@repo/ui/components/card";
-import { Badge } from "@repo/ui/components/badge";
-import { CheckCircle, Target, Clock, HelpCircle } from "lucide-react";
+import { Mission } from "@voisss/shared/types/socialfi";
+import { CheckCircle as CheckCircleIcon, Target as TargetIcon, Clock as ClockIcon, HelpCircle as HelpCircleIcon } from "lucide-react";
+
+// Type-safe icon wrappers
+const Target = TargetIcon as React.ComponentType<{className?: string}>;
+const Clock = ClockIcon as React.ComponentType<{className?: string}>;
+const HelpCircle = HelpCircleIcon as React.ComponentType<{className?: string}>;
+const CheckCircle = CheckCircleIcon as React.ComponentType<{className?: string}>;
 
 interface MissionRecordingInterfaceProps {
-  missionContext: MissionContext;
+  mission: Mission;
 }
 
 const MissionRecordingInterface: React.FC<MissionRecordingInterfaceProps> = ({
-  missionContext,
+  mission,
 }) => {
   return (
-    <Card className="w-full bg-gray-900 border-gray-700 text-white">
-      <CardHeader>
+    <div className="w-full bg-gray-900 border border-gray-700 rounded-lg text-white">
+      <div className="p-6">
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="text-2xl font-bold text-purple-400">
-              {missionContext.title}
-            </CardTitle>
-            <p className="text-gray-400">{missionContext.description}</p>
+            <h2 className="text-2xl font-bold text-purple-400">
+              {mission.title}
+            </h2>
+            <p className="text-gray-400">{mission.description}</p>
           </div>
-          <Badge
-            variant={
-              missionContext.difficulty === "easy"
-                ? "default"
-                : missionContext.difficulty === "medium"
-                ? "secondary"
-                : "destructive"
-            }
+          <span
+            className={`px-3 py-1 rounded-full text-sm font-medium ${
+              mission.difficulty === "easy"
+                ? "bg-green-600 text-green-100"
+                : mission.difficulty === "medium"
+                ? "bg-yellow-600 text-yellow-100"
+                : "bg-red-600 text-red-100"
+            }`}
           >
-            {missionContext.difficulty.toUpperCase()}
-          </Badge>
+            {mission.difficulty.toUpperCase()}
+          </span>
         </div>
-      </CardHeader>
-      <CardContent>
+      </div>
+      <div className="px-6 pb-6">
         <div className="space-y-4">
           <div className="flex items-center space-x-3">
             <Target className="w-6 h-6 text-green-400" />
             <div>
               <h4 className="font-semibold">Primary Goal</h4>
               <p className="text-gray-300">
-                Capture an authentic conversation on "{missionContext.topic}".
+                Capture an authentic conversation on "{mission.topic}".
               </p>
             </div>
           </div>
@@ -55,7 +54,7 @@ const MissionRecordingInterface: React.FC<MissionRecordingInterfaceProps> = ({
             <div>
               <h4 className="font-semibold">Target Duration</h4>
               <p className="text-gray-300">
-                Aim for at least {missionContext.targetDuration} seconds.
+                Aim for at least {mission.targetDuration} seconds.
               </p>
             </div>
           </div>
@@ -64,7 +63,7 @@ const MissionRecordingInterface: React.FC<MissionRecordingInterfaceProps> = ({
             <div>
               <h4 className="font-semibold">Example Questions</h4>
               <ul className="list-disc list-inside text-gray-300">
-                {missionContext.examples.map((example, index) => (
+                {mission.examples.map((example: string, index: number) => (
                   <li key={index}>{example}</li>
                 ))}
               </ul>
@@ -75,21 +74,20 @@ const MissionRecordingInterface: React.FC<MissionRecordingInterfaceProps> = ({
             <div>
               <h4 className="font-semibold">Context Suggestions</h4>
               <div className="flex flex-wrap gap-2 mt-2">
-                {missionContext.contextSuggestions.map((context, index) => (
-                  <Badge
+                {mission.contextSuggestions.map((context: string, index: number) => (
+                  <span
                     key={index}
-                    variant="outline"
-                    className="text-gray-300 border-gray-600"
+                    className="px-2 py-1 text-sm border border-gray-600 rounded text-gray-300"
                   >
                     {context}
-                  </Badge>
+                  </span>
                 ))}
               </div>
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

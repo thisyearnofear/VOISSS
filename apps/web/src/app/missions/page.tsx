@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mission } from "@voisss/shared";
+import { Mission } from "@voisss/shared/types/socialfi";
 import MissionBoard from "../../components/socialfi/MissionBoard";
 import WalletConnector from "../../components/WalletConnector";
 import { useAccount } from "@starknet-react/core";

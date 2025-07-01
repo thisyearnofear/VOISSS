@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Mission, createMissionService, MissionService } from "@voisss/shared";
+import { Mission } from "@voisss/shared/types/socialfi";
+import { createMissionService, MissionService } from "@voisss/shared/services/mission-service";
 import { useAccount } from "@starknet-react/core";
 import MissionCard from "./MissionCard";
 import MissionFilters from "./MissionFilters";
@@ -257,7 +258,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
               key={mission.id}
               mission={mission}
               onAccept={() => handleMissionAccept(mission)}
-              isConnected={isConnected}
+              isConnected={isConnected || false}
               getTopicIcon={getTopicIcon}
               getDifficultyColor={getDifficultyColor}
             />

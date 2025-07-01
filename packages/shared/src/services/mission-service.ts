@@ -286,10 +286,10 @@ export class DefaultMissionService implements MissionService {
       isActive: true,
       createdBy: "platform",
       tags: [templateKey, template.difficulty],
-      locationBased: template.contextSuggestions.includes("taxi") || template.contextSuggestions.includes("street"),
+      locationBased: (template.contextSuggestions as unknown as string[]).includes("taxi") || (template.contextSuggestions as unknown as string[]).includes("street"),
       targetDuration: template.targetDuration,
-      examples: template.examples,
-      contextSuggestions: template.contextSuggestions,
+      examples: [...template.examples],
+      contextSuggestions: [...template.contextSuggestions],
       ...customizations,
     };
 

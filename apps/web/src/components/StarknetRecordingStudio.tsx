@@ -7,11 +7,23 @@ import {
   createIPFSService,
   createStarknetRecordingService,
   createRecordingService,
-  missionService,
-  Mission,
-  MissionContext,
-  VoiceRecording as Recording,
-} from "@repo/shared";
+  createMissionService,
+} from "@voisss/shared";
+import { Mission } from "@voisss/shared/types/socialfi";
+import { VoiceRecording } from "@voisss/shared/types";
+
+// Extended recording interface for this component
+interface Recording extends Omit<VoiceRecording, 'createdAt' | 'updatedAt'> {
+  timestamp?: Date;
+  transactionHash?: string;
+  isHidden?: boolean;
+  customTitle?: string;
+  ipfsUrl?: string;
+  blob?: Blob;
+  onChain?: boolean;
+}
+
+const missionService = createMissionService();
 import MissionRecordingInterface from "./socialfi/MissionRecordingInterface";
 
 // Local interfaces until exports are fixed
@@ -23,7 +35,13 @@ interface RecordingMetadata {
   fileSize: number;
   isPublic: boolean;
   tags: string[];
-  missionContext?: MissionContext;
+  mission?: Mission;
+  timestamp?: Date;
+  transactionHash?: string;
+  isHidden?: boolean;
+  customTitle?: string;
+  ipfsUrl?: string;
+  blob?: Blob;
 }
 
 interface PipelineProgress {
@@ -152,6 +170,16 @@ export default function StarknetRecordingStudio() {
               ? recordingService.getPlaybackUrl(String(sr.ipfsHash))
               : undefined,
             fileSize: Number(sr.fileSize || 0),
+            // Required properties from VoiceRecording
+            description: String(sr.description || ""),
+            format: "mp3" as const,
+            quality: "medium" as const,
+            tags: sr.tags ? Array.from(sr.tags) : [],
+            isPublic: Boolean(sr.isPublic),
+            participantConsent: Boolean(sr.participantConsent),
+            isAnonymized: Boolean(sr.isAnonymized),
+            voiceObfuscated: Boolean(sr.voiceObfuscated),
+            isCompleted: Boolean(sr.isCompleted),
           })
         );
     } catch (error) {
@@ -184,7 +212,7 @@ export default function StarknetRecordingStudio() {
     });
 
     // Sort by timestamp (newest first)
-    allRecordings.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    allRecordings.sort((a, b) => (b.timestamp?.getTime() || 0) - (a.timestamp?.getTime() || 0));
 
     setRecordings(allRecordings);
   };
@@ -232,7 +260,7 @@ export default function StarknetRecordingStudio() {
     if (recording.customTitle) return recording.customTitle;
     if (recording.title && recording.title !== recording.id)
       return recording.title;
-    return `Recording ${recording.timestamp.toLocaleTimeString()}`;
+    return `Recording ${recording.timestamp?.toLocaleTimeString() || 'Unknown time'}`;
   };
 
   // Filter recordings based on visibility
@@ -285,11 +313,12 @@ export default function StarknetRecordingStudio() {
   useEffect(() => {
     const missionId = searchParams.get("missionId");
     if (missionId) {
-      const foundMission = missionService.getMissionById(missionId);
-      if (foundMission) {
-        setMission(foundMission);
-        setTitle(foundMission.title);
-      }
+      missionService.getMissionById(missionId).then((foundMission) => {
+        if (foundMission) {
+          setMission(foundMission);
+          setTitle(foundMission.title);
+        }
+      });
     }
   }, [searchParams]);
 
@@ -363,6 +392,17 @@ export default function StarknetRecordingStudio() {
                 acceptedAt: new Date(),
               }
             : undefined,
+          // Required properties from VoiceRecording
+          description: mission?.description || "",
+          fileSize: blob.size,
+          format: "mp3" as const,
+          quality: "medium" as const,
+          tags: mission?.tags || [],
+          isPublic: true,
+          participantConsent: false,
+          isAnonymized: false,
+          voiceObfuscated: false,
+          isCompleted: false,
         };
 
         setCurrentRecording(recording);
@@ -560,18 +600,7 @@ export default function StarknetRecordingStudio() {
       {mission && (
         <div className="mb-8">
           <MissionRecordingInterface
-            missionContext={{
-              missionId: mission.id,
-              title: mission.title,
-              description: mission.description,
-              topic: mission.topic,
-              difficulty: mission.difficulty,
-              reward: mission.reward,
-              targetDuration: mission.targetDuration,
-              examples: mission.examples,
-              contextSuggestions: mission.contextSuggestions,
-              acceptedAt: new Date(), // This should be set when the user accepts the mission
-            }}
+            mission={mission}
           />
         </div>
       )}
@@ -1124,7 +1153,7 @@ export default function StarknetRecordingStudio() {
                             d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                           />
                         </svg>
-                        <span>{recording.timestamp.toLocaleDateString()}</span>
+                        <span>{recording.timestamp?.toLocaleDateString() || 'Unknown date'}</span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-400">
                         <svg
@@ -1140,7 +1169,7 @@ export default function StarknetRecordingStudio() {
                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                           />
                         </svg>
-                        <span>{recording.timestamp.toLocaleTimeString()}</span>
+                        <span>{recording.timestamp?.toLocaleTimeString() || 'Unknown time'}</span>
                       </div>
                     </div>
 

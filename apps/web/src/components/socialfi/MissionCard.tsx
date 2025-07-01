@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Mission } from "@voisss/shared";
+import { Mission } from "@voisss/shared/types/socialfi";
 
 interface MissionCardProps {
   mission: Mission;
@@ -182,7 +182,7 @@ export default function MissionCard({
               <div>
                 <h4 className="text-sm font-medium text-white mb-2">Example Questions:</h4>
                 <ul className="space-y-1">
-                  {mission.examples.slice(0, 3).map((example, index) => (
+                  {mission.examples.slice(0, 3).map((example: string, index: number) => (
                     <li key={index} className="text-sm text-gray-300 flex items-start gap-2">
                       <span className="text-[#7C5DFA] mt-1">•</span>
                       <span>"{example}"</span>
@@ -197,7 +197,7 @@ export default function MissionCard({
               <div>
                 <h4 className="text-sm font-medium text-white mb-2">Suggested Contexts:</h4>
                 <div className="flex flex-wrap gap-2">
-                  {mission.contextSuggestions.map((context, index) => (
+                  {mission.contextSuggestions.map((context: string, index: number) => (
                     <span
                       key={index}
                       className="px-2 py-1 bg-[#2A2A2A] border border-[#3A3A3A] rounded text-xs text-gray-300"
@@ -214,7 +214,7 @@ export default function MissionCard({
               <div>
                 <h4 className="text-sm font-medium text-white mb-2">Tags:</h4>
                 <div className="flex flex-wrap gap-2">
-                  {mission.tags.map((tag, index) => (
+                  {mission.tags.map((tag: string, index: number) => (
                     <span
                       key={index}
                       className="px-2 py-1 bg-[#7C5DFA]/10 border border-[#7C5DFA]/20 rounded text-xs text-[#7C5DFA]"
