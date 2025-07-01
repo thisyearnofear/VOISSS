@@ -7,7 +7,7 @@ import {
   createIPFSService,
   createStarknetRecordingService,
   createRecordingService,
-  createMissionService,
+  createPersistentMissionService,
 } from "@voisss/shared";
 import { Mission } from "@voisss/shared/types/socialfi";
 import { VoiceRecording } from "@voisss/shared/types";
@@ -23,7 +23,7 @@ interface Recording extends Omit<VoiceRecording, 'createdAt' | 'updatedAt'> {
   onChain?: boolean;
 }
 
-const missionService = createMissionService();
+const missionService = createPersistentMissionService();
 import MissionRecordingInterface from "./socialfi/MissionRecordingInterface";
 
 // Local interfaces until exports are fixed

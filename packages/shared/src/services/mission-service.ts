@@ -19,7 +19,7 @@ export interface MissionService {
   getRecommendedMissions(userId: string): Promise<Mission[]>;
   
   // Mission Templates
-  getMissionTemplates(): typeof MISSION_TEMPLATES;
+  getMissionTemplates(): any; // Flexible return type for templates
   createMissionFromTemplate(templateKey: string, templateIndex: number, customizations?: Partial<Mission>): Promise<Mission>;
   
   // Analytics

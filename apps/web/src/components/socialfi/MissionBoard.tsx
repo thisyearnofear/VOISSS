@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { Mission } from "@voisss/shared/types/socialfi";
-import { createMissionService, MissionService } from "@voisss/shared/services/mission-service";
+import { createPersistentMissionService } from "@voisss/shared";
+import { MissionService } from "@voisss/shared/services/mission-service";
 import { useAccount } from "@starknet-react/core";
 import MissionCard from "./MissionCard";
 import MissionFilters from "./MissionFilters";
@@ -17,7 +18,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
   const [filteredMissions, setFilteredMissions] = useState<Mission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [missionService] = useState<MissionService>(() => createMissionService());
+  const [missionService] = useState(() => createPersistentMissionService());
   const [selectedTopic, setSelectedTopic] = useState<string>("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"newest" | "reward" | "participants">("newest");
