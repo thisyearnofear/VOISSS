@@ -10,9 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "VOISSS - Decentralized Voice Recording Platform",
-  description:
-    "Next-generation voice recording platform built for Starknet Reignite Hackathon. Transform how you capture, organize, and share audio content with decentralized storage and community features.",
+  title: "VOISSS | Transform Your Voice",
+  description: "Record, transform, store securely & share.",
 };
 
 export const viewport = {
