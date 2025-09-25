@@ -161,7 +161,7 @@ export default function Home() {
         {/* Simple Footer */}
         <div className="text-center mt-16 pt-8 border-t border-[#2A2A2A]">
           <p className="text-gray-400 text-sm mb-4">
-            Built for Starknet Reignite Hackathon
+            Infinite Expression Beyond Recognition
           </p>
           <div className="flex justify-center gap-6 text-sm">
             <a href="/platform" className="text-gray-400 hover:text-white transition-colors">
