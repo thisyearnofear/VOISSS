@@ -17,7 +17,7 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
 
   constructor() {
     this.apiKey = getEnv('ELEVENLABS_API_KEY');
-    this.modelId = process.env.ELEVENLABS_MODEL_ID || 'eleven_multilingual_sts_v2';
+    this.modelId = process.env.ELEVENLABS_MODEL_ID || 'eleven_multilingual_v2';
     this.outputFormat = process.env.ELEVENLABS_OUTPUT_FORMAT || 'mp3_44100_128';
   }
 
