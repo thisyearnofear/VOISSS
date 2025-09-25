@@ -17,7 +17,8 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
 
   constructor() {
     this.apiKey = getEnv('ELEVENLABS_API_KEY');
-    this.modelId = process.env.ELEVENLABS_MODEL_ID || 'eleven_multilingual_v2';
+    // Use eleven_multilingual_sts_v2 for speech-to-speech conversion (Voice Changer API)
+    this.modelId = process.env.ELEVENLABS_MODEL_ID || 'eleven_multilingual_sts_v2';
     this.outputFormat = process.env.ELEVENLABS_OUTPUT_FORMAT || 'mp3_44100_128';
   }
 
@@ -56,7 +57,16 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
     });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
-      throw new Error(`Voice transform failed: ${res.status} ${text}`);
+      console.error('ElevenLabs API Error:', {
+        status: res.status,
+        statusText: res.statusText,
+        responseText: text,
+        url: res.url,
+        voiceId,
+        modelId,
+        outputFormat
+      });
+      throw new Error(`Voice transform failed: ${res.status} ${res.statusText} - ${text}`);
     }
     const arrayBuffer = await res.arrayBuffer();
     return new Blob([arrayBuffer], { type: 'audio/mpeg' });

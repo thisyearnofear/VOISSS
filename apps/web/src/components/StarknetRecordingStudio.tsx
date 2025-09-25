@@ -862,8 +862,8 @@ export default function StarknetRecordingStudio() {
                         });
 
                         if (!res.ok) {
-                          const text = await res.text();
-                          throw new Error(text);
+                          const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+                          throw new Error(errorData.error || `HTTP ${res.status}: ${res.statusText}`);
                         }
 
                         const arrayBuffer = await res.arrayBuffer();

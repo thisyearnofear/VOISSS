@@ -377,7 +377,10 @@ export default function RecordingStudio({
                             method: "POST",
                             body: form,
                           });
-                          if (!res.ok) throw new Error("Transform failed");
+                          if (!res.ok) {
+                            const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+                            throw new Error(errorData.error || 'Transform failed');
+                          }
                           const buf = await res.arrayBuffer();
                           setVariantBlobFree(new Blob([buf], { type: "audio/mpeg" }));
                           setFreeAICounter(0);
