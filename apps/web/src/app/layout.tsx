@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "VOISSS | Transform Your Voice",
+  title: "VOISSS | Morph Your Voice",
   description: "Record, transform, store securely & share.",
 };
 
