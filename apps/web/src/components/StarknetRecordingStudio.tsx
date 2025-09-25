@@ -73,6 +73,14 @@ const formatFileSize = (bytes: number): string => {
 
 export default function StarknetRecordingStudio() {
   const { address, isConnected, account } = useAccount();
+  const searchParams = useSearchParams();
+  
+  // AI Voice Variant state
+  const [voices, setVoices] = useState<{ voiceId: string; name?: string }[]>([]);
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>('');
+  const [variantBlob, setVariantBlob] = useState<Blob | null>(null);
+  const [isGeneratingVariant, setIsGeneratingVariant] = useState(false);
+  const [isVoicesLoaded, setIsVoicesLoaded] = useState(false);
   const [mission, setMission] = useState<Mission | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordings, setRecordings] = useState<Recording[]>([]);
@@ -101,7 +109,6 @@ export default function StarknetRecordingStudio() {
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const searchParams = useSearchParams();
 
   // Local storage key for recordings
   const getStorageKey = (userAddress: string) =>
@@ -408,7 +415,17 @@ export default function StarknetRecordingStudio() {
         setCurrentRecording(recording);
         setShowSaveOptions(true);
         setTitle(recording.title);
-      };
+      }
+        // Reset AI Voice Variant state
+        setVariantBlob(null);
+        setSelectedVoiceId('');
+        setIsVoicesLoaded(false);
+;
+        // Reset AI variant state when a new recording is created
+        setVariantBlob(null);
+        setSelectedVoiceId('');
+        setIsVoicesLoaded(false);
+
 
       // Start recording
       mediaRecorderRef.current.start(100);
@@ -480,8 +497,9 @@ export default function StarknetRecordingStudio() {
     setUploadProgress(null);
 
     try {
+      const blobToSave = variantBlob || currentRecording.blob;
       const result = await recordingService.processRecording(
-        currentRecording.blob,
+        blobToSave,
         {
           title: title.trim(),
           description: mission ? mission.description : "",
@@ -518,7 +536,7 @@ export default function StarknetRecordingStudio() {
           transactionHash: result.transactionHash,
           ipfsHash: result.ipfsHash,
           ipfsUrl: result.ipfsUrl,
-          fileSize: currentRecording.blob.size,
+          fileSize: (variantBlob || currentRecording.blob).size,
           isCompleted: !!mission,
           completedAt: mission ? new Date() : undefined,
         };
@@ -596,6 +614,8 @@ export default function StarknetRecordingStudio() {
 
   return (
     <div className="max-w-4xl mx-auto voisss-section-spacing">
+      {/* AI Variant Panel (appears after recording) */}
+
       {/* Mission Context */}
       {mission && (
         <div className="mb-8">
@@ -743,6 +763,165 @@ export default function StarknetRecordingStudio() {
           </div>
 
           <div className="space-y-6">
+            {/* AI Voice Variant */}
+            <div className="p-4 sm:p-5 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                <div>
+                  <h4 className="text-white font-semibold flex items-center gap-2">
+                    <svg className="w-5 h-5 text-[#7C5DFA]" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+                    </svg>
+                    AI Voice Variant
+                  </h4>
+                  <p className="text-gray-400 text-sm">
+                    Transform your recording with a different voice style
+                  </p>
+                  {currentRecording?.participantConsent === false && (
+                    <p className="text-yellow-400 text-xs mt-1 flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                      </svg>
+                      Consider using a neutral voice (no participant consent provided)
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={async () => {
+                    if (!isVoicesLoaded) {
+                      try {
+                        const res = await fetch('/api/elevenlabs/list-voices', { method: 'POST' });
+                        const data = await res.json();
+                        setVoices(data.voices || []);
+                        setIsVoicesLoaded(true);
+                        if (!selectedVoiceId && data.voices?.[0]?.voiceId) {
+                          setSelectedVoiceId(data.voices[0].voiceId);
+                        }
+                      } catch (e) {
+                        console.error('Failed to load voices', e);
+                        alert('Failed to load voices. Please check your API key.');
+                      }
+                    }
+                  }}
+                  className="px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-gray-300 hover:bg-[#3A3A3A] hover:border-[#7C5DFA] transition-all duration-200 w-full sm:w-auto flex items-center justify-center gap-2"
+                >
+                  {isVoicesLoaded ? (
+                    <>
+                      <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                      </svg>
+                      <span className="text-green-400">Voices Ready</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                      Load Voices
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-sm text-gray-300 mb-2 font-medium">
+                    Choose Voice Style
+                  </label>
+                  <select
+                    className="w-full px-3 py-3 bg-[#1A1A1A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:ring-1 focus:ring-[#7C5DFA] transition-colors"
+                    value={selectedVoiceId}
+                    onChange={(e) => setSelectedVoiceId(e.target.value)}
+                    disabled={!isVoicesLoaded}
+                  >
+                    <option value="" disabled>
+                      {isVoicesLoaded ? 'Select a voice style...' : 'Load voices first'}
+                    </option>
+                    {voices.map((v) => (
+                      <option key={v.voiceId} value={v.voiceId}>
+                        {v.name || v.voiceId}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-end">
+                  <button
+                    onClick={async () => {
+                      try {
+                        if (!currentRecording?.blob) return alert('No recording to transform');
+                        if (!selectedVoiceId) return alert('Please select a voice first');
+                        setIsGeneratingVariant(true);
+
+                        const form = new FormData();
+                        form.append('audio', currentRecording.blob, 'input.webm');
+                        form.append('voiceId', selectedVoiceId);
+
+                        const res = await fetch('/api/elevenlabs/transform-voice', {
+                          method: 'POST',
+                          body: form,
+                        });
+
+                        if (!res.ok) {
+                          const text = await res.text();
+                          throw new Error(text);
+                        }
+
+                        const arrayBuffer = await res.arrayBuffer();
+                        const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+                        setVariantBlob(blob);
+                      } catch (err) {
+                        console.error('Variant generation failed', err);
+                        alert('Failed to generate variant. Please try again.');
+                      } finally {
+                        setIsGeneratingVariant(false);
+                      }
+                    }}
+                    disabled={!isVoicesLoaded || !selectedVoiceId || isGeneratingVariant}
+                    className="w-full px-4 py-3 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white font-semibold rounded-lg hover:from-[#6B4CE6] hover:to-[#8B7AFF] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
+                  >
+                    {isGeneratingVariant ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Transforming...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
+                        Generate Variant
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {variantBlob && (
+                <div className="mt-4 p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl">
+                  <div className="flex items-center gap-2 mb-3">
+                    <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    </svg>
+                    <p className="text-green-400 font-medium">Voice Variant Ready!</p>
+                  </div>
+                  <audio 
+                    controls 
+                    src={URL.createObjectURL(variantBlob)} 
+                    className="w-full mb-3 rounded-lg"
+                    style={{ height: '40px' }}
+                  />
+                  <div className="flex items-start gap-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                    <svg className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                    <p className="text-blue-300 text-sm">
+                      <strong>Preview your AI variant above.</strong> If you like it, click "Save Recording" below to store this version permanently.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-3">
                 Recording Title

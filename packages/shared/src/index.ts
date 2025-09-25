@@ -13,3 +13,5 @@ export { MissionService } from './services/mission-service';
 export * from './services/database-service';
 export * from './services/localStorage-database';
 export * from './services/persistent-mission-service';
+export * from './types/audio';
+export * from './services/audio/ai/elevenlabs-service';
