@@ -5,7 +5,7 @@
 
 import { IPFSService, AudioMetadata, IPFSUploadResult } from './ipfs-service';
 import { AudioConverter, AudioConversionOptions, ConversionResult } from './audio-converter';
-import { StarknetRecordingService, RecordingMetadata, TransactionStatus, AccountType } from './starknet-recording';
+import { StarknetRecordingService, StarknetRecordingMetadata, TransactionStatus, AccountType } from './starknet-recording';
 
 export interface RecordingPipelineOptions {
   title: string;
@@ -22,7 +22,7 @@ export interface RecordingPipelineResult {
   ipfsUrl?: string;
   transactionHash?: string;
   error?: string;
-  metadata?: RecordingMetadata;
+  metadata?: StarknetRecordingMetadata;
 }
 
 export interface PipelineProgress {
@@ -113,7 +113,7 @@ export class RecordingService {
       });
 
       // Step 3: Prepare metadata for Starknet
-      const recordingMetadata: RecordingMetadata = {
+      const recordingMetadata: StarknetRecordingMetadata = {
         title: options.title,
         description: options.description || '',
         ipfsHash: ipfsResult.hash,
@@ -300,24 +300,3 @@ export function estimateUploadTime(fileSizeBytes: number): number {
   return Math.max(5, Math.round(mbSize * 10)); // Minimum 5 seconds
 }
 
-/**
- * Utility function to format file size
- */
-export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 Bytes';
-
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-/**
- * Utility function to format duration
- */
-export function formatDuration(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}

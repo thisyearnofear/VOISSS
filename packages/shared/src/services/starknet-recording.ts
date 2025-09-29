@@ -1,7 +1,7 @@
 import { Account, Contract, CallData, RpcProvider, InvokeFunctionResponse } from 'starknet';
 import { VOICE_STORAGE_ABI, USER_REGISTRY_ABI, ACCESS_CONTROL_ABI } from '../contracts/abis';
 
-export interface RecordingMetadata {
+export interface StarknetRecordingMetadata {
   title: string;
   description: string;
   ipfsHash: string;
@@ -94,7 +94,7 @@ export class StarknetRecordingService {
 
   async storeRecording(
     account: AccountType,
-    metadata: RecordingMetadata,
+    metadata: StarknetRecordingMetadata,
     onStatusChange?: (status: TransactionStatus) => void
   ): Promise<string> {
     try {
@@ -149,7 +149,7 @@ export class StarknetRecordingService {
    */
   private async storeRecordingWithWallet(
     account: WalletAccount,
-    metadata: RecordingMetadata,
+    metadata: StarknetRecordingMetadata,
     onStatusChange?: (status: TransactionStatus) => void
   ): Promise<string> {
     // Prepare call data for wallet execution
@@ -194,7 +194,7 @@ export class StarknetRecordingService {
    */
   private async storeRecordingWithAccount(
     account: Account,
-    metadata: RecordingMetadata,
+    metadata: StarknetRecordingMetadata,
     onStatusChange?: (status: TransactionStatus) => void
   ): Promise<string> {
     // Connect account to contract
@@ -402,7 +402,7 @@ export class StarknetRecordingService {
   async updateRecordingMetadata(
     account: Account,
     recordingId: string,
-    metadata: RecordingMetadata
+    metadata: StarknetRecordingMetadata
   ): Promise<string> {
     try {
       this.voiceStorageContract.connect(account);

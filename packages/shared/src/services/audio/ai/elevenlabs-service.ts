@@ -1,4 +1,5 @@
-import { IAudioTransformProvider, TransformOptions, VoiceInfo, VoiceVariantPreview } from '../../../types/audio';
+import { IAudioTransformProvider, TransformOptions, VoiceInfo, VoiceVariantPreview, DubbingOptions, DubbingResult, DubbingLanguage } from '../../../types/audio';
+import { SUPPORTED_DUBBING_LANGUAGES, LanguageInfo } from '../../../constants/languages';
 
 // Minimal ElevenLabs client via fetch to keep deps light
 const ELEVEN_API_BASE = 'https://api.elevenlabs.io/v1';
@@ -116,6 +117,63 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
     }
     const data = await res.json();
     return { voiceId: data.voice_id };
+  }
+
+  async dubAudio(blob: Blob, options: DubbingOptions): Promise<DubbingResult> {
+    const startTime = Date.now();
+    const targetLanguage = options.targetLanguage;
+    const sourceLanguage = options.sourceLanguage;
+    const modelId = options.modelId || this.modelId;
+
+    const form = new FormData();
+    form.append('audio', blob, 'input.webm');
+    form.append('target_language', targetLanguage);
+    if (sourceLanguage) {
+      form.append('source_language', sourceLanguage);
+    }
+    if (options.preserveBackgroundAudio !== undefined) {
+      form.append('preserve_background_audio', String(options.preserveBackgroundAudio));
+    }
+
+    const res = await fetch(`${ELEVEN_API_BASE}/dubbing`, {
+      method: 'POST',
+      headers: { 'xi-api-key': this.apiKey },
+      body: form as any,
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      console.error('ElevenLabs Dubbing API Error:', {
+        status: res.status,
+        statusText: res.statusText,
+        responseText: text,
+        url: res.url,
+        targetLanguage,
+        sourceLanguage,
+        modelId
+      });
+      throw new Error(`Dubbing failed: ${res.status} ${res.statusText} - ${text}`);
+    }
+
+    const data = await res.json();
+    const processingTime = Date.now() - startTime;
+
+    return {
+      dubbedAudio: new Blob([Buffer.from(data.audio_base64, 'base64')], { type: 'audio/mpeg' }),
+      transcript: data.transcript,
+      translatedTranscript: data.translated_transcript,
+      detectedSpeakers: data.detected_speakers || 1,
+      targetLanguage,
+      processingTime
+    };
+  }
+
+  async getSupportedDubbingLanguages(): Promise<DubbingLanguage[]> {
+    // Return languages from shared constants with proper typing
+    return SUPPORTED_DUBBING_LANGUAGES.map((lang: LanguageInfo) => ({
+      code: lang.code,
+      name: lang.name
+    }));
   }
 }
 

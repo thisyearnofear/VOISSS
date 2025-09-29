@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from "react";
 import { useWebAudioRecording } from "../hooks/useWebAudioRecording";
 import WalletModal from "./WalletModal";
+import DubbingPanel from "./dubbing/DubbingPanel";
 
 interface RecordingStudioProps {
   onRecordingComplete?: (audioBlob: Blob, duration: number) => void;
@@ -38,6 +39,10 @@ export default function RecordingStudio({
   const [isGeneratingFree, setGeneratingFree] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
 
+  // Dubbing state
+  const [activeTab, setActiveTab] = useState<'voice' | 'dubbing'>('voice');
+  const [freeDubbingCounter, setFreeDubbingCounter] = useState(1);
+
   const handleStartRecording = useCallback(async () => {
     try {
       await startRecording();
@@ -60,6 +65,9 @@ export default function RecordingStudio({
         setVariantBlobFree(null);
         setLoadingVoicesFree(false);
         setGeneratingFree(false);
+        // Reset dubbing state
+        setActiveTab('voice');
+        setFreeDubbingCounter(1);
       }
     } catch (error) {
       console.error("Failed to stop recording:", error);
@@ -97,6 +105,9 @@ export default function RecordingStudio({
     setLoadingVoicesFree(false);
     setGeneratingFree(false);
     setShowWalletModal(false);
+    // Reset dubbing state
+    setActiveTab('voice');
+    setFreeDubbingCounter(1);
   }, [cancelRecording]);
 
   const handleDownload = useCallback(() => {
@@ -279,7 +290,7 @@ export default function RecordingStudio({
             Save Recording
           </h3>
 
-          {/* Freemium AI Panel */}
+          {/* AI Voice Panel */}
           <div className="p-4 mb-6 bg-[#1A1A1A] rounded-xl border border-[#2A2A2A]">
             <div className="flex justify-between items-center mb-3">
               <div>
@@ -440,7 +451,14 @@ export default function RecordingStudio({
             </div>
           </div>
 
-          <div className="mb-4">
+         {/* Dubbing Panel */}
+         <DubbingPanel
+           audioBlob={audioBlob}
+           freeDubbingCounter={freeDubbingCounter}
+           onWalletModalOpen={() => setShowWalletModal(true)}
+         />
+
+         <div className="mb-4">
             <label
               htmlFor="title"
               className="block text-sm font-medium text-gray-300 mb-2"
