@@ -213,30 +213,44 @@ export function useWebAudioRecording(): WebRecordingState & WebRecordingActions 
     stopDurationTimer();
     stopWaveformAnalysis();
 
-    try {
-      mediaRecorderRef.current.stop();
-      streamRef.current.getTracks().forEach(track => track.stop());
+    return new Promise((resolve) => {
+      const mediaRecorder = mediaRecorderRef.current!;
+      const stream = streamRef.current!;
 
-      if (audioContextRef.current) {
-        await audioContextRef.current.close();
+      // Set up the onstop handler to resolve with the blob
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { 
+          type: mediaRecorder.mimeType || 'audio/webm' 
+        });
+        
+        setState(prev => ({
+          ...prev,
+          audioBlob: blob,
+          isRecording: false,
+          isLoading: false,
+        }));
+
+        resolve(blob);
+      };
+
+      try {
+        mediaRecorder.stop();
+        stream.getTracks().forEach(track => track.stop());
+
+        if (audioContextRef.current) {
+          audioContextRef.current.close().catch(console.error);
+        }
+      } catch (error) {
+        console.error('Failed to stop recording:', error);
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: error instanceof Error ? error.message : 'Failed to stop recording',
+        }));
+        resolve(null);
       }
-
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-      }));
-
-      return state.audioBlob;
-    } catch (error) {
-      console.error('Failed to stop recording:', error);
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to stop recording',
-      }));
-      return null;
-    }
-  }, [state.audioBlob, stopDurationTimer, stopWaveformAnalysis]);
+    });
+  }, [stopDurationTimer, stopWaveformAnalysis]);
 
   const pauseRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {

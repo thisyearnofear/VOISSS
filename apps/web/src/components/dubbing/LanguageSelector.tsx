@@ -1,53 +1,13 @@
 "use client";
 
 import React, { useState } from 'react';
-
-// Enhanced language data with flags and metadata
-const ENHANCED_LANGUAGES = [
-  { code: 'en', name: 'English', nativeName: 'English', flag: '🇺🇸', sampleText: 'Hello, how are you?', isPopular: false },
-  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', flag: '🇮🇳', sampleText: 'नमस्ते, आप कैसे हैं?', isPopular: true },
-  { code: 'pt', name: 'Portuguese', nativeName: 'Português', flag: '🇧🇷', sampleText: 'Olá, como você está?', isPopular: true },
-  { code: 'zh', name: 'Chinese', nativeName: '中文', flag: '🇨🇳', sampleText: '你好，你怎么样？', isPopular: true },
-  { code: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸', sampleText: 'Hola, ¿cómo estás?', isPopular: true },
-  { code: 'fr', name: 'French', nativeName: 'Français', flag: '🇫🇷', sampleText: 'Bonjour, comment allez-vous?', isPopular: true },
-  { code: 'de', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪', sampleText: 'Hallo, wie geht es Ihnen?', isPopular: true },
-  { code: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵', sampleText: 'こんにちは、お元気ですか？', isPopular: true },
-  { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇸🇦', sampleText: 'مرحبا، كيف حالك؟', isPopular: true },
-  { code: 'ru', name: 'Russian', nativeName: 'Русский', flag: '🇷🇺', sampleText: 'Привет, как дела?', isPopular: true },
-  { code: 'ko', name: 'Korean', nativeName: '한국어', flag: '🇰🇷', sampleText: '안녕하세요, 어떻게 지내세요?', isPopular: true },
-  { code: 'id', name: 'Indonesian', nativeName: 'Indonesia', flag: '🇮🇩', sampleText: 'Halo, apa kabar?', isPopular: false },
-  { code: 'it', name: 'Italian', nativeName: 'Italiano', flag: '🇮🇹', sampleText: 'Ciao, come stai?', isPopular: false },
-  { code: 'nl', name: 'Dutch', nativeName: 'Nederlands', flag: '🇳🇱', sampleText: 'Hallo, hoe gaat het?', isPopular: false },
-  { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', flag: '🇹🇷', sampleText: 'Merhaba, nasılsınız?', isPopular: false },
-  { code: 'pl', name: 'Polish', nativeName: 'Polski', flag: '🇵🇱', sampleText: 'Cześć, jak się masz?', isPopular: false },
-  { code: 'sv', name: 'Swedish', nativeName: 'Svenska', flag: '🇸🇪', sampleText: 'Hej, hur mår du?', isPopular: false },
-  { code: 'fil', name: 'Filipino', nativeName: 'Filipino', flag: '🇵🇭', sampleText: 'Kumusta, kamusta ka?', isPopular: false },
-  { code: 'ms', name: 'Malay', nativeName: 'Bahasa Melayu', flag: '🇲🇾', sampleText: 'Hello, apa khabar?', isPopular: false },
-  { code: 'ro', name: 'Romanian', nativeName: 'Română', flag: '🇷🇴', sampleText: 'Bună, ce faci?', isPopular: false },
-  { code: 'uk', name: 'Ukrainian', nativeName: 'Українська', flag: '🇺🇦', sampleText: 'Привіт, як справи?', isPopular: false },
-  { code: 'el', name: 'Greek', nativeName: 'Ελληνικά', flag: '🇬🇷', sampleText: 'Γεια σας, τι κάνετε;', isPopular: false },
-  { code: 'cs', name: 'Czech', nativeName: 'Čeština', flag: '🇨🇿', sampleText: 'Ahoj, jak se máš?', isPopular: false },
-  { code: 'da', name: 'Danish', nativeName: 'Dansk', flag: '🇩🇰', sampleText: 'Hej, hvordan har du det?', isPopular: false },
-  { code: 'fi', name: 'Finnish', nativeName: 'Suomi', flag: '🇫🇮', sampleText: 'Hei, mitä kuuluu?', isPopular: false },
-  { code: 'bg', name: 'Bulgarian', nativeName: 'Български', flag: '🇧🇬', sampleText: 'Здравей, как си?', isPopular: false },
-  { code: 'hr', name: 'Croatian', nativeName: 'Hrvatski', flag: '🇭🇷', sampleText: 'Bok, kako ste?', isPopular: false },
-  { code: 'sk', name: 'Slovak', nativeName: 'Slovenčina', flag: '🇸🇰', sampleText: 'Ahoj, ako sa máš?', isPopular: false },
-  { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்', flag: '🇮🇳', sampleText: 'வணக்கம், எப்படி இருக்கிறீர்கள்?', isPopular: false }
-];
-
-interface Language {
-  code: string;
-  name: string;
-  nativeName?: string;
-  flag?: string;
-  isPopular?: boolean;
-  sampleText?: string;
-}
+import { SUPPORTED_DUBBING_LANGUAGES, getLanguageByCode, getPopularLanguages } from '@voisss/shared';
+import type { LanguageInfo } from '@voisss/shared/src/constants/languages';
 
 interface LanguageSelectorProps {
   selectedLanguage: string;
   onLanguageChange: (language: string) => void;
-  languages: Language[];
+  languages: LanguageInfo[];
   placeholder?: string;
   disabled?: boolean;
   className?: string;
@@ -67,16 +27,16 @@ export default function LanguageSelector({
   const [searchTerm, setSearchTerm] = useState("");
 
   // Utility functions for language operations
-  const getLanguageByCode = (code: string) => {
-    return ENHANCED_LANGUAGES.find((lang) => lang.code === code);
+  const getLanguageByCodeLocal = (code: string) => {
+    return getLanguageByCode(code);
   };
 
-  const getPopularLanguages = () => {
-    return ENHANCED_LANGUAGES.filter((lang) => lang.isPopular);
+  const getPopularLanguagesLocal = () => {
+    return getPopularLanguages();
   };
 
-  const selectedLanguageInfo = getLanguageByCode(selectedLanguage);
-  const popularLanguages = getPopularLanguages();
+  const selectedLanguageInfo = getLanguageByCodeLocal(selectedLanguage);
+  const popularLanguages = getPopularLanguagesLocal();
 
   const filteredLanguages = languages.filter(lang =>
     lang.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -182,7 +142,7 @@ export default function LanguageSelector({
                 Popular Languages
               </div>
               <div className="grid grid-cols-2 gap-1">
-                {popularLanguages.slice(0, 6).map((language: Language) => (
+                {popularLanguages.slice(0, 6).map((language: LanguageInfo) => (
                   <button
                     key={language.code}
                     onClick={() => handleLanguageSelect(language.code)}

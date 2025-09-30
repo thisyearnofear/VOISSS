@@ -39,14 +39,15 @@ export async function POST(req: NextRequest) {
             return new Response(JSON.stringify({ error: 'Missing audio file' }), { status: 400 });
         }
         if (!targetLanguage) {
-            return new Response(JSON.stringify({ error: 'Missing targetLanguage' }), { status: 400 });
+            return new Response(JSON.stringify({ error: 'Target language is required' }), { status: 400 });
         }
 
         const provider = createElevenLabsProvider();
         const result = await provider.dubAudio(file, {
             targetLanguage,
             sourceLanguage: sourceLanguage || undefined,
-            preserveBackgroundAudio
+            preserveBackgroundAudio,
+            voiceId: '' // Not used in dubbing
         });
 
         // Return as JSON with audio as base64

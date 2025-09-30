@@ -5,24 +5,8 @@ import LanguageSelector from './LanguageSelector';
 import ProgressVisualizer from './ProgressVisualizer';
 import AudioComparison from './AudioComparison';
 import { isDubbingEnabled } from '@voisss/shared';
-
-interface LanguageInfo {
-  code: string;
-  name: string;
-  nativeName: string;
-  flag: string;
-  isPopular?: boolean;
-  sampleText?: string;
-}
-
-interface DubbingLanguage {
-  code: string;
-  name: string;
-  nativeName?: string;
-  flag?: string;
-  isPopular?: boolean;
-  sampleText?: string;
-}
+import type { LanguageInfo } from '@voisss/shared/src/constants/languages';
+import type { DubbingLanguage } from '@voisss/shared/src/types/audio';
 
 interface DubbingPanelProps {
   audioBlob: Blob | null;
@@ -40,16 +24,18 @@ export default function DubbingPanel({
   onWalletModalOpen
 }: DubbingPanelProps) {
   const [selectedTargetLanguage, setSelectedTargetLanguage] = useState("");
+  const [selectedSourceLanguage, setSelectedSourceLanguage] = useState<string>('auto');
   const [isLoadingLanguages, setIsLoadingLanguages] = useState(false);
   const [isDubbing, setIsDubbing] = useState(false);
   const [dubbingProgress, setDubbingProgress] = useState<string>("");
   const [dubbingStage, setDubbingStage] = useState<'preparing' | 'translating' | 'generating' | 'finalizing' | 'complete' | 'error'>('preparing');
   const [dubbedBlob, setDubbedBlob] = useState<Blob | null>(null);
-  const [availableLanguages, setAvailableLanguages] = useState<DubbingLanguage[]>([]);
-  const [languagesCache, setLanguagesCache] = useState<DubbingLanguage[]>([]);
+  const [availableLanguages, setAvailableLanguages] = useState<LanguageInfo[]>([]);
+  const [languagesCache, setLanguagesCache] = useState<LanguageInfo[]>([]);
   const [transcript, setTranscript] = useState<string>("");
   const [translatedTranscript, setTranslatedTranscript] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const [detectedSourceLanguage, setDetectedSourceLanguage] = useState<string>("");
 
   const getSampleText = (code: string): string => {
     const samples: { [key: string]: string } = {
@@ -91,7 +77,7 @@ export default function DubbingPanel({
         const rawLanguages = data.languages || [];
 
         // Enhance languages with flag emojis and popularity data
-        const enhancedLanguages: DubbingLanguage[] = rawLanguages.map((lang: any) => {
+        const enhancedLanguages: LanguageInfo[] = rawLanguages.map((lang: any) => {
           const flagMap: { [key: string]: string } = {
             'en': '🇺🇸', 'hi': '🇮🇳', 'pt': '🇧🇷', 'zh': '🇨🇳', 'es': '🇪🇸',
             'fr': '🇫🇷', 'de': '🇩🇪', 'ja': '🇯🇵', 'ar': '🇸🇦', 'ru': '🇷🇺',
@@ -109,7 +95,7 @@ export default function DubbingPanel({
 
         // Sort languages: popular ones first, then alphabetical
         const popularCodes = ['es', 'fr', 'de', 'pt', 'hi', 'zh', 'ar', 'ru', 'ko', 'ja'];
-        const sortedLanguages = enhancedLanguages.sort((a: DubbingLanguage, b: DubbingLanguage) => {
+        const sortedLanguages = enhancedLanguages.sort((a: LanguageInfo, b: LanguageInfo) => {
           const aIndex = popularCodes.indexOf(a.code);
           const bIndex = popularCodes.indexOf(b.code);
 
@@ -125,7 +111,7 @@ export default function DubbingPanel({
         setLanguagesCache(sortedLanguages);
 
         // Auto-select Spanish (most popular) for better UX
-        const spanish = sortedLanguages.find((lang: DubbingLanguage) => lang.code === 'es');
+        const spanish = sortedLanguages.find((lang: LanguageInfo) => lang.code === 'es');
         if (spanish && !selectedTargetLanguage) {
           setSelectedTargetLanguage(spanish.code);
         }
@@ -152,6 +138,11 @@ export default function DubbingPanel({
       const form = new FormData();
       form.append("audio", audioBlob, "input.webm");
       form.append("targetLanguage", selectedTargetLanguage);
+      
+      // Only append source language if it's not auto-detect
+      if (selectedSourceLanguage && selectedSourceLanguage !== 'auto') {
+        form.append('sourceLanguage', selectedSourceLanguage);
+      }
 
       // Simulate progress stages
       const progressStages = [
@@ -286,7 +277,28 @@ export default function DubbingPanel({
           <>
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-300">
-                🌍 Choose Language
+                🌐 Source Language
+              </label>
+              <LanguageSelector
+                selectedLanguage={selectedSourceLanguage}
+                onLanguageChange={setSelectedSourceLanguage}
+                languages={[
+                  { code: 'auto', name: 'Auto-detect', nativeName: 'Automatic Detection', flag: '🤖', isPopular: true },
+                  ...availableLanguages
+                ]}
+                placeholder="Select source language..."
+                disabled={disabled || isDubbing}
+                className="w-full"
+                viewMode="cards"
+              />
+              <p className="text-xs text-gray-400">
+                💡 ElevenLabs can automatically detect the source language, or you can specify it for better accuracy.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-300">
+                🌍 Target Language
               </label>
               <LanguageSelector
                 selectedLanguage={selectedTargetLanguage}
@@ -315,7 +327,7 @@ export default function DubbingPanel({
               ) : dubbedBlob ? (
                 "✨ Dubbing Complete!"
               ) : (
-                "🎭 Start Dubbing"
+                `🎭 Dub ${selectedSourceLanguage === 'auto' ? 'Audio' : `from ${availableLanguages.find(l => l.code === selectedSourceLanguage)?.name || selectedSourceLanguage}`} to ${availableLanguages.find(l => l.code === selectedTargetLanguage)?.name || selectedTargetLanguage}`
               )}
             </button>
 

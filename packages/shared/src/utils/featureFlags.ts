@@ -17,8 +17,6 @@ export function getMaxFileSizeForDubbing(): number {
     return FEATURE_FLAGS.DUBBING_MAX_FILE_SIZE_MB * 1024 * 1024; // Convert to bytes
 }
 
-// Note: getSupportedDubbingLanguages() moved to constants/languages.ts for comprehensive language info
-
 export function canUserAccessDubbing(hasWallet: boolean = false): boolean {
     if (!isDubbingEnabled()) return false;
 

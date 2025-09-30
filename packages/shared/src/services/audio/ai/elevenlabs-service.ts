@@ -127,9 +127,9 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
 
     const form = new FormData();
     form.append('audio', blob, 'input.webm');
-    form.append('target_language', targetLanguage);
+    form.append('target_lang', targetLanguage);
     if (sourceLanguage) {
-      form.append('source_language', sourceLanguage);
+      form.append('source_lang', sourceLanguage);
     }
     if (options.preserveBackgroundAudio !== undefined) {
       form.append('preserve_background_audio', String(options.preserveBackgroundAudio));

@@ -51,9 +51,11 @@ voisss/
 
 #### AI Voice Transformation Platform
 - **ElevenLabs Integration**: Professional-grade voice cloning
+- **Multi-Language Dubbing**: 29+ languages with auto-detection
 - **API Architecture**: Secure server-side API routes
   - `/api/elevenlabs/list-voices` - Fetch available voices
   - `/api/elevenlabs/transform-voice` - Process audio transformation
+  - `/api/elevenlabs/dub-audio` - Multi-language dubbing
 - **Freemium Model**: 1 free transformation, unlimited with wallet
 - **Security**: API keys managed server-side, never exposed to client
 
@@ -132,6 +134,11 @@ POST /api/elevenlabs/transform-voice
 - Input: Audio file + voice selection
 - Output: Transformed audio URL
 - Security: Server-side API key handling
+
+POST /api/elevenlabs/dub-audio
+- Input: Audio file + source/target languages
+- Output: Dubbed audio with transcript
+- Features: Auto-detection, 29+ languages
 
 GET /api/elevenlabs/list-voices
 - Output: Available voice options

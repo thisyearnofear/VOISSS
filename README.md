@@ -28,6 +28,11 @@ Three apps, one ecosystem:
 - **Freemium Model**: 1 free transformation per session, unlimited with wallet
 - **Real-time Preview**: Listen before saving
 
+### 🌍 Multi-Language Dubbing
+- **29+ Languages**: Auto-detect source, translate to target language
+- **Native Accents**: Preserve authentic pronunciation and intonation
+- **Freemium Access**: 1 free dubbing per session, unlimited with wallet
+
 ### 🔗 Starknet Integration
 - **Decentralized Storage**: IPFS + Starknet smart contracts
 - **SocialFi Missions**: Complete tasks for STRK rewards
