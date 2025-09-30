@@ -73,22 +73,22 @@ export default function RecordingDetailScreen() {
   const [sharingOption, setSharingOption] = useState<
     "private" | "public" | "shared"
   >(
-    recording?.isPublic ? "public" : recording?.isShared ? "shared" : "private"
+    (recording as any)?.isPublic ? "public" : (recording as any)?.isShared ? "shared" : "private"
   );
 
   // Set title only when recording changes
   useEffect(() => {
     if (recording) {
-      setTitle(recording.title);
+      setTitle((recording as any).title);
       setSharingOption(
-        recording.isPublic
+        (recording as any).isPublic
           ? "public"
-          : recording.isShared
+          : (recording as any).isShared
           ? "shared"
           : "private"
       );
     }
-  }, [recording?.id]);
+  }, [(recording as any)?.id]);
 
   if (!recording) {
     return (
@@ -107,8 +107,8 @@ export default function RecordingDetailScreen() {
   }, []);
 
   const handleSkipForward = useCallback(() => {
-    setCurrentPosition((prev) => Math.min(recording.duration, prev + 15));
-  }, [recording?.duration]);
+    setCurrentPosition((prev) => Math.min((recording as any).duration, prev + 15));
+  }, [(recording as any)?.duration]);
 
   const handleSkipBackward = useCallback(() => {
     setCurrentPosition((prev) => Math.max(0, prev - 15));
@@ -120,9 +120,9 @@ export default function RecordingDetailScreen() {
       return;
     }
 
-    updateRecording(recording.id, { title });
+    updateRecording((recording as any).id, { title });
     setIsEditing(false);
-  }, [title, recording?.id, updateRecording]);
+  }, [title, (recording as any)?.id, updateRecording]);
 
   const handleDelete = useCallback(() => {
     Alert.alert(
@@ -134,13 +134,13 @@ export default function RecordingDetailScreen() {
           text: "Delete",
           style: "destructive",
           onPress: () => {
-            deleteRecording(recording.id);
+            deleteRecording((recording as any).id);
             router.back();
           },
         },
       ]
     );
-  }, [recording?.id, deleteRecording, router]);
+  }, [(recording as any)?.id, deleteRecording, router]);
 
   const handleShare = useCallback(() => {
     // Share functionality would go here
@@ -170,15 +170,15 @@ export default function RecordingDetailScreen() {
       setSharingOption(option);
 
       if (option === "public") {
-        togglePublic(recording.id);
+        togglePublic((recording as any).id);
       } else if (option === "shared") {
-        toggleShared(recording.id);
+        toggleShared((recording as any).id);
       } else {
         // If private, ensure both public and shared are false
-        updateRecording(recording.id, { isPublic: false, isShared: false });
+        updateRecording((recording as any).id, { isPublic: false, isShared: false });
       }
     },
-    [recording?.id, togglePublic, toggleShared, updateRecording]
+    [(recording as any)?.id, togglePublic, toggleShared, updateRecording]
   );
 
   return (
@@ -218,7 +218,7 @@ export default function RecordingDetailScreen() {
               </View>
             ) : (
               <View style={styles.titleContainer}>
-                <Text style={styles.title}>{recording.title}</Text>
+                <Text style={styles.title}>{(recording as any).title}</Text>
                 <TouchableOpacity
                   onPress={() => setIsEditing(true)}
                   hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
@@ -236,10 +236,10 @@ export default function RecordingDetailScreen() {
                 <Heart
                   size={24}
                   color={
-                    recording.isFavorite ? colors.dark.error : colors.dark.text
+                    (recording as any).isFavorite ? colors.dark.error : colors.dark.text
                   }
                   fill={
-                    recording.isFavorite ? colors.dark.error : "transparent"
+                    (recording as any).isFavorite ? colors.dark.error : "transparent"
                   }
                 />
               </TouchableOpacity>
@@ -254,14 +254,14 @@ export default function RecordingDetailScreen() {
           </View>
 
           <AudioPlayer
-            duration={recording.duration}
+            duration={(recording as any).duration}
             isPlaying={isPlaying}
             onPlayPause={handlePlayPause}
             onSeek={handleSeek}
             onSkipForward={handleSkipForward}
             onSkipBackward={handleSkipBackward}
             currentPosition={currentPosition}
-            waveform={recording.waveform}
+            waveform={(recording as any).waveform}
           />
 
           <View style={styles.section}>
@@ -361,7 +361,7 @@ export default function RecordingDetailScreen() {
                   This recording will be visible to everyone in the VOISSS
                   community.
                 </Text>
-                {recording.duration > 180 && (
+                {(recording as any).duration > 180 && (
                   <View style={styles.warningBox}>
                     <Text style={styles.warningText}>
                       This recording is longer than 3 minutes. Only the first 3
@@ -398,7 +398,7 @@ export default function RecordingDetailScreen() {
                     tag={tag}
                     selected
                     onRemove={() =>
-                      removeTagFromRecording(recording.id, tag.id)
+                      removeTagFromRecording((recording as any).id, tag.id)
                     }
                   />
                 ))
@@ -442,7 +442,7 @@ export default function RecordingDetailScreen() {
                 <View>
                   <Text style={styles.detailLabel}>Size</Text>
                   <Text style={styles.detailValue}>
-                    {formatFileSize(recording.size)}
+                    {formatFileSize(recording.fileSize)}
                   </Text>
                 </View>
               </View>

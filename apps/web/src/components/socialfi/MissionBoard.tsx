@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Mission } from "@voisss/shared/types/socialfi";
-import { createPersistentMissionService } from "@voisss/shared";
-import { MissionService } from "@voisss/shared/services/mission-service";
 import { useAccount } from "@starknet-react/core";
+import { useMissions, useAcceptMission, useMissionStats } from "../../hooks/queries/useMissions";
 import MissionCard from "./MissionCard";
 import MissionFilters from "./MissionFilters";
 
@@ -14,64 +13,61 @@ interface MissionBoardProps {
 
 export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
   const { address, isConnected } = useAccount();
-  const [missions, setMissions] = useState<Mission[]>([]);
-  const [filteredMissions, setFilteredMissions] = useState<Mission[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [missionService] = useState(() => createPersistentMissionService());
   const [selectedTopic, setSelectedTopic] = useState<string>("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"newest" | "reward" | "participants">("newest");
 
-  useEffect(() => {
-    loadMissions();
-  }, []);
+  // Use React Query hooks instead of useState
+  const { 
+    data: missions = [], 
+    isLoading: loading, 
+    error: queryError 
+  } = useMissions({
+    topic: selectedTopic,
+    difficulty: selectedDifficulty,
+    sortBy,
+    status: 'active'
+  });
 
-  useEffect(() => {
-    filterMissions();
-  }, [missions, selectedTopic, selectedDifficulty, sortBy]);
+  const { data: missionStats } = useMissionStats();
+  const acceptMissionMutation = useAcceptMission();
 
-  const loadMissions = async () => {
-    try {
-      setLoading(true);
-      const activeMissions = await missionService.getActiveMissions();
-      setMissions(activeMissions);
-      setError(null);
-    } catch (err) {
-      console.error("Failed to load missions:", err);
-      setError("Failed to load missions. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+  const error = queryError?.message || null;
+
+  // Helper functions for UI
+  const getTopicIcon = (topic: string) => {
+    const icons: Record<string, string> = {
+      technology: "💻",
+      lifestyle: "🌟",
+      business: "💼",
+      entertainment: "🎬",
+      education: "📚",
+      health: "🏥",
+      travel: "✈️",
+      food: "🍽️",
+      sports: "⚽",
+      politics: "🏛️",
+      crypto: "🪙",
+      work: "💼",
+      relationships: "💑",
+      social: "👥",
+      local: "🏘️",
+      culture: "🎭",
+      default: "💬"
+    };
+    return icons[topic] || icons.default;
   };
 
-  const filterMissions = () => {
-    let filtered = [...missions];
-
-    // Filter by topic
-    if (selectedTopic !== "all") {
-      filtered = filtered.filter(mission => mission.topic === selectedTopic);
-    }
-
-    // Filter by difficulty
-    if (selectedDifficulty !== "all") {
-      filtered = filtered.filter(mission => mission.difficulty === selectedDifficulty);
-    }
-
-    // Sort missions
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "reward":
-          return b.reward - a.reward;
-        case "participants":
-          return b.currentParticipants - a.currentParticipants;
-        case "newest":
-        default:
-          return b.createdAt.getTime() - a.createdAt.getTime();
-      }
-    });
-
-    setFilteredMissions(filtered);
+  const getDifficultyColor = (difficulty: string) => {
+    const colors: Record<string, string> = {
+      beginner: "text-green-400 bg-green-400/10 border-green-400/20",
+      intermediate: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
+      advanced: "text-red-400 bg-red-400/10 border-red-400/20",
+      easy: "text-green-400 bg-green-500/20 border-green-500/30",
+      medium: "text-yellow-400 bg-yellow-500/20 border-yellow-500/30",
+      hard: "text-red-400 bg-red-500/20 border-red-500/30"
+    };
+    return colors[difficulty] || "text-gray-400 bg-gray-500/20 border-gray-500/30";
   };
 
   const handleMissionAccept = async (mission: Mission) => {
@@ -81,43 +77,15 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
     }
 
     try {
-      const success = await missionService.acceptMission(mission.id, address);
-      if (success) {
-        // Refresh missions to update participant count
-        await loadMissions();
-        if (onMissionSelect) {
-          onMissionSelect(mission);
-        }
-      } else {
-        alert("Failed to accept mission. It may be full or expired.");
+      await acceptMissionMutation.mutateAsync(mission.id);
+      
+      if (onMissionSelect) {
+        onMissionSelect(mission);
       }
     } catch (err) {
       console.error("Failed to accept mission:", err);
       alert("Failed to accept mission. Please try again.");
     }
-  };
-
-  const getTopicIcon = (topic: string) => {
-    const icons: Record<string, string> = {
-      crypto: "🪙",
-      work: "💼",
-      relationships: "💑",
-      technology: "🤖",
-      social: "👥",
-      local: "🏘️",
-      politics: "🏛️",
-      culture: "🎭",
-    };
-    return icons[topic] || "💬";
-  };
-
-  const getDifficultyColor = (difficulty: string) => {
-    const colors: Record<string, string> = {
-      easy: "text-green-400 bg-green-500/20 border-green-500/30",
-      medium: "text-yellow-400 bg-yellow-500/20 border-yellow-500/30",
-      hard: "text-red-400 bg-red-500/20 border-red-500/30",
-    };
-    return colors[difficulty] || "text-gray-400 bg-gray-500/20 border-gray-500/30";
   };
 
   if (loading) {
@@ -146,7 +114,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
           <h2 className="text-2xl font-bold text-white mb-2">Error Loading Missions</h2>
           <p className="text-gray-400 mb-4">{error}</p>
           <button
-            onClick={loadMissions}
+            onClick={() => window.location.reload()}
             className="px-6 py-3 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white font-semibold rounded-xl hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-200"
           >
             Try Again
@@ -185,7 +153,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
         onDifficultyChange={setSelectedDifficulty}
         onSortChange={setSortBy}
         totalMissions={missions.length}
-        filteredCount={filteredMissions.length}
+        filteredCount={missions.length}
       />
 
       {/* Mission Stats */}
@@ -196,13 +164,13 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
         </div>
         <div className="voisss-card text-center">
           <div className="text-2xl font-bold text-[#7C5DFA] mb-1">
-            {missions.reduce((sum, m) => sum + m.reward, 0)}
+            {missions.reduce((sum: number, m: Mission) => sum + m.reward, 0)}
           </div>
           <div className="text-sm text-gray-400">Total STRK Rewards</div>
         </div>
         <div className="voisss-card text-center">
           <div className="text-2xl font-bold text-green-400 mb-1">
-            {missions.reduce((sum, m) => sum + m.currentParticipants, 0)}
+            {missions.reduce((sum: number, m: Mission) => sum + m.currentParticipants, 0)}
           </div>
           <div className="text-sm text-gray-400">Active Participants</div>
         </div>
@@ -226,7 +194,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
       )}
 
       {/* Mission Grid */}
-      {filteredMissions.length === 0 ? (
+      {missions.length === 0 ? (
         <div className="voisss-card text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-500/20 rounded-full mb-4">
             <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -235,26 +203,21 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
           </div>
           <h3 className="text-xl font-semibold text-white mb-2">No Missions Found</h3>
           <p className="text-gray-400 mb-4">
-            {missions.length === 0 
-              ? "No active missions available at the moment."
-              : "No missions match your current filters. Try adjusting your search criteria."
-            }
+            No active missions available at the moment.
           </p>
-          {missions.length > 0 && (
-            <button
-              onClick={() => {
-                setSelectedTopic("all");
-                setSelectedDifficulty("all");
-              }}
-              className="px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] text-white rounded-lg hover:bg-[#3A3A3A] transition-colors"
-            >
-              Clear Filters
-            </button>
-          )}
+          <button
+            onClick={() => {
+              setSelectedTopic("all");
+              setSelectedDifficulty("all");
+            }}
+            className="px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] text-white rounded-lg hover:bg-[#3A3A3A] transition-colors"
+          >
+            Clear Filters
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredMissions.map((mission) => (
+          {missions.map((mission: Mission) => (
             <MissionCard
               key={mission.id}
               mission={mission}

@@ -9,6 +9,7 @@ import {
   Image,
   Platform,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -37,12 +38,19 @@ import {
   Bot,
   Megaphone,
   Clock,
+  Wallet,
+  Crown,
+  Target,
+  MapPin,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import colors from "../../constants/colors";
 import { theme, globalStyles } from "../../constants/theme";
 import { useOnboardingStore } from "../../store/onboardingStore";
+import { useFeatureGating, useUpgradePrompts } from "../../utils/featureGating";
 import { formatDuration } from "../../utils/formatters";
+import { createPersistentMissionService } from "@voisss/shared";
+import type { Mission } from "@voisss/shared/types/socialfi";
 
 // Top navigation items
 const topNavItems = [
@@ -245,6 +253,59 @@ export default function DiscoverScreen() {
   const [currentPlayingId, setCurrentPlayingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("public");
   const [activeTopNav, setActiveTopNav] = useState("home");
+
+  // Feature gating hooks
+  const { getCurrentTier, getUserCapabilities } = useFeatureGating();
+  const { getUpgradeMessage, getUpgradeButtonText } = useUpgradePrompts();
+
+  const currentTier = getCurrentTier();
+  const capabilities = getUserCapabilities();
+
+  // Real mission data
+  const [missions, setMissions] = useState<Mission[]>([]);
+  const [loadingMissions, setLoadingMissions] = useState(false);
+  const [missionError, setMissionError] = useState<string | null>(null);
+  const [missionService] = useState(() => createPersistentMissionService());
+
+  // Load missions on mount
+  useEffect(() => {
+    loadMissions();
+  }, []);
+
+  const loadMissions = async () => {
+    try {
+      setLoadingMissions(true);
+      setMissionError(null);
+      const activeMissions = await missionService.getActiveMissions();
+      setMissions(activeMissions);
+    } catch (error) {
+      console.error('Failed to load missions:', error);
+      setMissionError('Failed to load missions');
+    } finally {
+      setLoadingMissions(false);
+    }
+  };
+
+  const getMissionIcon = (topic: string) => {
+    const icons: Record<string, any> = {
+      crypto: "🪙",
+      work: "💼",
+      relationships: "💑",
+      technology: "🤖",
+      social: "👥",
+      local: "🏘️",
+    };
+    return icons[topic] || "💬";
+  };
+
+  const getDifficultyColor = (difficulty: string) => {
+    const colorMap: Record<string, string> = {
+      easy: colors.dark.success || "#4CAF50",
+      medium: colors.dark.warning || "#FFC107",
+      hard: colors.dark.error || "#FF5252",
+    };
+    return colorMap[difficulty] || colors.dark.textSecondary;
+  };
 
   const handlePlayPause = (id: string) => {
     setCurrentPlayingId((prev) => (prev === id ? null : id));
@@ -554,19 +615,86 @@ export default function DiscoverScreen() {
 
             <View style={styles.upgradeContainer}>
               <LinearGradient
-                colors={[colors.dark.primary, colors.dark.secondary]}
+                colors={
+                  currentTier === "ultimate"
+                    ? [colors.dark.primary, "#FFD700"] // Gold gradient for Ultimate
+                    : currentTier === "premium"
+                    ? [colors.dark.primary, colors.dark.secondary]
+                    : currentTier === "web3"
+                    ? ["#4E7BFF", colors.dark.primary] // Blue gradient for Web3
+                    : [colors.dark.primary, colors.dark.secondary] // Default for Free
+                }
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.upgradeGradient}
               >
                 <View style={styles.upgradeContent}>
-                  <Text style={styles.upgradeTitle}>Upgrade to Pro</Text>
-                  <Text style={styles.upgradeDescription}>
-                    Share unlimited recordings up to 3 minutes long
-                  </Text>
-                  <TouchableOpacity style={styles.upgradeButton}>
-                    <Text style={styles.upgradeButtonText}>Learn More</Text>
-                  </TouchableOpacity>
+                  {currentTier === "ultimate" ? (
+                    // Ultimate tier - show celebration
+                    <>
+                      <View style={styles.ultimateBadge}>
+                        <Crown size={20} color="#FFD700" />
+                        <Text style={styles.ultimateTitle}>Ultimate Member</Text>
+                      </View>
+                      <Text style={styles.upgradeDescription}>
+                        You have access to all AI and Web3 features!
+                      </Text>
+                      <TouchableOpacity style={styles.upgradeButton}>
+                        <Text style={styles.upgradeButtonText}>Explore Features</Text>
+                      </TouchableOpacity>
+                    </>
+                  ) : currentTier === "premium" ? (
+                    // Premium tier - show Web3 upgrade
+                    <>
+                      <View style={styles.tierBadge}>
+                        <Sparkles size={20} color={colors.dark.primary} />
+                        <Text style={styles.upgradeTitle}>Premium Member</Text>
+                      </View>
+                      <Text style={styles.upgradeDescription}>
+                        Connect your Starknet wallet to unlock Ultimate features and Web3 capabilities
+                      </Text>
+                      <TouchableOpacity style={styles.upgradeButton}>
+                        <Wallet size={16} color={colors.dark.text} />
+                        <Text style={styles.upgradeButtonText}>Connect Wallet</Text>
+                      </TouchableOpacity>
+                    </>
+                  ) : currentTier === "web3" ? (
+                    // Web3 tier - show subscription upgrade
+                    <>
+                      <View style={styles.tierBadge}>
+                        <Wallet size={20} color="#4E7BFF" />
+                        <Text style={styles.upgradeTitle}>Web3 Member</Text>
+                      </View>
+                      <Text style={styles.upgradeDescription}>
+                        {capabilities.remainingAIUses !== null 
+                          ? `${capabilities.remainingAIUses} AI uses remaining today. Upgrade to Premium for unlimited access!`
+                          : "Subscribe to Premium for unlimited AI features and Ultimate tier benefits"
+                        }
+                      </Text>
+                      <TouchableOpacity style={styles.upgradeButton}>
+                        <Crown size={16} color={colors.dark.text} />
+                        <Text style={styles.upgradeButtonText}>Subscribe to Premium</Text>
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    // Free tier - show dual-path options
+                    <>
+                      <Text style={styles.upgradeTitle}>Choose Your Path</Text>
+                      <Text style={styles.upgradeDescription}>
+                        Unlock AI features with Premium or Web3 features with Starknet wallet
+                      </Text>
+                      <View style={styles.dualPathButtons}>
+                        <TouchableOpacity style={[styles.upgradeButton, styles.upgradeButtonPrimary]}>
+                          <Sparkles size={16} color={colors.dark.text} />
+                          <Text style={styles.upgradeButtonText}>Subscribe</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.upgradeButton, styles.upgradeButtonSecondary]}>
+                          <Wallet size={16} color={colors.dark.primary} />
+                          <Text style={[styles.upgradeButtonText, styles.upgradeButtonTextSecondary]}>Connect Wallet</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  )}
                 </View>
               </LinearGradient>
             </View>
@@ -776,89 +904,153 @@ export default function DiscoverScreen() {
         return (
           <>
             <View style={styles.challengesHeader}>
-              <Text style={styles.challengesHeaderTitle}>Challenges</Text>
+              <Text style={styles.challengesHeaderTitle}>Missions</Text>
               <Text style={styles.challengesHeaderSubtitle}>
-                Complete challenges to earn points and rewards
+                Record authentic conversations and earn STRK tokens
               </Text>
             </View>
 
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionTitleContainer}>
-                  <Zap size={20} color={colors.dark.primary} />
-                  <Text style={styles.sectionTitle}>Active Challenges</Text>
-                </View>
-                <TouchableOpacity>
-                  <Text style={styles.seeAllText}>See All</Text>
+            {loadingMissions ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.dark.primary} />
+                <Text style={styles.loadingText}>Loading missions...</Text>
+              </View>
+            ) : missionError ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{missionError}</Text>
+                <TouchableOpacity
+                  style={styles.retryButton}
+                  onPress={loadMissions}
+                >
+                  <Text style={styles.retryButtonText}>Retry</Text>
                 </TouchableOpacity>
               </View>
-
-              <FlatList
-                data={challenges}
-                renderItem={renderChallengeItem}
-                keyExtractor={(item) => item.id}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.challengesContainer}
-              />
-            </View>
-
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionTitleContainer}>
-                  <Award size={20} color={colors.dark.primary} />
-                  <Text style={styles.sectionTitle}>Your Progress</Text>
+            ) : (
+              <>
+                {/* Mission Stats */}
+                <View style={styles.missionStatsContainer}>
+                  <View style={styles.missionStatCard}>
+                    <Text style={styles.missionStatValue}>{missions.length}</Text>
+                    <Text style={styles.missionStatLabel}>Active</Text>
+                  </View>
+                  <View style={styles.missionStatCard}>
+                    <Text style={[styles.missionStatValue, { color: colors.dark.primary }]}>
+                      {missions.reduce((sum, m) => sum + m.reward, 0)}
+                    </Text>
+                    <Text style={styles.missionStatLabel}>STRK</Text>
+                  </View>
+                  <View style={styles.missionStatCard}>
+                    <Text style={[styles.missionStatValue, { color: colors.dark.success || "#4CAF50" }]}>
+                      {missions.reduce((sum, m) => sum + m.currentParticipants, 0)}
+                    </Text>
+                    <Text style={styles.missionStatLabel}>Participants</Text>
+                  </View>
                 </View>
-              </View>
 
-              <View style={styles.challengeProgressItem}>
-                <View style={styles.challengeProgressHeader}>
-                  <Text style={styles.challengeProgressTitle}>
-                    Daily Voice Journal
-                  </Text>
-                  <Text style={styles.challengeProgressDays}>4/7 days</Text>
-                </View>
-                <View style={styles.progressBarContainer}>
-                  <View style={[styles.progressBar, { width: "57%" }]} />
-                </View>
-                <Text style={styles.challengeProgressReward}>
-                  Reward: 500 points
-                </Text>
-              </View>
+                {/* Active Missions */}
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <View style={styles.sectionTitleContainer}>
+                      <Target size={20} color={colors.dark.primary} />
+                      <Text style={styles.sectionTitle}>Active Missions</Text>
+                    </View>
+                    <TouchableOpacity onPress={loadMissions}>
+                      <Text style={styles.seeAllText}>Refresh</Text>
+                    </TouchableOpacity>
+                  </View>
 
-              <View style={styles.challengeProgressItem}>
-                <View style={styles.challengeProgressHeader}>
-                  <Text style={styles.challengeProgressTitle}>
-                    Accent Challenge
-                  </Text>
-                  <Text style={styles.challengeProgressDays}>2/5 accents</Text>
-                </View>
-                <View style={styles.progressBarContainer}>
-                  <View style={[styles.progressBar, { width: "40%" }]} />
-                </View>
-                <Text style={styles.challengeProgressReward}>
-                  Reward: 300 points
-                </Text>
-              </View>
-            </View>
+                  {missions.length === 0 ? (
+                    <View style={styles.emptyMissionsContainer}>
+                      <Text style={styles.emptyMissionsText}>
+                        No active missions available
+                      </Text>
+                    </View>
+                  ) : (
+                    <FlatList
+                      data={missions}
+                      renderItem={({ item }) => (
+                        <View style={styles.missionCard}>
+                          <View style={styles.missionHeader}>
+                            <View style={styles.missionTopicBadge}>
+                              <Text style={styles.missionTopicEmoji}>
+                                {getMissionIcon(item.topic)}
+                              </Text>
+                              <Text style={styles.missionTopicText}>
+                                {item.topic}
+                              </Text>
+                            </View>
+                            <View
+                              style={[
+                                styles.missionDifficultyBadge,
+                                { backgroundColor: `${getDifficultyColor(item.difficulty)}20` }
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.missionDifficultyText,
+                                  { color: getDifficultyColor(item.difficulty) }
+                                ]}
+                              >
+                                {item.difficulty}
+                              </Text>
+                            </View>
+                          </View>
 
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionTitleContainer}>
-                  <TrendingUp size={20} color={colors.dark.primary} />
-                  <Text style={styles.sectionTitle}>Completed Challenges</Text>
-                </View>
-              </View>
+                          <Text style={styles.missionTitle}>{item.title}</Text>
+                          <Text style={styles.missionDescription} numberOfLines={2}>
+                            {item.description}
+                          </Text>
 
-              <View style={styles.completedChallengesContainer}>
-                <Text style={styles.completedChallengesText}>
-                  You've completed 3 challenges this month!
-                </Text>
-                <Text style={styles.completedChallengesPoints}>
-                  Total points earned: 1,200
-                </Text>
-              </View>
-            </View>
+                          <View style={styles.missionMeta}>
+                            <View style={styles.missionMetaItem}>
+                              <Award size={14} color={colors.dark.primary} />
+                              <Text style={styles.missionMetaText}>
+                                {item.reward} STRK
+                              </Text>
+                            </View>
+                            <View style={styles.missionMetaItem}>
+                              <Users size={14} color={colors.dark.textSecondary} />
+                              <Text style={styles.missionMetaText}>
+                                {item.currentParticipants}/{item.maxParticipants || '∞'}
+                              </Text>
+                            </View>
+                            <View style={styles.missionMetaItem}>
+                              <Clock size={14} color={colors.dark.textSecondary} />
+                              <Text style={styles.missionMetaText}>
+                                {Math.ceil((item.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))}d left
+                              </Text>
+                            </View>
+                            {item.locationBased && (
+                              <View style={styles.missionMetaItem}>
+                                <MapPin size={14} color={colors.dark.warning || "#FFC107"} />
+                              </View>
+                            )}
+                          </View>
+
+                          <TouchableOpacity
+                            style={styles.missionAcceptButton}
+                            onPress={() => {
+                              // Navigate to record tab with mission context
+                              router.push({
+                                pathname: "/tabs/record",
+                                params: { missionId: item.id }
+                              });
+                            }}
+                          >
+                            <Text style={styles.missionAcceptButtonText}>
+                              Accept Mission
+                            </Text>
+                            <ArrowRight size={16} color={colors.dark.text} />
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                      keyExtractor={(item) => item.id}
+                      scrollEnabled={false}
+                    />
+                  )}
+                </View>
+              </>
+            )}
           </>
         );
 
@@ -1607,6 +1799,203 @@ const styles = StyleSheet.create({
   createSnippetButtonText: {
     color: colors.dark.text,
     fontSize: 16,
+    fontWeight: "600",
+  },
+  // Mission styles
+  loadingContainer: {
+    padding: theme.spacing.xl,
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: theme.spacing.md,
+    color: colors.dark.textSecondary,
+    fontSize: 14,
+  },
+  errorContainer: {
+    padding: theme.spacing.xl,
+    alignItems: "center",
+  },
+  errorText: {
+    color: colors.dark.error || "#FF5252",
+    fontSize: 14,
+    marginBottom: theme.spacing.md,
+    textAlign: "center",
+  },
+  retryButton: {
+    backgroundColor: colors.dark.primary,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: theme.borderRadius.md,
+  },
+  retryButtonText: {
+    color: colors.dark.text,
+    fontWeight: "600",
+  },
+  missionStatsContainer: {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.lg,
+  },
+  missionStatCard: {
+    flex: 1,
+    backgroundColor: colors.dark.card,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    alignItems: "center",
+  },
+  missionStatValue: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: colors.dark.text,
+    marginBottom: 4,
+  },
+  missionStatLabel: {
+    fontSize: 12,
+    color: colors.dark.textSecondary,
+  },
+  emptyMissionsContainer: {
+    padding: theme.spacing.xl,
+    alignItems: "center",
+  },
+  emptyMissionsText: {
+    color: colors.dark.textSecondary,
+    fontSize: 14,
+  },
+  missionCard: {
+    backgroundColor: colors.dark.card,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+  },
+  missionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: theme.spacing.sm,
+  },
+  missionTopicBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: `${colors.dark.primary}20`,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 4,
+    borderRadius: theme.borderRadius.full,
+    gap: 4,
+  },
+  missionTopicEmoji: {
+    fontSize: 14,
+  },
+  missionTopicText: {
+    fontSize: 12,
+    color: colors.dark.primary,
+    fontWeight: "600",
+    textTransform: "capitalize",
+  },
+  missionDifficultyBadge: {
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 4,
+    borderRadius: theme.borderRadius.full,
+  },
+  missionDifficultyText: {
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "capitalize",
+  },
+  missionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: colors.dark.text,
+    marginBottom: theme.spacing.xs,
+  },
+  missionDescription: {
+    fontSize: 14,
+    color: colors.dark.textSecondary,
+    marginBottom: theme.spacing.md,
+    lineHeight: 20,
+  },
+  missionMeta: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+  },
+  missionMetaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  missionMetaText: {
+    fontSize: 12,
+    color: colors.dark.textSecondary,
+  },
+  missionAcceptButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.dark.primary,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+    gap: theme.spacing.xs,
+  },
+  missionAcceptButtonText: {
+    color: colors.dark.text,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  // Dual-path upgrade styles
+  ultimateBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 215, 0, 0.2)",
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 4,
+    borderRadius: theme.borderRadius.full,
+    marginBottom: theme.spacing.sm,
+  },
+  ultimateTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#FFD700",
+    textAlign: "center",
+    marginBottom: theme.spacing.sm,
+  },
+  tierBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(124, 93, 250, 0.2)",
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 4,
+    borderRadius: theme.borderRadius.full,
+    marginBottom: theme.spacing.sm,
+  },
+  dualPathButtons: {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
+  },
+  upgradeButtonPrimary: {
+    flex: 1,
+    backgroundColor: colors.dark.primary,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: theme.spacing.xs,
+  },
+  upgradeButtonSecondary: {
+    flex: 1,
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: colors.dark.primary,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: theme.spacing.xs,
+  },
+  upgradeButtonTextSecondary: {
+    color: colors.dark.primary,
     fontWeight: "600",
   },
 });

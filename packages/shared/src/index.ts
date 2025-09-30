@@ -17,6 +17,10 @@ export * from './services/persistent-mission-service';
 // Audio types and services
 export * from './types/audio';
 export * from './services/audio/ai/elevenlabs-service';
+export * from './services/audio/ai/client-ai-service';
+
+// Re-export createAIServiceClient as the main export
+export { createAIServiceClient } from './services/audio/ai/client-ai-service';
 
 // Feature flags
 export * from './utils/featureFlags';

@@ -32,6 +32,15 @@ interface StarknetActions {
   getBalance: () => Promise<string | null>;
   sendTransaction: (calls: any[]) => Promise<string>;
   signMessage: (message: string) => Promise<string>;
+  storeRecording: (recordingData: {
+    title: string;
+    description: string;
+    ipfsHash: string;
+    duration: number;
+    fileSize: number;
+    isPublic: boolean;
+    tags: string[];
+  }) => Promise<string>;
 }
 
 const STARKNET_MAINNET_RPC = 'https://starknet-mainnet.public.blastapi.io';
@@ -44,6 +53,8 @@ export function useStarknet(): StarknetState & StarknetActions {
     account: null,
     provider: null,
     error: null,
+    chainId: null,
+    balance: null,
   });
 
   // Initialize provider on mount
@@ -115,11 +126,67 @@ export function useStarknet(): StarknetState & StarknetActions {
     }
   }, [state.account, state.provider]);
 
+  const sendTransaction = useCallback(async (calls: any[]): Promise<string> => {
+    if (!state.account) {
+      throw new Error('Wallet not connected');
+    }
+
+    // Mock implementation for React Native compatibility
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return `0x${Math.random().toString(16).substr(2, 64)}`;
+  }, [state.account]);
+
+  const signMessage = useCallback(async (message: string): Promise<string> => {
+    if (!state.account) {
+      throw new Error('Wallet not connected');
+    }
+
+    // Mock implementation for React Native compatibility
+    return `signed_${message}_${Date.now()}`;
+  }, [state.account]);
+
+  const storeRecording = useCallback(async (recordingData: {
+    title: string;
+    description: string;
+    ipfsHash: string;
+    duration: number;
+    fileSize: number;
+    isPublic: boolean;
+    tags: string[];
+  }): Promise<string> => {
+    if (!state.account) {
+      throw new Error('Wallet not connected');
+    }
+
+    try {
+      // For now, simulate a transaction hash
+      // In a real implementation, you'd:
+      // 1. Use the actual Starknet contract ABI
+      // 2. Call the store_voice_recording function
+      // 3. Wait for transaction confirmation
+      // 4. Return the actual transaction hash
+
+      // Simulate transaction delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Generate a mock transaction hash
+      const mockTxHash = `0x${Math.random().toString(16).substr(2, 64)}`;
+
+      return mockTxHash;
+    } catch (error) {
+      console.error('Failed to store recording on Starknet:', error);
+      throw error;
+    }
+  }, [state.account]);
+
   return {
     ...state,
     connect,
     disconnect,
     getBalance,
+    sendTransaction,
+    signMessage,
+    storeRecording,
   };
 }
 

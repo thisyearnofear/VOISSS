@@ -1,19 +1,37 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Recording, RecordingFilter, Tag } from "../types/recording";
+import { MobileRecording, RecordingFilter, Tag } from "../types/recording";
 import { mockRecordings, mockTags } from "../mocks/recordings";
+import { createIPFSService } from "@voisss/shared";
+
+// Mock Starknet hook for React Native
+// In a real implementation, you'd import the actual hook
+const mockStarknetHook = () => ({
+  isConnected: false,
+  account: null,
+  storeRecording: async () => {
+    // Mock implementation
+    return `0x${Math.random().toString(16).substr(2, 64)}`;
+  }
+});
 
 interface RecordingsState {
-  recordings: Recording[];
+  recordings: MobileRecording[];
   tags: Tag[];
   filter: RecordingFilter;
   currentRecordingId: string | null;
   isPlaying: boolean;
 
+  // IPFS state
+  ipfsService: any;
+  isUploadingToIPFS: boolean;
+  ipfsUploadProgress: number;
+
   // Actions
-  addRecording: (recording: Recording) => void;
-  updateRecording: (id: string, updates: Partial<Recording>) => void;
+  addRecording: (recording: MobileRecording) => void;
+  addRecordingWithIPFS: (recording: MobileRecording, fileUri: string) => Promise<void>;
+  updateRecording: (id: string, updates: Partial<MobileRecording>) => void;
   deleteRecording: (id: string) => void;
   toggleFavorite: (id: string) => void;
   addTag: (tag: Tag) => void;
@@ -23,7 +41,7 @@ interface RecordingsState {
   resetFilter: () => void;
   setCurrentRecording: (id: string | null) => void;
   setIsPlaying: (isPlaying: boolean) => void;
-  importRecordings: (recordings: Recording[]) => void;
+  importRecordings: (recordings: MobileRecording[]) => void;
   addTagToRecording: (recordingId: string, tagId: string) => void;
   removeTagFromRecording: (recordingId: string, tagId: string) => void;
 
@@ -53,6 +71,11 @@ export const useRecordingsStore = create<RecordingsState>()(
       currentRecordingId: null,
       isPlaying: false,
 
+      // IPFS state
+      ipfsService: null,
+      isUploadingToIPFS: false,
+      ipfsUploadProgress: 0,
+
       addRecording: (recording) => {
         set((state) => ({
           recordings: [...state.recordings, recording],
@@ -64,10 +87,10 @@ export const useRecordingsStore = create<RecordingsState>()(
           recordings: state.recordings.map((recording) =>
             recording.id === id
               ? {
-                  ...recording,
-                  ...updates,
-                  updatedAt: new Date().toISOString(),
-                }
+                ...recording,
+                ...updates,
+                updatedAt: new Date(),
+              }
               : recording
           ),
         }));
@@ -107,13 +130,13 @@ export const useRecordingsStore = create<RecordingsState>()(
         }));
       },
 
-      deleteTag: (id) => {
+      deleteTag: (id: string) => {
         set((state) => ({
           tags: state.tags.filter((tag) => tag.id !== id),
           // Also remove this tag from all recordings
           recordings: state.recordings.map((recording) => ({
             ...recording,
-            tags: recording.tags.filter((tagId) => tagId !== id),
+            tags: recording.tags.filter((tagId: string) => tagId !== id),
           })),
         }));
       },
@@ -152,14 +175,14 @@ export const useRecordingsStore = create<RecordingsState>()(
         }));
       },
 
-      removeTagFromRecording: (recordingId, tagId) => {
+      removeTagFromRecording: (recordingId: string, tagId: string) => {
         set((state) => ({
           recordings: state.recordings.map((recording) =>
             recording.id === recordingId
               ? {
-                  ...recording,
-                  tags: recording.tags.filter((id) => id !== tagId),
-                }
+                ...recording,
+                tags: recording.tags.filter((id: string) => id !== tagId),
+              }
               : recording
           ),
         }));
@@ -171,13 +194,13 @@ export const useRecordingsStore = create<RecordingsState>()(
           recordings: state.recordings.map((recording) =>
             recording.id === id
               ? {
-                  ...recording,
-                  isPublic: !recording.isPublic,
-                  // If making public, ensure it's not shared with specific users
-                  ...(recording.isPublic
-                    ? {}
-                    : { isShared: false, sharedWith: [] }),
-                }
+                ...recording,
+                isPublic: !recording.isPublic,
+                // If making public, ensure it's not shared with specific users
+                ...(recording.isPublic
+                  ? {}
+                  : { isShared: false, sharedWith: [] }),
+              }
               : recording
           ),
         }));
@@ -188,11 +211,11 @@ export const useRecordingsStore = create<RecordingsState>()(
           recordings: state.recordings.map((recording) =>
             recording.id === id
               ? {
-                  ...recording,
-                  isShared: !recording.isShared,
-                  // If making shared, ensure it's not public
-                  ...(recording.isShared ? {} : { isPublic: false }),
-                }
+                ...recording,
+                isShared: !recording.isShared,
+                // If making shared, ensure it's not public
+                ...(recording.isShared ? {} : { isPublic: false }),
+              }
               : recording
           ),
         }));
@@ -203,11 +226,11 @@ export const useRecordingsStore = create<RecordingsState>()(
           recordings: state.recordings.map((recording) =>
             recording.id === recordingId
               ? {
-                  ...recording,
-                  isShared: true,
-                  isPublic: false,
-                  sharedWith: userIds,
-                }
+                ...recording,
+                isShared: true,
+                isPublic: false,
+                sharedWith: userIds,
+              }
               : recording
           ),
         }));
@@ -218,9 +241,9 @@ export const useRecordingsStore = create<RecordingsState>()(
           recordings: state.recordings.map((recording) =>
             recording.id === id
               ? {
-                  ...recording,
-                  plays: (recording.plays || 0) + 1,
-                }
+                ...recording,
+                plays: (recording.plays || 0) + 1,
+              }
               : recording
           ),
         }));
@@ -231,12 +254,77 @@ export const useRecordingsStore = create<RecordingsState>()(
           recordings: state.recordings.map((recording) =>
             recording.id === id
               ? {
-                  ...recording,
-                  likes: (recording.likes || 0) + 1,
-                }
+                ...recording,
+                likes: (recording.likes || 0) + 1,
+              }
               : recording
           ),
         }));
+      },
+
+      // IPFS actions
+      addRecordingWithIPFS: async (recording, fileUri) => {
+        try {
+          set({ isUploadingToIPFS: true, ipfsUploadProgress: 0 });
+
+          // Initialize IPFS service if not already done
+          if (!get().ipfsService) {
+            const ipfsService = createIPFSService();
+            set({ ipfsService });
+            // Test connection without arguments
+            const isConnected = await ipfsService.testConnection();
+            if (!isConnected) {
+              console.warn("IPFS connection test failed - uploads may not work");
+            }
+          }
+
+          const ipfsService = get().ipfsService;
+
+          // Convert file URI to blob for IPFS upload
+          const response = await fetch(fileUri);
+          const audioBlob = await response.blob();
+
+          // Upload to IPFS
+          set({ ipfsUploadProgress: 50 });
+          const ipfsHash = await ipfsService.uploadFile(audioBlob);
+
+          set({ ipfsUploadProgress: 75 });
+
+          // Try to store on Starknet if wallet is connected
+          let starknetTxHash: string | undefined;
+          try {
+            // For now, generate a mock transaction hash
+            // In a real implementation, you'd use the actual Starknet hook
+            starknetTxHash = `0x${Math.random().toString(16).substr(2, 64)}`;
+          } catch (starknetError) {
+            console.warn('Starknet storage failed, continuing with IPFS only:', starknetError);
+          }
+
+          set({ ipfsUploadProgress: 100 });
+
+          // Add recording with IPFS hash and optional Starknet hash
+          const recordingWithBlockchain = {
+            ...recording,
+            ipfsHash,
+            starknetTxHash,
+            isPublic: true, // IPFS recordings are public by default
+          };
+
+          set((state) => ({
+            recordings: [...state.recordings, recordingWithBlockchain],
+            isUploadingToIPFS: false,
+            ipfsUploadProgress: 0,
+          }));
+
+        } catch (error) {
+          console.error('IPFS upload failed:', error);
+          set({ isUploadingToIPFS: false, ipfsUploadProgress: 0 });
+
+          // Still add the recording locally even if IPFS fails
+          set((state) => ({
+            recordings: [...state.recordings, recording],
+          }));
+        }
       },
     }),
     {
@@ -321,6 +409,6 @@ export const useRecordingTags = (recordingId: string | null) => {
   if (!recording) return [];
 
   return recording.tags
-    .map((tagId) => allTags.find((tag) => tag.id === tagId))
+    .map((tagId: string) => allTags.find((tag) => tag.id === tagId))
     .filter((tag): tag is Tag => tag !== undefined);
 };

@@ -14,7 +14,7 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
   private apiKey: string;
   private modelId: string;
   private outputFormat: string;
-  private voicesCache: VoiceInfo[] | null = null;
+  private voicesCache: VoiceInfo[] | undefined;
 
   constructor() {
     this.apiKey = getEnv('ELEVENLABS_API_KEY');
@@ -38,7 +38,7 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
       description: v.description,
     }));
     this.voicesCache = voices;
-    return voices;
+    return this.voicesCache!;
   }
 
   async transformVoice(blob: Blob, options: TransformOptions): Promise<Blob> {

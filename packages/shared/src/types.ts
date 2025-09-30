@@ -44,10 +44,10 @@ export const VoiceRecordingSchema = z.object({
     }).optional(),
   }).optional(), // Location where recording was made
   context: z.string().optional(), // Context where recording was made (taxi, coffee shop, etc.)
-  participantConsent: z.boolean().default(false), // Whether participant consent was obtained
+  participantConsent: z.boolean(), // Whether participant consent was obtained
   consentProof: z.string().optional(), // IPFS hash of consent recording/document
-  isAnonymized: z.boolean().default(false), // Whether voices are anonymized
-  voiceObfuscated: z.boolean().default(false), // Whether voice obfuscation was applied
+  isAnonymized: z.boolean(), // Whether voices are anonymized
+  voiceObfuscated: z.boolean(), // Whether voice obfuscation was applied
 });
 
 export type VoiceRecording = z.infer<typeof VoiceRecordingSchema>;

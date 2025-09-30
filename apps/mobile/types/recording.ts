@@ -1,25 +1,23 @@
-export interface Recording {
-  id: string;
-  title: string;
-  duration: number; // in seconds
-  size: number; // in bytes
-  uri: string;
-  createdAt: string; // ISO date string
-  updatedAt: string; // ISO date string
-  tags: string[];
-  isFavorite: boolean;
-  waveform?: number[]; // Visualization data
-  transcription?: string; // For future AI features
-  source: "imported" | "recorded";
-  category?: string; // For grouping during import
+// Re-export types from shared package as the canonical types
+import type { VoiceRecording as SharedVoiceRecording, MissionContext } from '@voisss/shared';
 
-  // New fields for community features
-  isPublic?: boolean;
+export type VoiceRecording = SharedVoiceRecording;
+export type { MissionContext };
+
+// Mobile-specific recording interface that extends the shared type
+export interface MobileRecording extends SharedVoiceRecording {
+  // Mobile-specific UI fields
+  filePath?: string; // Local file URI for mobile playback
+  uri?: string; // Alternative local file URI
+  blob?: Blob; // For web platform compatibility
+  isFavorite?: boolean;
   isShared?: boolean;
-  sharedWith?: string[]; // IDs of users or groups
+  sharedWith?: string[];
   plays?: number;
   likes?: number;
   comments?: number;
+  waveform?: number[]; // Visualization data
+  source?: "imported" | "recorded";
 }
 
 export interface Tag {

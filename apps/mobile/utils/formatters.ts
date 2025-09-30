@@ -70,9 +70,9 @@ export const formatRelativeTime = (dateString: string): string => {
 /**
  * Format date to display format (e.g., "Jun 15, 2023")
  */
-export const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
+export const formatDate = (date: string | Date): string => {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return dateObj.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",

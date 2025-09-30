@@ -7,9 +7,12 @@ import {
   Alert,
   Animated,
   Dimensions,
+  ScrollView,
+  ActivityIndicator,
+  FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import {
   Mic,
   Square,
@@ -18,10 +21,18 @@ import {
   Save,
   X,
   Settings,
+  Bot,
+  Download,
+  Volume2,
+  Check,
+  Loader2,
 } from "lucide-react-native";
 import { useAudioRecording } from "../../hooks/useAudioRecording";
 import { useRecordingsStore } from "../../store/recordingsStore";
+import { useFeatureGating } from "../../utils/featureGating";
 import colors from "../../constants/colors";
+import { createAIServiceClient } from "@voisss/shared";
+import type { VoiceInfo } from "@voisss/shared/types/audio";
 
 const { width } = Dimensions.get("window");
 
@@ -37,6 +48,7 @@ const formatDuration = (ms: number): string => {
 
 export default function RecordScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const {
     isRecording,
     isLoading,
@@ -50,7 +62,27 @@ export default function RecordScreen() {
     cancelRecording,
   } = useAudioRecording();
 
-  const { addRecording } = useRecordingsStore();
+  const { addRecording, addRecordingWithIPFS } = useRecordingsStore();
+  const { getCurrentTier, getUserCapabilities } = useFeatureGating();
+
+  // IPFS upload state from store
+  const isUploadingToIPFS = useRecordingsStore((state) => state.isUploadingToIPFS);
+  const ipfsUploadProgress = useRecordingsStore((state) => state.ipfsUploadProgress);
+
+  const currentTier = getCurrentTier();
+  const capabilities = getUserCapabilities();
+
+  // AI Voice Transformation state
+  const [voices, setVoices] = useState<VoiceInfo[]>([]);
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>("");
+  const [isLoadingVoices, setIsLoadingVoices] = useState(false);
+  const [isTransforming, setIsTransforming] = useState(false);
+  const [transformedBlob, setTransformedBlob] = useState<Blob | null>(null);
+  const [showAITransform, setShowAITransform] = useState(false);
+  const [aiService] = useState(() => createAIServiceClient({
+    apiBaseUrl: 'https://voisss.netlify.app/api',
+    platform: 'mobile'
+  }));
 
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTitle, setRecordingTitle] = useState("");
@@ -59,6 +91,58 @@ export default function RecordScreen() {
   // Animation for recording button
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
+
+  // Check if user has mission context
+  const missionId = params.missionId as string;
+
+  // Load voices for AI transformation
+  const loadVoices = useCallback(async () => {
+    if (!capabilities.canAccessAI) return;
+
+    try {
+      setIsLoadingVoices(true);
+      const availableVoices = await aiService.listVoices();
+      setVoices(availableVoices);
+
+      // Auto-select first voice
+      if (availableVoices.length > 0 && !selectedVoiceId) {
+        setSelectedVoiceId(availableVoices[0].voiceId);
+      }
+    } catch (error) {
+      console.error('Failed to load voices:', error);
+      Alert.alert('Error', 'Failed to load AI voices');
+    } finally {
+      setIsLoadingVoices(false);
+    }
+  }, [capabilities.canAccessAI, aiService, selectedVoiceId]);
+
+  // Transform voice with AI
+  const transformVoice = useCallback(async () => {
+    if (!uri || !selectedVoiceId || !capabilities.canAccessAI) return;
+
+    try {
+      setIsTransforming(true);
+
+      // Convert file URI to blob for web API
+      const response = await fetch(uri);
+      const audioBlob = await response.blob();
+
+      const transformedBlob = await aiService.transformVoice(audioBlob, selectedVoiceId);
+      setTransformedBlob(transformedBlob);
+    } catch (error) {
+      console.error('Voice transformation failed:', error);
+      Alert.alert('Error', 'Failed to transform voice');
+    } finally {
+      setIsTransforming(false);
+    }
+  }, [uri, selectedVoiceId, capabilities.canAccessAI, aiService]);
+
+  // Load voices when AI features become available
+  useEffect(() => {
+    if (capabilities.canAccessAI && showSaveOptions) {
+      loadVoices();
+    }
+  }, [capabilities.canAccessAI, showSaveOptions, loadVoices]);
 
   // Animate recording button when recording
   useEffect(() => {
@@ -104,6 +188,10 @@ export default function RecordScreen() {
       const recordingUri = await stopRecording();
       if (recordingUri) {
         setShowSaveOptions(true);
+        // Show AI transformation options if user has access
+        if (capabilities.canAccessAI) {
+          setShowAITransform(true);
+        }
       }
     } catch (error) {
       Alert.alert(
@@ -111,7 +199,7 @@ export default function RecordScreen() {
         error instanceof Error ? error.message : "Failed to stop recording"
       );
     }
-  }, [stopRecording]);
+  }, [stopRecording, capabilities.canAccessAI]);
 
   const handlePauseResume = useCallback(async () => {
     try {
@@ -139,36 +227,63 @@ export default function RecordScreen() {
       const recording = {
         id: Date.now().toString(),
         title: recordingTitle || `Recording ${new Date().toLocaleDateString()}`,
-        filePath: uri,
+        description: "",
         duration: duration,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
         fileSize: 0, // Will be calculated later
+        format: "mp3" as const,
+        quality: "medium" as const,
         tags: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isPublic: false,
+        participantConsent: false,
+        isAnonymized: false,
+        voiceObfuscated: false,
+        isCompleted: false,
+        // Mobile-specific fields
+        filePath: uri,
         isFavorite: false,
         isShared: false,
-        isPublic: false,
         waveform: [], // Will be generated later
       };
 
-      addRecording(recording);
+      // Use IPFS-enabled recording if user has premium access
+      if (capabilities.canAccessWeb3) {
+        await addRecordingWithIPFS(recording, uri);
+        Alert.alert(
+          "Success",
+          "Recording saved locally and uploaded to IPFS!",
+          [
+            {
+              text: "View Recordings",
+              onPress: () => router.push("/tabs/index" as any),
+            },
+            {
+              text: "Record Another",
+              style: "cancel",
+            },
+          ]
+        );
+      } else {
+        addRecording(recording);
+        Alert.alert("Success", "Recording saved locally!", [
+          {
+            text: "View Recordings",
+            onPress: () => router.push("/tabs/index" as any),
+          },
+          {
+            text: "Record Another",
+            style: "cancel",
+          },
+        ]);
+      }
+
       setShowSaveOptions(false);
       setRecordingTitle("");
-
-      Alert.alert("Success", "Recording saved successfully!", [
-        {
-          text: "View Recordings",
-          onPress: () => router.push("/tabs/"),
-        },
-        {
-          text: "Record Another",
-          style: "cancel",
-        },
-      ]);
     } catch (error) {
       Alert.alert("Save Error", "Failed to save recording. Please try again.");
     }
-  }, [uri, duration, recordingTitle, addRecording, router]);
+  }, [uri, duration, recordingTitle, addRecording, addRecordingWithIPFS, capabilities.canAccessWeb3, router]);
 
   const handleCancelRecording = useCallback(async () => {
     Alert.alert(
@@ -271,6 +386,120 @@ export default function RecordScreen() {
     );
   };
 
+  // Render AI voice transformation section
+  const renderAITransformation = () => {
+    if (!showSaveOptions || !capabilities.canAccessAI) return null;
+
+    return (
+      <ScrollView style={styles.aiTransformContainer}>
+        <View style={styles.aiTransformHeader}>
+          <Bot size={24} color={colors.dark.primary} />
+          <Text style={styles.aiTransformTitle}>AI Voice Transformation</Text>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setShowAITransform(false)}
+          >
+            <X size={20} color={colors.dark.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.aiTransformDescription}>
+          Transform your recording with professional AI voices
+        </Text>
+
+        {/* Voice Selection */}
+        <View style={styles.voiceSection}>
+          <Text style={styles.sectionTitle}>Choose Voice</Text>
+
+          {isLoadingVoices ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={colors.dark.primary} />
+              <Text style={styles.loadingText}>Loading voices...</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={voices}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.voiceItem,
+                    selectedVoiceId === item.voiceId && styles.voiceItemSelected,
+                  ]}
+                  onPress={() => setSelectedVoiceId(item.voiceId)}
+                >
+                  <View style={styles.voiceInfo}>
+                    <Text style={styles.voiceName}>{item.name}</Text>
+                    {item.description && (
+                      <Text style={styles.voiceDescription}>{item.description}</Text>
+                    )}
+                  </View>
+                  {selectedVoiceId === item.voiceId && (
+                    <Check size={20} color={colors.dark.primary} />
+                  )}
+                </TouchableOpacity>
+              )}
+              keyExtractor={(item) => item.voiceId}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.voicesList}
+            />
+          )}
+        </View>
+
+        {/* Transform Button */}
+        <TouchableOpacity
+          style={[
+            styles.transformButton,
+            (!selectedVoiceId || isTransforming) && styles.transformButtonDisabled,
+          ]}
+          onPress={transformVoice}
+          disabled={!selectedVoiceId || isTransforming}
+        >
+          {isTransforming ? (
+            <View style={styles.transformingContainer}>
+              <Loader2 size={20} color={colors.dark.text} />
+              <Text style={styles.transformButtonText}>Transforming...</Text>
+            </View>
+          ) : (
+            <>
+              <Bot size={20} color={colors.dark.text} />
+              <Text style={styles.transformButtonText}>Transform Voice</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        {/* Transformed Audio Preview */}
+        {transformedBlob && (
+          <View style={styles.transformedContainer}>
+            <Text style={styles.transformedTitle}>Transformed Audio Ready!</Text>
+            <TouchableOpacity style={styles.playButton}>
+              <Volume2 size={20} color={colors.dark.text} />
+              <Text style={styles.playButtonText}>Play Preview</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.downloadButton}>
+              <Download size={20} color={colors.dark.text} />
+              <Text style={styles.downloadButtonText}>Download</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Usage Info */}
+        {capabilities.remainingAIUses !== null && (
+          <View style={styles.usageContainer}>
+            <Text style={styles.usageText}>
+              {capabilities.remainingAIUses} AI transformations remaining today
+            </Text>
+            {currentTier === "web3" && (
+              <TouchableOpacity style={styles.upgradeButton}>
+                <Text style={styles.upgradeButtonText}>Upgrade to Premium</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </ScrollView>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -281,32 +510,55 @@ export default function RecordScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.content}>
-          <View style={styles.durationContainer}>
-            <Text style={styles.duration}>{formatDuration(duration)}</Text>
-            <Text style={styles.status}>
-              {isRecording
-                ? isPaused
-                  ? "Paused"
-                  : "Recording..."
-                : showSaveOptions
-                ? "Ready to save"
-                : "Tap to start recording"}
-            </Text>
-          </View>
-
-          <View style={styles.waveformContainer}>
-            {/* Placeholder for waveform visualization */}
-            <View style={styles.waveformPlaceholder}>
-              <Text style={styles.waveformText}>
-                {isRecording ? "🎵 Recording audio..." : "🎤 Ready to record"}
+        {showAITransform ? (
+          renderAITransformation()
+        ) : (
+          <View style={styles.content}>
+            <View style={styles.durationContainer}>
+              <Text style={styles.duration}>{formatDuration(duration)}</Text>
+              <Text style={styles.status}>
+                {isUploadingToIPFS
+                  ? `Uploading to IPFS... ${ipfsUploadProgress}%`
+                  : isRecording
+                  ? isPaused
+                    ? "Paused"
+                    : "Recording..."
+                  : showSaveOptions
+                  ? "Ready to save"
+                  : "Tap to start recording"}
               </Text>
-            </View>
-          </View>
 
-          {renderRecordingButton()}
-          {renderControls()}
-        </View>
+              {/* IPFS Upload Progress Bar */}
+              {isUploadingToIPFS && (
+                <View style={styles.ipfsProgressContainer}>
+                  <View style={styles.ipfsProgressBar}>
+                    <View
+                      style={[
+                        styles.ipfsProgressFill,
+                        { width: `${ipfsUploadProgress}%` }
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.ipfsProgressText}>
+                    Uploading to decentralized storage...
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.waveformContainer}>
+              {/* Placeholder for waveform visualization */}
+              <View style={styles.waveformPlaceholder}>
+                <Text style={styles.waveformText}>
+                  {isRecording ? "🎵 Recording audio..." : "🎤 Ready to record"}
+                </Text>
+              </View>
+            </View>
+
+            {renderRecordingButton()}
+            {renderControls()}
+          </View>
+        )}
 
         {error && (
           <View style={styles.errorContainer}>
@@ -422,6 +674,194 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: colors.dark.text,
+    textAlign: "center",
+  },
+  // AI Transformation styles
+  aiTransformContainer: {
+    flex: 1,
+    padding: 16,
+  },
+  aiTransformHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  aiTransformTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: colors.dark.text,
+    marginLeft: 8,
+  },
+  aiTransformDescription: {
+    fontSize: 14,
+    color: colors.dark.textSecondary,
+    marginBottom: 24,
+    textAlign: "center",
+  },
+  closeButton: {
+    padding: 8,
+  },
+  voiceSection: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.dark.text,
+    marginBottom: 12,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    padding: 16,
+  },
+  loadingText: {
+    marginTop: 8,
+    color: colors.dark.textSecondary,
+    fontSize: 14,
+  },
+  voicesList: {
+    paddingBottom: 8,
+  },
+  voiceItem: {
+    backgroundColor: colors.dark.card,
+    borderRadius: 12,
+    padding: 12,
+    marginRight: 12,
+    minWidth: 120,
+    alignItems: "center",
+  },
+  voiceItemSelected: {
+    backgroundColor: `${colors.dark.primary}20`,
+    borderWidth: 2,
+    borderColor: colors.dark.primary,
+  },
+  voiceInfo: {
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  voiceName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.dark.text,
+    textAlign: "center",
+  },
+  voiceDescription: {
+    fontSize: 12,
+    color: colors.dark.textSecondary,
+    textAlign: "center",
+  },
+  transformButton: {
+    backgroundColor: colors.dark.primary,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
+  transformButtonDisabled: {
+    opacity: 0.5,
+  },
+  transformingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  transformButtonText: {
+    color: colors.dark.text,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  transformedContainer: {
+    backgroundColor: colors.dark.card,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  transformedTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.dark.text,
+    marginBottom: 12,
+  },
+  playButton: {
+    backgroundColor: colors.dark.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  playButtonText: {
+    color: colors.dark.text,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  downloadButton: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: colors.dark.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  downloadButtonText: {
+    color: colors.dark.primary,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  usageContainer: {
+    backgroundColor: colors.dark.card,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+  },
+  usageText: {
+    fontSize: 14,
+    color: colors.dark.textSecondary,
+    marginBottom: 12,
+  },
+  upgradeButton: {
+    backgroundColor: colors.dark.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+  },
+  upgradeButtonText: {
+    color: colors.dark.text,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  // IPFS Upload styles
+  ipfsProgressContainer: {
+    marginTop: 16,
+    alignItems: "center",
+  },
+  ipfsProgressBar: {
+    width: width * 0.6,
+    height: 4,
+    backgroundColor: colors.dark.card,
+    borderRadius: 2,
+    marginBottom: 8,
+    overflow: "hidden",
+  },
+  ipfsProgressFill: {
+    height: "100%",
+    backgroundColor: colors.dark.primary,
+    borderRadius: 2,
+  },
+  ipfsProgressText: {
+    fontSize: 12,
+    color: colors.dark.textSecondary,
     textAlign: "center",
   },
 });
