@@ -4,17 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MobileRecording, RecordingFilter, Tag } from "../types/recording";
 import { mockRecordings, mockTags } from "../mocks/recordings";
 import { createIPFSService } from "@voisss/shared";
-
-// Mock Starknet hook for React Native
-// In a real implementation, you'd import the actual hook
-const mockStarknetHook = () => ({
-  isConnected: false,
-  account: null,
-  storeRecording: async () => {
-    // Mock implementation
-    return `0x${Math.random().toString(16).substr(2, 64)}`;
-  }
-});
+import { useStarknet } from "../hooks/useStarknet";
 
 interface RecordingsState {
   recordings: MobileRecording[];
@@ -30,7 +20,7 @@ interface RecordingsState {
 
   // Actions
   addRecording: (recording: MobileRecording) => void;
-  addRecordingWithIPFS: (recording: MobileRecording, fileUri: string) => Promise<void>;
+  addRecordingWithIPFS: (recording: MobileRecording, fileUri: string, starknetActions?: { storeRecording: (ipfsHash: string, metadata: any) => Promise<string> }) => Promise<void>;
   updateRecording: (id: string, updates: Partial<MobileRecording>) => void;
   deleteRecording: (id: string) => void;
   toggleFavorite: (id: string) => void;
@@ -263,7 +253,7 @@ export const useRecordingsStore = create<RecordingsState>()(
       },
 
       // IPFS actions
-      addRecordingWithIPFS: async (recording, fileUri) => {
+      addRecordingWithIPFS: async (recording, fileUri, starknetActions) => {
         try {
           set({ isUploadingToIPFS: true, ipfsUploadProgress: 0 });
 
@@ -290,12 +280,18 @@ export const useRecordingsStore = create<RecordingsState>()(
 
           set({ ipfsUploadProgress: 75 });
 
-          // Try to store on Starknet if wallet is connected
+          // Try to store on Starknet if wallet is connected and actions are provided
           let starknetTxHash: string | undefined;
           try {
-            // For now, generate a mock transaction hash
-            // In a real implementation, you'd use the actual Starknet hook
-            starknetTxHash = `0x${Math.random().toString(16).substr(2, 64)}`;
+            if (starknetActions?.storeRecording) {
+              const metadata = {
+                title: recording.title,
+                duration: recording.duration,
+                tags: recording.tags,
+                createdAt: recording.createdAt,
+              };
+              starknetTxHash = await starknetActions.storeRecording(ipfsHash, metadata);
+            }
           } catch (starknetError) {
             console.warn('Starknet storage failed, continuing with IPFS only:', starknetError);
           }

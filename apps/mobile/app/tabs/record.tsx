@@ -29,6 +29,7 @@ import {
 } from "lucide-react-native";
 import { useAudioRecording } from "../../hooks/useAudioRecording";
 import { useRecordingsStore } from "../../store/recordingsStore";
+import { useStarknet } from "../../hooks/useStarknet";
 import { useFeatureGating } from "../../utils/featureGating";
 import colors from "../../constants/colors";
 import { createAIServiceClient } from "@voisss/shared";
@@ -63,6 +64,7 @@ export default function RecordScreen() {
   } = useAudioRecording();
 
   const { addRecording, addRecordingWithIPFS } = useRecordingsStore();
+  const { storeRecording } = useStarknet();
   const { getCurrentTier, getUserCapabilities } = useFeatureGating();
 
   // IPFS upload state from store
@@ -249,7 +251,7 @@ export default function RecordScreen() {
 
       // Use IPFS-enabled recording if user has premium access
       if (capabilities.canAccessWeb3) {
-        await addRecordingWithIPFS(recording, uri);
+        await addRecordingWithIPFS(recording, uri, { storeRecording });
         Alert.alert(
           "Success",
           "Recording saved locally and uploaded to IPFS!",
@@ -283,7 +285,7 @@ export default function RecordScreen() {
     } catch (error) {
       Alert.alert("Save Error", "Failed to save recording. Please try again.");
     }
-  }, [uri, duration, recordingTitle, addRecording, addRecordingWithIPFS, capabilities.canAccessWeb3, router]);
+  }, [uri, duration, recordingTitle, addRecording, addRecordingWithIPFS, storeRecording, capabilities.canAccessWeb3, router]);
 
   const handleCancelRecording = useCallback(async () => {
     Alert.alert(

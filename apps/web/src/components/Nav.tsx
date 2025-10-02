@@ -37,6 +37,12 @@ export default function Nav() {
               >
                 Missions
               </Link>
+              <Link 
+                href="/help" 
+                className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
+              >
+                Help
+              </Link>
             </div>
             
             {!isConnected && (

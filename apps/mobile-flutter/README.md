@@ -1,24 +1,27 @@
-# VOISSS Flutter - Native Starknet Mobile App
+# VOISSS Flutter - Prototype Stage 🚧
 
-A native Flutter mobile app for voice recording with Starknet blockchain integration using the official `starknet.dart` and `starknet_flutter` packages.
+A Flutter prototype for voice recording with Starknet blockchain integration. This is an early-stage prototype exploring Flutter development for the VOISSS ecosystem.
 
 ## 🎯 Overview
 
-This is the **third app** in the VOISSS ecosystem, designed to showcase native mobile performance with official Starknet mobile SDK integration. It complements:
+This is the **Flutter prototype** in the VOISSS ecosystem, currently in early development. It serves as a proof-of-concept for Flutter-based mobile development. The VOISSS ecosystem includes:
 
-- **Web App** (Next.js + starknet.js) - Desktop/browser users
-- **Mobile React Native** (Expo + starknet.js) - Cross-platform mobile
-- **Mobile Flutter** (starknet.dart + starknet_flutter) - **This app** - Native mobile performance
+- **Web App** (Next.js + starknet.js) - **PRODUCTION READY** ✅
+- **Mobile React Native** (Expo + starknet.js) - **FUNCTIONAL, NEEDS COMPLETION** 🔄
+- **Mobile Flutter** (Flutter + starknet.dart) - **THIS PROTOTYPE** - **NOT LAUNCH READY** ⚠️
 
-## ✅ **CURRENT STATUS: WORKING**
+## ⚠️ **CURRENT STATUS: PROTOTYPE STAGE**
 
 - ✅ **Flutter SDK**: Installed and configured (v3.32.0)
-- ✅ **Dependencies**: All packages resolved and working
-- ✅ **Development**: Running successfully in Chrome
-- ✅ **Starknet Integration**: Basic starknet.dart setup complete
-- ✅ **Build System**: Compiling and launching correctly
-- ✅ **Provider Pattern**: State management implemented
-- ✅ **UI Components**: Home screen and recording interface ready
+- ✅ **Dependencies**: Basic packages resolved
+- ⚠️ **iOS Development**: Basic simulator functionality only
+- ⚠️ **Starknet Integration**: Experimental implementation, not production-ready
+- ❌ **Build System**: No production builds configured
+- ⚠️ **Provider Pattern**: Basic implementation, needs refinement
+- ❌ **UI Components**: Incomplete, prototype-level interface
+- ❌ **App Store Ready**: NOT ready for deployment
+
+**⚠️ IMPORTANT**: This app is a prototype and requires significant development before any launch consideration.
 
 ## ✨ Features
 
@@ -29,26 +32,29 @@ This is the **third app** in the VOISSS ecosystem, designed to showcase native m
 - **Audio playback** with native controls
 - **File management** with local storage
 
-### ⛓️ Starknet Integration ✅ **DEPLOYED & READY**
+### ⛓️ Starknet Integration ⚠️ **EXPERIMENTAL**
 
-- **Official starknet.dart SDK** integration
-- **Native wallet connection** support
-- **On-chain metadata storage** for recordings
-- **Balance checking** and transaction handling
-- **Testnet support** (Starknet Sepolia)
+- **Experimental starknet.dart SDK** integration
+- **Basic wallet connection** prototype
+- **Prototype metadata storage** for recordings
+- **Basic balance checking** (testing only)
+- **Testnet support** (Starknet Sepolia) - prototype level
 
-**Live Contracts on Starknet Sepolia:**
+**Prototype Contracts on Starknet Sepolia** (for testing only):
 
 - **UserRegistry**: `0x52bb03f52e7c07d6f7053b0fc7c52c9e0c7d73ceb36fab93db3d7bbc578bb63`
 - **VoiceStorage**: `0x545b48dd76469e984b5622e5841d2affa30155980829399e7ec7447012922e2`
 - **AccessControl**: `0x5db925a0dfe7ab9137121613ef66a32ceb48acbc9cc33091d804dd9feb983b5`
 
-### 📱 Native Mobile Features
+### 📱 Flutter Prototype Features
 
-- **iOS-optimized** UI and performance
-- **Native permissions** handling
-- **Background audio** support
-- **File system** integration
+- **Basic Flutter** UI implementation
+- **Experimental iOS** functionality
+- **Prototype permissions** handling
+- **Basic audio** support (testing only)
+- **Development-only** file system integration
+
+**⚠️ NOT App Store ready** - requires significant development
 
 ## 🏗️ Architecture
 
@@ -74,8 +80,10 @@ lib/
 ### Prerequisites
 
 1. **Flutter SDK** (3.10.0 or higher)
-2. **iOS development setup** (Xcode, iOS Simulator)
+2. **iOS development setup** (Xcode, iOS Simulator) - **For prototype testing only**
 3. **Dart SDK** (3.0.0 or higher)
+
+**Note**: No Apple Developer Account needed for prototype development
 
 ### Installation
 
@@ -101,23 +109,23 @@ lib/
    flutter pub get
    ```
 
-4. **Run the app**:
+4. **Run the prototype**:
 
    ```bash
-   # Chrome (Currently working) ✅
-   flutter run -d chrome
-
-   # iOS Simulator (requires Xcode setup)
+   # iOS Simulator (Prototype testing) ⚠️
    flutter run -d ios
 
-   # Physical iOS device
+   # Physical iOS device (for prototype testing only)
    flutter run -d [device-id]
+
+   # Chrome (for development only)
+   flutter run -d chrome
 
    # Or use the monorepo command from project root
    pnpm dev:flutter
    ```
 
-### iOS Setup
+### iOS Prototype Setup
 
 1. **Open iOS project**:
 
@@ -125,37 +133,39 @@ lib/
    open ios/Runner.xcworkspace
    ```
 
-2. **Configure signing** in Xcode
+2. **Basic development signing** (no App Store account needed)
 3. **Set deployment target** to iOS 12.0+
 4. **Add permissions** to `ios/Runner/Info.plist`:
    ```xml
    <key>NSMicrophoneUsageDescription</key>
-   <string>This app needs microphone access to record audio</string>
+   <string>This prototype needs microphone access to test audio recording</string>
    ```
+
+**⚠️ Note**: This is prototype-level configuration only, not production-ready
 
 ## 📦 Dependencies
 
-### Core Starknet
+### Core Starknet (Experimental)
 
-- `starknet: ^0.6.0` - Official Dart SDK for Starknet
-- `starknet_flutter: ^0.1.0` - Flutter-specific Starknet utilities
+- `starknet: ^0.6.0` - Dart SDK for Starknet (prototype integration)
+- `starknet_flutter: ^0.1.0` - Flutter utilities (experimental)
 
-### Audio & Recording
+### Audio & Recording (Basic)
 
-- `record: ^5.0.4` - Native audio recording
-- `audioplayers: ^5.2.1` - Audio playback
-- `permission_handler: ^11.0.1` - Native permissions
+- `record: ^5.0.4` - Basic audio recording
+- `audioplayers: ^5.2.1` - Basic audio playback
+- `permission_handler: ^11.0.1` - Basic permissions
 
-### State Management
+### State Management (Prototype)
 
-- `provider: ^6.0.5` - State management
+- `provider: ^6.0.5` - Basic state management
 - `shared_preferences: ^2.2.2` - Local storage
 
-### UI & Utils
+### UI & Utils (Basic)
 
-- `cupertino_icons: ^1.0.2` - iOS-style icons
+- `cupertino_icons: ^1.0.2` - Basic icons
 - `intl: ^0.18.1` - Internationalization
-- `uuid: ^4.1.0` - Unique ID generation
+- `uuid: ^4.1.0` - ID generation
 
 ## 🔗 Starknet Integration
 
@@ -205,88 +215,109 @@ final balance = await starknet.getBalance();
 ## 🧪 Testing
 
 ```bash
-# Run unit tests
+# Run prototype tests
 flutter test
 
-# Run integration tests
+# Run basic integration tests (if available)
 flutter test integration_test/
 
-# Run with coverage
+# Run with coverage (prototype level)
 flutter test --coverage
 ```
 
 ## 📱 Platform Support
 
-- ✅ **Web (Chrome)** (Currently working for development)
-- ✅ **iOS 12.0+** (Ready, requires Xcode setup)
-- 🔄 **Android** (Ready, requires Android Studio setup)
-- ✅ **Development** (Hot reload and debugging working)
+- ⚠️ **iOS 12.0+** (Prototype testing only)
+- ⚠️ **iOS Simulator** (Basic development and testing)
+- ⚠️ **Web (Chrome)** (Development only)
+- ❌ **Android** (Not implemented)
 
-## 🚀 Deployment
+## 🚧 Development Status
 
-### iOS App Store
+### What Works (Prototype Level)
+- Basic Flutter app structure
+- Simple UI components
+- Basic audio recording functionality
+- Experimental Starknet connection
 
-```bash
-# Build for release
-flutter build ios --release
+### What Needs Development
+- Production-ready UI/UX design
+- Complete Starknet integration
+- Error handling and validation
+- Performance optimization
+- Security implementation
+- Testing coverage
+- iOS production builds
+- App Store compliance
 
-# Archive in Xcode
-# Upload to App Store Connect
-```
-
-### TestFlight (Beta)
-
-```bash
-# Build and upload
-flutter build ios --release
-# Use Xcode to upload to TestFlight
-```
+### Estimated Development Time
+- **6+ months** of focused development needed for production readiness
+- Requires dedicated Flutter developer
+- Needs complete architecture review
 
 ## 🔄 Comparison with Other Apps
 
 | Feature                | Flutter (This)        | React Native    | Web                |
 | ---------------------- | --------------------- | --------------- | ------------------ |
-| **Performance**        | Native                | Near-native     | Browser-dependent  |
-| **Starknet SDK**       | starknet.dart         | starknet.js     | starknet.js        |
-| **Audio Quality**      | Highest               | High            | Medium             |
-| **File Access**        | Full native           | Limited         | Browser sandbox    |
-| **Wallet Integration** | Native mobile wallets | WebView-based   | Browser extensions |
-| **Platform**           | iOS/Android           | iOS/Android/Web | All browsers       |
+| **Performance**        | Prototype level       | Near-native     | Production ready   |
+| **Starknet SDK**       | starknet.dart (exp.)  | starknet.js     | starknet.js        |
+| **Audio Quality**      | Basic (prototype)     | High            | Medium             |
+| **File Access**        | Basic Flutter         | Limited         | Browser sandbox    |
+| **Wallet Integration** | Experimental          | WebView-based   | Browser extensions |
+| **Platform**           | iOS (prototype only)  | iOS/Android/Web | All browsers       |
+| **Launch Status**      | **Prototype Stage**   | Development     | **Production**     |
 
 ## 🎯 Hackathon Features
 
-### Unique to Flutter App
+### Prototype Features (Flutter)
 
-- **Native audio processing** with highest quality
-- **Official Starknet mobile SDK** integration
-- **Native wallet connections** (ArgentX mobile, Braavos mobile)
-- **Background recording** capabilities
-- **Native file system** access
+- **Basic Flutter** development exploration
+- **Experimental Starknet** integration attempt
+- **Simple audio recording** prototype
+- **Basic UI components** for testing
+- **Development environment** setup
 
-### Shared Features
+**⚠️ Note**: These are prototype-level implementations, not production features
 
-- **Starknet blockchain** integration
-- **Voice recording** and playback
-- **Metadata storage** on-chain
-- **Modern UI/UX** design
+### Shared Concepts (Across Apps)
 
-## 🔮 Future Enhancements
+- **Starknet blockchain** integration (various maturity levels)
+- **Voice recording** and playback concepts
+- **Metadata storage** exploration
+- **Modern UI/UX** design principles
 
-- **Real wallet integration** (ArgentX mobile, Braavos mobile)
-- **IPFS integration** for audio file storage
-- **Smart contract deployment** for custom recording contracts
-- **NFT minting** for voice recordings
-- **Social features** and sharing
-- **Android support** expansion
+## 🔮 Future Development Roadmap
+
+### Phase 1: Foundation (2-3 months)
+- Complete Flutter architecture design
+- Implement proper state management
+- Build production-ready UI components
+- Add comprehensive error handling
+
+### Phase 2: Integration (2-3 months)
+- Complete Starknet integration
+- Implement IPFS file storage
+- Add wallet connection features
+- Build testing framework
+
+### Phase 3: Production (1-2 months)
+- iOS production builds
+- App Store compliance
+- Performance optimization
+- Security audit
+
+**Total Estimated Time**: 6+ months for production readiness
 
 ## 🤝 Contributing
 
-This app follows Flutter and Dart best practices:
+This prototype follows Flutter and Dart development practices:
 
-- **Provider pattern** for state management
-- **Clean architecture** with separation of concerns
-- **Native platform integration** where beneficial
-- **Official Starknet SDK** usage
+- **Provider pattern** for basic state management
+- **Simple architecture** for prototype development
+- **Experimental platform integration** for learning
+- **Basic Starknet SDK** exploration
+
+**⚠️ Note**: This is prototype-level code, not production-ready
 
 ## 📄 License
 
@@ -294,5 +325,6 @@ MIT License - See main project LICENSE file.
 
 ---
 
-**Built for Starknet Reignite Hackathon** 🚀
-**Showcasing native mobile development with official Starknet Dart SDK**
+**Flutter Prototype in Development** 🚧  
+**Exploring Flutter development with experimental Starknet integration**  
+**Requires 6+ months development for production readiness**

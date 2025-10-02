@@ -63,7 +63,7 @@
 }
 
 .voisss-recording-button {
-  @apply w-24 h-24 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 transform hover:scale-105;
+  @apply w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 transform hover:scale-105 active:scale-95;
 }
 
 .voisss-recording-button.recording {
@@ -98,6 +98,101 @@
 
 .voisss-metadata-grid {
   @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4;
+}
+
+/* Enhanced mobile responsiveness */
+.voisss-container {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.voisss-section-spacing {
+  @apply py-8 sm:py-12 lg:py-16;
+}
+
+/* Mobile-first navigation improvements */
+.voisss-mobile-menu {
+  @apply fixed inset-0 z-50 bg-[#0A0A0A]/95 backdrop-blur-sm;
+}
+
+.voisss-mobile-menu-content {
+  @apply flex flex-col items-center justify-center h-full space-y-8;
+}
+
+.voisss-mobile-menu-item {
+  @apply text-2xl font-medium text-white hover:text-[#7C5DFA] transition-colors;
+}
+
+/* Touch-friendly interactive elements */
+.voisss-touch-target {
+  @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+}
+
+/* Improved form elements for mobile */
+.voisss-form-group {
+  @apply space-y-2 mb-4;
+}
+
+.voisss-form-label {
+  @apply block text-sm font-medium text-white;
+}
+
+.voisss-form-input {
+  @apply w-full bg-[#2A2A2A] border border-[#3A3A3A] text-white placeholder-[#71717A] rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-[#7C5DFA] focus:border-transparent;
+}
+
+.voisss-form-textarea {
+  @apply w-full bg-[#2A2A2A] border border-[#3A3A3A] text-white placeholder-[#71717A] rounded-lg px-4 py-3 text-base resize-none focus:outline-none focus:ring-2 focus:ring-[#7C5DFA] focus:border-transparent;
+}
+
+/* Accessibility improvements */
+.voisss-sr-only {
+  @apply sr-only;
+}
+
+.voisss-focus-visible {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C5DFA] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A];
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .voisss-card {
+    @apply border-white/20;
+  }
+  
+  .voisss-input, .voisss-form-input, .voisss-form-textarea {
+    @apply border-white/30;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .voisss-recording-button {
+    @apply transition-none;
+  }
+  
+  @keyframes pulse-red {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  }
+}
+
+/* Dark mode improvements */
+@media (prefers-color-scheme: dark) {
+  html {
+    color-scheme: dark;
+  }
+}
+
+/* Print styles */
+@media print {
+  .voisss-card {
+    @apply border border-gray-300 bg-white text-black;
+  }
+  
+  .voisss-gradient-text {
+    -webkit-text-fill-color: initial;
+    background: none;
+    @apply text-black;
+  }
 }
 
 .voisss-action-buttons {

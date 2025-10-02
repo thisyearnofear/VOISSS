@@ -7,19 +7,30 @@
 
 > **🏆 Built for the Starknet Re{ignite} Hackathon**
 
-**VOISSS** is a decentralized AI-powered voice recording platform that transforms how we capture, organize, and share audio content. Built as a comprehensive three-app ecosystem showcasing different Starknet integration approaches.
+**VOISSS** is a decentralized AI-powered voice recording platform that transforms how we capture, organize, and share audio content. Built as a comprehensive ecosystem with a **Web-first strategy** and phased mobile development.
 
 ## 🚀 Live Platform
 
-**🌐 Web App**: https://voisss.netlify.app/
+**🌐 Web App**: https://voisss.netlify.app/ ✅ **PRODUCTION READY**
 
-## 🏗️ Architecture
+## 🏗️ Architecture & Status
 
-Three apps, one ecosystem:
+**Web-First Strategy with Phased Mobile Rollout:**
 
-- 🌐 **Web dApp** (Next.js + starknet.js) - AI voice transformation & community features
-- 📱 **React Native Mobile** (Expo + starknet.js) - Cross-platform mobile recording
-- 📱 **Flutter Mobile** (starknet.dart) - Native mobile performance
+- 🌐 **Web dApp** (Next.js + starknet.js) - **PRODUCTION READY** ✅
+  - AI voice transformation & community features
+  - Full Starknet integration
+  - Ready for user acquisition
+
+- 📱 **React Native Mobile** (Expo + starknet.js) - **FUNCTIONAL, NEEDS COMPLETION** 🔄
+  - Cross-platform mobile recording
+  - 2-3 months to production readiness
+  - Core features working, needs polish
+
+- 📱 **Flutter iOS** (starknet.dart) - **PROTOTYPE STAGE** ⚠️
+  - Native iOS exploration
+  - 6+ months development needed
+  - Prototype only, not launch-ready
 
 ## ✨ Key Features
 
@@ -38,10 +49,12 @@ Three apps, one ecosystem:
 - **SocialFi Missions**: Complete tasks for STRK rewards
 - **Creator Economy**: Monetize recordings through blockchain
 
-### 📱 Cross-Platform
-- **Web**: Full-featured desktop experience
-- **Mobile**: Native recording apps for iOS/Android
-- **Sync**: Cross-platform data synchronization
+### 📱 Cross-Platform Development
+
+- **Web**: Full-featured desktop experience ✅ **PRODUCTION READY**
+- **Mobile React Native**: Cross-platform development 🔄 **IN PROGRESS**
+- **Mobile Flutter**: iOS prototype exploration ⚠️ **PROTOTYPE STAGE**
+- **Sync**: Cross-platform data synchronization (Web ready, mobile in development)
 
 ## 🛠 Tech Stack
 
@@ -87,22 +100,48 @@ pnpm install
 cp apps/web/.env.example apps/web/.env.local
 # Add your ElevenLabs API key and other required variables
 
-# Start development
+# Start development (Web app - production ready)
 pnpm dev
+
+# Or start specific apps
+pnpm dev:web      # Web app (production ready)
+pnpm dev:mobile   # React Native (functional, needs completion)
+pnpm dev:flutter  # Flutter (prototype only)
 ```
 
 ### Individual App Development
 
 ```bash
-# Web app
+# Web app (Production Ready)
 cd apps/web && pnpm dev
 
-# React Native mobile
+# React Native mobile (Functional, needs completion)
 cd apps/mobile && pnpm start
 
-# Flutter mobile
+# Flutter mobile (Prototype only)
 cd apps/mobile-flutter && flutter run
 ```
+
+## 🎯 Current Focus & Roadmap
+
+### ✅ **Immediate Focus: Web App Growth**
+- User acquisition and engagement
+- Performance optimization
+- Bug fixes and polish
+- Analytics and metrics
+
+### 🔄 **Short-term: React Native Completion (2-3 months)**
+- Complete Starknet integration
+- Finish IPFS synchronization
+- Polish UI/UX
+- Add missing features
+- Testing and optimization
+
+### ⚠️ **Medium-term: Flutter Assessment (6+ months)**
+- Evaluate ROI and market demand
+- Complete architecture redesign if proceeding
+- Full iOS development cycle
+- App Store compliance and launch
 
 ## 🔧 Environment Setup
 
@@ -126,18 +165,20 @@ starkli deploy [class_hash] [constructor_args]
 
 ## 📱 Mobile Development
 
-### React Native (Expo)
+### React Native (Functional, needs completion)
 ```bash
 cd apps/mobile
 pnpm start
 # Scan QR code with Expo Go app
+# Note: Some features incomplete, 2-3 months to production
 ```
 
-### Flutter
+### Flutter iOS (Prototype only)
 ```bash
 cd apps/mobile-flutter
 flutter pub get
-flutter run
+flutter run -d ios  # iOS Simulator only
+# Note: Prototype stage, 6+ months development needed
 ```
 
 ## 🧪 Testing
@@ -169,8 +210,9 @@ cd packages/contracts && scarb test
 
 ## 📚 Documentation
 
-- **[Development Guide](./docs/DEVELOPMENT.md)** - Technical implementation details
-- **[Roadmap](./docs/ROADMAP.md)** - Project vision and development phases
+- **[Development Guide](./docs/DEVELOPMENT.md)** - Technical implementation details and honest app assessments
+- **[Roadmap](./docs/ROADMAP.md)** - Web-first strategy and realistic development phases
+- **[Consolidation Guide](./docs/CONSOLIDATION_GUIDE.md)** - Platform strategy and launch timeline
 - **[API Documentation](./docs/api/)** - Smart contract and API references
 
 ## 📄 License
@@ -185,4 +227,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Built with ❤️ for the Starknet ecosystem**
+**Built with ❤️ for the Starknet ecosystem**  
+**🌐 Web-First Strategy | 📱 Phased Mobile Development | 🚀 Production Ready Web App**
