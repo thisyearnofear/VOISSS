@@ -10,14 +10,15 @@ import {
   Copy,
   X,
 } from "lucide-react-native";
-import { theme, globalStyles } from "../constants/theme";
-import colors from "../constants/colors";
-import { Recording } from "../types/recording";
+import { theme } from "@/constants/theme";
+import colors from "@/constants/colors";
+import { VoiceRecording } from "@voisss/shared";
 
 interface RecordingOptionsModalProps {
   visible: boolean;
   onClose: () => void;
-  recording: Recording;
+  recording: VoiceRecording;
+  isFavorite: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onToggleFavorite: () => void;
@@ -31,6 +32,7 @@ export default function RecordingOptionsModal({
   visible,
   onClose,
   recording,
+  isFavorite,
   onEdit,
   onDelete,
   onToggleFavorite,
@@ -64,13 +66,11 @@ export default function RecordingOptionsModal({
             <TouchableOpacity style={styles.option} onPress={onToggleFavorite}>
               <Heart
                 size={24}
-                color={
-                  recording.isFavorite ? colors.dark.error : colors.dark.text
-                }
-                fill={recording.isFavorite ? colors.dark.error : "transparent"}
+                color={isFavorite ? colors.dark.error : colors.dark.text}
+                fill={isFavorite ? colors.dark.error : "transparent"}
               />
               <Text style={styles.optionText}>
-                {recording.isFavorite
+                {isFavorite
                   ? "Remove from Favorites"
                   : "Add to Favorites"}
               </Text>

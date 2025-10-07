@@ -1,13 +1,12 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { MobileRecording, RecordingFilter, Tag } from "../types/recording";
+import { VoiceRecording, RecordingFilter, Tag } from "@voisss/shared";
 import { mockRecordings, mockTags } from "../mocks/recordings";
 import { createIPFSService } from "@voisss/shared";
-import { useStarknet } from "../hooks/useStarknet";
 
 interface RecordingsState {
-  recordings: MobileRecording[];
+  recordings: VoiceRecording[];
   tags: Tag[];
   filter: RecordingFilter;
   currentRecordingId: string | null;
@@ -19,11 +18,10 @@ interface RecordingsState {
   ipfsUploadProgress: number;
 
   // Actions
-  addRecording: (recording: MobileRecording) => void;
-  addRecordingWithIPFS: (recording: MobileRecording, fileUri: string, starknetActions?: { storeRecording: (ipfsHash: string, metadata: any) => Promise<string> }) => Promise<void>;
-  updateRecording: (id: string, updates: Partial<MobileRecording>) => void;
+  addRecording: (recording: VoiceRecording) => void;
+  addRecordingWithIPFS: (recording: VoiceRecording, fileUri: string, starknetActions?: { storeRecording: (ipfsHash: string, metadata: any) => Promise<string> }) => Promise<void>;
+  updateRecording: (id: string, updates: Partial<VoiceRecording>) => void;
   deleteRecording: (id: string) => void;
-  toggleFavorite: (id: string) => void;
   addTag: (tag: Tag) => void;
   updateTag: (id: string, updates: Partial<Tag>) => void;
   deleteTag: (id: string) => void;
@@ -31,16 +29,9 @@ interface RecordingsState {
   resetFilter: () => void;
   setCurrentRecording: (id: string | null) => void;
   setIsPlaying: (isPlaying: boolean) => void;
-  importRecordings: (recordings: MobileRecording[]) => void;
+  importRecordings: (recordings: VoiceRecording[]) => void;
   addTagToRecording: (recordingId: string, tagId: string) => void;
   removeTagFromRecording: (recordingId: string, tagId: string) => void;
-
-  // New community actions
-  togglePublic: (id: string) => void;
-  toggleShared: (id: string) => void;
-  shareWithUsers: (recordingId: string, userIds: string[]) => void;
-  incrementPlays: (id: string) => void;
-  toggleLike: (id: string) => void;
 }
 
 // Default filter state
@@ -49,7 +40,7 @@ const defaultFilter: RecordingFilter = {
   tags: [],
   sortBy: "date",
   sortOrder: "desc",
-  favorites: false,
+  favorites: false, // Note: Favorite filtering logic will need a separate UI state store
 };
 
 export const useRecordingsStore = create<RecordingsState>()(
@@ -93,16 +84,6 @@ export const useRecordingsStore = create<RecordingsState>()(
           ),
           currentRecordingId:
             state.currentRecordingId === id ? null : state.currentRecordingId,
-        }));
-      },
-
-      toggleFavorite: (id) => {
-        set((state) => ({
-          recordings: state.recordings.map((recording) =>
-            recording.id === id
-              ? { ...recording, isFavorite: !recording.isFavorite }
-              : recording
-          ),
         }));
       },
 
@@ -172,80 +153,6 @@ export const useRecordingsStore = create<RecordingsState>()(
               ? {
                 ...recording,
                 tags: recording.tags.filter((id: string) => id !== tagId),
-              }
-              : recording
-          ),
-        }));
-      },
-
-      // New community actions
-      togglePublic: (id) => {
-        set((state) => ({
-          recordings: state.recordings.map((recording) =>
-            recording.id === id
-              ? {
-                ...recording,
-                isPublic: !recording.isPublic,
-                // If making public, ensure it's not shared with specific users
-                ...(recording.isPublic
-                  ? {}
-                  : { isShared: false, sharedWith: [] }),
-              }
-              : recording
-          ),
-        }));
-      },
-
-      toggleShared: (id) => {
-        set((state) => ({
-          recordings: state.recordings.map((recording) =>
-            recording.id === id
-              ? {
-                ...recording,
-                isShared: !recording.isShared,
-                // If making shared, ensure it's not public
-                ...(recording.isShared ? {} : { isPublic: false }),
-              }
-              : recording
-          ),
-        }));
-      },
-
-      shareWithUsers: (recordingId, userIds) => {
-        set((state) => ({
-          recordings: state.recordings.map((recording) =>
-            recording.id === recordingId
-              ? {
-                ...recording,
-                isShared: true,
-                isPublic: false,
-                sharedWith: userIds,
-              }
-              : recording
-          ),
-        }));
-      },
-
-      incrementPlays: (id) => {
-        set((state) => ({
-          recordings: state.recordings.map((recording) =>
-            recording.id === id
-              ? {
-                ...recording,
-                plays: (recording.plays || 0) + 1,
-              }
-              : recording
-          ),
-        }));
-      },
-
-      toggleLike: (id) => {
-        set((state) => ({
-          recordings: state.recordings.map((recording) =>
-            recording.id === id
-              ? {
-                ...recording,
-                likes: (recording.likes || 0) + 1,
               }
               : recording
           ),
@@ -336,6 +243,9 @@ export const useFilteredRecordings = () => {
   const recordings = useRecordingsStore((state) => state.recordings);
   const filter = useRecordingsStore((state) => state.filter);
 
+  // This is where you would also get the UI state for favorites
+  // const favoriteIds = useUIStore((state) => state.favoriteRecordingIds);
+
   // Apply filters
   const filteredRecordings = recordings
     .filter((recording) => {
@@ -355,10 +265,10 @@ export const useFilteredRecordings = () => {
         return false;
       }
 
-      // Filter by favorites
-      if (filter.favorites && !recording.isFavorite) {
-        return false;
-      }
+      // Filter by favorites (requires a separate UI state store)
+      // if (filter.favorites && !favoriteIds.includes(recording.id)) {
+      //   return false;
+      // }
 
       return true;
     })

@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { createElevenLabsProvider } from '@voisss/shared';
+import { ElevenLabsTransformProvider } from '@voisss/shared';
 
 export const runtime = 'nodejs';
 
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
         if (contentType.includes('application/json')) {
             const body = await req.json();
             if (body.action === 'getLanguages') {
-                const provider = createElevenLabsProvider();
+                const provider = new ElevenLabsTransformProvider();
                 const languages = await provider.getSupportedDubbingLanguages();
 
                 return new Response(JSON.stringify({ languages }), {
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
             return new Response(JSON.stringify({ error: 'Target language is required' }), { status: 400 });
         }
 
-        const provider = createElevenLabsProvider();
+        const provider = new ElevenLabsTransformProvider();
         const result = await provider.dubAudio(file, {
             targetLanguage,
             sourceLanguage: sourceLanguage || undefined,

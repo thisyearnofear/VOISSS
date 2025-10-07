@@ -134,3 +134,48 @@ export const RecordingMetadataSchema = z.object({
 });
 
 export type RecordingMetadata = z.infer<typeof RecordingMetadataSchema>;
+
+// Additional Social & Organization Types
+
+export const TagSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  color: z.string(),
+});
+
+export type Tag = z.infer<typeof TagSchema>;
+
+export const RecordingFilterSchema = z.object({
+  search: z.string(),
+  tags: z.array(z.string()),
+  sortBy: z.enum(["date", "duration", "name"]),
+  sortOrder: z.enum(["asc", "desc"]),
+  favorites: z.boolean(),
+});
+
+export type RecordingFilter = z.infer<typeof RecordingFilterSchema>;
+
+export const CommentSchema = z.object({
+  id: z.string(),
+  recordingId: z.string(),
+  userId: z.string(),
+  userName: z.string(),
+  userAvatar: z.string(),
+  text: z.string(),
+  createdAt: z.string(), // Using string for simplicity, can be zod.date()
+  likes: z.number(),
+});
+
+export type Comment = z.infer<typeof CommentSchema>;
+
+export const CommunitySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  members: z.number(),
+  image: z.string(),
+  isPrivate: z.boolean(),
+  ownerId: z.string(),
+});
+
+export type Community = z.infer<typeof CommunitySchema>;

@@ -1,14 +1,14 @@
 // Test script to verify deployed contract addresses are accessible
-import { CONTRACT_ADDRESSES } from './abis';
+import CONTRACT_ADDRESSES from './deployments.json';
 import { STARKNET_CONFIG } from '../constants';
 
 console.log('🧪 Testing VOISSS Contract Deployment Integration...\n');
 
 // Test 1: Contract addresses are defined
 console.log('📋 Contract Addresses:');
-console.log(`  UserRegistry: ${CONTRACT_ADDRESSES.USER_REGISTRY}`);
-console.log(`  VoiceStorage: ${CONTRACT_ADDRESSES.VOICE_STORAGE}`);
-console.log(`  AccessControl: ${CONTRACT_ADDRESSES.ACCESS_CONTROL}`);
+console.log(`  UserRegistry: ${CONTRACT_ADDRESSES.contracts.UserRegistry.address}`);
+console.log(`  VoiceStorage: ${CONTRACT_ADDRESSES.contracts.VoiceStorage.address}`);
+console.log(`  AccessControl: ${CONTRACT_ADDRESSES.contracts.AccessControl.address}`);
 
 // Test 2: Addresses are valid Starknet addresses
 const isValidStarknetAddress = (address: string): boolean => {
@@ -16,9 +16,9 @@ const isValidStarknetAddress = (address: string): boolean => {
 };
 
 console.log('\n✅ Address Validation:');
-console.log(`  UserRegistry: ${isValidStarknetAddress(CONTRACT_ADDRESSES.USER_REGISTRY) ? '✅ Valid' : '❌ Invalid'}`);
-console.log(`  VoiceStorage: ${isValidStarknetAddress(CONTRACT_ADDRESSES.VOICE_STORAGE) ? '✅ Valid' : '❌ Invalid'}`);
-console.log(`  AccessControl: ${isValidStarknetAddress(CONTRACT_ADDRESSES.ACCESS_CONTROL) ? '✅ Valid' : '❌ Invalid'}`);
+console.log(`  UserRegistry: ${isValidStarknetAddress(CONTRACT_ADDRESSES.contracts.UserRegistry.address) ? '✅ Valid' : '❌ Invalid'}`);
+console.log(`  VoiceStorage: ${isValidStarknetAddress(CONTRACT_ADDRESSES.contracts.VoiceStorage.address) ? '✅ Valid' : '❌ Invalid'}`);
+console.log(`  AccessControl: ${isValidStarknetAddress(CONTRACT_ADDRESSES.contracts.AccessControl.address) ? '✅ Valid' : '❌ Invalid'}`);
 
 // Test 3: Shared constants are updated
 console.log('\n🔗 Shared Constants:');
@@ -32,9 +32,9 @@ console.log(`  Testnet RPC: ${STARKNET_CONFIG.RPC_URLS.TESTNET}`);
 
 // Summary
 const allValid = [
-  CONTRACT_ADDRESSES.USER_REGISTRY,
-  CONTRACT_ADDRESSES.VOICE_STORAGE,
-  CONTRACT_ADDRESSES.ACCESS_CONTROL
+  CONTRACT_ADDRESSES.contracts.UserRegistry.address,
+  CONTRACT_ADDRESSES.contracts.VoiceStorage.address,
+  CONTRACT_ADDRESSES.contracts.AccessControl.address
 ].every(isValidStarknetAddress);
 
 console.log('\n🎉 Integration Test Results:');

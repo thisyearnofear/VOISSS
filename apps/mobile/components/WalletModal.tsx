@@ -245,7 +245,7 @@ export function WalletModal({ visible, onClose, onConnected }: WalletModalProps)
               <View style={styles.walletInfo}>
                 <View style={styles.walletInfoRow}>
                   <Text style={styles.walletInfoLabel}>Address:</Text>
-                  <Text style={styles.walletInfoValue}>{formatAddress(account!)}</Text>
+                  <Text style={styles.walletInfoValue}>{formatAddress(account!.address)}</Text>
                 </View>
                 <View style={styles.walletInfoRow}>
                   <Text style={styles.walletInfoLabel}>Balance:</Text>

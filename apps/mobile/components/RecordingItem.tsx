@@ -1,18 +1,18 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Heart, MoreVertical, Play } from "lucide-react-native";
-import { Recording } from "../types/recording";
-import { formatDuration, formatRelativeTime } from "../utils/formatters";
-import { useRecordingTags } from "../store/recordingsStore";
-import { theme, globalStyles } from "../constants/theme";
-import colors from "../constants/colors";
+import { VoiceRecording } from "@voisss/shared";
+import { formatDuration, formatRelativeTime } from "@/utils/formatters";
+import { useRecordingTags } from "@/store/recordingsStore";
+import { useUIStore, useIsFavorite } from "@/store/uiStore";
+import { theme, globalStyles } from "@/constants/theme";
+import colors from "@/constants/colors";
 import TagBadge from "./TagBadge";
 
 interface RecordingItemProps {
-  recording: Recording;
+  recording: VoiceRecording;
   onPress: () => void;
   onPlayPress: () => void;
-  onFavoritePress: () => void;
   onMorePress: () => void;
   isPlaying?: boolean;
 }
@@ -21,11 +21,12 @@ export default function RecordingItem({
   recording,
   onPress,
   onPlayPress,
-  onFavoritePress,
   onMorePress,
   isPlaying = false,
 }: RecordingItemProps) {
   const tags = useRecordingTags(recording.id);
+  const { toggleFavorite } = useUIStore();
+  const isFavorite = useIsFavorite(recording.id);
 
   return (
     <TouchableOpacity
@@ -41,17 +42,17 @@ export default function RecordingItem({
           <View style={styles.actions}>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={onFavoritePress}
+              onPress={() => toggleFavorite(recording.id)}
               hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
             >
               <Heart
                 size={20}
                 color={
-                  recording.isFavorite
+                  isFavorite
                     ? colors.dark.error
                     : colors.dark.textSecondary
                 }
-                fill={recording.isFavorite ? colors.dark.error : "transparent"}
+                fill={isFavorite ? colors.dark.error : "transparent"}
               />
             </TouchableOpacity>
             <TouchableOpacity
@@ -70,28 +71,9 @@ export default function RecordingItem({
           </Text>
           <Text style={styles.dot}>•</Text>
           <Text style={styles.date}>
-            {formatRelativeTime(recording.createdAt)}
+            {formatRelativeTime(recording.createdAt.toISOString())}
           </Text>
         </View>
-
-        {recording.waveform && (
-          <View style={styles.waveformContainer}>
-            {recording.waveform.map((value, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.waveformBar,
-                  {
-                    height: value * 30,
-                    backgroundColor: isPlaying
-                      ? colors.dark.primary
-                      : colors.dark.waveformBackground,
-                  },
-                ]}
-              />
-            ))}
-          </View>
-        )}
 
         {tags.length > 0 && (
           <View style={styles.tagsContainer}>

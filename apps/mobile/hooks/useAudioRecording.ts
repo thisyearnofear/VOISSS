@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 
@@ -14,6 +14,22 @@ try {
   Audio = expoAudio.Audio;
 } catch (error) {
   console.log('expo-audio not available (likely running in Expo Go)');
+}
+
+// Import expo-av for permissions
+let AudioModule: any = null;
+let InterruptionModeIOS: any = null;
+let InterruptionModeAndroid: any = null;
+let PermissionStatus: any = null;
+
+try {
+  const expoAv = require('expo-av');
+  AudioModule = expoAv.Audio;
+  InterruptionModeIOS = expoAv.InterruptionModeIOS;
+  InterruptionModeAndroid = expoAv.InterruptionModeAndroid;
+  PermissionStatus = expoAv.PermissionStatus;
+} catch (error) {
+  console.log('expo-av not available');
 }
 
 export interface RecordingState {
@@ -58,9 +74,11 @@ export function useAudioRecording(): RecordingState & RecordingActions {
     startTime: 0,
   });
 
+  const recordingTimeout = useRef<NodeJS.Timeout | null>(null);
+
   // Use the expo-audio hook for native platforms (if available)
   const audioRecorder = Platform.OS !== 'web' && useAudioRecorder && RecordingPresets ?
-    useAudioRecorder(RecordingPresets.HIGH_QUALITY, (status) => {
+    useAudioRecorder(RecordingPresets.HIGH_QUALITY, (status: any) => {
       // Update duration from recording status
       setState(prev => ({
         ...prev,
@@ -71,7 +89,7 @@ export function useAudioRecording(): RecordingState & RecordingActions {
 
   // Duration timer for web recording
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval> | null = null;
 
     if (Platform.OS === 'web' && state.isRecording && webRecorder.startTime > 0) {
       interval = setInterval(() => {
@@ -97,14 +115,20 @@ export function useAudioRecording(): RecordingState & RecordingActions {
         return true;
       } else {
         // Native permissions (if expo-audio is available)
-        if (!Audio) {
+        if (!AudioModule) {
           setState(prev => ({
             ...prev,
             error: 'Audio recording not available in Expo Go. Please use a development build or web version.',
           }));
           return false;
         }
-        const { status } = await Audio.requestRecordingPermissionsAsync();
+        
+        const response = await AudioModule.getPermissionsAsync();
+        if (response.granted) {
+          return true;
+        }
+
+        const { status }: { status: typeof PermissionStatus } = await AudioModule.requestPermissionsAsync();
         return status === 'granted';
       }
     } catch (error) {

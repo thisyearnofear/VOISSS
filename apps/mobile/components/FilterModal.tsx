@@ -15,7 +15,7 @@ import {
   Clock,
   Calendar,
 } from "lucide-react-native";
-import { RecordingFilter } from "../types/recording";
+import { RecordingFilter } from "@voisss/shared";
 import { useRecordingsStore } from "../store/recordingsStore";
 import { theme, globalStyles } from "../constants/theme";
 import colors from "../constants/colors";

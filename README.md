@@ -27,10 +27,10 @@
   - 2-3 months to production readiness
   - Core features working, needs polish
 
-- 📱 **Flutter iOS** (starknet.dart) - **PROTOTYPE STAGE** ⚠️
-  - Native iOS exploration
-  - 6+ months development needed
-  - Prototype only, not launch-ready
+- 📱 **Flutter iOS** (starknet.dart) - **ON HOLD** ⏸️
+  - Native iOS exploration paused
+  - Development is currently focused on Web and React Native
+  - Will be re-evaluated in the future
 
 ## ✨ Key Features
 
@@ -53,7 +53,7 @@
 
 - **Web**: Full-featured desktop experience ✅ **PRODUCTION READY**
 - **Mobile React Native**: Cross-platform development 🔄 **IN PROGRESS**
-- **Mobile Flutter**: iOS prototype exploration ⚠️ **PROTOTYPE STAGE**
+- **Mobile Flutter**: iOS native exploration ⏸️ **ON HOLD**
 - **Sync**: Cross-platform data synchronization (Web ready, mobile in development)
 
 ## 🛠 Tech Stack
@@ -63,7 +63,7 @@ voisss/
 ├── apps/
 │   ├── web/                   # Next.js + Starknet.js
 │   ├── mobile/                # React Native + Expo
-│   └── mobile-flutter/        # Flutter + starknet.dart
+│   └── mobile-flutter/        # Flutter (On Hold)
 ├── packages/
 │   ├── shared/                # Common types & utilities
 │   ├── contracts/             # Cairo smart contracts
@@ -83,8 +83,8 @@ voisss/
 ### Prerequisites
 - Node.js 18+
 - pnpm
-- Flutter SDK (for mobile-flutter)
 - Expo CLI (for mobile)
+- Flutter SDK (optional, on hold)
 
 ### Installation
 
@@ -100,13 +100,13 @@ pnpm install
 cp apps/web/.env.example apps/web/.env.local
 # Add your ElevenLabs API key and other required variables
 
-# Start development (Web app - production ready)
+# Start development for the active apps
 pnpm dev
 
 # Or start specific apps
 pnpm dev:web      # Web app (production ready)
-pnpm dev:mobile   # React Native (functional, needs completion)
-pnpm dev:flutter  # Flutter (prototype only)
+pnpm dev:mobile   # React Native (in progress)
+# pnpm dev:flutter  # Flutter (on hold)
 ```
 
 ### Individual App Development
@@ -117,31 +117,24 @@ cd apps/web && pnpm dev
 
 # React Native mobile (Functional, needs completion)
 cd apps/mobile && pnpm start
-
-# Flutter mobile (Prototype only)
-cd apps/mobile-flutter && flutter run
 ```
 
 ## 🎯 Current Focus & Roadmap
 
-### ✅ **Immediate Focus: Web App Growth**
-- User acquisition and engagement
-- Performance optimization
-- Bug fixes and polish
-- Analytics and metrics
+### ✅ **Immediate Focus: Web & React Native Unification**
+- Consolidate all shared logic (types, services, utils) into `packages/shared`.
+- Unify reusable UI components into `packages/ui`.
+- Achieve feature parity between Web and React Native.
+- Drive both applications to a production-ready state.
 
-### 🔄 **Short-term: React Native Completion (2-3 months)**
-- Complete Starknet integration
-- Finish IPFS synchronization
-- Polish UI/UX
-- Add missing features
-- Testing and optimization
+### 🔄 **Short-term: Growth & Polish (Post-Unification)**
+- User acquisition and engagement for the Web app.
+- UI/UX polishing and bug fixes for both platforms.
+- Performance optimization and analytics integration.
 
-### ⚠️ **Medium-term: Flutter Assessment (6+ months)**
-- Evaluate ROI and market demand
-- Complete architecture redesign if proceeding
-- Full iOS development cycle
-- App Store compliance and launch
+### ⏸️ **Future: Flutter Re-evaluation (On Hold)**
+- Evaluate ROI and market demand based on the success of the unified apps.
+- If proceeding, development will resume on the existing prototype.
 
 ## 🔧 Environment Setup
 
@@ -173,12 +166,10 @@ pnpm start
 # Note: Some features incomplete, 2-3 months to production
 ```
 
-### Flutter iOS (Prototype only)
+### Flutter iOS (On Hold)
 ```bash
-cd apps/mobile-flutter
-flutter pub get
-flutter run -d ios  # iOS Simulator only
-# Note: Prototype stage, 6+ months development needed
+# Development for the Flutter app is currently on hold.
+# The codebase remains for future evaluation.
 ```
 
 ## 🧪 Testing

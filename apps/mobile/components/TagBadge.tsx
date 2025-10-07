@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { X } from "lucide-react-native";
-import { Tag } from "../types/recording";
+import { Tag } from "@voisss/shared";
 import { theme } from "../constants/theme";
 import colors from "../constants/colors";
 import { useRecordingsStore } from "../store/recordingsStore";

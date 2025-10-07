@@ -1,5 +1,5 @@
 import { createStarknetRecordingService } from './services/starknet-recording';
-import { createIPFSService } from './services/ipfs';
+import { createIPFSService } from './services/ipfs-service';
 
 async function testFullIntegration() {
   console.log('🧪 Testing Full VOISSS Integration...\n');

@@ -112,7 +112,9 @@ export function useProcessRecording() {
       metadata: RecordingMetadata; 
       onProgress?: (progress: PipelineProgress) => void;
     }) => {
-      const recordingService = createRecordingService();
+      const ipfsService = createIPFSService();
+      const starknetService = createStarknetRecordingService();
+      const recordingService = createRecordingService(ipfsService, starknetService);
       
       try {
         const result = await recordingService.processRecording(

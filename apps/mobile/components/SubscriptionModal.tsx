@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,18 +7,34 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-} from 'react-native';
-import { X, Sparkles, Check, Crown, RefreshCw, Wallet, Bot, Scissors, FileAudio, Megaphone, Clock, Star, Zap, Shield, Globe } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '../constants/colors';
-import { useSubscriptionStore } from '../store/subscriptionStore';
-import { useStarknet } from '../hooks/useStarknet';
-import { WalletModal } from './WalletModal';
+} from "react-native";
+import {
+  X,
+  Sparkles,
+  Check,
+  Crown,
+  RefreshCw,
+  Wallet,
+  Bot,
+  Scissors,
+  FileAudio,
+  Megaphone,
+  Clock,
+  Star,
+  Zap,
+  Shield,
+  Globe,
+} from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { colors } from "../constants/colors";
+import { useSubscriptionStore } from "../store/subscriptionStore";
+import { useStarknet } from "../hooks/useStarknet";
+import { WalletModal } from "./WalletModal";
 
 interface SubscriptionModalProps {
   visible: boolean;
   onClose: () => void;
-  initialTab?: 'premium' | 'ultimate' | 'manage';
+  initialTab?: "premium" | "ultimate" | "manage";
 }
 
 const premiumFeatures = [
@@ -87,7 +103,11 @@ const ultimateFeatures = [
   },
 ];
 
-export function SubscriptionModal({ visible, onClose, initialTab = 'premium' }: SubscriptionModalProps) {
+export function SubscriptionModal({
+  visible,
+  onClose,
+  initialTab = "premium",
+}: SubscriptionModalProps) {
   const {
     isConfigured,
     offerings,
@@ -102,23 +122,25 @@ export function SubscriptionModal({ visible, onClose, initialTab = 'premium' }: 
   } = useSubscriptionStore();
 
   const { isConnected: isWalletConnected, account } = useStarknet();
-  
-  const [activeTab, setActiveTab] = useState<'premium' | 'ultimate' | 'manage'>(initialTab);
+
+  const [activeTab, setActiveTab] = useState<"premium" | "ultimate" | "manage">(
+    initialTab
+  );
   const [isWalletModalVisible, setIsWalletModalVisible] = useState(false);
 
   // Determine current tier based on subscription and wallet status
   const getCurrentTier = () => {
-    if (hasActiveSubscription && isWalletConnected) return 'ultimate';
-    if (hasActiveSubscription) return 'premium';
-    if (isWalletConnected) return 'web3';
-    return 'free';
+    if (hasActiveSubscription && isWalletConnected) return "ultimate";
+    if (hasActiveSubscription) return "premium";
+    if (isWalletConnected) return "web3";
+    return "free";
   };
 
   const currentTier = getCurrentTier();
 
   useEffect(() => {
     if (visible && !isConfigured) {
-      initializeRevenueCat('your_revenuecat_api_key_here');
+      initializeRevenueCat("your_revenuecat_api_key_here");
     }
   }, [visible, isConfigured]);
 
@@ -129,26 +151,33 @@ export function SubscriptionModal({ visible, onClose, initialTab = 'premium' }: 
   }, [isConfigured, visible]);
 
   // Get the current offering (first one for now)
-  const currentOffering = offerings && offerings.length > 0 ? offerings[0] : null;
+  const currentOffering =
+    offerings && offerings.length > 0 ? offerings[0] : null;
 
   const handlePurchase = async (pkg: any) => {
     try {
       const success = await purchasePackage(pkg);
       if (success) {
-        Alert.alert('Success', 'Subscription activated successfully!');
-        setActiveTab('manage');
+        Alert.alert("Success", "Subscription activated successfully!");
+        setActiveTab("manage");
       }
     } catch (err) {
-      Alert.alert('Purchase Failed', 'Failed to complete purchase. Please try again.');
+      Alert.alert(
+        "Purchase Failed",
+        "Failed to complete purchase. Please try again."
+      );
     }
   };
 
   const handleRestore = async () => {
     try {
       await restorePurchases();
-      Alert.alert('Restore Complete', 'Your purchases have been restored.');
+      Alert.alert("Restore Complete", "Your purchases have been restored.");
     } catch (err) {
-      Alert.alert('Restore Failed', 'Failed to restore purchases. Please try again.');
+      Alert.alert(
+        "Restore Failed",
+        "Failed to restore purchases. Please try again."
+      );
     }
   };
 
@@ -163,17 +192,17 @@ export function SubscriptionModal({ visible, onClose, initialTab = 'premium' }: 
     }
 
     const monthlyPackage = currentOffering.availablePackages.find(
-      (pkg: any) => pkg.packageType === 'MONTHLY'
+      (pkg: any) => pkg.packageType === "MONTHLY"
     );
     const annualPackage = currentOffering.availablePackages.find(
-      (pkg: any) => pkg.packageType === 'ANNUAL'
+      (pkg: any) => pkg.packageType === "ANNUAL"
     );
 
     return (
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Premium Header */}
         <LinearGradient
-          colors={['#7C5DFA', '#4E7BFF']}
+          colors={["#7C5DFA", "#4E7BFF"]}
           style={styles.premiumHeader}
         >
           <View style={styles.premiumBadge}>
@@ -271,7 +300,7 @@ export function SubscriptionModal({ visible, onClose, initialTab = 'premium' }: 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Ultimate Header */}
         <LinearGradient
-          colors={['#FFD700', '#FF6B35', '#7C5DFA']}
+          colors={["#FFD700", "#FF6B35", "#7C5DFA"]}
           style={styles.premiumHeader}
         >
           <View style={styles.ultimateBadge}>
@@ -287,15 +316,28 @@ export function SubscriptionModal({ visible, onClose, initialTab = 'premium' }: 
         {/* Current Status */}
         <View style={styles.statusContainer}>
           <View style={styles.statusItem}>
-            <Sparkles size={20} color={hasSubscription ? '#4CAF50' : colors.dark.textSecondary} />
-            <Text style={[styles.statusText, hasSubscription && styles.statusTextActive]}>
-              Premium Subscription {hasSubscription ? '✓' : '✗'}
+            <Sparkles
+              size={20}
+              color={hasSubscription ? "#4CAF50" : colors.dark.textSecondary}
+            />
+            <Text
+              style={[
+                styles.statusText,
+                hasSubscription && styles.statusTextActive,
+              ]}
+            >
+              Premium Subscription {hasSubscription ? "✓" : "✗"}
             </Text>
           </View>
           <View style={styles.statusItem}>
-            <Wallet size={20} color={hasWallet ? '#4CAF50' : colors.dark.textSecondary} />
-            <Text style={[styles.statusText, hasWallet && styles.statusTextActive]}>
-              Starknet Wallet {hasWallet ? '✓' : '✗'}
+            <Wallet
+              size={20}
+              color={hasWallet ? "#4CAF50" : colors.dark.textSecondary}
+            />
+            <Text
+              style={[styles.statusText, hasWallet && styles.statusTextActive]}
+            >
+              Starknet Wallet {hasWallet ? "✓" : "✗"}
             </Text>
           </View>
         </View>
@@ -324,29 +366,36 @@ export function SubscriptionModal({ visible, onClose, initialTab = 'premium' }: 
           {!hasSubscription && (
             <TouchableOpacity
               style={styles.ultimateActionButton}
-              onPress={() => setActiveTab('premium')}
+              onPress={() => setActiveTab("premium")}
             >
               <Sparkles size={16} color={colors.dark.text} />
-              <Text style={styles.ultimateActionText}>Get Premium Subscription</Text>
+              <Text style={styles.ultimateActionText}>
+                Get Premium Subscription
+              </Text>
             </TouchableOpacity>
           )}
-          
+
           {!hasWallet && (
             <TouchableOpacity
               style={[styles.ultimateActionButton, styles.walletActionButton]}
               onPress={() => setIsWalletModalVisible(true)}
             >
               <Wallet size={16} color={colors.dark.text} />
-              <Text style={styles.ultimateActionText}>Connect Starknet Wallet</Text>
+              <Text style={styles.ultimateActionText}>
+                Connect Starknet Wallet
+              </Text>
             </TouchableOpacity>
           )}
 
           {hasSubscription && hasWallet && (
             <View style={styles.ultimateComplete}>
               <Crown size={48} color="#FFD700" />
-              <Text style={styles.ultimateCompleteTitle}>Ultimate Tier Unlocked!</Text>
+              <Text style={styles.ultimateCompleteTitle}>
+                Ultimate Tier Unlocked!
+              </Text>
               <Text style={styles.ultimateCompleteText}>
-                You have access to all Premium AI features and Web3 capabilities.
+                You have access to all Premium AI features and Web3
+                capabilities.
               </Text>
             </View>
           )}
@@ -366,7 +415,7 @@ export function SubscriptionModal({ visible, onClose, initialTab = 'premium' }: 
           </Text>
           <TouchableOpacity
             style={styles.subscribeButton}
-            onPress={() => setActiveTab('premium')}
+            onPress={() => setActiveTab("premium")}
           >
             <Text style={styles.subscribeButtonText}>View Plans</Text>
           </TouchableOpacity>
@@ -379,15 +428,21 @@ export function SubscriptionModal({ visible, onClose, initialTab = 'premium' }: 
         {/* Current Subscription Card */}
         <View style={styles.currentSubscriptionCard}>
           <LinearGradient
-            colors={currentTier === 'ultimate' ? ['#FFD700', '#FF6B35'] : ['#7C5DFA', '#4E7BFF']}
+            colors={
+              currentTier === "ultimate"
+                ? ["#FFD700", "#FF6B35"]
+                : ["#7C5DFA", "#4E7BFF"]
+            }
             style={styles.subscriptionGradient}
           >
             <Crown size={48} color="#FFD700" />
             <Text style={styles.currentSubscriptionTitle}>
-              {currentTier === 'ultimate' ? 'Ultimate' : 'Premium'} Member
+              {currentTier === "ultimate" ? "Ultimate" : "Premium"} Member
             </Text>
             <Text style={styles.currentSubscriptionTier}>
-              {currentTier === 'ultimate' ? 'Premium + Web3' : 'AI Features Unlocked'}
+              {currentTier === "ultimate"
+                ? "Premium + Web3"
+                : "AI Features Unlocked"}
             </Text>
           </LinearGradient>
         </View>
@@ -406,7 +461,11 @@ export function SubscriptionModal({ visible, onClose, initialTab = 'premium' }: 
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Wallet:</Text>
             <Text style={styles.detailValue}>
-              {isWalletConnected ? `Connected (${account?.slice(0, 6)}...)` : 'Not Connected'}
+              {account
+                ? `${account.address.slice(0, 6)}...${account.address.slice(
+                    -4
+                  )}`
+                : "Not connected"}
             </Text>
           </View>
         </View>
@@ -415,7 +474,8 @@ export function SubscriptionModal({ visible, onClose, initialTab = 'premium' }: 
         <View style={styles.manageContainer}>
           <Text style={styles.manageTitle}>Manage Subscription</Text>
           <Text style={styles.manageDescription}>
-            To cancel or modify your subscription, please visit the App Store or Google Play Store.
+            To cancel or modify your subscription, please visit the App Store or
+            Google Play Store.
           </Text>
           <TouchableOpacity style={styles.manageButton} onPress={handleRestore}>
             <RefreshCw size={16} color={colors.dark.text} />
@@ -445,29 +505,58 @@ export function SubscriptionModal({ visible, onClose, initialTab = 'premium' }: 
         {/* Tabs */}
         <View style={styles.tabs}>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'premium' && styles.activeTab]}
-            onPress={() => setActiveTab('premium')}
+            style={[styles.tab, activeTab === "premium" && styles.activeTab]}
+            onPress={() => setActiveTab("premium")}
           >
-            <Sparkles size={16} color={activeTab === 'premium' ? colors.dark.text : colors.dark.textSecondary} />
-            <Text style={[styles.tabText, activeTab === 'premium' && styles.activeTabText]}>
+            <Sparkles
+              size={16}
+              color={
+                activeTab === "premium"
+                  ? colors.dark.text
+                  : colors.dark.textSecondary
+              }
+            />
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "premium" && styles.activeTabText,
+              ]}
+            >
               Premium
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'ultimate' && styles.activeTab]}
-            onPress={() => setActiveTab('ultimate')}
+            style={[styles.tab, activeTab === "ultimate" && styles.activeTab]}
+            onPress={() => setActiveTab("ultimate")}
           >
-            <Crown size={16} color={activeTab === 'ultimate' ? colors.dark.text : colors.dark.textSecondary} />
-            <Text style={[styles.tabText, activeTab === 'ultimate' && styles.activeTabText]}>
+            <Crown
+              size={16}
+              color={
+                activeTab === "ultimate"
+                  ? colors.dark.text
+                  : colors.dark.textSecondary
+              }
+            />
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "ultimate" && styles.activeTabText,
+              ]}
+            >
               Ultimate
             </Text>
           </TouchableOpacity>
           {hasActiveSubscription && (
             <TouchableOpacity
-              style={[styles.tab, activeTab === 'manage' && styles.activeTab]}
-              onPress={() => setActiveTab('manage')}
+              style={[styles.tab, activeTab === "manage" && styles.activeTab]}
+              onPress={() => setActiveTab("manage")}
             >
-              <Text style={[styles.tabText, activeTab === 'manage' && styles.activeTabText]}>
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === "manage" && styles.activeTabText,
+                ]}
+              >
                 Manage
               </Text>
             </TouchableOpacity>
@@ -475,9 +564,9 @@ export function SubscriptionModal({ visible, onClose, initialTab = 'premium' }: 
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {activeTab === 'premium' && renderPremiumTab()}
-          {activeTab === 'ultimate' && renderUltimateTab()}
-          {activeTab === 'manage' && renderManageTab()}
+          {activeTab === "premium" && renderPremiumTab()}
+          {activeTab === "ultimate" && renderUltimateTab()}
+          {activeTab === "manage" && renderManageTab()}
         </ScrollView>
 
         {/* Wallet Modal */}
@@ -488,7 +577,7 @@ export function SubscriptionModal({ visible, onClose, initialTab = 'premium' }: 
             setIsWalletModalVisible(false);
             // If user has subscription, they now have Ultimate tier
             if (hasActiveSubscription) {
-              setActiveTab('ultimate');
+              setActiveTab("ultimate");
             }
           }}
         />
@@ -510,9 +599,9 @@ const styles = {
     backgroundColor: colors.dark.background,
   },
   header: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "center" as const,
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
@@ -521,22 +610,22 @@ const styles = {
   },
   title: {
     fontSize: 24,
-    fontWeight: '700' as const,
+    fontWeight: "700" as const,
     color: colors.dark.text,
   },
   closeButton: {
     padding: 8,
   },
   tabs: {
-    flexDirection: 'row' as const,
+    flexDirection: "row" as const,
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.dark.border,
   },
   tab: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
     paddingHorizontal: 16,
     paddingVertical: 8,
     marginRight: 16,
@@ -548,7 +637,7 @@ const styles = {
   },
   tabText: {
     fontSize: 14,
-    fontWeight: '600' as const,
+    fontWeight: "600" as const,
     color: colors.dark.textSecondary,
     marginLeft: 6,
   },
@@ -560,8 +649,8 @@ const styles = {
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
     padding: 40,
   },
   loadingText: {
@@ -570,49 +659,49 @@ const styles = {
   },
   premiumHeader: {
     padding: 32,
-    alignItems: 'center' as const,
+    alignItems: "center" as const,
     margin: 16,
     borderRadius: 16,
   },
   premiumBadge: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    backgroundColor: "rgba(255, 215, 0, 0.2)",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     marginBottom: 16,
   },
   premiumBadgeText: {
-    color: '#FFD700',
-    fontWeight: '700' as const,
+    color: "#FFD700",
+    fontWeight: "700" as const,
     marginLeft: 8,
   },
   ultimateBadge: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    backgroundColor: 'rgba(255, 215, 0, 0.3)',
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    backgroundColor: "rgba(255, 215, 0, 0.3)",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     marginBottom: 16,
   },
   ultimateBadgeText: {
-    color: '#FFD700',
-    fontWeight: '700' as const,
+    color: "#FFD700",
+    fontWeight: "700" as const,
     marginLeft: 8,
   },
   premiumTitle: {
     fontSize: 24,
-    fontWeight: '700' as const,
+    fontWeight: "700" as const,
     color: colors.dark.text,
-    textAlign: 'center' as const,
+    textAlign: "center" as const,
     marginBottom: 8,
   },
   premiumSubtitle: {
     fontSize: 16,
     color: colors.dark.text,
-    textAlign: 'center' as const,
+    textAlign: "center" as const,
     opacity: 0.9,
   },
   statusContainer: {
@@ -622,8 +711,8 @@ const styles = {
     borderRadius: 12,
   },
   statusItem: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
     paddingVertical: 8,
   },
   statusText: {
@@ -632,21 +721,21 @@ const styles = {
     marginLeft: 12,
   },
   statusTextActive: {
-    color: '#4CAF50',
-    fontWeight: '600' as const,
+    color: "#4CAF50",
+    fontWeight: "600" as const,
   },
   featuresContainer: {
     padding: 16,
   },
   featuresTitle: {
     fontSize: 20,
-    fontWeight: '600' as const,
+    fontWeight: "600" as const,
     color: colors.dark.text,
     marginBottom: 16,
   },
   featureItem: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.dark.border,
@@ -656,8 +745,8 @@ const styles = {
     height: 40,
     borderRadius: 20,
     backgroundColor: `${colors.dark.primary}20`,
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
     marginRight: 16,
   },
   featureContent: {
@@ -665,7 +754,7 @@ const styles = {
   },
   featureTitle: {
     fontSize: 16,
-    fontWeight: '600' as const,
+    fontWeight: "600" as const,
     color: colors.dark.text,
     marginBottom: 2,
   },
@@ -682,14 +771,14 @@ const styles = {
     padding: 20,
     marginBottom: 16,
     borderWidth: 2,
-    borderColor: 'transparent',
-    position: 'relative' as const,
+    borderColor: "transparent",
+    position: "relative" as const,
   },
   popularPlan: {
     borderColor: colors.dark.primary,
   },
   popularBadge: {
-    position: 'absolute' as const,
+    position: "absolute" as const,
     top: -10,
     left: 16,
     backgroundColor: colors.dark.primary,
@@ -700,24 +789,24 @@ const styles = {
   popularBadgeText: {
     color: colors.dark.text,
     fontSize: 12,
-    fontWeight: '700' as const,
+    fontWeight: "700" as const,
   },
   planTitle: {
     fontSize: 20,
-    fontWeight: '700' as const,
+    fontWeight: "700" as const,
     color: colors.dark.text,
     marginBottom: 4,
   },
   planPrice: {
     fontSize: 28,
-    fontWeight: '700' as const,
+    fontWeight: "700" as const,
     color: colors.dark.primary,
     marginBottom: 4,
   },
   planSavings: {
     fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#4CAF50',
+    fontWeight: "600" as const,
+    color: "#4CAF50",
     marginBottom: 8,
   },
   planDescription: {
@@ -725,21 +814,21 @@ const styles = {
     color: colors.dark.textSecondary,
   },
   restoreButton: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
     margin: 16,
     padding: 16,
   },
   restoreButtonText: {
     color: colors.dark.primary,
-    fontWeight: '500' as const,
+    fontWeight: "500" as const,
     marginLeft: 8,
   },
   termsText: {
     fontSize: 12,
     color: colors.dark.textSecondary,
-    textAlign: 'center' as const,
+    textAlign: "center" as const,
     padding: 16,
     lineHeight: 16,
   },
@@ -747,9 +836,9 @@ const styles = {
     padding: 16,
   },
   ultimateActionButton: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
     backgroundColor: colors.dark.primary,
     paddingVertical: 16,
     paddingHorizontal: 24,
@@ -757,21 +846,21 @@ const styles = {
     marginBottom: 12,
   },
   walletActionButton: {
-    backgroundColor: '#4E7BFF',
+    backgroundColor: "#4E7BFF",
   },
   ultimateActionText: {
     color: colors.dark.text,
     fontSize: 16,
-    fontWeight: '600' as const,
+    fontWeight: "600" as const,
     marginLeft: 8,
   },
   ultimateComplete: {
-    alignItems: 'center' as const,
+    alignItems: "center" as const,
     paddingVertical: 32,
   },
   ultimateCompleteTitle: {
     fontSize: 24,
-    fontWeight: '700' as const,
+    fontWeight: "700" as const,
     color: colors.dark.text,
     marginTop: 16,
     marginBottom: 8,
@@ -779,18 +868,18 @@ const styles = {
   ultimateCompleteText: {
     fontSize: 16,
     color: colors.dark.textSecondary,
-    textAlign: 'center' as const,
+    textAlign: "center" as const,
     lineHeight: 24,
   },
   noSubscriptionContainer: {
     flex: 1,
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
     padding: 40,
   },
   noSubscriptionTitle: {
     fontSize: 20,
-    fontWeight: '600' as const,
+    fontWeight: "600" as const,
     color: colors.dark.text,
     marginTop: 16,
     marginBottom: 8,
@@ -798,7 +887,7 @@ const styles = {
   noSubscriptionText: {
     fontSize: 16,
     color: colors.dark.textSecondary,
-    textAlign: 'center' as const,
+    textAlign: "center" as const,
     marginBottom: 24,
   },
   subscribeButton: {
@@ -809,20 +898,20 @@ const styles = {
   },
   subscribeButtonText: {
     color: colors.dark.text,
-    fontWeight: '600' as const,
+    fontWeight: "600" as const,
   },
   currentSubscriptionCard: {
     margin: 16,
     borderRadius: 16,
-    overflow: 'hidden' as const,
+    overflow: "hidden" as const,
   },
   subscriptionGradient: {
     padding: 32,
-    alignItems: 'center' as const,
+    alignItems: "center" as const,
   },
   currentSubscriptionTitle: {
     fontSize: 24,
-    fontWeight: '700' as const,
+    fontWeight: "700" as const,
     color: colors.dark.text,
     marginTop: 16,
     marginBottom: 4,
@@ -840,14 +929,14 @@ const styles = {
   },
   detailsTitle: {
     fontSize: 18,
-    fontWeight: '600' as const,
+    fontWeight: "600" as const,
     color: colors.dark.text,
     marginBottom: 16,
   },
   detailItem: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "center" as const,
     paddingVertical: 8,
   },
   detailLabel: {
@@ -856,7 +945,7 @@ const styles = {
   },
   detailValue: {
     fontSize: 16,
-    fontWeight: '500' as const,
+    fontWeight: "500" as const,
     color: colors.dark.text,
   },
   manageContainer: {
@@ -867,7 +956,7 @@ const styles = {
   },
   manageTitle: {
     fontSize: 18,
-    fontWeight: '600' as const,
+    fontWeight: "600" as const,
     color: colors.dark.text,
     marginBottom: 8,
   },
@@ -878,26 +967,26 @@ const styles = {
     marginBottom: 20,
   },
   manageButton: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
     backgroundColor: colors.dark.primary,
     paddingVertical: 16,
     borderRadius: 12,
   },
   manageButtonText: {
     color: colors.dark.text,
-    fontWeight: '600' as const,
+    fontWeight: "600" as const,
     marginLeft: 8,
   },
   loadingOverlay: {
-    position: 'absolute' as const,
+    position: "absolute" as const,
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
   },
 };

@@ -7,7 +7,6 @@ import {
   ScrollView,
   TextInput,
   Alert,
-  Switch,
 } from "react-native";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -19,76 +18,63 @@ import {
   Calendar,
   Clock,
   HardDrive,
-  Plus,
   Globe,
   Users,
   Lock,
   ChevronRight,
 } from "lucide-react-native";
+import { VoiceRecording } from "@voisss/shared";
 import {
   useRecording,
   useRecordingsStore,
   useRecordingTags,
-} from "../../store/recordingsStore";
-import { globalStyles, theme } from "../../constants/theme";
-import colors from "../../constants/colors";
-import AudioPlayer from "../../components/AudioPlayer";
-import TagBadge from "../../components/TagBadge";
-import RecordingOptionsModal from "../../components/RecordingOptionsModal";
+} from "@/store/recordingsStore";
+import { useUIStore, useIsFavorite } from "@/store/uiStore";
+import { globalStyles, theme } from "@/constants/theme";
+import colors from "@/constants/colors";
+import AudioPlayer from "@/components/AudioPlayer";
+import TagBadge from "@/components/TagBadge";
+import RecordingOptionsModal from "@/components/RecordingOptionsModal";
 import {
   formatDate,
   formatDuration,
   formatFileSize,
-} from "../../utils/formatters";
+} from "@/utils/formatters";
 
 export default function RecordingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const recording = useRecording(id || null);
+
+  const recording = useRecording(id || null) as VoiceRecording | null;
   const tags = useRecordingTags(id || null);
 
-  // Get actions separately to avoid re-renders
-  const {
-    toggleFavorite,
-    updateRecording,
-    deleteRecording,
-    removeTagFromRecording,
-    togglePublic,
-    toggleShared,
-  } = useRecordingsStore((state) => ({
-    toggleFavorite: state.toggleFavorite,
-    updateRecording: state.updateRecording,
-    deleteRecording: state.deleteRecording,
-    removeTagFromRecording: state.removeTagFromRecording,
-    togglePublic: state.togglePublic,
-    toggleShared: state.toggleShared,
-  }));
+  const { updateRecording, deleteRecording, removeTagFromRecording } =
+    useRecordingsStore((state) => ({
+      updateRecording: state.updateRecording,
+      deleteRecording: state.deleteRecording,
+      removeTagFromRecording: state.removeTagFromRecording,
+    }));
+
+  const { toggleFavorite } = useUIStore();
+  const isFavorite = useIsFavorite(id || "");
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentPosition, setCurrentPosition] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [optionsModalVisible, setOptionsModalVisible] = useState(false);
-  const [tagModalVisible, setTagModalVisible] = useState(false);
   const [sharingOption, setSharingOption] = useState<
     "private" | "public" | "shared"
-  >(
-    (recording as any)?.isPublic ? "public" : (recording as any)?.isShared ? "shared" : "private"
-  );
+  >("private");
 
-  // Set title only when recording changes
   useEffect(() => {
     if (recording) {
-      setTitle((recording as any).title);
+      setTitle(recording.title);
       setSharingOption(
-        (recording as any).isPublic
-          ? "public"
-          : (recording as any).isShared
-          ? "shared"
-          : "private"
+        recording.isPublic ? "public" : "private" // Simplified, shared logic removed for now
       );
     }
-  }, [(recording as any)?.id]);
+  }, [recording?.id]);
 
   if (!recording) {
     return (
@@ -107,8 +93,8 @@ export default function RecordingDetailScreen() {
   }, []);
 
   const handleSkipForward = useCallback(() => {
-    setCurrentPosition((prev) => Math.min((recording as any).duration, prev + 15));
-  }, [(recording as any)?.duration]);
+    setCurrentPosition((prev) => Math.min(recording.duration, prev + 15));
+  }, [recording.duration]);
 
   const handleSkipBackward = useCallback(() => {
     setCurrentPosition((prev) => Math.max(0, prev - 15));
@@ -119,10 +105,9 @@ export default function RecordingDetailScreen() {
       Alert.alert("Error", "Title cannot be empty");
       return;
     }
-
-    updateRecording((recording as any).id, { title });
+    updateRecording(recording.id, { title });
     setIsEditing(false);
-  }, [title, (recording as any)?.id, updateRecording]);
+  }, [title, recording.id, updateRecording]);
 
   const handleDelete = useCallback(() => {
     Alert.alert(
@@ -134,51 +119,37 @@ export default function RecordingDetailScreen() {
           text: "Delete",
           style: "destructive",
           onPress: () => {
-            deleteRecording((recording as any).id);
+            deleteRecording(recording.id);
             router.back();
           },
         },
       ]
     );
-  }, [(recording as any)?.id, deleteRecording, router]);
+  }, [recording.id, deleteRecording, router]);
 
   const handleShare = useCallback(() => {
-    // Share functionality would go here
     Alert.alert("Share", "Sharing functionality would be implemented here");
   }, []);
 
   const handleManageTags = useCallback(() => {
     setOptionsModalVisible(false);
-    setTagModalVisible(true);
+    // Future: setTagModalVisible(true);
   }, []);
 
   const handleExport = useCallback(() => {
-    // Export functionality would go here
     Alert.alert("Export", "Export functionality would be implemented here");
   }, []);
 
   const handleDuplicate = useCallback(() => {
-    // Duplicate functionality would go here
-    Alert.alert(
-      "Duplicate",
-      "Duplicate functionality would be implemented here"
-    );
+    Alert.alert("Duplicate", "Duplicate functionality would be implemented here");
   }, []);
 
   const handleSharingChange = useCallback(
     (option: "private" | "public" | "shared") => {
       setSharingOption(option);
-
-      if (option === "public") {
-        togglePublic((recording as any).id);
-      } else if (option === "shared") {
-        toggleShared((recording as any).id);
-      } else {
-        // If private, ensure both public and shared are false
-        updateRecording((recording as any).id, { isPublic: false, isShared: false });
-      }
+      updateRecording(recording.id, { isPublic: option === "public" });
     },
-    [(recording as any)?.id, togglePublic, toggleShared, updateRecording]
+    [recording.id, updateRecording]
   );
 
   return (
@@ -218,7 +189,7 @@ export default function RecordingDetailScreen() {
               </View>
             ) : (
               <View style={styles.titleContainer}>
-                <Text style={styles.title}>{(recording as any).title}</Text>
+                <Text style={styles.title}>{recording.title}</Text>
                 <TouchableOpacity
                   onPress={() => setIsEditing(true)}
                   hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
@@ -235,12 +206,8 @@ export default function RecordingDetailScreen() {
               >
                 <Heart
                   size={24}
-                  color={
-                    (recording as any).isFavorite ? colors.dark.error : colors.dark.text
-                  }
-                  fill={
-                    (recording as any).isFavorite ? colors.dark.error : "transparent"
-                  }
+                  color={isFavorite ? colors.dark.error : colors.dark.text}
+                  fill={isFavorite ? colors.dark.error : "transparent"}
                 />
               </TouchableOpacity>
 
@@ -254,14 +221,13 @@ export default function RecordingDetailScreen() {
           </View>
 
           <AudioPlayer
-            duration={(recording as any).duration}
+            duration={recording.duration}
             isPlaying={isPlaying}
             onPlayPause={handlePlayPause}
             onSeek={handleSeek}
             onSkipForward={handleSkipForward}
             onSkipBackward={handleSkipBackward}
             currentPosition={currentPosition}
-            waveform={(recording as any).waveform}
           />
 
           <View style={styles.section}>
@@ -346,34 +312,12 @@ export default function RecordingDetailScreen() {
               </TouchableOpacity>
             </View>
 
-            {sharingOption === "shared" && (
-              <TouchableOpacity style={styles.selectUsersButton}>
-                <Text style={styles.selectUsersText}>
-                  Select Users or Groups
-                </Text>
-                <ChevronRight size={16} color={colors.dark.primary} />
-              </TouchableOpacity>
-            )}
-
             {sharingOption === "public" && (
               <View style={styles.publicInfo}>
                 <Text style={styles.publicInfoText}>
                   This recording will be visible to everyone in the VOISSS
                   community.
                 </Text>
-                {(recording as any).duration > 180 && (
-                  <View style={styles.warningBox}>
-                    <Text style={styles.warningText}>
-                      This recording is longer than 3 minutes. Only the first 3
-                      minutes will be shared publicly.
-                    </Text>
-                    <TouchableOpacity style={styles.upgradeButton}>
-                      <Text style={styles.upgradeButtonText}>
-                        Upgrade to Pro
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
               </View>
             )}
           </View>
@@ -398,7 +342,7 @@ export default function RecordingDetailScreen() {
                     tag={tag}
                     selected
                     onRemove={() =>
-                      removeTagFromRecording((recording as any).id, tag.id)
+                      removeTagFromRecording(recording.id, tag.id)
                     }
                   />
                 ))
@@ -418,7 +362,7 @@ export default function RecordingDetailScreen() {
                 <View>
                   <Text style={styles.detailLabel}>Created</Text>
                   <Text style={styles.detailValue}>
-                    {formatDate(recording.createdAt)}
+                    {formatDate(new Date(recording.createdAt))}
                   </Text>
                 </View>
               </View>
@@ -454,15 +398,13 @@ export default function RecordingDetailScreen() {
           visible={optionsModalVisible}
           onClose={() => setOptionsModalVisible(false)}
           recording={recording}
+          isFavorite={isFavorite}
           onEdit={() => {
             setOptionsModalVisible(false);
             setIsEditing(true);
           }}
           onDelete={handleDelete}
-          onToggleFavorite={() => {
-            toggleFavorite(recording.id);
-            setOptionsModalVisible(false);
-          }}
+          onToggleFavorite={() => toggleFavorite(recording.id)}
           onShare={handleShare}
           onManageTags={handleManageTags}
           onExport={handleExport}

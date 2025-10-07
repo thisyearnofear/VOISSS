@@ -244,7 +244,7 @@ export default function RecordScreen() {
         isCompleted: false,
         // Mobile-specific fields
         filePath: uri,
-        isFavorite: false,
+
         isShared: false,
         waveform: [], // Will be generated later
       };

@@ -4,49 +4,50 @@ import {
   View,
   FlatList,
   TouchableOpacity,
-  Text,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Plus } from "lucide-react-native";
+import { VoiceRecording } from "@voisss/shared";
 import {
   useFilteredRecordings,
   useRecordingsStore,
-} from "../../store/recordingsStore";
-import { globalStyles } from "../../constants/theme";
-import colors from "../../constants/colors";
-import RecordingItem from "../../components/RecordingItem";
-import SearchBar from "../../components/SearchBar";
-import FilterModal from "../../components/FilterModal";
-import RecordingOptionsModal from "../../components/RecordingOptionsModal";
+} from "@/store/recordingsStore";
+import { useUIStore, useIsFavorite } from "@/store/uiStore";
+import { globalStyles } from "@/constants/theme";
+import colors from "@/constants/colors";
+import RecordingItem from "@/components/RecordingItem";
+import SearchBar from "@/components/SearchBar";
+import FilterModal from "@/components/FilterModal";
+import RecordingOptionsModal from "@/components/RecordingOptionsModal";
 import {
   ImportEmptyState,
   SearchEmptyState,
-} from "../../components/EmptyState";
-import { Recording } from "../../types/recording";
+} from "@/components/EmptyState";
 
 export default function RecordingsScreen() {
   const router = useRouter();
   const recordings = useFilteredRecordings();
 
-  // Use separate selectors to avoid unnecessary re-renders
+  // State from data store
   const filter = useRecordingsStore((state) => state.filter);
   const currentRecordingId = useRecordingsStore(
     (state) => state.currentRecordingId
   );
   const isPlaying = useRecordingsStore((state) => state.isPlaying);
+  const { setFilter, setCurrentRecording, setIsPlaying } = useRecordingsStore();
 
-  // Get actions separately
-  const { setFilter, toggleFavorite, setCurrentRecording, setIsPlaying } =
-    useRecordingsStore();
+  // State from UI store
+  const { toggleFavorite } = useUIStore();
 
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [optionsModalVisible, setOptionsModalVisible] = useState(false);
-  const [selectedRecording, setSelectedRecording] = useState<Recording | null>(
+  const [selectedRecording, setSelectedRecording] = useState<VoiceRecording | null>(
     null
   );
 
-  // Check if any filters are active
+  const isFavorite = useIsFavorite(selectedRecording?.id ?? "");
+
   const isFilterActive =
     filter.tags.length > 0 ||
     filter.favorites ||
@@ -54,14 +55,14 @@ export default function RecordingsScreen() {
     filter.sortOrder !== "desc";
 
   const handleRecordingPress = useCallback(
-    (recording: Recording) => {
+    (recording: VoiceRecording) => {
       router.push(`/recording/${recording.id}`);
     },
     [router]
   );
 
   const handlePlayPress = useCallback(
-    (recording: Recording) => {
+    (recording: VoiceRecording) => {
       if (currentRecordingId === recording.id) {
         setIsPlaying(!isPlaying);
       } else {
@@ -72,7 +73,7 @@ export default function RecordingsScreen() {
     [currentRecordingId, isPlaying, setCurrentRecording, setIsPlaying]
   );
 
-  const handleMorePress = useCallback((recording: Recording) => {
+  const handleMorePress = useCallback((recording: VoiceRecording) => {
     setSelectedRecording(recording);
     setOptionsModalVisible(true);
   }, []);
@@ -113,7 +114,7 @@ export default function RecordingsScreen() {
     if (selectedRecording) {
       toggleFavorite(selectedRecording.id);
     }
-    setOptionsModalVisible(false);
+    // No need to close the modal, user might want to perform other actions
   }, [selectedRecording, toggleFavorite]);
 
   const handleShare = useCallback(() => {
@@ -144,12 +145,11 @@ export default function RecordingsScreen() {
   }, [filter.search, isFilterActive, handleImportPress]);
 
   const renderItem = useCallback(
-    ({ item }: { item: Recording }) => (
+    ({ item }: { item: VoiceRecording }) => (
       <RecordingItem
         recording={item}
         onPress={() => handleRecordingPress(item)}
         onPlayPress={() => handlePlayPress(item)}
-        onFavoritePress={() => toggleFavorite(item.id)}
         onMorePress={() => handleMorePress(item)}
         isPlaying={isPlaying && currentRecordingId === item.id}
       />
@@ -157,7 +157,6 @@ export default function RecordingsScreen() {
     [
       handleRecordingPress,
       handlePlayPress,
-      toggleFavorite,
       handleMorePress,
       isPlaying,
       currentRecordingId,
@@ -200,6 +199,7 @@ export default function RecordingsScreen() {
             visible={optionsModalVisible}
             onClose={() => setOptionsModalVisible(false)}
             recording={selectedRecording}
+            isFavorite={isFavorite}
             onEdit={handleEdit}
             onDelete={handleDelete}
             onToggleFavorite={handleToggleFavorite}
