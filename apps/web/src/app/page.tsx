@@ -3,6 +3,8 @@
 import { useState } from "react";
 import RecordingStudio from "../components/RecordingStudio";
 import StarknetRecordingStudio from "../components/StarknetRecordingStudio";
+import EnhancedLandingHero from "../components/EnhancedLandingHero";
+import StarknetShowcase from "../components/StarknetShowcase";
 import { useAccount } from "@starknet-react/core";
 
 export default function Home() {
@@ -45,42 +47,11 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white">
       <div className="voisss-container py-8 sm:py-12">
-        {/* Hero Section */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold voisss-gradient-text mb-4">
-            VOISSS
-          </h1>
-          <p className="text-xl sm:text-2xl text-gray-300 mb-2">
-            Record + Transform with AI
-          </p>
-          <p className="text-gray-400 mb-8">
-            High-quality voice recording with AI voice transformation
-          </p>
-          
-          {/* Value Props */}
-          <div className="flex flex-wrap justify-center gap-4 mb-8">
-            <div className="flex items-center gap-2 px-4 py-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-full">
-              <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-              </svg>
-              <span className="text-sm text-gray-300">1 Free AI Transform</span>
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-full">
-              <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-              </svg>
-              <span className="text-sm text-gray-300">Decentralized Storage</span>
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-full">
-              <svg className="w-4 h-4 text-purple-400" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" />
-              </svg>
-              <span className="text-sm text-gray-300">HD Quality</span>
-            </div>
-          </div>
-        </div>
+        {/* Enhanced Hero Section */}
+        <EnhancedLandingHero />
 
-
+        {/* Starknet Showcase */}
+        <StarknetShowcase />
 
         {/* Recording Studio */}
         <div id="recording-section" className="mb-12">

@@ -8,6 +8,18 @@ import { isDubbingEnabled } from '@voisss/shared';
 import type { LanguageInfo } from '@voisss/shared/src/constants/languages';
 import type { DubbingLanguage } from '@voisss/shared/src/types/audio';
 
+// Enhanced popular languages with visual flags and popularity metrics
+const POPULAR_LANGUAGES = [
+  { code: 'es', name: 'Spanish', flag: '🇪🇸', popularity: 95, sample: 'Hola, ¿cómo estás?' },
+  { code: 'fr', name: 'French', flag: '🇫🇷', popularity: 88, sample: 'Bonjour, comment allez-vous?' },
+  { code: 'de', name: 'German', flag: '🇩🇪', popularity: 82, sample: 'Hallo, wie geht es Ihnen?' },
+  { code: 'it', name: 'Italian', flag: '🇮🇹', popularity: 75, sample: 'Ciao, come stai?' },
+  { code: 'pt', name: 'Portuguese', flag: '🇵🇹', popularity: 70, sample: 'Olá, como você está?' },
+  { code: 'ja', name: 'Japanese', flag: '🇯🇵', popularity: 68, sample: 'こんにちは、お元気ですか？' },
+  { code: 'ko', name: 'Korean', flag: '🇰🇷', popularity: 65, sample: '안녕하세요, 어떻게 지내세요?' },
+  { code: 'zh', name: 'Chinese', flag: '🇨🇳', popularity: 92, sample: '你好，你怎么样？' }
+];
+
 interface DubbingPanelProps {
   audioBlob: Blob | null;
   onDubbingComplete?: (dubbedBlob: Blob) => void;
@@ -214,10 +226,30 @@ export default function DubbingPanel({
 
   if (!audioBlob) {
     return (
-      <div className="p-4 bg-[#1A1A1A] rounded-xl border border-[#2A2A2A]">
-        <p className="text-gray-400 text-center">
-          Record audio first to enable dubbing
-        </p>
+      <div className="bg-gradient-to-br from-[#1A1A1A] to-[#2A2A2A] border border-[#3A3A3A] rounded-2xl p-8">
+        <div className="text-center py-8">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+            </svg>
+          </div>
+          <h3 className="text-2xl font-bold text-white mb-3">AI Voice Dubbing</h3>
+          <p className="text-gray-400 mb-6">Record audio first to unlock language transformation</p>
+          
+          {/* Preview of available languages */}
+          <div className="grid grid-cols-4 gap-3 max-w-md mx-auto mb-6">
+            {POPULAR_LANGUAGES.slice(0, 8).map((lang) => (
+              <div key={lang.code} className="p-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg opacity-50">
+                <div className="text-lg mb-1">{lang.flag}</div>
+                <div className="text-xs text-gray-500">{lang.name}</div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="text-sm text-gray-500">
+            Transform your voice into 8+ languages with AI
+          </div>
+        </div>
       </div>
     );
   }
