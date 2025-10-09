@@ -2,7 +2,33 @@
 
 import React, { useState, useCallback } from "react";
 import { useWebAudioRecording } from "../hooks/useWebAudioRecording";
-import { Users, Share2, Heart, MessageCircle, Globe, Lock, Zap, Languages, Wand2 } from "lucide-react";
+import {
+  Users,
+  Share2,
+  Heart,
+  MessageCircle,
+  Globe,
+  Lock,
+  Zap,
+  Languages,
+  Wand2,
+} from "lucide-react";
+
+// Type-safe icon wrappers to resolve React 18/19 compatibility issues
+const CompatibleUsers = Users as React.ComponentType<{ className?: string }>;
+const CompatibleShare2 = Share2 as React.ComponentType<{ className?: string }>;
+const CompatibleHeart = Heart as React.ComponentType<{ className?: string }>;
+const CompatibleMessageCircle = MessageCircle as React.ComponentType<{
+  className?: string;
+}>;
+const CompatibleGlobe = Globe as React.ComponentType<{ className?: string }>;
+const CompatibleLock = Lock as React.ComponentType<{ className?: string }>;
+const CompatibleZap = Zap as React.ComponentType<{ className?: string }>;
+const CompatibleLanguages = Languages as React.ComponentType<{
+  className?: string;
+}>;
+const CompatibleWand2 = Wand2 as React.ComponentType<{ className?: string }>;
+
 import RealTimeWaveform from "./RealTimeWaveform";
 import { createAIServiceClient } from "@voisss/shared";
 
@@ -10,7 +36,9 @@ interface SocialRecordingStudioProps {
   onRecordingComplete?: (audioBlob: Blob, metadata: any) => void;
 }
 
-export default function SocialRecordingStudio({ onRecordingComplete }: SocialRecordingStudioProps) {
+export default function SocialRecordingStudio({
+  onRecordingComplete,
+}: SocialRecordingStudioProps) {
   const {
     isRecording,
     isLoading,
@@ -45,10 +73,17 @@ export default function SocialRecordingStudio({ onRecordingComplete }: SocialRec
     { id: "music", name: "🎵 Music Producers", members: 1243 },
     { id: "podcast", name: "🎙️ Podcast Creators", members: 876 },
     { id: "language", name: "🌍 Language Learners", members: 542 },
-    { id: "voice", name: "🎭 Voice Actors", members: 324 }
+    { id: "voice", name: "🎭 Voice Actors", members: 324 },
   ];
 
-  const popularTags = ["music", "podcast", "voice-over", "demo", "practice", "collaboration"];
+  const popularTags = [
+    "music",
+    "podcast",
+    "voice-over",
+    "demo",
+    "practice",
+    "collaboration",
+  ];
   const aiVoices = ["Professional", "Warm", "Energetic", "Calm", "Dramatic"];
   const languages = ["English", "Spanish", "French", "German", "Japanese"];
 
@@ -77,16 +112,16 @@ export default function SocialRecordingStudio({ onRecordingComplete }: SocialRec
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
+    setTags(tags.filter((tag) => tag !== tagToRemove));
   };
 
   const handleAIEnhancement = async () => {
     if (!audioBlob) return;
-    
+
     setIsProcessing(true);
     try {
       // Simulate AI processing
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 3000));
       setEnhancedBlob(audioBlob); // In real implementation, this would be the enhanced audio
       setShowAIOptions(false);
     } catch (error) {
@@ -108,7 +143,7 @@ export default function SocialRecordingStudio({ onRecordingComplete }: SocialRec
         duration,
         aiEnhanced: !!enhancedBlob,
         voice: selectedVoice,
-        language: selectedLanguage
+        language: selectedLanguage,
       };
       onRecordingComplete(finalBlob, metadata);
     }
@@ -118,7 +153,9 @@ export default function SocialRecordingStudio({ onRecordingComplete }: SocialRec
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
+    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
+      .toString()
+      .padStart(2, "0")}`;
   };
 
   return (
@@ -126,14 +163,16 @@ export default function SocialRecordingStudio({ onRecordingComplete }: SocialRec
       {/* Header */}
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-white mb-2">Create & Share</h2>
-        <p className="text-gray-400">Record, enhance with AI, and share with the community</p>
+        <p className="text-gray-400">
+          Record, enhance with AI, and share with the community
+        </p>
       </div>
 
       {/* Recording Interface */}
       <div className="bg-gradient-to-br from-[#1A1A1A] to-[#2A2A2A] border border-[#3A3A3A] rounded-2xl p-8 mb-8">
         {/* Waveform Visualization */}
         <div className="mb-8">
-          <RealTimeWaveform 
+          <RealTimeWaveform
             isRecording={isRecording}
             audioData={waveformData}
             className="h-32"
@@ -200,7 +239,7 @@ export default function SocialRecordingStudio({ onRecordingComplete }: SocialRec
       {showAIOptions && audioBlob && (
         <div className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 border border-purple-500/30 rounded-2xl p-6 mb-8">
           <div className="flex items-center gap-3 mb-6">
-            <Wand2 className="w-6 h-6 text-purple-400" />
+            <CompatibleWand2 className="w-6 h-6 text-purple-400" />
             <h3 className="text-xl font-semibold text-white">AI Enhancement</h3>
           </div>
 
@@ -216,8 +255,10 @@ export default function SocialRecordingStudio({ onRecordingComplete }: SocialRec
                 className="w-full px-4 py-3 bg-[#1A1A1A] border border-[#3A3A3A] rounded-lg text-white focus:border-purple-500 focus:outline-none"
               >
                 <option value="">Keep Original</option>
-                {aiVoices.map(voice => (
-                  <option key={voice} value={voice}>{voice}</option>
+                {aiVoices.map((voice) => (
+                  <option key={voice} value={voice}>
+                    {voice}
+                  </option>
                 ))}
               </select>
             </div>
@@ -225,7 +266,7 @@ export default function SocialRecordingStudio({ onRecordingComplete }: SocialRec
             {/* Language Dubbing */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                <Languages className="w-4 h-4 inline mr-1" />
+                <CompatibleLanguages className="w-4 h-4 inline mr-1" />
                 Translate to
               </label>
               <select
@@ -234,8 +275,10 @@ export default function SocialRecordingStudio({ onRecordingComplete }: SocialRec
                 className="w-full px-4 py-3 bg-[#1A1A1A] border border-[#3A3A3A] rounded-lg text-white focus:border-purple-500 focus:outline-none"
               >
                 <option value="">Keep Original Language</option>
-                {languages.map(lang => (
-                  <option key={lang} value={lang}>{lang}</option>
+                {languages.map((lang) => (
+                  <option key={lang} value={lang}>
+                    {lang}
+                  </option>
                 ))}
               </select>
             </div>
@@ -254,7 +297,7 @@ export default function SocialRecordingStudio({ onRecordingComplete }: SocialRec
                 </>
               ) : (
                 <>
-                  <Zap className="w-4 h-4" />
+                  <CompatibleZap className="w-4 h-4" />
                   Enhance with AI
                 </>
               )}
@@ -273,7 +316,7 @@ export default function SocialRecordingStudio({ onRecordingComplete }: SocialRec
       {(audioBlob || enhancedBlob) && !showAIOptions && (
         <div className="bg-gradient-to-br from-[#1A1A1A] to-[#2A2A2A] border border-[#3A3A3A] rounded-2xl p-6 mb-8">
           <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-            <Share2 className="w-5 h-5" />
+            <CompatibleShare2 className="w-5 h-5" />
             Share with Community
           </h3>
 
@@ -309,7 +352,7 @@ export default function SocialRecordingStudio({ onRecordingComplete }: SocialRec
             {/* Community Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                <Users className="w-4 h-4 inline mr-1" />
+                <CompatibleUsers className="w-4 h-4 inline mr-1" />
                 Share to Community
               </label>
               <select
@@ -318,7 +361,7 @@ export default function SocialRecordingStudio({ onRecordingComplete }: SocialRec
                 className="w-full px-4 py-3 bg-[#0A0A0A] border border-[#3A3A3A] rounded-lg text-white focus:border-purple-500 focus:outline-none"
               >
                 <option value="">Select a community...</option>
-                {communities.map(community => (
+                {communities.map((community) => (
                   <option key={community.id} value={community.id}>
                     {community.name} ({community.members} members)
                   </option>
@@ -332,7 +375,7 @@ export default function SocialRecordingStudio({ onRecordingComplete }: SocialRec
                 Tags
               </label>
               <div className="flex flex-wrap gap-2 mb-3">
-                {tags.map(tag => (
+                {tags.map((tag) => (
                   <span
                     key={tag}
                     className="px-3 py-1 bg-purple-600/20 border border-purple-500/30 rounded-full text-sm text-purple-300 flex items-center gap-2"
@@ -352,7 +395,7 @@ export default function SocialRecordingStudio({ onRecordingComplete }: SocialRec
                   type="text"
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddTag(newTag)}
+                  onKeyPress={(e) => e.key === "Enter" && handleAddTag(newTag)}
                   placeholder="Add a tag..."
                   className="flex-1 px-3 py-2 bg-[#0A0A0A] border border-[#3A3A3A] rounded-lg text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none text-sm"
                 />
@@ -364,7 +407,7 @@ export default function SocialRecordingStudio({ onRecordingComplete }: SocialRec
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {popularTags.map(tag => (
+                {popularTags.map((tag) => (
                   <button
                     key={tag}
                     onClick={() => handleAddTag(tag)}
@@ -386,22 +429,22 @@ export default function SocialRecordingStudio({ onRecordingComplete }: SocialRec
                   onClick={() => setIsPublic(true)}
                   className={`flex-1 px-4 py-3 rounded-lg border transition-all duration-200 flex items-center justify-center gap-2 ${
                     isPublic
-                      ? 'bg-green-600/20 border-green-500/50 text-green-300'
-                      : 'bg-[#0A0A0A] border-[#3A3A3A] text-gray-400 hover:border-gray-500'
+                      ? "bg-green-600/20 border-green-500/50 text-green-300"
+                      : "bg-[#0A0A0A] border-[#3A3A3A] text-gray-400 hover:border-gray-500"
                   }`}
                 >
-                  <Globe className="w-4 h-4" />
+                  <CompatibleGlobe className="w-4 h-4" />
                   Public
                 </button>
                 <button
                   onClick={() => setIsPublic(false)}
                   className={`flex-1 px-4 py-3 rounded-lg border transition-all duration-200 flex items-center justify-center gap-2 ${
                     !isPublic
-                      ? 'bg-orange-600/20 border-orange-500/50 text-orange-300'
-                      : 'bg-[#0A0A0A] border-[#3A3A3A] text-gray-400 hover:border-gray-500'
+                      ? "bg-orange-600/20 border-orange-500/50 text-orange-300"
+                      : "bg-[#0A0A0A] border-[#3A3A3A] text-gray-400 hover:border-gray-500"
                   }`}
                 >
-                  <Lock className="w-4 h-4" />
+                  <CompatibleLock className="w-4 h-4" />
                   Private
                 </button>
               </div>
@@ -418,8 +461,8 @@ export default function SocialRecordingStudio({ onRecordingComplete }: SocialRec
             disabled={!recordingTitle.trim()}
             className="px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 rounded-xl text-white text-lg font-semibold hover:from-green-700 hover:to-green-800 transition-all duration-200 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 mx-auto"
           >
-            <Share2 className="w-5 h-5" />
-            {isPublic ? 'Publish to Community' : 'Save Recording'}
+            <CompatibleShare2 className="w-5 h-5" />
+            {isPublic ? "Publish to Community" : "Save Recording"}
           </button>
         </div>
       )}

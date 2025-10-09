@@ -5,11 +5,14 @@ import {
   View,
   TouchableOpacity,
   Platform,
+  Dimensions,
 } from "react-native";
 import { Play, Pause, SkipBack, SkipForward } from "lucide-react-native";
 import { theme, globalStyles } from "../constants/theme";
 import colors from "../constants/colors";
 import { formatDuration } from "../utils/formatters";
+
+import WaveformVisualization from "./WaveformVisualization";
 
 interface AudioPlayerProps {
   duration: number;
@@ -79,25 +82,12 @@ export default function AudioPlayer({
 
     return (
       <View style={styles.waveformContainer}>
-        <View style={styles.waveform}>
-          {waveform.map((value, index) => {
-            const isActive = index / waveform.length <= progress;
-            return (
-              <View
-                key={index}
-                style={[
-                  styles.waveformBar,
-                  {
-                    height: value * 50,
-                    backgroundColor: isActive
-                      ? colors.dark.primary
-                      : colors.dark.waveformBackground,
-                  },
-                ]}
-              />
-            );
-          })}
-        </View>
+        <WaveformVisualization
+          isRecording={false}
+          meteringData={waveform}
+          width={Dimensions.get("window").width - 48}
+          height={50}
+        />
         <View style={styles.timeContainer}>
           <Text style={styles.timeText}>{formatDuration(seekPosition)}</Text>
           <Text style={styles.timeText}>{formatDuration(duration)}</Text>

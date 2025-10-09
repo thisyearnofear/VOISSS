@@ -4,7 +4,7 @@ import {
   type VoiceNFTMetadata,
   type MarketplaceListing,
 } from "@voisss/shared/starknet";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getStoredWalletAddress, saveUserSession, clearUserSession } from "@voisss/shared/src/utils/session";
 
 const STORAGE_KEYS = {
   WALLET_ADDRESS: "@voisss/wallet_address",
@@ -19,24 +19,38 @@ class StarknetMobile {
   }
 
   async getStoredWalletAddress(): Promise<string | null> {
-    return AsyncStorage.getItem(STORAGE_KEYS.WALLET_ADDRESS);
+    return getStoredWalletAddress();
   }
 
   async setStoredWalletAddress(address: string): Promise<void> {
-    return AsyncStorage.setItem(STORAGE_KEYS.WALLET_ADDRESS, address);
+    // Use the shared session utility instead of direct AsyncStorage
+    const session = await import("@voisss/shared/src/utils/session");
+    const existingSession = await session.loadUserSession();
+    if (existingSession) {
+      await session.updateSession({ walletAddress: address });
+    } else {
+      await session.createSession(address);
+    }
   }
 
   async clearStoredWalletAddress(): Promise<void> {
-    return AsyncStorage.removeItem(STORAGE_KEYS.WALLET_ADDRESS);
+    return clearUserSession();
   }
 
   async getStoredNetwork(): Promise<string> {
-    const network = await AsyncStorage.getItem(STORAGE_KEYS.NETWORK);
+    const session = await import("@voisss/shared/src/utils/session");
+    const network = await session.getStoredNetwork();
     return network || STARKNET_NETWORKS.TESTNET.networkId;
   }
 
   async setStoredNetwork(networkId: string): Promise<void> {
-    return AsyncStorage.setItem(STORAGE_KEYS.NETWORK, networkId);
+    const session = await import("@voisss/shared/src/utils/session");
+    const existingSession = await session.loadUserSession();
+    if (existingSession) {
+      await session.updateSession({ network: networkId });
+    } else {
+      await session.createSession(undefined, networkId);
+    }
   }
 
   async connectWallet(): Promise<void> {

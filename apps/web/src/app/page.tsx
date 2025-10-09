@@ -6,6 +6,7 @@ import StarknetRecordingStudio from "../components/StarknetRecordingStudio";
 import EnhancedLandingHero from "../components/EnhancedLandingHero";
 import StarknetShowcase from "../components/StarknetShowcase";
 import { useAccount } from "@starknet-react/core";
+import { formatDuration } from "@voisss/shared";
 
 export default function Home() {
   const { isConnected } = useAccount();
@@ -30,14 +31,6 @@ export default function Home() {
     setRecordings((prev) => [newRecording, ...prev]);
   };
 
-  const formatDuration = (ms: number): string => {
-    const seconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
-      .toString()
-      .padStart(2, "0")}`;
-  };
 
   const handlePlayRecording = (recording: any) => {
     const audio = new Audio(URL.createObjectURL(recording.blob));

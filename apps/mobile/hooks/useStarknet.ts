@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSession, useUpdateSession, useCreateSession } from '@voisss/shared/src/hooks/useSession';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
@@ -87,6 +88,11 @@ export function useStarknet(): StarknetState & StarknetActions {
     balance: null,
     address: null,
   });
+  
+  // Use cross-platform session management
+  const { data: session } = useSession();
+  const { mutateAsync: updateSession } = useUpdateSession();
+  const { mutateAsync: createSession } = useCreateSession();
 
   // Initialize provider on mount
   useEffect(() => {
@@ -95,7 +101,8 @@ export function useStarknet(): StarknetState & StarknetActions {
 
   const initializeProvider = async () => {
     try {
-      const savedNetwork = await AsyncStorage.getItem(STORAGE_KEYS.NETWORK) || 'sepolia';
+      // Use network from session if available, otherwise default to sepolia
+      const savedNetwork = session?.network || await AsyncStorage.getItem(STORAGE_KEYS.NETWORK) || 'sepolia';
       const network = NETWORKS[savedNetwork as keyof typeof NETWORKS];
       
       const provider: StarknetProvider = {
@@ -110,7 +117,7 @@ export function useStarknet(): StarknetState & StarknetActions {
       }));
 
       // Check for saved account
-      const savedAddress = await AsyncStorage.getItem(STORAGE_KEYS.ADDRESS);
+      const savedAddress = session?.walletAddress || await AsyncStorage.getItem(STORAGE_KEYS.ADDRESS);
       const savedPrivateKey = await AsyncStorage.getItem(STORAGE_KEYS.PRIVATE_KEY);
       
       if (savedAddress && savedPrivateKey) {
@@ -159,9 +166,16 @@ export function useStarknet(): StarknetState & StarknetActions {
         privateKey,
       };
 
-      // Save to secure storage
+      // Save to secure storage and update session
       await AsyncStorage.setItem(STORAGE_KEYS.ADDRESS, mockAddress);
       await AsyncStorage.setItem(STORAGE_KEYS.PRIVATE_KEY, privateKey);
+      
+      // Update cross-platform session
+      if (session) {
+        await updateSession({ walletAddress: mockAddress });
+      } else {
+        await createSession({ walletAddress: mockAddress });
+      }
 
       setState(prev => ({
         ...prev,
@@ -181,7 +195,7 @@ export function useStarknet(): StarknetState & StarknetActions {
       }));
       throw error;
     }
-  }, []);
+  }, [session, updateSession, createSession]);
 
   const disconnect = useCallback(async () => {
     try {
@@ -301,6 +315,11 @@ export function useStarknet(): StarknetState & StarknetActions {
       };
 
       await AsyncStorage.setItem(STORAGE_KEYS.NETWORK, network);
+      
+      // Update cross-platform session
+      if (session) {
+        await updateSession({ network });
+      }
 
       setState(prev => ({
         ...prev,
@@ -320,7 +339,7 @@ export function useStarknet(): StarknetState & StarknetActions {
         error: 'Failed to switch network',
       }));
     }
-  }, [state.isConnected, getBalance]);
+  }, [session, state.isConnected, getBalance, updateSession]);
 
   return {
     ...state,

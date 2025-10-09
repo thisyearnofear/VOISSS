@@ -7,6 +7,7 @@ import {
 } from '@voisss/shared';
 import { VoiceRecording } from '@voisss/shared/types';
 import { queryKeys, handleQueryError } from '../../lib/query-client';
+import { useSession, useUpdateSession } from '@voisss/shared/src/hooks/useSession';
 
 // Extended recording interface for this component
 interface Recording extends Omit<VoiceRecording, 'createdAt' | 'updatedAt'> {
@@ -68,6 +69,8 @@ export function useUserRecordings() {
 export function useSaveRecording() {
   const { address } = useAccount();
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
+  const { mutateAsync: updateSession } = useUpdateSession();
   
   return useMutation({
     mutationFn: async (recording: Recording) => {
@@ -85,6 +88,11 @@ export function useSaveRecording() {
       
       recordings.push(newRecording);
       localStorage.setItem(`recordings_${address}`, JSON.stringify(recordings));
+      
+      // Update cross-platform session with wallet address
+      if (session && session.walletAddress !== address) {
+        await updateSession({ walletAddress: address });
+      }
       
       return newRecording;
     },

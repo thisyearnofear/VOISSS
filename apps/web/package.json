@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev -p 4445",
     "build": "next build",
+    "build:analyze": "ANALYZE=true next build",
     "start": "next start -p 4444",
     "lint": "next lint"
   },
@@ -22,6 +23,7 @@
     "starknetkit": "^2.10.4"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^14.1.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import * as Haptics from "expo-haptics";
 import {
   Mic,
   Square,
@@ -32,20 +33,12 @@ import { useRecordingsStore } from "../../store/recordingsStore";
 import { useStarknet } from "../../hooks/useStarknet";
 import { useFeatureGating } from "../../utils/featureGating";
 import colors from "../../constants/colors";
-import { createAIServiceClient } from "@voisss/shared";
+import { createAIServiceClient, formatDuration } from "@voisss/shared";
 import type { VoiceInfo } from "@voisss/shared/types/audio";
 
 const { width } = Dimensions.get("window");
 
-// Utility function to format duration
-const formatDuration = (ms: number): string => {
-  const seconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
-    .toString()
-    .padStart(2, "0")}`;
-};
+import WaveformVisualization from "../../components/WaveformVisualization";
 
 export default function RecordScreen() {
   const router = useRouter();
@@ -61,6 +54,7 @@ export default function RecordScreen() {
     pauseRecording,
     resumeRecording,
     cancelRecording,
+    meteringData, // Add this line
   } = useAudioRecording();
 
   const { addRecording, addRecordingWithIPFS } = useRecordingsStore();
@@ -68,8 +62,12 @@ export default function RecordScreen() {
   const { getCurrentTier, getUserCapabilities } = useFeatureGating();
 
   // IPFS upload state from store
-  const isUploadingToIPFS = useRecordingsStore((state) => state.isUploadingToIPFS);
-  const ipfsUploadProgress = useRecordingsStore((state) => state.ipfsUploadProgress);
+  const isUploadingToIPFS = useRecordingsStore(
+    (state) => state.isUploadingToIPFS
+  );
+  const ipfsUploadProgress = useRecordingsStore(
+    (state) => state.ipfsUploadProgress
+  );
 
   const currentTier = getCurrentTier();
   const capabilities = getUserCapabilities();
@@ -81,10 +79,12 @@ export default function RecordScreen() {
   const [isTransforming, setIsTransforming] = useState(false);
   const [transformedBlob, setTransformedBlob] = useState<Blob | null>(null);
   const [showAITransform, setShowAITransform] = useState(false);
-  const [aiService] = useState(() => createAIServiceClient({
-    apiBaseUrl: 'https://voisss.netlify.app/api',
-    platform: 'mobile'
-  }));
+  const [aiService] = useState(() =>
+    createAIServiceClient({
+      apiBaseUrl: "https://voisss.netlify.app/api",
+      platform: "mobile",
+    })
+  );
 
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTitle, setRecordingTitle] = useState("");
@@ -111,8 +111,8 @@ export default function RecordScreen() {
         setSelectedVoiceId(availableVoices[0].voiceId);
       }
     } catch (error) {
-      console.error('Failed to load voices:', error);
-      Alert.alert('Error', 'Failed to load AI voices');
+      console.error("Failed to load voices:", error);
+      Alert.alert("Error", "Failed to load AI voices");
     } finally {
       setIsLoadingVoices(false);
     }
@@ -129,11 +129,14 @@ export default function RecordScreen() {
       const response = await fetch(uri);
       const audioBlob = await response.blob();
 
-      const transformedBlob = await aiService.transformVoice(audioBlob, selectedVoiceId);
+      const transformedBlob = await aiService.transformVoice(
+        audioBlob,
+        selectedVoiceId
+      );
       setTransformedBlob(transformedBlob);
     } catch (error) {
-      console.error('Voice transformation failed:', error);
-      Alert.alert('Error', 'Failed to transform voice');
+      console.error("Voice transformation failed:", error);
+      Alert.alert("Error", "Failed to transform voice");
     } finally {
       setIsTransforming(false);
     }
@@ -177,6 +180,7 @@ export default function RecordScreen() {
       await startRecording();
       setIsPaused(false);
       setShowSaveOptions(false);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch (error) {
       Alert.alert(
         "Recording Error",
@@ -194,6 +198,7 @@ export default function RecordScreen() {
         if (capabilities.canAccessAI) {
           setShowAITransform(true);
         }
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (error) {
       Alert.alert(
@@ -285,7 +290,16 @@ export default function RecordScreen() {
     } catch (error) {
       Alert.alert("Save Error", "Failed to save recording. Please try again.");
     }
-  }, [uri, duration, recordingTitle, addRecording, addRecordingWithIPFS, storeRecording, capabilities.canAccessWeb3, router]);
+  }, [
+    uri,
+    duration,
+    recordingTitle,
+    addRecording,
+    addRecordingWithIPFS,
+    storeRecording,
+    capabilities.canAccessWeb3,
+    router,
+  ]);
 
   const handleCancelRecording = useCallback(async () => {
     Alert.alert(
@@ -425,14 +439,17 @@ export default function RecordScreen() {
                 <TouchableOpacity
                   style={[
                     styles.voiceItem,
-                    selectedVoiceId === item.voiceId && styles.voiceItemSelected,
+                    selectedVoiceId === item.voiceId &&
+                      styles.voiceItemSelected,
                   ]}
                   onPress={() => setSelectedVoiceId(item.voiceId)}
                 >
                   <View style={styles.voiceInfo}>
                     <Text style={styles.voiceName}>{item.name}</Text>
                     {item.description && (
-                      <Text style={styles.voiceDescription}>{item.description}</Text>
+                      <Text style={styles.voiceDescription}>
+                        {item.description}
+                      </Text>
                     )}
                   </View>
                   {selectedVoiceId === item.voiceId && (
@@ -452,7 +469,8 @@ export default function RecordScreen() {
         <TouchableOpacity
           style={[
             styles.transformButton,
-            (!selectedVoiceId || isTransforming) && styles.transformButtonDisabled,
+            (!selectedVoiceId || isTransforming) &&
+              styles.transformButtonDisabled,
           ]}
           onPress={transformVoice}
           disabled={!selectedVoiceId || isTransforming}
@@ -473,7 +491,9 @@ export default function RecordScreen() {
         {/* Transformed Audio Preview */}
         {transformedBlob && (
           <View style={styles.transformedContainer}>
-            <Text style={styles.transformedTitle}>Transformed Audio Ready!</Text>
+            <Text style={styles.transformedTitle}>
+              Transformed Audio Ready!
+            </Text>
             <TouchableOpacity style={styles.playButton}>
               <Volume2 size={20} color={colors.dark.text} />
               <Text style={styles.playButtonText}>Play Preview</Text>
@@ -537,7 +557,7 @@ export default function RecordScreen() {
                     <View
                       style={[
                         styles.ipfsProgressFill,
-                        { width: `${ipfsUploadProgress}%` }
+                        { width: `${ipfsUploadProgress}%` },
                       ]}
                     />
                   </View>
@@ -549,12 +569,12 @@ export default function RecordScreen() {
             </View>
 
             <View style={styles.waveformContainer}>
-              {/* Placeholder for waveform visualization */}
-              <View style={styles.waveformPlaceholder}>
-                <Text style={styles.waveformText}>
-                  {isRecording ? "🎵 Recording audio..." : "🎤 Ready to record"}
-                </Text>
-              </View>
+              <WaveformVisualization
+                isRecording={isRecording}
+                meteringData={meteringData}
+                width={width - 32}
+                height={100}
+              />
             </View>
 
             {renderRecordingButton()}

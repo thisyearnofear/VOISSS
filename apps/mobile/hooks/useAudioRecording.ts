@@ -38,6 +38,7 @@ export interface RecordingState {
   duration: number;
   uri: string | null;
   error: string | null;
+  meteringData?: number[];
 }
 
 export interface RecordingActions {
@@ -64,6 +65,7 @@ export function useAudioRecording(): RecordingState & RecordingActions {
     duration: 0,
     uri: null,
     error: null,
+    meteringData: [],
   });
 
   // Web Audio API recorder for web platform
@@ -79,11 +81,12 @@ export function useAudioRecording(): RecordingState & RecordingActions {
   // Use the expo-audio hook for native platforms (if available)
   const audioRecorder = Platform.OS !== 'web' && useAudioRecorder && RecordingPresets ?
     useAudioRecorder(RecordingPresets.HIGH_QUALITY, (status: any) => {
-      // Update duration from recording status
+      // Update duration and metering data from recording status
       setState(prev => ({
         ...prev,
         duration: status.durationMillis || 0,
         isRecording: status.isRecording,
+        meteringData: status.metering ? [status.metering] : prev.meteringData,
       }));
     }) : null;
 
@@ -192,7 +195,11 @@ export function useAudioRecording(): RecordingState & RecordingActions {
       } else {
         // Native recording
         if (!audioRecorder) throw new Error('Audio recorder not available');
-        await audioRecorder.prepareToRecordAsync();
+        // Enable metering in recording options
+        await audioRecorder.prepareToRecordAsync({
+          ...RecordingPresets.HIGH_QUALITY,
+          isMeteringEnabled: true, // Add this line
+        });
         audioRecorder.record();
 
         setState(prev => ({

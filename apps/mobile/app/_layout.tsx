@@ -8,6 +8,7 @@ import { Platform } from "react-native";
 import { ErrorBoundary } from "./error-boundary";
 import colors from "../constants/colors";
 import { useOnboardingStore } from "../store/onboardingStore";
+import { AppProviders } from "../providers";
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
@@ -41,10 +42,12 @@ export default function RootLayout() {
 
   return (
     <ErrorBoundary>
-      <>
-        <StatusBar style="light" />
-        <RootLayoutNav />
-      </>
+      <AppProviders>
+        <>
+          <StatusBar style="light" />
+          <RootLayoutNav />
+        </>
+      </AppProviders>
     </ErrorBoundary>
   );
 }
