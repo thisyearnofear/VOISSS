@@ -328,21 +328,51 @@ export default function DubbingPanel({
               </p>
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
-                🌍 Target Language
+            <div className="space-y-4">
+              <label className="block text-lg font-semibold text-white">
+                🌍 Choose Target Language
               </label>
-              <LanguageSelector
-                selectedLanguage={selectedTargetLanguage}
-                onLanguageChange={setSelectedTargetLanguage}
-                languages={availableLanguages}
-                placeholder="Select target language..."
-                disabled={disabled || isDubbing}
-                className="w-full"
-                viewMode="cards"
-              />
+              
+              {/* Enhanced Visual Language Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {POPULAR_LANGUAGES.map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => setSelectedTargetLanguage(lang.code)}
+                    disabled={disabled || isDubbing}
+                    className={`p-4 rounded-xl border transition-all duration-200 ${
+                      selectedTargetLanguage === lang.code
+                        ? 'border-purple-500 bg-purple-500/20 shadow-lg'
+                        : 'border-gray-600 bg-gray-800 hover:border-gray-500 hover:bg-gray-700'
+                    } ${disabled || isDubbing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    <div className="text-2xl mb-2">{lang.flag}</div>
+                    <div className="text-sm font-medium text-white mb-1">{lang.name}</div>
+                    <div className="text-xs text-gray-400">{lang.popularity}% popular</div>
+                  </button>
+                ))}
+              </div>
+              
+              {/* Fallback to original selector for other languages */}
+              <details className="mt-4">
+                <summary className="text-sm text-gray-400 cursor-pointer hover:text-white transition-colors">
+                  More languages available...
+                </summary>
+                <div className="mt-3">
+                  <LanguageSelector
+                    selectedLanguage={selectedTargetLanguage}
+                    onLanguageChange={setSelectedTargetLanguage}
+                    languages={availableLanguages}
+                    placeholder="Select other language..."
+                    disabled={disabled || isDubbing}
+                    className="w-full"
+                    viewMode="cards"
+                  />
+                </div>
+              </details>
+              
               <p className="text-xs text-gray-400">
-                💡 Popular languages are shown first. Your content will be translated while preserving the original emotion and tone.
+                Popular languages shown above. Content will be translated while preserving emotion and tone.
               </p>
             </div>
 
