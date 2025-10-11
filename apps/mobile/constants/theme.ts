@@ -34,6 +34,7 @@ export const theme = {
       medium: 500,
       semibold: 600,
       bold: 700,
+      extrabold: 800,
     },
   },
   shadows: {
@@ -84,6 +85,8 @@ export const globalStyles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.dark.border,
   },
   row: {
     flexDirection: "row",
@@ -125,6 +128,11 @@ export const globalStyles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: colors.dark.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   buttonText: {
     color: colors.dark.text,
@@ -134,5 +142,72 @@ export const globalStyles = StyleSheet.create({
   iconButton: {
     padding: theme.spacing.sm,
     borderRadius: theme.borderRadius.full,
+    backgroundColor: colors.dark.card,
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+  },
+});
+
+// Enhanced button styles
+export const buttonStyles = StyleSheet.create({
+  primary: {
+    backgroundColor: colors.dark.primary,
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: colors.dark.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  primaryText: {
+    color: colors.dark.text,
+    fontSize: theme.typography.fontSizes.md,
+    fontWeight: "600",
+  },
+  secondary: {
+    backgroundColor: "transparent",
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: colors.dark.primary,
+  },
+  secondaryText: {
+    color: colors.dark.primary,
+    fontSize: theme.typography.fontSizes.md,
+    fontWeight: "600",
+  },
+  danger: {
+    backgroundColor: colors.dark.error,
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: colors.dark.error,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  dangerText: {
+    color: colors.dark.text,
+    fontSize: theme.typography.fontSizes.md,
+    fontWeight: "600",
+  },
+  iconButton: {
+    padding: theme.spacing.sm,
+    borderRadius: theme.borderRadius.full,
+    backgroundColor: colors.dark.card,
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

@@ -129,7 +129,7 @@ export default function PlatformPage() {
         <div className="text-center mt-12">
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="/"
+              href="/studio"
               className="px-6 py-3 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white font-semibold rounded-xl hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-200 flex items-center justify-center gap-2"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

@@ -47,13 +47,12 @@ export default function Nav() {
             
             {!isConnected && (
               <div className="flex items-center gap-3">
-                <Link 
-                  href="/#recording-section" 
-                  className="px-3 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium"
-                >
-                  Try Free
-                </Link>
-                <button
+                                            <Link 
+                                              href="/studio" 
+                                              className="px-3 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium"
+                                            >
+                                              Studio
+                                            </Link>                <button
                   onClick={() => setShowWalletModal(true)}
                   className="px-4 py-2 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-lg text-white text-sm font-medium hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-200 flex items-center gap-2"
                 >

@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from "react";
-import { View, StyleSheet, Text, Dimensions } from "react-native";
+import { View, StyleSheet, Text, Dimensions, Animated } from "react-native";
 import Svg, { Rect } from "react-native-svg";
 import colors from "../constants/colors";
+import { theme } from "../constants/theme";
 
 interface WaveformVisualizationProps {
   isRecording: boolean;
@@ -18,11 +19,43 @@ export default function WaveformVisualization({
   width,
   height,
 }: WaveformVisualizationProps) {
-  const animationRef = useRef<number>(0); // Fix: Initialize with 0
+  const animationRef = useRef<number>(0);
   const [waveformData, setWaveformData] = React.useState<number[]>(
     new Array(WAVEFORM_BARS).fill(0)
   );
   const lastMeteringRef = useRef<number[]>([]);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Animate the recording indicator pulse
+  useEffect(() => {
+    let pulseAnimation: Animated.CompositeAnimation;
+
+    if (isRecording) {
+      pulseAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.2,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      pulseAnimation.start();
+    } else {
+      pulseAnim.setValue(1);
+    }
+
+    return () => {
+      if (pulseAnimation) {
+        pulseAnimation.stop();
+      }
+    };
+  }, [isRecording, pulseAnim]);
 
   useEffect(() => {
     if (!isRecording) {
@@ -107,16 +140,18 @@ export default function WaveformVisualization({
           const x = index * barWidth;
           const y = (height - barHeight) / 2;
 
-          // Create gradient effect
+          // Create gradient effect with more dynamic coloring
           const isActive =
             isRecording &&
             index / waveformData.length >
-              (waveformData.length - 10) / waveformData.length;
+              (waveformData.length - 15) / waveformData.length;
+
+          // More vibrant colors for active bars
           const color = isActive
             ? colors.dark.primary
             : isRecording
-            ? `rgba(124, 93, 250, ${0.3 + value * 0.7})`
-            : `rgba(107, 114, 128, ${0.2 + value * 0.3})`;
+            ? `rgba(124, 93, 250, ${0.4 + value * 0.6})`
+            : `rgba(107, 114, 128, ${0.1 + value * 0.2})`;
 
           return (
             <Rect
@@ -126,18 +161,23 @@ export default function WaveformVisualization({
               width={Math.max(1, barWidth - 1)}
               height={Math.max(1, barHeight)}
               fill={color}
-              rx={barWidth / 4}
+              rx={barWidth / 3}
             />
           );
         })}
       </Svg>
 
-      {/* Recording indicator */}
+      {/* Enhanced recording indicator with pulse animation */}
       {isRecording && (
-        <View style={styles.recordingIndicator}>
+        <Animated.View
+          style={[
+            styles.recordingIndicator,
+            { transform: [{ scale: pulseAnim }] },
+          ]}
+        >
           <View style={styles.recordingDot} />
           <Text style={styles.recordingText}>REC</Text>
-        </View>
+        </Animated.View>
       )}
     </View>
   );
@@ -148,27 +188,40 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: colors.dark.card,
-    borderRadius: 12,
+    borderRadius: theme.borderRadius.xl,
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+    shadowColor: colors.dark.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   recordingIndicator: {
     position: "absolute",
-    top: 8,
-    right: 8,
+    top: 12,
+    right: 12,
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
+    backgroundColor: `${colors.dark.error}20`,
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   recordingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: colors.dark.error,
-    opacity: 0.8,
+    opacity: 0.9,
   },
   recordingText: {
-    fontSize: 10,
-    fontWeight: "600",
+    fontSize: theme.typography.fontSizes.sm,
+    fontWeight: "700",
     color: colors.dark.error,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
 });
