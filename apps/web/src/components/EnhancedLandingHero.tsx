@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAccount } from "@starknet-react/core";
 import { Mic, Zap, Globe, Users, TrendingUp } from "lucide-react";
+import Link from "next/link";
 
 // Type-safe icon wrappers to resolve React 18/19 compatibility issues
 const CompatibleMic = Mic as React.ComponentType<{ className?: string }>;
@@ -83,17 +84,13 @@ export default function EnhancedLandingHero() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-            <button
-              onClick={() =>
-                document
-                  .getElementById("recording-section")
-                  ?.scrollIntoView({ behavior: "smooth" })
-              }
+            <Link
+              href="/record"
               className="px-8 py-4 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-xl text-white text-lg font-semibold hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 flex items-center gap-3"
             >
               <CompatibleMic className="w-5 h-5" />
-              Start Recording Free
-            </button>
+              Launch Studio
+            </Link>
             <a
               href="https://voisss.netlify.app/platform"
               className="px-8 py-4 border border-gray-600 rounded-xl text-white text-lg font-semibold hover:border-gray-400 transition-all duration-300 hover:bg-white/5"
