@@ -77,20 +77,32 @@ export async function POST(req: NextRequest) {
             fullError: err
         });
 
-        // Check for specific ElevenLabs API errors
+        // Map specific ElevenLabs API errors to appropriate HTTP statuses
         const errorMessage = err?.message || 'Internal error';
         let status = 500;
         let userFriendlyMessage = errorMessage;
 
+        // Extract HTTP status code if present in error message (e.g., "Dubbing failed: 400 Bad Request")
+        const statusMatch = errorMessage.match(/\b(400|401|402|403|404|429|500|502|503|504)\b/);
+        if (statusMatch) {
+            status = Number(statusMatch[1]);
+        }
+
         if (errorMessage.includes('quota')) {
             status = 429;
             userFriendlyMessage = 'ElevenLabs API quota exceeded. Please wait or upgrade your plan.';
-        } else if (errorMessage.includes('401')) {
-            status = 401;
-            userFriendlyMessage = 'Invalid ElevenLabs API key. Please check your API key configuration.';
+        } else if (errorMessage.includes('missing the permission speech_to_speech')) {
+            status = 402; // Payment required
+            userFriendlyMessage = 'Speech-to-Speech feature requires an upgraded ElevenLabs plan.';
         } else if (errorMessage.includes('unsupported language')) {
             status = 400;
             userFriendlyMessage = 'The selected language is not supported for dubbing.';
+        } else if (errorMessage.includes('no_source_provided')) {
+            status = 400;
+            userFriendlyMessage = 'Audio file was not provided. Please try again.';
+        } else if (errorMessage.includes('401')) {
+            status = 401;
+            userFriendlyMessage = 'Invalid ElevenLabs API key. Please check your API key configuration.';
         }
 
         const errorDetails = process.env.NODE_ENV === 'development' ? {

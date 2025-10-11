@@ -126,7 +126,9 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
     const modelId = options.modelId || this.modelId;
 
     const form = new FormData();
-    form.append('audio', blob, 'input.webm');
+    // ElevenLabs Dubbing API expects 'file' or 'source_url'.
+    // Use 'file' to upload the recorded audio blob.
+    form.append('file', blob, 'input.webm');
     form.append('target_lang', targetLanguage);
     if (sourceLanguage) {
       form.append('source_lang', sourceLanguage);
