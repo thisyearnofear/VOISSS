@@ -49,7 +49,19 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
     const form = new FormData();
     form.append('model_id', modelId);
     form.append('output_format', outputFormat);
-    form.append('audio', blob, 'input.webm');
+    // Normalize blob MIME type: browsers often set 'audio/webm;codecs=opus', which
+    // can be rejected by upstream APIs. Strip codecs and ensure a supported content type.
+    const originalType = (blob.type || '').toLowerCase();
+    const normalizedType = originalType.split(';')[0] || 'audio/webm';
+    const normalizedBlob = new Blob([await blob.arrayBuffer()], { type: normalizedType });
+    const filename = normalizedType.includes('webm')
+      ? 'input.webm'
+      : normalizedType.includes('ogg')
+      ? 'input.ogg'
+      : normalizedType.includes('mpeg') || normalizedType.includes('mp3')
+      ? 'input.mp3'
+      : 'input';
+    form.append('audio', normalizedBlob, filename);
 
     const res = await fetch(`${ELEVEN_API_BASE}/speech-to-speech/${voiceId}`, {
       method: 'POST',
@@ -128,13 +140,27 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
     const form = new FormData();
     // ElevenLabs Dubbing API expects 'file' or 'source_url'.
     // Use 'file' to upload the recorded audio blob.
-    form.append('file', blob, 'input.webm');
+    // Normalize blob MIME type: browsers often set 'audio/webm;codecs=opus', which
+    // ElevenLabs rejects. Strip codecs and ensure a supported content type.
+    const originalType = (blob.type || '').toLowerCase();
+    const normalizedType = originalType.split(';')[0] || 'audio/webm';
+    const normalizedBlob = new Blob([await blob.arrayBuffer()], { type: normalizedType });
+    const filename = normalizedType.includes('webm')
+      ? 'input.webm'
+      : normalizedType.includes('ogg')
+      ? 'input.ogg'
+      : normalizedType.includes('mpeg') || normalizedType.includes('mp3')
+      ? 'input.mp3'
+      : 'input';
+    form.append('file', normalizedBlob, filename);
     form.append('target_lang', targetLanguage);
     if (sourceLanguage) {
       form.append('source_lang', sourceLanguage);
     }
+    // Align with ElevenLabs API: use 'drop_background_audio' rather than a non-existent
+    // 'preserve_background_audio'. Invert the boolean to match semantics.
     if (options.preserveBackgroundAudio !== undefined) {
-      form.append('preserve_background_audio', String(options.preserveBackgroundAudio));
+      form.append('drop_background_audio', String(!options.preserveBackgroundAudio));
     }
 
     const res = await fetch(`${ELEVEN_API_BASE}/dubbing`, {

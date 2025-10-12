@@ -148,7 +148,17 @@ export function useVoiceTransform() {
     mutationFn: async (options: VoiceTransformOptions): Promise<Blob> => {
       try {
         const formData = new FormData();
-        formData.append('audio', options.audioBlob);
+        // Provide a filename for consistency across platforms
+        const originalType = (options.audioBlob.type || '').toLowerCase();
+        const normalizedType = originalType.split(';')[0] || 'audio/webm';
+        const filename = normalizedType.includes('webm')
+          ? 'input.webm'
+          : normalizedType.includes('ogg')
+          ? 'input.ogg'
+          : normalizedType.includes('mpeg') || normalizedType.includes('mp3')
+          ? 'input.mp3'
+          : 'input';
+        formData.append('audio', options.audioBlob, filename);
         formData.append('voiceId', options.voiceId);
         
         if (options.modelId) {
@@ -163,7 +173,8 @@ export function useVoiceTransform() {
           formData.append('similarityBoost', options.similarityBoost.toString());
         }
         
-        const response = await fetch('/api/elevenlabs/speech-to-speech', {
+        // Use the existing transform-voice API route
+        const response = await fetch('/api/elevenlabs/transform-voice', {
           method: 'POST',
           body: formData,
         });
