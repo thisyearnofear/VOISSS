@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { ElevenLabsTransformProvider } from '@voisss/shared';
 
 export const runtime = 'nodejs';
+export const maxDuration = 300; // 5 minutes for long-running dubbing operations
 
 export async function POST(req: NextRequest) {
     try {
@@ -29,6 +30,7 @@ export async function POST(req: NextRequest) {
 
         console.log('File size:', file.size, 'File type:', file.type);
         const provider = new ElevenLabsTransformProvider();
+        
         console.log('Calling dubAudio with targetLanguage:', targetLanguage, 'sourceLanguage:', sourceLanguage, 'preserveBackgroundAudio:', preserveBackgroundAudio);
         const result = await provider.dubAudio(file, {
             targetLanguage,

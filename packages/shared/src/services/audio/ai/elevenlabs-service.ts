@@ -58,10 +58,10 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
     const filename = normalizedType.includes('webm')
       ? 'input.webm'
       : normalizedType.includes('ogg')
-      ? 'input.ogg'
-      : normalizedType.includes('mpeg') || normalizedType.includes('mp3')
-      ? 'input.mp3'
-      : 'input';
+        ? 'input.ogg'
+        : normalizedType.includes('mpeg') || normalizedType.includes('mp3')
+          ? 'input.mp3'
+          : 'input';
     form.append('audio', normalizedBlob, filename);
 
     const res = await fetch(`${ELEVEN_API_BASE}/speech-to-speech/${voiceId}`, {
@@ -132,8 +132,7 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
     return { voiceId: data.voice_id };
   }
 
-  async dubAudio(blob: Blob, options: DubbingOptions): Promise<DubbingResult> {
-    const startTime = Date.now();
+  async startDubbingJob(blob: Blob, options: DubbingOptions): Promise<string> {
     const targetLanguage = options.targetLanguage;
     const sourceLanguage = options.sourceLanguage;
     const modelId = options.modelId || this.modelId;
@@ -148,10 +147,10 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
     const filename = normalizedType.includes('webm')
       ? 'input.webm'
       : normalizedType.includes('ogg')
-      ? 'input.ogg'
-      : normalizedType.includes('mpeg') || normalizedType.includes('mp3')
-      ? 'input.mp3'
-      : 'input';
+        ? 'input.ogg'
+        : normalizedType.includes('mpeg') || normalizedType.includes('mp3')
+          ? 'input.mp3'
+          : 'input';
     form.append('file', normalizedBlob, filename);
     form.append('target_lang', targetLanguage);
     if (sourceLanguage) {
@@ -164,7 +163,7 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
       form.append('drop_background_audio', String(!options.preserveBackgroundAudio));
     }
 
-    // Create dubbing job (returns dubbing_id)
+    // Create dubbing job (returns dubbing_id immediately)
     const createRes = await fetch(`${ELEVEN_API_BASE}/dubbing`, {
       method: 'POST',
       headers: { 'xi-api-key': this.apiKey },
@@ -189,33 +188,25 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
       throw new Error('Dubbing API did not return a dubbing_id');
     }
 
-    // Poll job status until completed or timed out
-    const pollStart = Date.now();
-    const maxWaitMs = 60_000; // 60s cap for web UX
-    const pollIntervalMs = 1500;
-    let status = 'dubbing';
-    while (status !== 'dubbed') {
-      if (Date.now() - pollStart > maxWaitMs) {
-        throw new Error('Dubbing timed out. Please try again later.');
-      }
-      const statusRes = await fetch(`${ELEVEN_API_BASE}/dubbing/${dubbingId}`, {
-        headers: { 'xi-api-key': this.apiKey },
-      });
-      if (!statusRes.ok) {
-        const text = await statusRes.text().catch(() => '');
-        throw new Error(`Failed to get dubbing status: ${statusRes.status} ${statusRes.statusText} - ${text}`);
-      }
-      const statusData = await statusRes.json();
-      status = statusData.status;
-      if (status === 'failed') {
-        const errMsg = statusData.error || 'Dubbing job failed';
-        throw new Error(errMsg);
-      }
-      if (status !== 'dubbed') {
-        await new Promise((r) => setTimeout(r, pollIntervalMs));
-      }
-    }
+    return dubbingId;
+  }
 
+  async getDubbingStatus(dubbingId: string): Promise<{ status: string; error?: string }> {
+    const statusRes = await fetch(`${ELEVEN_API_BASE}/dubbing/${dubbingId}`, {
+      headers: { 'xi-api-key': this.apiKey },
+    });
+    if (!statusRes.ok) {
+      const text = await statusRes.text().catch(() => '');
+      throw new Error(`Failed to get dubbing status: ${statusRes.status} ${statusRes.statusText} - ${text}`);
+    }
+    const statusData = await statusRes.json();
+    return {
+      status: statusData.status,
+      error: statusData.error
+    };
+  }
+
+  async getDubbedAudio(dubbingId: string, targetLanguage: string): Promise<DubbingResult> {
     // Retrieve dubbed audio (streamed MP3/MP4)
     const audioRes = await fetch(`${ELEVEN_API_BASE}/dubbing/${dubbingId}/audio/${targetLanguage}`, {
       headers: { 'xi-api-key': this.apiKey },
@@ -226,15 +217,46 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
     }
     const audioBuffer = await audioRes.arrayBuffer();
 
-    const processingTime = Date.now() - startTime;
     return {
       dubbedAudio: new Blob([audioBuffer], { type: 'audio/mpeg' }),
       transcript: '',
       translatedTranscript: '',
       detectedSpeakers: 1,
       targetLanguage,
-      processingTime,
+      processingTime: 0, // Not tracked in this flow
     };
+  }
+
+  async dubAudio(blob: Blob, options: DubbingOptions): Promise<DubbingResult> {
+    // Start job
+    const dubbingId = await this.startDubbingJob(blob, options);
+
+    // Poll for completion (legacy method for backward compatibility)
+    const pollStart = Date.now();
+    const maxWaitMs = 60_000; // 60s cap for web UX
+    const pollIntervalMs = 1500;
+    let status = 'dubbing';
+
+    while (status !== 'dubbed') {
+      if (Date.now() - pollStart > maxWaitMs) {
+        throw new Error('Dubbing timed out. Please try again later.');
+      }
+
+      const statusResult = await this.getDubbingStatus(dubbingId);
+      status = statusResult.status;
+
+      if (status === 'failed') {
+        const errMsg = statusResult.error || 'Dubbing job failed';
+        throw new Error(errMsg);
+      }
+
+      if (status !== 'dubbed') {
+        await new Promise((r) => setTimeout(r, pollIntervalMs));
+      }
+    }
+
+    // Get final result
+    return await this.getDubbedAudio(dubbingId, options.targetLanguage);
   }
 
   async getSupportedDubbingLanguages(): Promise<DubbingLanguage[]> {

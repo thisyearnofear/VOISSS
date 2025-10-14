@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import LanguageSelector from './LanguageSelector';
 import ProgressVisualizer from './ProgressVisualizer';
 import AudioComparison from './AudioComparison';
@@ -8,6 +8,7 @@ import { isDubbingEnabled } from '@voisss/shared';
 import type { LanguageInfo } from '@voisss/shared/src/constants/languages';
 import type { DubbingLanguage } from '@voisss/shared/src/types/audio';
 import { useDubbingLanguages, useAudioDubbing, useAIServiceStatus } from '../../hooks/queries/useAI';
+import { useProcessRecording } from '../../hooks/queries/useStarknetRecording';
 import { getPopularLanguages } from '@voisss/shared/src/constants/languages';
 
 // Use shared popular languages to avoid duplication
@@ -48,6 +49,7 @@ export default function DubbingPanel({
 
   const { data: languagesData, isLoading: isLoadingLangs } = useDubbingLanguages();
   const { mutateAsync: dubAudio } = useAudioDubbing();
+  const { mutateAsync: processRecording } = useProcessRecording();
   const { data: aiStatus } = useAIServiceStatus();
 
   const getSampleText = (code: string): string => {
@@ -79,6 +81,8 @@ export default function DubbingPanel({
     }
   }, [languagesData, selectedTargetLanguage]);
 
+
+
   const handleDubAudio = useCallback(async () => {
     if (!audioBlob || !selectedTargetLanguage || freeDubbingCounter < 1) return;
 
@@ -87,31 +91,56 @@ export default function DubbingPanel({
     setDubbingStage('preparing');
     setDubbingProgress("Preparing your audio for translation...");
 
+    // Use a ref to track if we're still dubbing to avoid stale closures in timeouts
+    const stillDubbingRef = useRef(true);
+    
+    // Cultural insights and interesting facts for user engagement
+    const culturalFacts = [
+      "Did you know? In Japan, the phrase 'Omotenashi' represents the art of selfless hospitality, anticipating guests' needs before they ask.",
+      "In Finland, there's a concept called 'sisu' - a special kind of courage and determination in the face of adversity.",
+      "The Danish concept of 'hygge' (pronounced 'hoo-ga') encompasses a feeling of cozy contentment and well-being through enjoying simple pleasures.",
+      "In India, the greeting 'Namaste' literally means 'I bow to you,' acknowledging the divine in another person.",
+      "The German word 'Fernweh' describes the feeling of wanting to travel far away, literally 'farsickness' - the opposite of homesickness.",
+      "In Portuguese, there's an untranslatable word 'Saudade' - a deep emotional state of nostalgic longing for an absent something or someone.",
+      "The Arabic word 'Sukkar' (sugar) entered many European languages, highlighting the rich cultural exchange of the Islamic Golden Age.",
+      "In Swahili, 'Ubuntu' means 'I am because we are' - emphasizing the connection between individuals and their community.",
+      "The French phrase 'Savoir-faire' literally means 'to know how to do' and represents practical knowledge or expertise.",
+      "In Mandarin, the word 'Guanxi' refers to the social network of relationships that facilitate business and other dealings.",
+      "The Spanish concept of 'Sobremesa' is the time spent lingering at the table after a meal, enjoying conversation with fellow diners.",
+      "In Korean, 'Nunchi' is the ability to understand others' feelings and thoughts through observation and intuition."
+    ];
+
     try {
-      // Create form data
-      const form = new FormData();
-      form.append("audio", audioBlob, "input.webm");
-      form.append("targetLanguage", selectedTargetLanguage);
+      // Get random cultural facts for each stage
+      const getRandomFact = () => culturalFacts[Math.floor(Math.random() * culturalFacts.length)];
       
-      // Only append source language if it's not auto-detect
-      if (selectedSourceLanguage && selectedSourceLanguage !== 'auto') {
-        form.append('sourceLanguage', selectedSourceLanguage);
-      }
+      // Simulate initial preparation with cultural insight
+      setTimeout(() => {
+        if (stillDubbingRef.current) {
+          setDubbingStage('translating');
+          setDubbingProgress("AI is analyzing speech patterns and emotions...");
+          // Update UI with a cultural fact
+          setDubbingProgress(`AI is analyzing speech patterns and emotions... Fun fact: ${getRandomFact()}`);
+        }
+      }, 15000); // 15 seconds for preparing stage
 
-      // Simulate progress stages
-      const progressStages = [
-        { stage: 'preparing' as const, message: 'Preparing your audio for translation...', duration: 800 },
-        { stage: 'translating' as const, message: 'AI is analyzing speech patterns and emotions...', duration: 1200 },
-        { stage: 'generating' as const, message: 'Generating natural-sounding translation...', duration: 1000 },
-        { stage: 'finalizing' as const, message: 'Finalizing translation with emotional accuracy...', duration: 500 }
-      ];
+      setTimeout(() => {
+        if (stillDubbingRef.current) {
+          setDubbingStage('generating');
+          // Update UI with a cultural fact
+          setDubbingProgress(`Generating natural-sounding translation... Fun fact: ${getRandomFact()}`);
+        }
+      }, 30000); // 30 seconds total (15 more for translating stage)
 
-      for (const { stage, message, duration } of progressStages) {
-        setDubbingStage(stage);
-        setDubbingProgress(message);
-        await new Promise(resolve => setTimeout(resolve, duration));
-      }
+      setTimeout(() => {
+        if (stillDubbingRef.current) {
+          setDubbingStage('finalizing');
+          // Update UI with a cultural fact
+          setDubbingProgress(`Finalizing translation with emotional accuracy... Fun fact: ${getRandomFact()}`);
+        }
+      }, 45000); // 45 seconds total (15 more for generating stage)
 
+      // Start the dubbing process (this will now actually call the API which may take time)
       const result = await dubAudio({
         audioBlob,
         targetLanguage: selectedTargetLanguage,
@@ -120,14 +149,17 @@ export default function DubbingPanel({
       });
       const dubbedAudioBlob = result.blob;
 
-      setDubbingStage('complete');
-      setDubbingProgress("Translation complete! Ready to download.");
-      setDubbedBlob(dubbedAudioBlob);
-      // Use transcripts when available
-      setTranscript(result.transcript || "");
-      setTranslatedTranscript(result.translatedTranscript || "");
+      // Make sure we don't override the finalizing state if it's already set
+      if (stillDubbingRef.current) {
+        setDubbingStage('complete');
+        setDubbingProgress("Translation complete! Ready to download.");
+        setDubbedBlob(dubbedAudioBlob);
+        // Use transcripts when available
+        setTranscript(result.transcript || "");
+        setTranslatedTranscript(result.translatedTranscript || "");
+      }
 
-      if (onDubbingComplete) {
+      if (onDubbingComplete && stillDubbingRef.current) {
         onDubbingComplete(dubbedAudioBlob);
       }
     } catch (e) {
@@ -140,12 +172,8 @@ export default function DubbingPanel({
       setToastMessage(errorMessage);
       setTimeout(() => setToastMessage(null), 4000);
     } finally {
-      // Keep progress visible for a moment before clearing
-      setTimeout(() => {
-        setIsDubbing(false);
-        setDubbingProgress("");
-        setDubbingStage('preparing');
-      }, 2000);
+      stillDubbingRef.current = false;
+      setIsDubbing(false);
     }
   }, [audioBlob, selectedTargetLanguage, selectedSourceLanguage, freeDubbingCounter, onDubbingComplete, dubAudio]);
 
@@ -350,12 +378,41 @@ export default function DubbingPanel({
 
             {/* Enhanced Progress Visualization */}
             {isDubbing && (
-              <ProgressVisualizer
-                isVisible={isDubbing}
-                progress={dubbingProgress}
-                stage={dubbingStage}
-                className="mt-4"
-              />
+              <div className="mt-4 p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 bg-[#7C5DFA] rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-white font-medium">AI Dubbing in Progress</h4>
+                    <p className="text-gray-400 text-sm">{dubbingProgress}</p>
+                  </div>
+                </div>
+
+                {/* Progress stages */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${dubbingStage === 'preparing' || dubbingStage === 'translating' || dubbingStage === 'generating' || dubbingStage === 'finalizing' || dubbingStage === 'complete' ? 'bg-green-500' : 'bg-gray-600'}`}></div>
+                    <span className={`text-sm ${dubbingStage === 'preparing' ? 'text-white' : 'text-gray-400'}`}>Preparing audio</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${dubbingStage === 'translating' || dubbingStage === 'generating' || dubbingStage === 'finalizing' || dubbingStage === 'complete' ? 'bg-green-500' : 'bg-gray-600'}`}></div>
+                    <span className={`text-sm ${dubbingStage === 'translating' ? 'text-white' : 'text-gray-400'}`}>AI translation</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${dubbingStage === 'generating' || dubbingStage === 'finalizing' || dubbingStage === 'complete' ? 'bg-green-500' : 'bg-gray-600'}`}></div>
+                    <span className={`text-sm ${dubbingStage === 'generating' ? 'text-white' : 'text-gray-400'}`}>Voice synthesis</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${dubbingStage === 'finalizing' || dubbingStage === 'complete' ? 'bg-green-500' : 'bg-gray-600'}`}></div>
+                    <span className={`text-sm ${dubbingStage === 'finalizing' ? 'text-white' : 'text-gray-400'}`}>Finalizing</span>
+                  </div>
+                </div>
+
+
+              </div>
             )}
 
             {/* Lightweight Toast */}
@@ -388,24 +445,149 @@ export default function DubbingPanel({
                   targetLanguage={selectedTargetLanguage}
                 />
 
-                {/* Download Section */}
+                {/* Save Options Section */}
                 <div className="p-4 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl">
                   <h5 className="text-white font-medium mb-3 flex items-center gap-2">
                     <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                      <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V7h10v2z"/>
                     </svg>
-                    Download Your Dubbed Audio
+                    Save Your Audio
                   </h5>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleDownload}
-                      className="flex-1 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 rounded-lg text-white text-sm font-medium hover:from-green-500 hover:to-green-600 transition-all duration-200"
-                    >
-                      📥 Download Audio
-                    </button>
+                  <div className="space-y-3">
+                    {/* Original Audio Options */}
+                    <div className="p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
+                      <h6 className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                        Original Recording
+                      </h6>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            // Download original audio
+                            const url = URL.createObjectURL(audioBlob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = `original-${new Date().toISOString()}.webm`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                          }}
+                          className="flex-1 px-3 py-2 bg-[#2A2A2A] hover:bg-[#3A3A3A] rounded-lg text-white text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1"
+                        >
+                          📥 Download
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!audioBlob) return;
+
+                            try {
+                              // Save original audio to Starknet
+                              const result = await processRecording({
+                                blob: audioBlob,
+                                metadata: {
+                                  title: `Original Recording`,
+                                  description: `Original audio recording before dubbing`,
+                                  ipfsHash: '', // Will be filled by the pipeline
+                                  duration: 0, // Will be calculated by the pipeline
+                                  fileSize: audioBlob.size,
+                                  isPublic: false,
+                                  tags: ['original', 'recording'],
+                                },
+                                onProgress: (progress: any) => {
+                                  // Progress tracking for original audio save
+                                }
+                              });
+
+                              if (result.success) {
+                                console.log('Original audio saved successfully:', result);
+                                setToastType('success');
+                                setToastMessage('Original audio saved!');
+                                setTimeout(() => setToastMessage(null), 4000);
+                              } else {
+                                console.error('Failed to save original audio:', result.error);
+                                setToastType('error');
+                                setToastMessage(result.error || 'Failed to save original audio');
+                                setTimeout(() => setToastMessage(null), 4000);
+                              }
+                            } catch (error) {
+                              console.error('Error saving original audio:', error);
+                              setToastType('error');
+                              setToastMessage('Error saving original audio');
+                              setTimeout(() => setToastMessage(null), 4000);
+                            }
+                          }}
+                          className="flex-1 px-3 py-2 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg text-white text-xs font-medium hover:from-blue-500 hover:to-blue-600 transition-all duration-200 flex items-center justify-center gap-1"
+                        >
+                          💾 Save
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Dubbed Audio Options */}
+                    <div className="p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
+                      <h6 className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                        Dubbed (in {availableLanguages.find(l => l.code === selectedTargetLanguage)?.name || selectedTargetLanguage})
+                      </h6>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleDownload}
+                          className="flex-1 px-3 py-2 bg-[#2A2A2A] hover:bg-[#3A3A3A] rounded-lg text-white text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1"
+                        >
+                          📥 Download
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!dubbedBlob) return;
+
+                            try {
+                              // Use the existing recording pipeline
+                              const result = await processRecording({
+                                blob: dubbedBlob,
+                                metadata: {
+                                  title: `Dubbed - ${selectedTargetLanguage}`,
+                                  description: `AI dubbed version in ${selectedTargetLanguage}`,
+                                  ipfsHash: '', // Will be filled by the pipeline
+                                  duration: 0, // Will be calculated by the pipeline
+                                  fileSize: dubbedBlob.size,
+                                  isPublic: false,
+                                  tags: ['dubbed', selectedTargetLanguage],
+                                },
+                                onProgress: (progress: any) => {
+                                  // Progress tracking for dubbed audio save
+                                }
+                              });
+
+                              if (result.success) {
+                                console.log('Dubbed audio saved successfully:', result);
+                                setToastType('success');
+                                setToastMessage('Dubbed audio saved!');
+                                setTimeout(() => setToastMessage(null), 4000);
+                              } else {
+                                console.error('Failed to save dubbed audio:', result.error);
+                                setToastType('error');
+                                setToastMessage(result.error || 'Failed to save dubbed audio');
+                                setTimeout(() => setToastMessage(null), 4000);
+                              }
+                            } catch (error) {
+                              console.error('Error saving dubbed audio:', error);
+                              setToastType('error');
+                              setToastMessage('Error saving dubbed audio');
+                              setTimeout(() => setToastMessage(null), 4000);
+                            }
+                          }}
+                          className="flex-1 px-3 py-2 bg-gradient-to-r from-green-600 to-green-700 rounded-lg text-white text-xs font-medium hover:from-green-500 hover:to-green-600 transition-all duration-200 flex items-center justify-center gap-1"
+                        >
+                          💾 Save
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Unlimited Option */}
                     <button
                       onClick={onWalletModalOpen}
-                      className="flex-1 px-4 py-2 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white text-sm font-medium rounded-lg hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-200"
+                      className="w-full px-4 py-2 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white text-sm font-medium rounded-lg hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-200"
                     >
                       ✨ Unlock Unlimited
                     </button>

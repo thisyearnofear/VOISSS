@@ -45,4 +45,8 @@ export interface IAudioTransformProvider {
   getSupportedDubbingLanguages?(): Promise<DubbingLanguage[]>;
   remixVoice?(params: { baseVoiceId: string; description: string; text: string }): Promise<VoiceVariantPreview[]>;
   createVoiceFromPreview?(previewId: string, params: { name: string; description?: string }): Promise<{ voiceId: string }>;
+  // New methods for client-side polling
+  startDubbingJob?(blob: Blob, options: DubbingOptions): Promise<string>;
+  getDubbingStatus?(dubbingId: string): Promise<{ status: string; error?: string }>;
+  getDubbedAudio?(dubbingId: string, targetLanguage: string): Promise<DubbingResult>;
 }

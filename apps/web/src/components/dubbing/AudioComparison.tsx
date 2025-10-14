@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 
 interface AudioComparisonProps {
   originalAudio: Blob;
@@ -25,56 +25,125 @@ export default function AudioComparison({
 
   const originalRef = useRef<HTMLAudioElement>(null);
   const dubbedRef = useRef<HTMLAudioElement>(null);
-  const syncTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Create object URLs for audio blobs
-  const originalUrl = React.useMemo(() => URL.createObjectURL(originalAudio), [originalAudio]);
-  const dubbedUrl = React.useMemo(() => URL.createObjectURL(dubbedAudio), [dubbedAudio]);
-
+  // Create object URLs using refs to avoid premature revocation
+  const originalUrlRef = useRef<string | null>(null);
+  const dubbedUrlRef = useRef<string | null>(null);
+  
+  // Create object URLs when audio blobs change
   useEffect(() => {
+    // Revoke previous URLs if they exist
+    if (originalUrlRef.current) {
+      URL.revokeObjectURL(originalUrlRef.current);
+    }
+    if (dubbedUrlRef.current) {
+      URL.revokeObjectURL(dubbedUrlRef.current);
+    }
+    
+    // Create new URLs
+    originalUrlRef.current = URL.createObjectURL(originalAudio);
+    dubbedUrlRef.current = URL.createObjectURL(dubbedAudio);
+    
+    // Update audio sources with new URLs
+    const originalAudioEl = originalRef.current;
+    const dubbedAudioEl = dubbedRef.current;
+    
+    if (originalAudioEl) {
+      originalAudioEl.src = originalUrlRef.current;
+    }
+    if (dubbedAudioEl) {
+      dubbedAudioEl.src = dubbedUrlRef.current;
+    }
+    
     return () => {
-      URL.revokeObjectURL(originalUrl);
-      URL.revokeObjectURL(dubbedUrl);
+      // Revoke URLs when component unmounts or when blobs change
+      if (originalUrlRef.current) {
+        URL.revokeObjectURL(originalUrlRef.current);
+        originalUrlRef.current = null;
+      }
+      if (dubbedUrlRef.current) {
+        URL.revokeObjectURL(dubbedUrlRef.current);
+        dubbedUrlRef.current = null;
+      }
     };
-  }, [originalUrl, dubbedUrl]);
+  }, [originalAudio, dubbedAudio]);
 
-  const handlePlayPause = (audio: 'original' | 'dubbed' | 'both') => {
+  // Audio elements are reloaded via the src updates in the main useEffect
+
+  const handlePlayPause = useCallback(async (audio: 'original' | 'dubbed' | 'both') => {
     const originalAudio = originalRef.current;
     const dubbedAudio = dubbedRef.current;
 
-    if (!originalAudio || !dubbedAudio) return;
-
-    if (audio === 'both') {
-      // Sync both audios to play together
-      originalAudio.currentTime = 0;
-      dubbedAudio.currentTime = 0;
-      originalAudio.play();
-      dubbedAudio.play();
-      setIsPlaying('both');
-    } else if (audio === 'original') {
-      if (isPlaying === 'original') {
-        originalAudio.pause();
-        setIsPlaying('none');
-      } else {
-        originalAudio.currentTime = 0;
-        originalAudio.play();
-        setIsPlaying('original');
-      }
-    } else if (audio === 'dubbed') {
-      if (isPlaying === 'dubbed') {
-        dubbedAudio.pause();
-        setIsPlaying('none');
-      } else {
-        dubbedAudio.currentTime = 0;
-        dubbedAudio.play();
-        setIsPlaying('dubbed');
-      }
+    if (!originalAudio || !dubbedAudio) {
+      console.error('Audio elements not available');
+      return;
     }
-  };
 
-  const handleTimeUpdate = (audioElement: HTMLAudioElement) => {
+    // Check if URLs are valid
+    if (!originalUrlRef.current || !dubbedUrlRef.current) {
+      console.error('Audio URLs not available');
+      return;
+    }
+
+    try {
+      // Pause all first to avoid conflicts
+      originalAudio.pause();
+      dubbedAudio.pause();
+
+      // Add a small delay to ensure audio elements have processed the pause
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      if (audio === 'both') {
+        // Reset time to sync both
+        originalAudio.currentTime = 0;
+        dubbedAudio.currentTime = 0;
+        // Use Promise.allSettled to handle potential errors individually
+        const [originalResult, dubbedResult] = await Promise.allSettled([
+          originalAudio.play(),
+          dubbedAudio.play()
+        ]);
+        
+        if (originalResult.status === 'rejected' || dubbedResult.status === 'rejected') {
+          console.error('One or both audio play promises rejected:', 
+            originalResult.status === 'rejected' ? originalResult.reason : 'original OK',
+            dubbedResult.status === 'rejected' ? dubbedResult.reason : 'dubbed OK'
+          );
+          setIsPlaying('none');
+        } else {
+          setIsPlaying('both');
+        }
+      } else if (audio === 'original') {
+        originalAudio.currentTime = 0;
+        try {
+          await originalAudio.play();
+          setIsPlaying('original');
+        } catch (error) {
+          console.error('Original audio play error:', error);
+          setIsPlaying('none');
+        }
+      } else if (audio === 'dubbed') {
+        dubbedAudio.currentTime = 0;
+        try {
+          await dubbedAudio.play();
+          setIsPlaying('dubbed');
+        } catch (error) {
+          console.error('Dubbed audio play error:', error);
+          setIsPlaying('none');
+        }
+      }
+    } catch (error) {
+      console.error('Audio playback error:', error);
+      setIsPlaying('none');
+    }
+  }, []);
+
+  const handleTimeUpdate = useCallback((audioElement: HTMLAudioElement) => {
     setCurrentTime(audioElement.currentTime);
-    setDuration(audioElement.duration || 0);
+    // Only update duration if it's a valid number and not Infinity
+    const duration = audioElement.duration;
+    if (duration && isFinite(duration)) {
+      setDuration(duration);
+    }
 
     // Sync the other audio if both are playing
     if (isPlaying === 'both') {
@@ -83,24 +152,83 @@ export default function AudioComparison({
         otherAudio.currentTime = audioElement.currentTime;
       }
     }
-  };
+  }, [isPlaying]);
 
-  const handleSeek = (newTime: number) => {
+  const handleSeek = useCallback((newTime: number) => {
     const originalAudio = originalRef.current;
     const dubbedAudio = dubbedRef.current;
 
     if (originalAudio) originalAudio.currentTime = newTime;
     if (dubbedAudio) dubbedAudio.currentTime = newTime;
     setCurrentTime(newTime);
-  };
+  }, []);
 
-  const formatTime = (time: number): string => {
+  const handleStopAll = useCallback(() => {
+    const originalAudio = originalRef.current;
+    const dubbedAudio = dubbedRef.current;
+    
+    if (originalAudio) originalAudio.pause();
+    if (dubbedAudio) dubbedAudio.pause();
+    setIsPlaying('none');
+  }, []);
+
+  const formatTime = useCallback((time: number): string => {
+    // Handle invalid time values
+    if (!isFinite(time) || time < 0) {
+      return '0:00';
+    }
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
+  }, []);
 
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  // Add effect to handle when audio ends
+  useEffect(() => {
+    const originalAudio = originalRef.current;
+    const dubbedAudio = dubbedRef.current;
+
+    const handleOriginalEnded = () => {
+      if (isPlaying === 'original' || isPlaying === 'both') {
+        setIsPlaying(prev => {
+          if (prev === 'both' && dubbedAudio) {
+            // If both were playing, pause the dubbed audio too
+            dubbedAudio.pause();
+          }
+          return 'none';
+        });
+      }
+    };
+
+    const handleDubbedEnded = () => {
+      if (isPlaying === 'dubbed' || isPlaying === 'both') {
+        setIsPlaying(prev => {
+          if (prev === 'both' && originalAudio) {
+            // If both were playing, pause the original audio too
+            originalAudio.pause();
+          }
+          return 'none';
+        });
+      }
+    };
+
+    if (originalAudio) {
+      originalAudio.addEventListener('ended', handleOriginalEnded);
+    }
+    if (dubbedAudio) {
+      dubbedAudio.addEventListener('ended', handleDubbedEnded);
+    }
+
+    return () => {
+      if (originalAudio) {
+        originalAudio.removeEventListener('ended', handleOriginalEnded);
+      }
+      if (dubbedAudio) {
+        dubbedAudio.removeEventListener('ended', handleDubbedEnded);
+      }
+    };
+  }, [isPlaying]);
 
   return (
     <div className={`bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-6 ${className}`}>
@@ -123,7 +251,7 @@ export default function AudioComparison({
           className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
             isPlaying === 'original'
               ? 'bg-blue-600 text-white'
-              : 'bg-[#2A2A2A] text-gray-300 hover:bg-[#3A3A3A]'
+              : 'bg-[#2A2A2A] text-gray-300 hover:bg-[#3A3A2A]'
           }`}
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -137,7 +265,7 @@ export default function AudioComparison({
           className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
             isPlaying === 'both'
               ? 'bg-[#7C5DFA] text-white'
-              : 'bg-[#2A2A2A] text-gray-300 hover:bg-[#3A3A3A]'
+              : 'bg-[#2A2A2A] text-gray-300 hover:bg-[#3A3A2A]'
           }`}
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -151,7 +279,7 @@ export default function AudioComparison({
           className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
             isPlaying === 'dubbed'
               ? 'bg-green-600 text-white'
-              : 'bg-[#2A2A2A] text-gray-300 hover:bg-[#3A3A3A]'
+              : 'bg-[#2A2A2A] text-gray-300 hover:bg-[#3A3A2A]'
           }`}
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -188,30 +316,31 @@ export default function AudioComparison({
         <audio
           ref={originalRef}
           onTimeUpdate={(e) => handleTimeUpdate(e.currentTarget)}
-          onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
-          onPlay={() => setIsPlaying('original')}
-          onPause={() => setIsPlaying('none')}
-          onEnded={() => setIsPlaying('none')}
+          onLoadedMetadata={(e) => {
+            const dur = e.currentTarget.duration;
+            if (dur && isFinite(dur) && duration === 0) { // Only set duration if valid and not already set
+              setDuration(dur);
+            }
+          }}
+          onError={(e) => console.error('Original audio loading error:', e)}
           className="hidden"
         >
-          <source src={originalUrl} type={originalAudio.type || undefined} />
+          <source src={originalUrlRef.current || ''} type={originalAudio.type || undefined} />
         </audio>
 
         <audio
           ref={dubbedRef}
           onTimeUpdate={(e) => handleTimeUpdate(e.currentTarget)}
           onLoadedMetadata={(e) => {
-            if (isPlaying === 'both') {
-              // Sync the duration if both are playing
-              setDuration(e.currentTarget.duration || 0);
+            const dur = e.currentTarget.duration;
+            if (dur && isFinite(dur) && duration === 0) { // Only set duration if valid and not already set
+              setDuration(dur);
             }
           }}
-          onPlay={() => setIsPlaying('dubbed')}
-          onPause={() => setIsPlaying('none')}
-          onEnded={() => setIsPlaying('none')}
+          onError={(e) => console.error('Dubbed audio loading error:', e)}
           className="hidden"
         >
-          <source src={dubbedUrl} type={dubbedAudio.type || 'audio/mpeg'} />
+          <source src={dubbedUrlRef.current || ''} type={dubbedAudio.type || 'audio/mpeg'} />
         </audio>
       </div>
 

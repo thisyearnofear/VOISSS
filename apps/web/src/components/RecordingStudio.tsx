@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 import { useWebAudioRecording } from "../hooks/useWebAudioRecording";
+import { useProcessRecording } from "../hooks/queries/useStarknetRecording";
 import WalletModal from "./WalletModal";
 import DubbingPanel from "./dubbing/DubbingPanel";
 
@@ -38,6 +39,10 @@ export default function RecordingStudio({
   const [isLoadingVoicesFree, setLoadingVoicesFree] = useState(false);
   const [isGeneratingFree, setGeneratingFree] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'error'>('error');
+
+  const { mutateAsync: processRecording } = useProcessRecording();
 
   // Dubbing state
   const [activeTab, setActiveTab] = useState<'voice' | 'dubbing'>('voice');
@@ -430,19 +435,71 @@ export default function RecordingStudio({
                         className="w-full mb-3"
                         style={{ height: '32px' }}
                       />
-                      <div className="p-3 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-lg">
-                        <p className="text-blue-300 text-sm font-medium mb-2">
-                          🎉 Love your AI voice?
-                        </p>
-                        <p className="text-gray-300 text-xs mb-3">
-                          Connect your wallet to unlock unlimited AI transformations and save to the blockchain permanently.
-                        </p>
-                        <button
-                          onClick={() => setShowWalletModal(true)}
-                          className="w-full px-3 py-2 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white text-xs font-medium rounded-lg hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-200"
-                        >
-                          Connect Wallet & Unlock Premium
-                        </button>
+                      <div className="space-y-2">
+                        <div className="p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
+                          <h6 className="text-xs font-medium text-gray-300 mb-2 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                            AI Voice Transform
+                          </h6>
+                          <button
+                            onClick={async () => {
+                              if (!variantBlobFree) return;
+
+                              try {
+                                // Use the existing recording pipeline
+                                const result = await processRecording({
+                                  blob: variantBlobFree,
+                                  metadata: {
+                                    title: `Voice Transform - ${selectedVoiceFree}`,
+                                    description: `AI voice transformed version using ${selectedVoiceFree}`,
+                                    ipfsHash: '', // Will be filled by the pipeline
+                                    duration: 0, // Will be calculated by the pipeline
+                                    fileSize: variantBlobFree.size,
+                                    isPublic: false,
+                                    tags: ['voice-transform', selectedVoiceFree],
+                                  },
+                                  onProgress: (progress: any) => {
+                                    // Progress tracking for voice transform save
+                                  }
+                                });
+
+                                if (result.success) {
+                                  console.log('Voice transformed audio saved successfully:', result);
+                                  setToastType('success');
+                                  setToastMessage('AI voice transform saved!');
+                                  setTimeout(() => setToastMessage(null), 4000);
+                                } else {
+                                  console.error('Failed to save voice transformed audio:', result.error);
+                                  setToastType('error');
+                                  setToastMessage(result.error || 'Failed to save voice transform');
+                                  setTimeout(() => setToastMessage(null), 4000);
+                                }
+                              } catch (error) {
+                                console.error('Error saving voice transformed audio:', error);
+                                setToastType('error');
+                                setToastMessage('Error saving voice transform');
+                                setTimeout(() => setToastMessage(null), 4000);
+                              }
+                            }}
+                            className="w-full px-3 py-2 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg text-white text-xs font-medium hover:from-blue-500 hover:to-blue-700 transition-all duration-200 flex items-center justify-center gap-1"
+                          >
+                            💾 Save
+                          </button>
+                        </div>
+                        <div className="p-3 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-lg">
+                          <p className="text-blue-300 text-sm font-medium mb-2">
+                            🎉 Love your AI voice?
+                          </p>
+                          <p className="text-gray-300 text-xs mb-3">
+                            Connect your wallet to unlock unlimited AI transformations and permanent storage.
+                          </p>
+                          <button
+                            onClick={() => setShowWalletModal(true)}
+                            className="w-full px-3 py-2 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white text-xs font-medium rounded-lg hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-200"
+                          >
+                            Connect Wallet & Unlock Premium
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -496,6 +553,25 @@ export default function RecordingStudio({
       {error && (
         <div className="mt-4 p-4 bg-red-900 border border-red-700 rounded-md">
           <p className="text-red-200">{error}</p>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <div className={`min-w-[240px] px-4 py-3 rounded-xl shadow-lg border ${
+            toastType === 'error'
+              ? 'bg-red-900/30 border-red-500/30 text-red-200'
+              : 'bg-green-900/30 border-green-500/30 text-green-200'
+          }`}>
+            <div className="flex items-center gap-2">
+              <svg className={`w-4 h-4 ${toastType === 'error' ? 'text-red-400' : 'text-green-400'}`} fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
+              <p className="text-sm font-medium">{toastType === 'error' ? 'Save Error' : 'Success'}</p>
+            </div>
+            <p className="text-xs mt-1 opacity-90">{toastMessage}</p>
+          </div>
         </div>
       )}
 

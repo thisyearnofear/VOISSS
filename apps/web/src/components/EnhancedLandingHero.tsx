@@ -69,16 +69,14 @@ export default function EnhancedLandingHero() {
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-6">
             <span className="voisss-gradient-text">VOISSS</span>
             <br />
-            <span className="text-white">AI Voice Studio</span>
+            <span className="text-white">AI Studio</span>
           </h1>
 
           <p className="text-xl sm:text-2xl text-gray-300 mb-4 max-w-3xl mx-auto">
-            Record, transform with AI, and store on Starknet
+            Record, Transform, Store.
           </p>
           <p className="text-gray-400 mb-12 max-w-2xl mx-auto">
-            The first decentralized AI-powered voice recording platform.
-            Transform your voice with cutting-edge AI and secure it on the
-            blockchain.
+            Transform your voice with AI and secure it onchain.
           </p>
 
           {/* CTA Buttons */}
