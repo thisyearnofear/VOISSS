@@ -7,23 +7,6 @@ export async function POST(req: NextRequest) {
     try {
         const contentType = req.headers.get('content-type') || '';
 
-        // Handle language list request
-        if (contentType.includes('application/json')) {
-            const body = await req.json();
-            if (body.action === 'getLanguages') {
-                const provider = new ElevenLabsTransformProvider();
-                const languages = await provider.getSupportedDubbingLanguages();
-
-                return new Response(JSON.stringify({ languages }), {
-                    status: 200,
-                    headers: {
-                        'content-type': 'application/json',
-                        'cache-control': 'public, max-age=3600', // Cache languages for 1 hour
-                    },
-                });
-            }
-        }
-
         // Handle dubbing request
         if (!contentType.includes('multipart/form-data')) {
             return new Response(JSON.stringify({ error: 'Expected multipart/form-data' }), { status: 400 });
@@ -35,6 +18,8 @@ export async function POST(req: NextRequest) {
         const sourceLanguage = String(form.get('sourceLanguage') || '');
         const preserveBackgroundAudio = form.get('preserveBackgroundAudio') === 'true';
 
+        console.log('FormData received. File type:', typeof file, 'File instanceof Blob:', file instanceof Blob, 'Target language:', targetLanguage);
+        
         if (!(file instanceof Blob)) {
             return new Response(JSON.stringify({ error: 'Missing audio file' }), { status: 400 });
         }
@@ -42,16 +27,21 @@ export async function POST(req: NextRequest) {
             return new Response(JSON.stringify({ error: 'Target language is required' }), { status: 400 });
         }
 
+        console.log('File size:', file.size, 'File type:', file.type);
         const provider = new ElevenLabsTransformProvider();
+        console.log('Calling dubAudio with targetLanguage:', targetLanguage, 'sourceLanguage:', sourceLanguage, 'preserveBackgroundAudio:', preserveBackgroundAudio);
         const result = await provider.dubAudio(file, {
             targetLanguage,
             sourceLanguage: sourceLanguage || undefined,
             preserveBackgroundAudio,
             voiceId: '' // Not used in dubbing
         });
+        console.log('dubAudio result received. Result type:', typeof result, 'dubbedAudio type:', result?.dubbedAudio?.type);
 
         // Return as JSON with audio as base64
-        const audioBase64 = Buffer.from(await result.dubbedAudio.arrayBuffer()).toString('base64');
+        const audioBuffer = await result.dubbedAudio.arrayBuffer();
+        console.log('Audio buffer size:', audioBuffer.byteLength);
+        const audioBase64 = Buffer.from(audioBuffer).toString('base64');
 
         return new Response(JSON.stringify({
             audio_base64: audioBase64,
@@ -74,7 +64,8 @@ export async function POST(req: NextRequest) {
             stack: err?.stack,
             name: err?.name,
             cause: err?.cause,
-            fullError: err
+            fullError: err,
+            type: typeof err
         });
 
         // Map specific ElevenLabs API errors to appropriate HTTP statuses
@@ -103,13 +94,17 @@ export async function POST(req: NextRequest) {
         } else if (errorMessage.includes('401')) {
             status = 401;
             userFriendlyMessage = 'Invalid ElevenLabs API key. Please check your API key configuration.';
+        } else if (errorMessage.includes('unsupported_content_type')) {
+            status = 400;
+            userFriendlyMessage = `Unsupported content type. Details: ${errorMessage}`;
         }
 
         const errorDetails = process.env.NODE_ENV === 'development' ? {
             error: userFriendlyMessage,
             originalError: errorMessage,
             stack: err?.stack,
-            type: err?.name
+            type: err?.name,
+            rawError: typeof err === 'object' ? JSON.stringify(err) : String(err)
         } : { error: userFriendlyMessage };
 
         return new Response(JSON.stringify(errorDetails), { status });

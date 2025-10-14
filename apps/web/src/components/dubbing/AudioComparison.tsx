@@ -28,8 +28,8 @@ export default function AudioComparison({
   const syncTimeoutRef = useRef<NodeJS.Timeout>();
 
   // Create object URLs for audio blobs
-  const originalUrl = URL.createObjectURL(originalAudio);
-  const dubbedUrl = URL.createObjectURL(dubbedAudio);
+  const originalUrl = React.useMemo(() => URL.createObjectURL(originalAudio), [originalAudio]);
+  const dubbedUrl = React.useMemo(() => URL.createObjectURL(dubbedAudio), [dubbedAudio]);
 
   useEffect(() => {
     return () => {
@@ -191,16 +191,24 @@ export default function AudioComparison({
           onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
           onPlay={() => setIsPlaying('original')}
           onPause={() => setIsPlaying('none')}
+          onEnded={() => setIsPlaying('none')}
           className="hidden"
         >
-          <source src={originalUrl} type={originalAudio.type || 'audio/webm'} />
+          <source src={originalUrl} type={originalAudio.type || undefined} />
         </audio>
 
         <audio
           ref={dubbedRef}
           onTimeUpdate={(e) => handleTimeUpdate(e.currentTarget)}
+          onLoadedMetadata={(e) => {
+            if (isPlaying === 'both') {
+              // Sync the duration if both are playing
+              setDuration(e.currentTarget.duration || 0);
+            }
+          }}
           onPlay={() => setIsPlaying('dubbed')}
           onPause={() => setIsPlaying('none')}
+          onEnded={() => setIsPlaying('none')}
           className="hidden"
         >
           <source src={dubbedUrl} type={dubbedAudio.type || 'audio/mpeg'} />
