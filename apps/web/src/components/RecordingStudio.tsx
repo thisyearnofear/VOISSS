@@ -182,7 +182,7 @@ export default function RecordingStudio({
     }
     
     try {
-      const baseTitle = recordingTitle || `Recording ${new Date().toLocaleDateString()}`;
+      const baseTitle = recordingTitle.slice(0, 20) || `Rec-${new Date().toISOString().slice(11, 19).replace(/:/g, '')}`;
       const results = [];
       
       // Save original if selected
@@ -191,7 +191,7 @@ export default function RecordingStudio({
           blob: audioBlob,
           metadata: {
             title: baseTitle,
-            description: `Voice recording created on ${new Date().toLocaleString()}`,
+            description: 'Original Recording',
             ipfsHash: '',
             duration: duration / 1000,
             fileSize: audioBlob.size,
@@ -209,8 +209,8 @@ export default function RecordingStudio({
         const result = await processRecording({
           blob: variantBlobFree,
           metadata: {
-            title: `${baseTitle} - AI Voice (${selectedVoiceFree})`,
-            description: `AI voice transformed version using ${selectedVoiceFree}`,
+            title: `${baseTitle}-AI`,
+            description: 'AI voice',
             ipfsHash: '',
             duration: 0,
             fileSize: variantBlobFree.size,
@@ -228,8 +228,8 @@ export default function RecordingStudio({
         const result = await processRecording({
           blob: dubbedBlob,
           metadata: {
-            title: `${baseTitle} - Dubbed (${dubbedLanguage})`,
-            description: `Dubbed version in ${dubbedLanguage}`,
+            title: `${baseTitle}-Dub`,
+            description: `Dubbed: ${dubbedLanguage}`,
             ipfsHash: '',
             duration: 0,
             fileSize: dubbedBlob.size,
@@ -703,24 +703,6 @@ export default function RecordingStudio({
            recordingTitle={recordingTitle}
          />
 
-         {/* Recording Title */}
-         <div className="mb-4">
-            <label
-              htmlFor="title"
-              className="block text-sm font-medium text-gray-300 mb-2"
-            >
-              Recording Title
-            </label>
-            <input
-              type="text"
-              id="title"
-              value={recordingTitle}
-              onChange={(e) => setRecordingTitle(e.target.value)}
-              placeholder="Enter recording title..."
-              className="voisss-input w-full"
-            />
-          </div>
-
           {/* Version Selection Checkboxes */}
           <div className="mb-6 p-4 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl">
             <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
@@ -830,6 +812,24 @@ export default function RecordingStudio({
                 </div>
               )}
             </div>
+          </div>
+
+         {/* Recording Title */}
+         <div className="mb-6">
+            <label
+              htmlFor="title"
+              className="block text-sm font-medium text-gray-300 mb-2"
+            >
+              Recording Title
+            </label>
+            <input
+              type="text"
+              id="title"
+              value={recordingTitle}
+              onChange={(e) => setRecordingTitle(e.target.value)}
+              placeholder="Give your recording a memorable name..."
+              className="voisss-input w-full border-purple-500 focus:ring-purple-500 placeholder-gray-400"
+            />
           </div>
 
           {/* Action Buttons */}

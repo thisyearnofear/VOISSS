@@ -53,15 +53,25 @@ export function useUserRecordings() {
       if (!address) return [];
       
       try {
-        const stored = localStorage.getItem(`recordings_${address}`);
-        return stored ? JSON.parse(stored) : [];
+        const starknetService = createStarknetRecordingService();
+        const onChainRecordings = await starknetService.getUserRecordings(address);
+        
+        // TODO: Merge with local recordings for a more robust implementation
+        return onChainRecordings;
       } catch (error) {
-        console.error('Failed to load recordings:', error);
-        return [];
+        console.error('Failed to load recordings from chain:', error);
+        // Fallback to local storage if chain fails
+        try {
+          const stored = localStorage.getItem(`recordings_${address}`);
+          return stored ? JSON.parse(stored) : [];
+        } catch (localError) {
+          console.error('Failed to load recordings from localStorage:', localError);
+          return [];
+        }
       }
     },
     enabled: !!address,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 1, // 1 minute
   });
 }
 
