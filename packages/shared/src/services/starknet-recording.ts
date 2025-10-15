@@ -154,11 +154,12 @@ export class StarknetRecordingService {
   ): Promise<string> {
     try {
       // Prepare call data for wallet execution
+      // Note: ipfsHash is already a deterministic felt252-compatible hash from recording-service
       const calldata = CallData.compile({
         metadata: {
           title: this.stringToFelt252(metadata.title || 'Untitled'),
           description: this.stringToFelt252(metadata.description || ''),
-          ipfs_hash: this.stringToFelt252(metadata.ipfsHash || ''),
+          ipfs_hash: metadata.ipfsHash || '0x0', // Already hashed, don't encode again
           duration: this.sanitizeNumber(metadata.duration),
           file_size: this.sanitizeNumber(metadata.fileSize),
           is_public: metadata.isPublic || false,
@@ -239,11 +240,12 @@ export class StarknetRecordingService {
 
     // Prepare metadata for contract call - matches the RecordingMetadata struct
     // Convert strings to felt252 format and ensure no empty values
+    // Note: ipfsHash is already a deterministic felt252-compatible hash from recording-service
     const calldata = CallData.compile({
       metadata: {
         title: this.stringToFelt252(metadata.title || 'Untitled'),
         description: this.stringToFelt252(metadata.description || ''),
-        ipfs_hash: this.stringToFelt252(metadata.ipfsHash || ''),
+        ipfs_hash: metadata.ipfsHash || '0x0', // Already hashed, don't encode again
         duration: this.sanitizeNumber(metadata.duration),
         file_size: this.sanitizeNumber(metadata.fileSize),
         is_public: metadata.isPublic || false,
@@ -449,7 +451,7 @@ export class StarknetRecordingService {
         metadata: {
           title: this.stringToFelt252(metadata.title || 'Untitled'),
           description: this.stringToFelt252(metadata.description || ''),
-          ipfs_hash: this.stringToFelt252(metadata.ipfsHash || ''),
+          ipfs_hash: metadata.ipfsHash || '0x0', // Already hashed, don't encode again
           duration: this.sanitizeNumber(metadata.duration),
           file_size: this.sanitizeNumber(metadata.fileSize),
           is_public: metadata.isPublic || false,
