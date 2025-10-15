@@ -310,7 +310,7 @@ export function useVoiceTransform() {
   });
 }
 
-// Hook to dub audio
+// Hook to dub audio (enhanced to use backend service)
 export function useAudioDubbing() {
   const queryClient = useQueryClient();
   
@@ -330,45 +330,34 @@ export function useAudioDubbing() {
         if (options.preserveBackgroundAudio !== undefined) {
           formData.append('preserveBackgroundAudio', options.preserveBackgroundAudio.toString());
         }
-        
-        // Create an AbortController for timeout handling
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
-        
-        let response;
-        try {
-          response = await fetch('/api/elevenlabs/dub-audio', {
-            method: 'POST',
-            body: formData,
-            signal: controller.signal,
-          });
-          clearTimeout(timeoutId);
-        } catch (fetchError: any) {
-          clearTimeout(timeoutId);
-          if (fetchError.name === 'AbortError') {
-            throw new Error('Dubbing request timed out. The audio may be too long or the service is experiencing high load. Please try with a shorter audio clip or try again later.');
-          }
-          throw fetchError;
-        }
-        
+
+        console.log('Starting dubbing via enhanced endpoint...');
+        const response = await fetch('/api/elevenlabs/dub-audio', {
+          method: 'POST',
+          body: formData,
+        });
+
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.error || `Audio dubbing failed: ${response.status}`);
         }
-        // Server returns JSON with base64 audio and optional transcripts
+
         const data = await response.json();
-        console.log('Server response data:', data);
+        console.log('Dubbing completed:', { audioSize: data.audio_base64?.length });
+        
         if (!data.audio_base64) {
-          console.error('Invalid response: missing audio_base64. Response was:', data);
           throw new Error('Invalid response: missing audio_base64');
         }
+
         const dubbedBlob = await base64ToBlobAsync(
           data.audio_base64,
           data.content_type || 'audio/mpeg'
         );
+        
         if (dubbedBlob.size === 0) {
           throw new Error('Received empty dubbed audio response');
         }
+
         return {
           blob: dubbedBlob,
           transcript: data.transcript || undefined,

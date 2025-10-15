@@ -1,5 +1,4 @@
 import { NextRequest } from 'next/server';
-import { ElevenLabsTransformProvider } from '@voisss/shared';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes for long-running dubbing operations
@@ -29,30 +28,44 @@ export async function POST(req: NextRequest) {
         }
 
         console.log('File size:', file.size, 'File type:', file.type);
-        const provider = new ElevenLabsTransformProvider();
         
-        console.log('Calling dubAudio with targetLanguage:', targetLanguage, 'sourceLanguage:', sourceLanguage, 'preserveBackgroundAudio:', preserveBackgroundAudio);
-        const result = await provider.dubAudio(file, {
-            targetLanguage,
-            sourceLanguage: sourceLanguage || undefined,
-            preserveBackgroundAudio,
-            voiceId: '' // Not used in dubbing
+        // Use backend service instead of direct ElevenLabs call to avoid Netlify timeouts
+        const backendUrl = process.env.NEXT_PUBLIC_VOISSS_API || process.env.VOISSS_API;
+        if (!backendUrl) {
+            return new Response(JSON.stringify({ error: 'Backend service not configured' }), { status: 500 });
+        }
+
+        // Forward request to our backend service which handles the async dubbing
+        const backendFormData = new FormData();
+        backendFormData.append('audio', file);
+        backendFormData.append('targetLanguage', targetLanguage);
+        if (sourceLanguage) backendFormData.append('sourceLanguage', sourceLanguage);
+        if (preserveBackgroundAudio !== undefined) backendFormData.append('preserveBackgroundAudio', String(preserveBackgroundAudio));
+
+        console.log('Forwarding to backend:', backendUrl);
+        const backendResponse = await fetch(`${backendUrl}/api/dubbing/complete`, {
+            method: 'POST',
+            body: backendFormData,
         });
-        console.log('dubAudio result received. Result type:', typeof result, 'dubbedAudio type:', result?.dubbedAudio?.type);
 
-        // Return as JSON with audio as base64
-        const audioBuffer = await result.dubbedAudio.arrayBuffer();
-        console.log('Audio buffer size:', audioBuffer.byteLength);
-        const audioBase64 = Buffer.from(audioBuffer).toString('base64');
+        if (!backendResponse.ok) {
+            const errorText = await backendResponse.text();
+            console.error('Backend dubbing error:', errorText);
+            throw new Error(`Backend dubbing failed: ${backendResponse.status} - ${errorText}`);
+        }
 
+        const result = await backendResponse.json();
+        console.log('Backend dubbing completed:', { audioSize: result.audio_base64?.length });
+
+        // Backend already returns the data in the correct format
         return new Response(JSON.stringify({
-            audio_base64: audioBase64,
+            audio_base64: result.audio_base64,
             transcript: result.transcript,
-            translated_transcript: result.translatedTranscript,
-            detected_speakers: result.detectedSpeakers,
-            target_language: result.targetLanguage,
-            processing_time: result.processingTime,
-            content_type: result.dubbedAudio.type || 'audio/mpeg'
+            translated_transcript: result.translated_transcript,
+            detected_speakers: result.detected_speakers,
+            target_language: result.target_language,
+            processing_time: result.processing_time,
+            content_type: result.content_type || 'audio/mpeg'
         }), {
             status: 200,
             headers: {
@@ -87,6 +100,9 @@ export async function POST(req: NextRequest) {
         } else if (errorMessage.includes('missing the permission speech_to_speech')) {
             status = 402; // Payment required
             userFriendlyMessage = 'Speech-to-Speech feature requires an upgraded ElevenLabs plan.';
+        } else if (errorMessage.includes('invalid_workspace_type') || errorMessage.includes('LEGACY_WORKSPACE')) {
+            status = 402; // Payment required
+            userFriendlyMessage = 'ElevenLabs workspace upgrade required. Your API key is on a legacy workspace that doesn\'t support dubbing. Please upgrade your ElevenLabs workspace.';
         } else if (errorMessage.includes('unsupported language')) {
             status = 400;
             userFriendlyMessage = 'The selected language is not supported for dubbing.';

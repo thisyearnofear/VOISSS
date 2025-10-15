@@ -245,7 +245,7 @@ export default function AudioComparison({
       </div>
 
       {/* Playback Controls */}
-      <div className="flex gap-3 mb-6">
+      <div className="flex flex-col gap-3 mb-6 md:flex-row">
         <button
           onClick={() => handlePlayPause('original')}
           className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
