@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 
 export const runtime = 'nodejs';
-export const maxDuration = 300; // 5 minutes for long-running dubbing operations
+export const maxDuration = 60; // 60 seconds - enough for polling approach
 
 export async function POST(req: NextRequest) {
     try {
@@ -29,43 +29,107 @@ export async function POST(req: NextRequest) {
 
         console.log('File size:', file.size, 'File type:', file.type);
         
-        // Use backend service instead of direct ElevenLabs call to avoid Netlify timeouts
+        // Use backend service with polling approach to avoid Netlify timeouts
         const backendUrl = process.env.NEXT_PUBLIC_VOISSS_API || process.env.VOISSS_API;
         if (!backendUrl) {
             return new Response(JSON.stringify({ error: 'Backend service not configured' }), { status: 500 });
         }
 
-        // Forward request to our backend service which handles the async dubbing
+        // Step 1: Start the dubbing job
         const backendFormData = new FormData();
         backendFormData.append('audio', file);
         backendFormData.append('targetLanguage', targetLanguage);
         if (sourceLanguage) backendFormData.append('sourceLanguage', sourceLanguage);
         if (preserveBackgroundAudio !== undefined) backendFormData.append('preserveBackgroundAudio', String(preserveBackgroundAudio));
 
-        console.log('Forwarding to backend:', backendUrl);
-        const backendResponse = await fetch(`${backendUrl}/api/dubbing/complete`, {
+        console.log('Starting dubbing job at backend:', backendUrl);
+        const startResponse = await fetch(`${backendUrl}/api/dubbing/start`, {
             method: 'POST',
             body: backendFormData,
         });
 
-        if (!backendResponse.ok) {
-            const errorText = await backendResponse.text();
-            console.error('Backend dubbing error:', errorText);
-            throw new Error(`Backend dubbing failed: ${backendResponse.status} - ${errorText}`);
+        if (!startResponse.ok) {
+            const errorText = await startResponse.text();
+            console.error('Backend dubbing start error:', errorText);
+            throw new Error(`Failed to start dubbing: ${startResponse.status} - ${errorText}`);
         }
 
-        const result = await backendResponse.json();
-        console.log('Backend dubbing completed:', { audioSize: result.audio_base64?.length });
+        const startData = await startResponse.json();
+        const dubbingId = startData.dubbing_id;
+        console.log('Dubbing job started:', { dubbingId, targetLanguage });
 
-        // Backend already returns the data in the correct format
+        // Step 2: Poll for completion (with timeout protection)
+        const pollStart = Date.now();
+        const maxWaitMs = 50_000; // 50 seconds (within Netlify's limit)
+        const pollIntervalMs = 2000; // 2 seconds
+        let status = 'dubbing';
+        let pollCount = 0;
+
+        while (status !== 'dubbed') {
+            const elapsed = Date.now() - pollStart;
+            
+            if (elapsed > maxWaitMs) {
+                console.log('Polling timeout, returning partial status');
+                return new Response(JSON.stringify({
+                    error: 'Dubbing in progress',
+                    message: 'Dubbing is taking longer than expected. Please try again in a moment.',
+                    dubbingId,
+                    status: 'timeout'
+                }), { status: 202 }); // 202 Accepted - processing
+            }
+
+            await new Promise(r => setTimeout(r, pollIntervalMs));
+            
+            const statusResponse = await fetch(`${backendUrl}/api/dubbing/${dubbingId}/status`, {
+                method: 'GET',
+            });
+
+            if (!statusResponse.ok) {
+                console.error('Status check failed:', statusResponse.status);
+                continue; // Retry status check
+            }
+
+            const statusData = await statusResponse.json();
+            status = statusData.status;
+            pollCount++;
+
+            if (status === 'failed') {
+                throw new Error(`Dubbing job failed: ${statusData.error || 'Unknown error'}`);
+            }
+
+            console.log(`Polling dubbing status: ${status} (${pollCount} checks, ${Math.round(elapsed / 1000)}s elapsed)`);
+        }
+
+        // Step 3: Get the final audio
+        console.log('Dubbing complete, fetching audio...');
+        const audioResponse = await fetch(`${backendUrl}/api/dubbing/${dubbingId}/audio/${targetLanguage}`, {
+            method: 'GET',
+        });
+
+        if (!audioResponse.ok) {
+            const errorText = await audioResponse.text();
+            console.error('Failed to fetch dubbed audio:', errorText);
+            throw new Error(`Failed to fetch audio: ${audioResponse.status} - ${errorText}`);
+        }
+
+        // Get audio as buffer and convert to base64
+        const audioBuffer = await audioResponse.arrayBuffer();
+        const audioBase64 = Buffer.from(audioBuffer).toString('base64');
+
+        console.log('Dubbing completed successfully:', {
+            dubbingId,
+            targetLanguage,
+            audioSize: audioBuffer.byteLength,
+            processingTime: Date.now() - pollStart
+        });
+
+        // Return in the same format as before
         return new Response(JSON.stringify({
-            audio_base64: result.audio_base64,
-            transcript: result.transcript,
-            translated_transcript: result.translated_transcript,
-            detected_speakers: result.detected_speakers,
-            target_language: result.target_language,
-            processing_time: result.processing_time,
-            content_type: result.content_type || 'audio/mpeg'
+            audio_base64: audioBase64,
+            target_language: targetLanguage,
+            processing_time: Date.now() - pollStart,
+            content_type: 'audio/mpeg',
+            dubbingId
         }), {
             status: 200,
             headers: {
