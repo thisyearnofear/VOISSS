@@ -617,12 +617,30 @@ export class StarknetRecordingService {
  */
 export function createStarknetRecordingService(): StarknetRecordingService {
   // Default configuration for development
-  const providerUrl = process.env.NEXT_PUBLIC_STARKNET_RPC_URL || 'https://starknet-sepolia.public.blastapi.io';
+  const providerUrl = process.env.NEXT_PUBLIC_STARKNET_RPC_URL || 'https://starknet-sepolia.public.blastapi.io/rpc/v0_7';
 
-  // These would be set after contract deployment
+  // Get contract addresses from environment variables (using _CONTRACT suffix as per Netlify config)
   const voiceStorageAddress = process.env.NEXT_PUBLIC_VOICE_STORAGE_CONTRACT || '0x0';
   const userRegistryAddress = process.env.NEXT_PUBLIC_USER_REGISTRY_CONTRACT || '0x0';
   const accessControlAddress = process.env.NEXT_PUBLIC_ACCESS_CONTROL_CONTRACT || '0x0';
+
+  // Validate that contract addresses are set
+  if (voiceStorageAddress === '0x0') {
+    console.error('❌ NEXT_PUBLIC_VOICE_STORAGE_CONTRACT not set in environment variables');
+  }
+  if (userRegistryAddress === '0x0') {
+    console.error('❌ NEXT_PUBLIC_USER_REGISTRY_CONTRACT not set in environment variables');
+  }
+  if (accessControlAddress === '0x0') {
+    console.error('❌ NEXT_PUBLIC_ACCESS_CONTROL_CONTRACT not set in environment variables');
+  }
+
+  console.log('🔧 Starknet Service Configuration:', {
+    providerUrl,
+    voiceStorageAddress,
+    userRegistryAddress,
+    accessControlAddress,
+  });
 
   // Use the proper ABIs extracted from compiled contracts
   const voiceStorageAbi = VOICE_STORAGE_ABI;
