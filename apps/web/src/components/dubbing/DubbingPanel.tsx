@@ -47,6 +47,9 @@ export default function DubbingPanel({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error'>('error');
 
+  // Move useRef to top level - CRITICAL FIX for "Invalid hook call" error
+  const stillDubbingRef = useRef(true);
+
   const { data: languagesData, isLoading: isLoadingLangs } = useDubbingLanguages();
   const { mutateAsync: dubAudio } = useAudioDubbing();
   const { mutateAsync: processRecording } = useProcessRecording();
@@ -91,8 +94,8 @@ export default function DubbingPanel({
     setDubbingStage('preparing');
     setDubbingProgress("Preparing your audio for translation...");
 
-    // Use a ref to track if we're still dubbing to avoid stale closures in timeouts
-    const stillDubbingRef = useRef(true);
+    // Reset ref to track if we're still dubbing to avoid stale closures in timeouts
+    stillDubbingRef.current = true;
     
     // Cultural insights and interesting facts for user engagement
     const culturalFacts = [
@@ -378,40 +381,149 @@ export default function DubbingPanel({
 
             {/* Enhanced Progress Visualization */}
             {isDubbing && (
-              <div className="mt-4 p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 bg-[#7C5DFA] rounded-full flex items-center justify-center">
-                    <svg className="w-4 h-4 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="mt-4 p-6 bg-gradient-to-br from-[#0F0F0F] to-[#1A1A1A] border border-[#2A2A2A] rounded-2xl shadow-xl">
+                {/* Header with spinning icon */}
+                <div className="flex flex-col items-center text-center mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-br from-[#7C5DFA] to-[#9C88FF] rounded-full flex items-center justify-center mb-4 shadow-lg shadow-purple-500/20">
+                    <svg className="w-8 h-8 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                   </div>
-                  <div>
-                    <h4 className="text-white font-medium">AI Dubbing in Progress</h4>
-                    <p className="text-gray-400 text-sm">{dubbingProgress}</p>
+                  <h4 className="text-xl font-bold text-white mb-2">AI Dubbing in Progress</h4>
+                  <p className="text-gray-300 text-sm leading-relaxed max-w-md">
+                    {dubbingProgress.split('Fun fact:')[0].trim()}
+                  </p>
+                </div>
+
+                {/* Cultural Fun Fact - Highlighted */}
+                {dubbingProgress.includes('Fun fact:') && (
+                  <div className="mb-6 p-4 bg-[#7C5DFA]/10 border border-[#7C5DFA]/30 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 bg-[#7C5DFA]/20 rounded-lg flex items-center justify-center mt-0.5">
+                        <span className="text-lg">💡</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold text-[#9C88FF] uppercase tracking-wide mb-1">Cultural Insight</p>
+                        <p className="text-sm text-gray-200 leading-relaxed">
+                          {dubbingProgress.split('Fun fact:')[1]?.trim()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Progress stages - Improved visual hierarchy */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 rounded-lg transition-all duration-300" style={{
+                    backgroundColor: dubbingStage === 'preparing' ? 'rgba(124, 93, 250, 0.1)' : 'transparent'
+                  }}>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${
+                      dubbingStage === 'preparing' || dubbingStage === 'translating' || dubbingStage === 'generating' || dubbingStage === 'finalizing' || dubbingStage === 'complete'
+                        ? 'bg-green-500 shadow-lg shadow-green-500/50'
+                        : 'bg-gray-600'
+                    }`}>
+                      {(dubbingStage === 'preparing' || dubbingStage === 'translating' || dubbingStage === 'generating' || dubbingStage === 'finalizing' || dubbingStage === 'complete') && (
+                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className={`text-sm font-medium transition-colors ${
+                      dubbingStage === 'preparing' ? 'text-white' : 'text-gray-400'
+                    }`}>
+                      🎵 Preparing audio
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 rounded-lg transition-all duration-300" style={{
+                    backgroundColor: dubbingStage === 'translating' ? 'rgba(124, 93, 250, 0.1)' : 'transparent'
+                  }}>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${
+                      dubbingStage === 'translating' || dubbingStage === 'generating' || dubbingStage === 'finalizing' || dubbingStage === 'complete'
+                        ? 'bg-green-500 shadow-lg shadow-green-500/50'
+                        : 'bg-gray-600'
+                    }`}>
+                      {(dubbingStage === 'translating' || dubbingStage === 'generating' || dubbingStage === 'finalizing' || dubbingStage === 'complete') && (
+                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className={`text-sm font-medium transition-colors ${
+                      dubbingStage === 'translating' ? 'text-white' : 'text-gray-400'
+                    }`}>
+                      🌐 AI translation
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 rounded-lg transition-all duration-300" style={{
+                    backgroundColor: dubbingStage === 'generating' ? 'rgba(124, 93, 250, 0.1)' : 'transparent'
+                  }}>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${
+                      dubbingStage === 'generating' || dubbingStage === 'finalizing' || dubbingStage === 'complete'
+                        ? 'bg-green-500 shadow-lg shadow-green-500/50'
+                        : 'bg-gray-600'
+                    }`}>
+                      {(dubbingStage === 'generating' || dubbingStage === 'finalizing' || dubbingStage === 'complete') && (
+                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className={`text-sm font-medium transition-colors ${
+                      dubbingStage === 'generating' ? 'text-white' : 'text-gray-400'
+                    }`}>
+                      🎙️ Voice synthesis
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 rounded-lg transition-all duration-300" style={{
+                    backgroundColor: dubbingStage === 'finalizing' ? 'rgba(124, 93, 250, 0.1)' : 'transparent'
+                  }}>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${
+                      dubbingStage === 'finalizing' || dubbingStage === 'complete'
+                        ? 'bg-green-500 shadow-lg shadow-green-500/50'
+                        : 'bg-gray-600'
+                    }`}>
+                      {(dubbingStage === 'finalizing' || dubbingStage === 'complete') && (
+                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className={`text-sm font-medium transition-colors ${
+                      dubbingStage === 'finalizing' ? 'text-white' : 'text-gray-400'
+                    }`}>
+                      ✨ Finalizing
+                    </span>
                   </div>
                 </div>
 
-                {/* Progress stages */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${dubbingStage === 'preparing' || dubbingStage === 'translating' || dubbingStage === 'generating' || dubbingStage === 'finalizing' || dubbingStage === 'complete' ? 'bg-green-500' : 'bg-gray-600'}`}></div>
-                    <span className={`text-sm ${dubbingStage === 'preparing' ? 'text-white' : 'text-gray-400'}`}>Preparing audio</span>
+                {/* Progress bar */}
+                <div className="mt-6 pt-4 border-t border-[#2A2A2A]">
+                  <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
+                    <span>Processing...</span>
+                    <span>
+                      {dubbingStage === 'preparing' && '25%'}
+                      {dubbingStage === 'translating' && '50%'}
+                      {dubbingStage === 'generating' && '75%'}
+                      {dubbingStage === 'finalizing' && '90%'}
+                      {dubbingStage === 'complete' && '100%'}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${dubbingStage === 'translating' || dubbingStage === 'generating' || dubbingStage === 'finalizing' || dubbingStage === 'complete' ? 'bg-green-500' : 'bg-gray-600'}`}></div>
-                    <span className={`text-sm ${dubbingStage === 'translating' ? 'text-white' : 'text-gray-400'}`}>AI translation</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${dubbingStage === 'generating' || dubbingStage === 'finalizing' || dubbingStage === 'complete' ? 'bg-green-500' : 'bg-gray-600'}`}></div>
-                    <span className={`text-sm ${dubbingStage === 'generating' ? 'text-white' : 'text-gray-400'}`}>Voice synthesis</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${dubbingStage === 'finalizing' || dubbingStage === 'complete' ? 'bg-green-500' : 'bg-gray-600'}`}></div>
-                    <span className={`text-sm ${dubbingStage === 'finalizing' ? 'text-white' : 'text-gray-400'}`}>Finalizing</span>
+                  <div className="w-full h-2 bg-[#2A2A2A] rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] transition-all duration-500 ease-out"
+                      style={{
+                        width: dubbingStage === 'preparing' ? '25%' :
+                               dubbingStage === 'translating' ? '50%' :
+                               dubbingStage === 'generating' ? '75%' :
+                               dubbingStage === 'finalizing' ? '90%' :
+                               dubbingStage === 'complete' ? '100%' : '0%'
+                      }}
+                    />
                   </div>
                 </div>
-
-
               </div>
             )}
 
