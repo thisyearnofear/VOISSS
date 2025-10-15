@@ -187,6 +187,9 @@ importers:
       starknetkit:
         specifier: ^2.10.4
         version: 2.10.4(starknet@6.24.1)(typescript@5.8.3)
+      zustand:
+        specifier: ^5.0.0
+        version: 5.0.5(@types/react@18.3.22)(react@18.3.1)
     devDependencies:
       '@next/bundle-analyzer':
         specifier: ^14.1.0
@@ -10772,6 +10775,28 @@ packages:
 
   /zod@3.25.28:
     resolution: {integrity: sha512-/nt/67WYKnr5by3YS7LroZJbtcCBurDKKPBPWWzaxvVCGuG/NOsiKkrjoOhI8mJ+SQUXEbUzeB3S+6XDUEEj7Q==}
+    dev: false
+
+  /zustand@5.0.5(@types/react@18.3.22)(react@18.3.1):
+    resolution: {integrity: sha512-mILtRfKW9xM47hqxGIxCv12gXusoY/xTSHBYApXozR0HmQv299whhBeeAcRy+KrPPybzosvJBCOmVjq6x12fCg==}
+    engines: {node: '>=12.20.0'}
+    peerDependencies:
+      '@types/react': '>=18.0.0'
+      immer: '>=9.0.6'
+      react: '>=18.0.0'
+      use-sync-external-store: '>=1.2.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      immer:
+        optional: true
+      react:
+        optional: true
+      use-sync-external-store:
+        optional: true
+    dependencies:
+      '@types/react': 18.3.22
+      react: 18.3.1
     dev: false
 
   /zustand@5.0.5(@types/react@19.0.14)(react@19.0.0):
