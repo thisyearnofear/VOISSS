@@ -310,7 +310,7 @@ export function useVoiceTransform() {
   });
 }
 
-// Hook to dub audio (enhanced to use backend service)
+// Hook to dub audio (enhanced to use backend service with retry logic)
 export function useAudioDubbing() {
   const queryClient = useQueryClient();
   
@@ -336,6 +336,53 @@ export function useAudioDubbing() {
           method: 'POST',
           body: formData,
         });
+
+        // Handle 202 (still processing) - retry after delay
+        if (response.status === 202) {
+          const data = await response.json();
+          console.log('Dubbing still processing, retrying...', data);
+          
+          // Wait a bit then retry
+          await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second delay
+          
+          // Retry the request
+          const retryResponse = await fetch('/api/elevenlabs/dub-audio', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (!retryResponse.ok && retryResponse.status !== 202) {
+            const errorData = await retryResponse.json().catch(() => ({}));
+            throw new Error(errorData.error || `Audio dubbing failed: ${retryResponse.status}`);
+          }
+          
+          // If still 202, throw error to trigger mutation retry
+          if (retryResponse.status === 202) {
+            throw new Error('Dubbing still in progress, please retry');
+          }
+          
+          const retryData = await retryResponse.json();
+          console.log('Dubbing completed after retry:', { audioSize: retryData.audio_base64?.length });
+          
+          if (!retryData.audio_base64) {
+            throw new Error('Invalid response: missing audio_base64');
+          }
+
+          const dubbedBlob = await base64ToBlobAsync(
+            retryData.audio_base64,
+            retryData.content_type || 'audio/mpeg'
+          );
+          
+          if (dubbedBlob.size === 0) {
+            throw new Error('Received empty dubbed audio response');
+          }
+
+          return {
+            blob: dubbedBlob,
+            transcript: retryData.transcript || undefined,
+            translatedTranscript: retryData.translated_transcript || undefined,
+          };
+        }
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
@@ -367,8 +414,8 @@ export function useAudioDubbing() {
         throw handleQueryError(error);
       }
     },
-    retry: 1, // Retry once for dubbing
-    retryDelay: 3000, // 3 second delay before retry (dubbing takes longer)
+    retry: 2, // Retry twice for dubbing (handles 202 responses)
+    retryDelay: 5000, // 5 second delay before retry
   });
 }
 
