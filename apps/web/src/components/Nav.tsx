@@ -1,13 +1,53 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useAccount } from "@starknet-react/core";
+import { useState, useRef, useEffect } from "react";
+import { useAccount, useDisconnect } from "@starknet-react/core";
 import WalletModal from "./WalletModal";
 
 export default function Nav() {
-  const { isConnected } = useAccount();
+  const { address, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [showWalletMenu, setShowWalletMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowWalletMenu(false);
+      }
+    };
+
+    if (showWalletMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showWalletMenu]);
+
+  const formatAddress = (addr: string) => {
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      await disconnect();
+      setShowWalletMenu(false);
+    } catch (error) {
+      console.error("Failed to disconnect:", error);
+    }
+  };
+
+  const copyAddress = () => {
+    if (address) {
+      navigator.clipboard.writeText(address);
+      // Could add a toast notification here
+    }
+  };
   
   return (
     <nav className="border-b border-[#2A2A2A] bg-[#0A0A0A]/95 backdrop-blur-sm sticky top-0 z-50">
@@ -64,10 +104,119 @@ export default function Nav() {
               </div>
             )}
             
-            {isConnected && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-green-500/20 border border-green-500/30 rounded-full">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span className="text-green-400 text-xs font-medium">Connected</span>
+            {isConnected && address && (
+              <div className="relative" ref={menuRef}>
+                <button
+                  onClick={() => setShowWalletMenu(!showWalletMenu)}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-xl hover:border-green-500/50 transition-all duration-200 group"
+                >
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
+                  <span className="text-green-400 text-sm font-medium hidden sm:inline">
+                    {formatAddress(address)}
+                  </span>
+                  <span className="text-green-400 text-sm font-medium sm:hidden">
+                    Wallet
+                  </span>
+                  <svg
+                    className={`w-4 h-4 text-green-400 transition-transform duration-200 ${showWalletMenu ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {/* Enhanced Wallet Dropdown Menu */}
+                {showWalletMenu && (
+                  <div className="absolute right-0 mt-3 w-80 bg-gradient-to-br from-[#1A1A1A] to-[#0F0F0F] border border-[#3A3A3A] rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    {/* Header with Gradient */}
+                    <div className="p-5 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-b border-[#2A2A2A]">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
+                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-green-400 uppercase tracking-wide">Connected</span>
+                            <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                          </div>
+                          <p className="text-white font-semibold text-sm mt-0.5">Starknet Wallet</p>
+                        </div>
+                      </div>
+                      <div className="p-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg">
+                        <p className="text-gray-400 text-xs mb-1">Address</p>
+                        <p className="text-white font-mono text-xs break-all leading-relaxed">
+                          {address}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Actions with Beautiful Styling */}
+                    <div className="p-3">
+                      <button
+                        onClick={copyAddress}
+                        className="w-full px-4 py-3 text-left text-sm text-white hover:bg-[#2A2A2A] rounded-xl transition-all duration-200 flex items-center gap-3 group mb-1"
+                      >
+                        <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
+                          <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">Copy Address</p>
+                          <p className="text-xs text-gray-400">Copy to clipboard</p>
+                        </div>
+                      </button>
+                      
+                      <a
+                        href={`https://sepolia.starkscan.co/contract/${address}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full px-4 py-3 text-left text-sm text-white hover:bg-[#2A2A2A] rounded-xl transition-all duration-200 flex items-center gap-3 group mb-1"
+                      >
+                        <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center group-hover:bg-purple-500/20 transition-colors">
+                          <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">View on Starkscan</p>
+                          <p className="text-xs text-gray-400">Verify on blockchain</p>
+                        </div>
+                        <svg className="w-4 h-4 text-gray-500 group-hover:text-purple-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </a>
+
+                      <div className="my-2 border-t border-[#2A2A2A]"></div>
+
+                      <button
+                        onClick={handleDisconnect}
+                        className="w-full px-4 py-3 text-left text-sm text-white hover:bg-red-500/10 rounded-xl transition-all duration-200 flex items-center gap-3 group"
+                      >
+                        <div className="w-8 h-8 bg-red-500/10 rounded-lg flex items-center justify-center group-hover:bg-red-500/20 transition-colors">
+                          <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-red-400">Disconnect Wallet</p>
+                          <p className="text-xs text-gray-400">Sign out from Starknet</p>
+                        </div>
+                      </button>
+                    </div>
+
+                    {/* Footer Tip */}
+                    <div className="px-4 py-3 bg-[#0A0A0A] border-t border-[#2A2A2A]">
+                      <p className="text-xs text-gray-500 text-center">
+                        💡 Your recordings are secured on Starknet
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

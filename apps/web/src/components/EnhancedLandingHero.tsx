@@ -1,51 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useAccount } from "@starknet-react/core";
-import { Mic, Zap, Globe, Users, TrendingUp } from "lucide-react";
+import React from "react";
+import { Mic, Zap, Globe } from "lucide-react";
 
 // Type-safe icon wrappers to resolve React 18/19 compatibility issues
 const CompatibleMic = Mic as React.ComponentType<{ className?: string }>;
 const CompatibleZap = Zap as React.ComponentType<{ className?: string }>;
 const CompatibleGlobe = Globe as React.ComponentType<{ className?: string }>;
-const CompatibleUsers = Users as React.ComponentType<{ className?: string }>;
-const CompatibleTrendingUp = TrendingUp as React.ComponentType<{
-  className?: string;
-}>;
-
-interface LiveStats {
-  totalRecordings: number;
-  activeUsers: number;
-  aiTransformations: number;
-  starknetTxs: number;
-}
 
 export default function EnhancedLandingHero() {
-  const { isConnected } = useAccount();
-  const [liveStats, setLiveStats] = useState<LiveStats>({
-    totalRecordings: 1247,
-    activeUsers: 89,
-    aiTransformations: 3421,
-    starknetTxs: 892,
-  });
-
-  // Simulate live stats updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLiveStats((prev) => ({
-        totalRecordings: prev.totalRecordings + Math.floor(Math.random() * 3),
-        activeUsers: Math.max(
-          50,
-          prev.activeUsers + Math.floor(Math.random() * 10) - 5
-        ),
-        aiTransformations:
-          prev.aiTransformations + Math.floor(Math.random() * 5),
-        starknetTxs: prev.starknetTxs + Math.floor(Math.random() * 2),
-      }));
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="relative overflow-hidden">
@@ -97,50 +60,7 @@ export default function EnhancedLandingHero() {
           </div>
         </div>
 
-        {/* Live Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          <div className="bg-gradient-to-br from-[#1A1A1A] to-[#2A2A2A] border border-[#3A3A3A] rounded-xl p-6 text-center">
-            <div className="flex items-center justify-center mb-2">
-              <CompatibleMic className="w-6 h-6 text-purple-400 mr-2" />
-              <span className="text-2xl font-bold text-white">
-                {liveStats.totalRecordings.toLocaleString()}
-              </span>
-            </div>
-            <p className="text-gray-400 text-sm">Recordings Created</p>
-          </div>
-
-          <div className="bg-gradient-to-br from-[#1A1A1A] to-[#2A2A2A] border border-[#3A3A3A] rounded-xl p-6 text-center">
-            <div className="flex items-center justify-center mb-2">
-              <CompatibleUsers className="w-6 h-6 text-green-400 mr-2" />
-              <span className="text-2xl font-bold text-white">
-                {liveStats.activeUsers}
-              </span>
-            </div>
-            <p className="text-gray-400 text-sm">Active Users</p>
-          </div>
-
-          <div className="bg-gradient-to-br from-[#1A1A1A] to-[#2A2A2A] border border-[#3A3A3A] rounded-xl p-6 text-center">
-            <div className="flex items-center justify-center mb-2">
-              <CompatibleZap className="w-6 h-6 text-yellow-400 mr-2" />
-              <span className="text-2xl font-bold text-white">
-                {liveStats.aiTransformations.toLocaleString()}
-              </span>
-            </div>
-            <p className="text-gray-400 text-sm">AI Transformations</p>
-          </div>
-
-          <div className="bg-gradient-to-br from-[#1A1A1A] to-[#2A2A2A] border border-[#3A3A3A] rounded-xl p-6 text-center">
-            <div className="flex items-center justify-center mb-2">
-              <CompatibleGlobe className="w-6 h-6 text-blue-400 mr-2" />
-              <span className="text-2xl font-bold text-white">
-                {liveStats.starknetTxs}
-              </span>
-            </div>
-            <p className="text-gray-400 text-sm">Starknet Transactions</p>
-          </div>
-        </div>
-
-        {/* Feature Highlights */}
+        {/* Feature Highlights - Clean and Focused */}
         <div className="grid md:grid-cols-3 gap-8 mb-16">
           <div className="text-center">
             <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -159,10 +79,10 @@ export default function EnhancedLandingHero() {
               <CompatibleZap className="w-8 h-8 text-white" />
             </div>
             <h3 className="text-xl font-semibold text-white mb-2">
-              AI Voice Transform
+              AI Voice Transform & Dubbing
             </h3>
             <p className="text-gray-400">
-              Transform your voice with 20+ AI models powered by ElevenLabs
+              Transform voices with AI and dub to 29+ languages using ElevenLabs
             </p>
           </div>
 
@@ -171,23 +91,25 @@ export default function EnhancedLandingHero() {
               <CompatibleGlobe className="w-8 h-8 text-white" />
             </div>
             <h3 className="text-xl font-semibold text-white mb-2">
-              Starknet Storage
+              Blockchain Storage
             </h3>
             <p className="text-gray-400">
-              Decentralized storage with ultra-low fees and Ethereum security
+              Permanent IPFS storage secured by Starknet smart contracts
             </p>
           </div>
         </div>
 
-        {/* Social Proof */}
-        <div className="text-center">
-          <p className="text-gray-400 mb-6">Trusted by creators worldwide</p>
-          <div className="flex flex-wrap justify-center gap-8 opacity-60">
-            <div className="text-gray-500 font-semibold">Content Creators</div>
-            <div className="text-gray-500 font-semibold">Podcasters</div>
-            <div className="text-gray-500 font-semibold">Voice Artists</div>
-            <div className="text-gray-500 font-semibold">Developers</div>
+        {/* Value Proposition - Honest and Clear */}
+        <div className="text-center max-w-3xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded-full mb-4">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <span className="text-sm font-medium text-green-400">
+              Production Ready • Live on Starknet Sepolia
+            </span>
           </div>
+          <p className="text-gray-400 text-sm">
+            Built for content creators, podcasters, and voice artists who need professional AI tools with blockchain permanence
+          </p>
         </div>
       </div>
     </div>
