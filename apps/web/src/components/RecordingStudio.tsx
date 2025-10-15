@@ -3,7 +3,13 @@
 import React, { useState, useCallback } from "react";
 import { useAccount } from "@starknet-react/core";
 import { useWebAudioRecording } from "../hooks/useWebAudioRecording";
-import { useProcessRecording } from "../hooks/queries/useStarknetRecording";
+import {
+  useProcessRecording,
+  useUserRecordings,
+  useDeleteRecording,
+  useToggleRecordingVisibility,
+  useRecordingStats
+} from "../hooks/queries/useStarknetRecording";
 import { useFreemiumStore } from "../store/freemiumStore";
 import WalletModal from "./WalletModal";
 import DubbingPanel from "./dubbing/DubbingPanel";
@@ -32,6 +38,11 @@ export default function RecordingStudio({
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTitle, setRecordingTitle] = useState("");
   const [showSaveOptions, setShowSaveOptions] = useState(false);
+  
+  // Recording list state (for connected users)
+  const [editingRecording, setEditingRecording] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [showHidden, setShowHidden] = useState(false);
 
   // AI Voice state
   const [voicesFree, setVoicesFree] = useState<{ voiceId: string; name?: string }[]>([]);
@@ -55,7 +66,13 @@ export default function RecordingStudio({
   });
 
   const { mutateAsync: processRecording } = useProcessRecording();
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
+  
+  // Starknet recording hooks (only active when connected)
+  const { data: recordings = [], isLoading: isLoadingRecordings } = useUserRecordings();
+  const deleteRecordingMutation = useDeleteRecording();
+  const toggleVisibilityMutation = useToggleRecordingVisibility();
+  const { data: recordingStats } = useRecordingStats();
   
   // Freemium state from global store
   const {
@@ -294,6 +311,74 @@ export default function RecordingStudio({
       URL.revokeObjectURL(url);
     }
   }, [audioBlob, recordingTitle]);
+
+  // Recording list management functions
+  const toggleRecordingVisibility = (id: string) => {
+    const recording = recordings.find((r: any) => r.id === id);
+    if (recording) {
+      toggleVisibilityMutation.mutate({
+        recordingId: id,
+        isHidden: !recording.isHidden
+      });
+    }
+  };
+
+  const startEditingTitle = (recording: any) => {
+    setEditingRecording(recording.id);
+    setEditTitle(recording.customTitle || recording.title);
+  };
+
+  const saveEditedTitle = () => {
+    if (editingRecording && editTitle.trim()) {
+      const recording = recordings.find((r: any) => r.id === editingRecording);
+      if (recording) {
+        // Update via mutation - this would need to be added to useStarknetRecording
+        const updatedRecording = { ...recording, customTitle: editTitle.trim() };
+        // For now, just update localStorage directly
+        const stored = localStorage.getItem(`recordings_${address}`);
+        if (stored) {
+          const recs = JSON.parse(stored);
+          const updated = recs.map((r: any) =>
+            r.id === editingRecording ? updatedRecording : r
+          );
+          localStorage.setItem(`recordings_${address}`, JSON.stringify(updated));
+        }
+      }
+      setEditingRecording(null);
+      setEditTitle("");
+    }
+  };
+
+  const cancelEditingTitle = () => {
+    setEditingRecording(null);
+    setEditTitle("");
+  };
+
+  const getDisplayTitle = (recording: any): string => {
+    if (recording.customTitle) return recording.customTitle;
+    if (recording.title && recording.title !== recording.id)
+      return recording.title;
+    return `Recording ${recording.timestamp ? new Date(recording.timestamp).toLocaleTimeString() : 'Unknown time'}`;
+  };
+
+  const deleteRecording = (id: string) => {
+    if (confirm("Are you sure you want to delete this recording?")) {
+      deleteRecordingMutation.mutate(id);
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  // Filter recordings based on visibility
+  const visibleRecordings = recordings.filter(
+    (recording: any) => showHidden || !recording.isHidden
+  );
 
   const formatDuration = (ms: number): string => {
     const seconds = Math.floor(ms / 1000);
@@ -815,6 +900,134 @@ export default function RecordingStudio({
         title="Unlock Unlimited AI Voices"
         subtitle="Connect your wallet to save unlimited AI variants and access premium features"
       />
+
+      {/* Recordings List - Only show when wallet is connected */}
+      {isConnected && (
+        <div className="mt-8 voisss-card">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-bold text-white">Your Recordings</h3>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setShowHidden(!showHidden)}
+                className="text-sm text-purple-300 hover:text-purple-100 transition-colors"
+              >
+                {showHidden ? "Hide Hidden" : "Show Hidden"}
+              </button>
+              {recordingStats && (
+                <div className="text-sm text-gray-300">
+                  Total: {recordingStats.total} | Public: {recordingStats.public} | Private: {recordingStats.private}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {isLoadingRecordings ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto"></div>
+              <p className="mt-2 text-gray-300">Loading recordings...</p>
+            </div>
+          ) : visibleRecordings.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">
+              <p>No recordings found.</p>
+              <p className="text-sm mt-2">Start recording to see your voice recordings here.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {visibleRecordings.map((recording: any) => (
+                <div
+                  key={recording.id}
+                  className={`bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg p-4 transition-opacity ${
+                    recording.isHidden ? "opacity-50" : ""
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      {editingRecording === recording.id ? (
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="text"
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            className="flex-1 px-2 py-1 bg-[#0A0A0A] border border-[#3A3A3A] rounded text-white"
+                            onKeyPress={(e) => {
+                              if (e.key === "Enter") saveEditedTitle();
+                              if (e.key === "Escape") cancelEditingTitle();
+                            }}
+                            autoFocus
+                          />
+                          <button
+                            onClick={saveEditedTitle}
+                            className="text-green-400 hover:text-green-300 transition-colors"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={cancelEditingTitle}
+                            className="text-red-400 hover:text-red-300 transition-colors"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <h4
+                          className="font-medium text-white cursor-pointer hover:text-purple-300 transition-colors"
+                          onClick={() => startEditingTitle(recording)}
+                        >
+                          {getDisplayTitle(recording)}
+                        </h4>
+                      )}
+                      <div className="text-sm text-gray-400 mt-1">
+                        <span>Duration: {recording.duration ? recording.duration.toFixed(1) : '0.0'}s</span>
+                        <span className="mx-2">•</span>
+                        <span>Size: {formatFileSize(recording.fileSize || 0)}</span>
+                        <span className="mx-2">•</span>
+                        <span>
+                          {recording.timestamp ? new Date(recording.timestamp).toLocaleDateString() : 'Unknown date'}{' '}
+                          {recording.timestamp ? new Date(recording.timestamp).toLocaleTimeString() : ''}
+                        </span>
+                        {recording.onChain && (
+                          <>
+                            <span className="mx-2">•</span>
+                            <span className="text-green-400">On-chain</span>
+                          </>
+                        )}
+                      </div>
+                      {recording.tags && recording.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {recording.tags.map((tag: string, idx: number) => (
+                            <span
+                              key={idx}
+                              className="px-2 py-1 bg-purple-600/20 border border-purple-500/30 rounded text-xs text-purple-300"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2 ml-4">
+                      <button
+                        onClick={() => toggleRecordingVisibility(recording.id)}
+                        className="text-gray-400 hover:text-white transition-colors p-2"
+                        title={recording.isHidden ? "Show" : "Hide"}
+                      >
+                        {recording.isHidden ? "👁️" : "🙈"}
+                      </button>
+                      <button
+                        onClick={() => deleteRecording(recording.id)}
+                        className="text-red-400 hover:text-red-300 transition-colors p-2"
+                        title="Delete"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

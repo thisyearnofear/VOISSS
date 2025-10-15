@@ -10,7 +10,13 @@ importers:
     dependencies:
       '@tanstack/react-query':
         specifier: 5.90.2
-        version: 5.90.2(react@18.3.1)
+        version: 5.90.2(react@19.0.0)
+      react:
+        specifier: 19.0.0
+        version: 19.0.0
+      react-dom:
+        specifier: 19.0.0
+        version: 19.0.0(react@19.0.0)
     devDependencies:
       concurrently:
         specifier: ^8.2.2
@@ -3154,6 +3160,15 @@ packages:
     dependencies:
       '@tanstack/query-core': 5.90.2
       react: 18.3.1
+    dev: false
+
+  /@tanstack/react-query@5.90.2(react@19.0.0):
+    resolution: {integrity: sha512-CLABiR+h5PYfOWr/z+vWFt5VsOA2ekQeRQBFSKlcoW6Ndx/f8rfyVmq4LbgOM4GG2qtxAxjLYLOpCNTYm4uKzw==}
+    peerDependencies:
+      react: ^18 || ^19
+    dependencies:
+      '@tanstack/query-core': 5.90.2
+      react: 19.0.0
     dev: false
 
   /@trpc/client@10.45.2(@trpc/server@10.45.2):

@@ -2,12 +2,9 @@
 
 import { useState } from "react";
 import RecordingStudio from "../../components/RecordingStudio";
-import StarknetRecordingStudio from "../../components/StarknetRecordingStudio";
-import { useAccount } from "@starknet-react/core";
 import { formatDuration } from "@voisss/shared";
 
 export default function RecordPage() {
-  const { isConnected } = useAccount();
   const [recordings, setRecordings] = useState<
     Array<{
       id: string;
@@ -37,17 +34,13 @@ export default function RecordPage() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white">
       <div className="voisss-container py-8 sm:py-12">
-        {/* Recording Studio */}
+        {/* Unified Recording Studio - Works for both connected and unconnected users */}
         <div id="recording-section" className="mb-12">
-          {isConnected ? (
-            <StarknetRecordingStudio />
-          ) : (
-            <RecordingStudio onRecordingComplete={handleRecordingComplete} />
-          )}
+          <RecordingStudio onRecordingComplete={handleRecordingComplete} />
         </div>
 
-        {/* Recordings List - Only show for non-connected users */}
-        {!isConnected && recordings.length > 0 && (
+        {/* Legacy Recordings List - Only show for guest users with local recordings */}
+        {recordings.length > 0 && (
           <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4 sm:mb-6">
               Your Recordings
