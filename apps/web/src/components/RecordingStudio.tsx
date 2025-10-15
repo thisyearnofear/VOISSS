@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
+import { useAccount } from "@starknet-react/core";
 import { useWebAudioRecording } from "../hooks/useWebAudioRecording";
 import { useProcessRecording } from "../hooks/queries/useStarknetRecording";
+import { useFreemiumStore } from "../store/freemiumStore";
 import WalletModal from "./WalletModal";
 import DubbingPanel from "./dubbing/DubbingPanel";
 
@@ -31,8 +33,7 @@ export default function RecordingStudio({
   const [recordingTitle, setRecordingTitle] = useState("");
   const [showSaveOptions, setShowSaveOptions] = useState(false);
 
-  // Freemium AI state
-  const [freeAICounter, setFreeAICounter] = useState(1);
+  // AI Voice state
   const [voicesFree, setVoicesFree] = useState<{ voiceId: string; name?: string }[]>([]);
   const [selectedVoiceFree, setSelectedVoiceFree] = useState("");
   const [variantBlobFree, setVariantBlobFree] = useState<Blob | null>(null);
@@ -41,12 +42,45 @@ export default function RecordingStudio({
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error'>('error');
+  
+  // Dubbing state
+  const [dubbedBlob, setDubbedBlob] = useState<Blob | null>(null);
+  const [dubbedLanguage, setDubbedLanguage] = useState<string>("");
+  
+  // Version selection state for unified save
+  const [selectedVersions, setSelectedVersions] = useState({
+    original: true,
+    aiVoice: false,
+    dubbed: false,
+  });
 
   const { mutateAsync: processRecording } = useProcessRecording();
-
-  // Dubbing state
-  const [activeTab, setActiveTab] = useState<'voice' | 'dubbing'>('voice');
-  const [freeDubbingCounter, setFreeDubbingCounter] = useState(1);
+  const { address } = useAccount();
+  
+  // Freemium state from global store
+  const {
+    userTier,
+    canSaveRecording,
+    canUseAIVoice,
+    canUseDubbing,
+    incrementSaveUsage,
+    incrementAIVoiceUsage,
+    incrementDubbingUsage,
+    getRemainingQuota,
+    setUserTier,
+  } = useFreemiumStore();
+  
+  // Sync user tier with wallet connection
+  React.useEffect(() => {
+    if (address) {
+      // TODO: Check if user has premium subscription
+      setUserTier('free'); // For now, connected users are free tier
+    } else {
+      setUserTier('guest');
+    }
+  }, [address, setUserTier]);
+  
+  const remainingQuota = getRemainingQuota();
 
   const handleStartRecording = useCallback(async () => {
     try {
@@ -63,16 +97,21 @@ export default function RecordingStudio({
       const blob = await stopRecording();
       if (blob) {
         setShowSaveOptions(true);
-        // Reset freemium AI state for new recording
-        setFreeAICounter(1);
+        // Reset AI state for new recording
         setVoicesFree([]);
         setSelectedVoiceFree("");
         setVariantBlobFree(null);
         setLoadingVoicesFree(false);
         setGeneratingFree(false);
         // Reset dubbing state
-        setActiveTab('voice');
-        setFreeDubbingCounter(1);
+        setDubbedBlob(null);
+        setDubbedLanguage("");
+        // Reset version selection
+        setSelectedVersions({
+          original: true,
+          aiVoice: false,
+          dubbed: false,
+        });
       }
     } catch (error) {
       console.error("Failed to stop recording:", error);
@@ -89,21 +128,142 @@ export default function RecordingStudio({
     }
   }, [isPaused, pauseRecording, resumeRecording]);
 
-  const handleSaveRecording = useCallback(() => {
-    if (audioBlob && onRecordingComplete) {
-      onRecordingComplete(audioBlob, duration);
-      setShowSaveOptions(false);
-      setRecordingTitle("");
+  // Unified save handler for all selected versions
+  const handleSaveSelectedVersions = useCallback(async () => {
+    if (!audioBlob) return;
+    
+    // Count selected versions
+    const versionsToSave = Object.values(selectedVersions).filter(Boolean).length;
+    if (versionsToSave === 0) {
+      setToastType('error');
+      setToastMessage('Please select at least one version to save');
+      setTimeout(() => setToastMessage(null), 4000);
+      return;
     }
-  }, [audioBlob, duration, onRecordingComplete]);
+    
+    // Check if user can save (check against number of versions)
+    if (!canSaveRecording()) {
+      if (userTier === 'guest') {
+        setShowWalletModal(true);
+        return;
+      }
+      // Free tier hit limit
+      setToastType('error');
+      setToastMessage('Weekly save limit reached. Upgrade for unlimited saves!');
+      setTimeout(() => setToastMessage(null), 4000);
+      setShowWalletModal(true);
+      return;
+    }
+    
+    // Check if user has enough quota for all selected versions
+    if (userTier === 'free' && versionsToSave > remainingQuota.saves) {
+      setToastType('error');
+      setToastMessage(`Not enough saves remaining. You have ${remainingQuota.saves} saves left but selected ${versionsToSave} versions.`);
+      setTimeout(() => setToastMessage(null), 4000);
+      setShowWalletModal(true);
+      return;
+    }
+    
+    try {
+      const baseTitle = recordingTitle || `Recording ${new Date().toLocaleDateString()}`;
+      const results = [];
+      
+      // Save original if selected
+      if (selectedVersions.original && audioBlob) {
+        const result = await processRecording({
+          blob: audioBlob,
+          metadata: {
+            title: baseTitle,
+            description: `Voice recording created on ${new Date().toLocaleString()}`,
+            ipfsHash: '',
+            duration: duration / 1000,
+            fileSize: audioBlob.size,
+            isPublic: false,
+            tags: ['recording', 'original'],
+          },
+          onProgress: (progress: any) => console.log('Original save progress:', progress)
+        });
+        results.push({ type: 'original', success: result.success, error: result.error });
+        if (result.success) incrementSaveUsage();
+      }
+      
+      // Save AI voice if selected
+      if (selectedVersions.aiVoice && variantBlobFree) {
+        const result = await processRecording({
+          blob: variantBlobFree,
+          metadata: {
+            title: `${baseTitle} - AI Voice (${selectedVoiceFree})`,
+            description: `AI voice transformed version using ${selectedVoiceFree}`,
+            ipfsHash: '',
+            duration: 0,
+            fileSize: variantBlobFree.size,
+            isPublic: false,
+            tags: ['recording', 'ai-voice', selectedVoiceFree],
+          },
+          onProgress: (progress: any) => console.log('AI Voice save progress:', progress)
+        });
+        results.push({ type: 'ai-voice', success: result.success, error: result.error });
+        if (result.success) incrementSaveUsage();
+      }
+      
+      // Save dubbed if selected
+      if (selectedVersions.dubbed && dubbedBlob) {
+        const result = await processRecording({
+          blob: dubbedBlob,
+          metadata: {
+            title: `${baseTitle} - Dubbed (${dubbedLanguage})`,
+            description: `Dubbed version in ${dubbedLanguage}`,
+            ipfsHash: '',
+            duration: 0,
+            fileSize: dubbedBlob.size,
+            isPublic: false,
+            tags: ['recording', 'dubbed', dubbedLanguage],
+          },
+          onProgress: (progress: any) => console.log('Dubbed save progress:', progress)
+        });
+        results.push({ type: 'dubbed', success: result.success, error: result.error });
+        if (result.success) incrementSaveUsage();
+      }
+      
+      // Show results
+      const successCount = results.filter(r => r.success).length;
+      const failCount = results.filter(r => !r.success).length;
+      
+      if (successCount > 0) {
+        setToastType('success');
+        setToastMessage(`${successCount} version${successCount > 1 ? 's' : ''} saved successfully!`);
+        setTimeout(() => setToastMessage(null), 4000);
+        
+        if (onRecordingComplete && audioBlob) {
+          onRecordingComplete(audioBlob, duration);
+        }
+      }
+      
+      if (failCount > 0) {
+        setToastType('error');
+        setToastMessage(`${failCount} version${failCount > 1 ? 's' : ''} failed to save`);
+        setTimeout(() => setToastMessage(null), 4000);
+      }
+      
+      if (successCount === versionsToSave) {
+        // All saved successfully, can close
+        setShowSaveOptions(false);
+        setRecordingTitle("");
+      }
+    } catch (error) {
+      console.error('Error saving recordings:', error);
+      setToastType('error');
+      setToastMessage('Error saving recordings');
+      setTimeout(() => setToastMessage(null), 4000);
+    }
+  }, [audioBlob, variantBlobFree, dubbedBlob, selectedVersions, recordingTitle, duration, selectedVoiceFree, dubbedLanguage, canSaveRecording, userTier, remainingQuota.saves, processRecording, incrementSaveUsage, onRecordingComplete]);
 
   const handleCancelRecording = useCallback(() => {
     cancelRecording();
     setShowSaveOptions(false);
     setRecordingTitle("");
     setIsPaused(false);
-    // Reset freemium AI state
-    setFreeAICounter(1);
+    // Reset AI state
     setVoicesFree([]);
     setSelectedVoiceFree("");
     setVariantBlobFree(null);
@@ -111,8 +271,14 @@ export default function RecordingStudio({
     setGeneratingFree(false);
     setShowWalletModal(false);
     // Reset dubbing state
-    setActiveTab('voice');
-    setFreeDubbingCounter(1);
+    setDubbedBlob(null);
+    setDubbedLanguage("");
+    // Reset version selection
+    setSelectedVersions({
+      original: true,
+      aiVoice: false,
+      dubbed: false,
+    });
   }, [cancelRecording]);
 
   const handleDownload = useCallback(() => {
@@ -303,29 +469,20 @@ export default function RecordingStudio({
                   <svg className="w-4 h-4 text-[#7C5DFA]" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
                   </svg>
-                  Try AI Voice (Free)
+                  AI Voice Transform
                 </h4>
                 <p className="text-gray-400 text-sm">Transform your voice with AI</p>
               </div>
               <div className="text-right">
-                <span className="text-sm text-gray-400">{freeAICounter}/1 free</span>
-                {freeAICounter < 1 && (
-                  <div className="mt-1">
-                    <p className="text-xs text-yellow-400">Free sample used!</p>
-                    <button
-                      onClick={() => setShowWalletModal(true)}
-                      className="text-xs text-[#7C5DFA] hover:text-[#9C88FF] underline"
-                    >
-                      Unlock unlimited →
-                    </button>
-                  </div>
-                )}
+                <span className="text-sm text-gray-400">
+                  {userTier === 'premium' ? '∞ unlimited' : `${remainingQuota.aiVoice}/${useFreemiumStore.getState().WEEKLY_AI_VOICE_LIMIT} free`}
+                </span>
               </div>
             </div>
 
             <div className="space-y-3">
               <button
-                disabled={freeAICounter < 1 || isLoadingVoicesFree || voicesFree.length > 0}
+                disabled={!canUseAIVoice() || isLoadingVoicesFree || voicesFree.length > 0}
                 className="w-full px-3 py-2 bg-[#2A2A2A] rounded-lg text-gray-300 hover:bg-[#3A3A3A] disabled:opacity-50 transition-colors"
                 onClick={async () => {
                   if (!isLoadingVoicesFree && voicesFree.length === 0) {
@@ -333,14 +490,15 @@ export default function RecordingStudio({
                     try {
                       const res = await fetch("/api/elevenlabs/list-voices", { method: "POST" });
                       const data = await res.json();
-                      // Limit to 3 voices for freemium
                       setVoicesFree((data.voices || []).slice(0, 3));
                       if (data.voices?.[0]?.voiceId) {
                         setSelectedVoiceFree(data.voices[0].voiceId);
                       }
                     } catch (e) {
                       console.error("Failed to load voices:", e);
-                      alert("Failed to load voices. Please check your connection.");
+                      setToastType('error');
+                      setToastMessage('Failed to load voices');
+                      setTimeout(() => setToastMessage(null), 4000);
                     } finally {
                       setLoadingVoicesFree(false);
                     }
@@ -380,10 +538,10 @@ export default function RecordingStudio({
                   </select>
 
                   <button
-                    disabled={!selectedVoiceFree || freeAICounter < 1 || isGeneratingFree || !!variantBlobFree}
+                    disabled={!selectedVoiceFree || !canUseAIVoice() || isGeneratingFree || !!variantBlobFree}
                     className="w-full px-4 py-3 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-lg text-white disabled:opacity-50 font-medium transition-all duration-200"
                     onClick={async () => {
-                      if (!variantBlobFree && freeAICounter > 0 && selectedVoiceFree && audioBlob) {
+                      if (!variantBlobFree && canUseAIVoice() && selectedVoiceFree && audioBlob) {
                         setGeneratingFree(true);
                         try {
                           const form = new FormData();
@@ -398,11 +556,16 @@ export default function RecordingStudio({
                             throw new Error(errorData.error || 'Transform failed');
                           }
                           const buf = await res.arrayBuffer();
-                          setVariantBlobFree(new Blob([buf], { type: "audio/mpeg" }));
-                          setFreeAICounter(0);
+                          const blob = new Blob([buf], { type: "audio/mpeg" });
+                          setVariantBlobFree(blob);
+                          incrementAIVoiceUsage();
+                          // Auto-select AI voice version for saving
+                          setSelectedVersions(prev => ({ ...prev, aiVoice: true }));
                         } catch (e) {
                           console.error("Variant generation failed:", e);
-                          alert("AI transformation failed. Please try again.");
+                          setToastType('error');
+                          setToastMessage('AI transformation failed');
+                          setTimeout(() => setToastMessage(null), 4000);
                         } finally {
                           setGeneratingFree(false);
                         }
@@ -432,75 +595,9 @@ export default function RecordingStudio({
                       <audio
                         src={URL.createObjectURL(variantBlobFree)}
                         controls
-                        className="w-full mb-3"
+                        className="w-full"
                         style={{ height: '32px' }}
                       />
-                      <div className="space-y-2">
-                        <div className="p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
-                          <h6 className="text-xs font-medium text-gray-300 mb-2 flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                            AI Voice Transform
-                          </h6>
-                          <button
-                            onClick={async () => {
-                              if (!variantBlobFree) return;
-
-                              try {
-                                // Use the existing recording pipeline
-                                const result = await processRecording({
-                                  blob: variantBlobFree,
-                                  metadata: {
-                                    title: `Voice Transform - ${selectedVoiceFree}`,
-                                    description: `AI voice transformed version using ${selectedVoiceFree}`,
-                                    ipfsHash: '', // Will be filled by the pipeline
-                                    duration: 0, // Will be calculated by the pipeline
-                                    fileSize: variantBlobFree.size,
-                                    isPublic: false,
-                                    tags: ['voice-transform', selectedVoiceFree],
-                                  },
-                                  onProgress: (progress: any) => {
-                                    // Progress tracking for voice transform save
-                                  }
-                                });
-
-                                if (result.success) {
-                                  console.log('Voice transformed audio saved successfully:', result);
-                                  setToastType('success');
-                                  setToastMessage('AI voice transform saved!');
-                                  setTimeout(() => setToastMessage(null), 4000);
-                                } else {
-                                  console.error('Failed to save voice transformed audio:', result.error);
-                                  setToastType('error');
-                                  setToastMessage(result.error || 'Failed to save voice transform');
-                                  setTimeout(() => setToastMessage(null), 4000);
-                                }
-                              } catch (error) {
-                                console.error('Error saving voice transformed audio:', error);
-                                setToastType('error');
-                                setToastMessage('Error saving voice transform');
-                                setTimeout(() => setToastMessage(null), 4000);
-                              }
-                            }}
-                            className="w-full px-3 py-2 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg text-white text-xs font-medium hover:from-blue-500 hover:to-blue-700 transition-all duration-200 flex items-center justify-center gap-1"
-                          >
-                            💾 Save
-                          </button>
-                        </div>
-                        <div className="p-3 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-lg">
-                          <p className="text-blue-300 text-sm font-medium mb-2">
-                            🎉 Love your AI voice?
-                          </p>
-                          <p className="text-gray-300 text-xs mb-3">
-                            Connect your wallet to unlock unlimited AI transformations and permanent storage.
-                          </p>
-                          <button
-                            onClick={() => setShowWalletModal(true)}
-                            className="w-full px-3 py-2 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white text-xs font-medium rounded-lg hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-200"
-                          >
-                            Connect Wallet & Unlock Premium
-                          </button>
-                        </div>
-                      </div>
                     </div>
                   )}
                 </>
@@ -511,10 +608,17 @@ export default function RecordingStudio({
          {/* Dubbing Panel */}
          <DubbingPanel
            audioBlob={audioBlob}
-           freeDubbingCounter={freeDubbingCounter}
+           onDubbingComplete={(dubbedBlob, language) => {
+             setDubbedBlob(dubbedBlob);
+             setDubbedLanguage(language);
+             // Auto-select dubbed version for saving
+             setSelectedVersions(prev => ({ ...prev, dubbed: true }));
+           }}
            onWalletModalOpen={() => setShowWalletModal(true)}
+           recordingTitle={recordingTitle}
          />
 
+         {/* Recording Title */}
          <div className="mb-4">
             <label
               htmlFor="title"
@@ -532,20 +636,149 @@ export default function RecordingStudio({
             />
           </div>
 
+          {/* Version Selection Checkboxes */}
+          <div className="mb-6 p-4 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl">
+            <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+              <svg className="w-4 h-4 text-[#7C5DFA]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+              </svg>
+              Select Versions to Save
+            </h4>
+            <p className="text-gray-400 text-xs mb-4">
+              Choose which versions you want to save to Starknet/IPFS
+            </p>
+            
+            <div className="space-y-3">
+              {/* Original Version */}
+              <label className="flex items-center gap-3 p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg cursor-pointer hover:border-[#3A3A3A] transition-colors">
+                <input
+                  type="checkbox"
+                  checked={selectedVersions.original}
+                  onChange={(e) => setSelectedVersions(prev => ({ ...prev, original: e.target.checked }))}
+                  className="w-5 h-5 rounded border-gray-600 text-[#7C5DFA] focus:ring-[#7C5DFA] focus:ring-offset-gray-900"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    <span className="text-white font-medium">Original Recording</span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Your original voice recording</p>
+                </div>
+                {audioBlob && (
+                  <span className="text-xs text-gray-500">{(audioBlob.size / 1024).toFixed(0)} KB</span>
+                )}
+              </label>
+
+              {/* AI Voice Version */}
+              <label className={`flex items-center gap-3 p-3 bg-[#0F0F0F] border rounded-lg transition-colors ${
+                variantBlobFree
+                  ? 'border-[#2A2A2A] cursor-pointer hover:border-[#3A3A3A]'
+                  : 'border-[#1A1A1A] opacity-50 cursor-not-allowed'
+              }`}>
+                <input
+                  type="checkbox"
+                  checked={selectedVersions.aiVoice}
+                  onChange={(e) => setSelectedVersions(prev => ({ ...prev, aiVoice: e.target.checked }))}
+                  disabled={!variantBlobFree}
+                  className="w-5 h-5 rounded border-gray-600 text-[#7C5DFA] focus:ring-[#7C5DFA] focus:ring-offset-gray-900 disabled:opacity-50"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                    <span className="text-white font-medium">AI Voice Transform</span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {variantBlobFree ? `AI voice using ${selectedVoiceFree}` : 'Generate AI voice first'}
+                  </p>
+                </div>
+                {variantBlobFree && (
+                  <span className="text-xs text-gray-500">{(variantBlobFree.size / 1024).toFixed(0)} KB</span>
+                )}
+              </label>
+
+              {/* Dubbed Version */}
+              <label className={`flex items-center gap-3 p-3 bg-[#0F0F0F] border rounded-lg transition-colors ${
+                dubbedBlob
+                  ? 'border-[#2A2A2A] cursor-pointer hover:border-[#3A3A3A]'
+                  : 'border-[#1A1A1A] opacity-50 cursor-not-allowed'
+              }`}>
+                <input
+                  type="checkbox"
+                  checked={selectedVersions.dubbed}
+                  onChange={(e) => setSelectedVersions(prev => ({ ...prev, dubbed: e.target.checked }))}
+                  disabled={!dubbedBlob}
+                  className="w-5 h-5 rounded border-gray-600 text-[#7C5DFA] focus:ring-[#7C5DFA] focus:ring-offset-gray-900 disabled:opacity-50"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                    <span className="text-white font-medium">Dubbed Version</span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {dubbedBlob ? `Dubbed in ${dubbedLanguage}` : 'Generate dubbed version first'}
+                  </p>
+                </div>
+                {dubbedBlob && (
+                  <span className="text-xs text-gray-500">{(dubbedBlob.size / 1024).toFixed(0)} KB</span>
+                )}
+              </label>
+            </div>
+
+            {/* Selection Summary */}
+            <div className="mt-4 p-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-400">Selected versions:</span>
+                <span className="text-white font-medium">
+                  {Object.values(selectedVersions).filter(Boolean).length} of {[audioBlob, variantBlobFree, dubbedBlob].filter(Boolean).length} available
+                </span>
+              </div>
+              {userTier === 'free' && (
+                <div className="flex items-center justify-between text-xs mt-2 pt-2 border-t border-[#2A2A2A]">
+                  <span className="text-gray-400">Will use:</span>
+                  <span className={`font-medium ${
+                    Object.values(selectedVersions).filter(Boolean).length > remainingQuota.saves
+                      ? 'text-red-400'
+                      : 'text-green-400'
+                  }`}>
+                    {Object.values(selectedVersions).filter(Boolean).length} of {remainingQuota.saves} saves remaining
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
           <div className="flex gap-3">
-            <button
-              onClick={handleSaveRecording}
-              className="voisss-btn-secondary flex-1"
-            >
-              Save Recording
-            </button>
             <button
               onClick={handleDownload}
               className="voisss-btn-primary flex-1"
             >
-              Download
+              📥 Download (Free)
+            </button>
+            <button
+              onClick={handleSaveSelectedVersions}
+              className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+                userTier === 'guest'
+                  ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-500 hover:to-purple-600'
+                  : userTier === 'premium'
+                  ? 'bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-500 hover:to-green-600'
+                  : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-500 hover:to-blue-600'
+              }`}
+            >
+              {userTier === 'guest' ? (
+                '🔒 Connect to Save'
+              ) : userTier === 'premium' ? (
+                `💾 Save Selected (∞)`
+              ) : (
+                `💾 Save Selected (${remainingQuota.saves} free)`
+              )}
             </button>
           </div>
+          {userTier === 'free' && remainingQuota.saves <= 2 && (
+            <p className="text-xs text-yellow-400 text-center mt-2">
+              ⚠️ {remainingQuota.saves} free saves remaining this week
+            </p>
+          )}
         </div>
       )}
 
