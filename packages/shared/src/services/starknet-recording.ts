@@ -1,4 +1,4 @@
-import { Account, Contract, CallData, RpcProvider, InvokeFunctionResponse } from 'starknet';
+import { Account, Contract, CallData, RpcProvider, InvokeFunctionResponse, shortString } from 'starknet';
 import { VOICE_STORAGE_ABI, USER_REGISTRY_ABI, ACCESS_CONTROL_ABI } from '../contracts/abis';
 
 export interface StarknetRecordingMetadata {
@@ -585,15 +585,8 @@ export class StarknetRecordingService {
    */
   private stringToFelt252(str: string): string {
     if (!str) return '0x0';
-
-    // Convert string to hex, ensuring it fits in felt252 (max 31 bytes)
-    const encoder = new TextEncoder();
-    const bytes = encoder.encode(str.slice(0, 31)); // Limit to 31 bytes for felt252
-    const hex = Array.from(bytes)
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-
-    return '0x' + hex;
+    // Use the official Starknet utility to prevent encoding errors
+    return shortString.encodeShortString(str);
   }
 
   /**
