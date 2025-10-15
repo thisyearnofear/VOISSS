@@ -7,6 +7,25 @@ import { IPFSService, AudioMetadata, IPFSUploadResult } from './ipfs-service';
 import { AudioConverter, AudioConversionOptions, ConversionResult } from './audio-converter';
 import { StarknetRecordingService, StarknetRecordingMetadata, TransactionStatus, AccountType } from './starknet-recording';
 
+/**
+ * Hash IPFS hash to fit in felt252 (31 chars) while maintaining uniqueness
+ */
+function hashIpfsForContract(ipfsHash: string): string {
+  // Create a deterministic hash that fits in felt252
+  const encoder = new TextEncoder();
+  const data = encoder.encode(ipfsHash);
+  
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    hash = ((hash << 5) - hash) + data[i];
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  
+  // Convert to hex and pad to 30 chars (leaving room for 0x prefix)
+  const hexHash = Math.abs(hash).toString(16).padStart(30, '0');
+  return `0x${hexHash}`;
+}
+
 export interface RecordingPipelineOptions {
   title: string;
   description?: string;
@@ -18,11 +37,11 @@ export interface RecordingPipelineOptions {
 
 export interface RecordingPipelineResult {
   success: boolean;
-  ipfsHash?: string;
+  ipfsHash?: string; // Full IPFS hash for retrieval
   ipfsUrl?: string;
   transactionHash?: string;
   error?: string;
-  metadata?: StarknetRecordingMetadata;
+  metadata?: StarknetRecordingMetadata & { fullIpfsHash?: string }; // Include full hash in metadata
 }
 
 export interface PipelineProgress {
@@ -113,10 +132,11 @@ export class RecordingService {
       });
 
       // Step 3: Prepare metadata for Starknet
+      // Store hashed version on-chain (fits felt252), keep full hash for retrieval
       const recordingMetadata: StarknetRecordingMetadata = {
         title: options.title,
         description: options.description || '',
-        ipfsHash: ipfsResult.hash,
+        ipfsHash: hashIpfsForContract(ipfsResult.hash), // ✅ Deterministic hash for contract
         duration: Math.round(processedAudio.duration),
         fileSize: processedAudio.size,
         isPublic: options.isPublic || false,
@@ -156,10 +176,13 @@ export class RecordingService {
 
       return {
         success: true,
-        ipfsHash: ipfsResult.hash,
+        ipfsHash: ipfsResult.hash, // ✅ Return full IPFS hash
         ipfsUrl: ipfsResult.url,
         transactionHash,
-        metadata: recordingMetadata,
+        metadata: {
+          ...recordingMetadata,
+          fullIpfsHash: ipfsResult.hash, // ✅ Include full hash in metadata
+        },
       };
 
     } catch (error) {

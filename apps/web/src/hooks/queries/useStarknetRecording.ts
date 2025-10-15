@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAccount } from '@starknet-react/core';
-import { 
-  createIPFSService, 
-  createStarknetRecordingService, 
-  createRecordingService 
+import {
+  createIPFSService,
+  createStarknetRecordingService,
+  createRecordingService
 } from '@voisss/shared';
 import { VoiceRecording } from '@voisss/shared/types';
 import { queryKeys, handleQueryError } from '../../lib/query-client';
@@ -16,6 +16,7 @@ interface Recording extends Omit<VoiceRecording, 'createdAt' | 'updatedAt'> {
   isHidden?: boolean;
   customTitle?: string;
   ipfsUrl?: string;
+  fullIpfsHash?: string; // ✅ Full IPFS hash for retrieval
   blob?: Blob;
   onChain?: boolean;
 }
@@ -30,7 +31,8 @@ interface PipelineProgress {
 interface RecordingMetadata {
   title: string;
   description: string;
-  ipfsHash: string;
+  ipfsHash: string; // Hashed version for contract
+  fullIpfsHash?: string; // ✅ Full IPFS hash for retrieval
   duration: number;
   fileSize: number;
   isPublic: boolean;
@@ -94,6 +96,8 @@ export function useSaveRecording() {
         ...recording,
         id: recording.id || Date.now().toString(),
         timestamp: new Date(),
+        // ✅ Ensure full IPFS hash is preserved in localStorage
+        fullIpfsHash: recording.fullIpfsHash || recording.ipfsHash,
       };
       
       recordings.push(newRecording);

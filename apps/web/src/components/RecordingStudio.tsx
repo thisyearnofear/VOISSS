@@ -182,6 +182,7 @@ export default function RecordingStudio({
     }
     
     try {
+      // Shorten title to fit felt252 (31 chars max)
       const baseTitle = recordingTitle.slice(0, 20) || `Rec-${new Date().toISOString().slice(11, 19).replace(/:/g, '')}`;
       const results = [];
       
@@ -192,7 +193,7 @@ export default function RecordingStudio({
           metadata: {
             title: baseTitle,
             description: 'Original Recording',
-            ipfsHash: '',
+            ipfsHash: '', // Will be populated by processRecording
             duration: duration / 1000,
             fileSize: audioBlob.size,
             isPublic: false,
@@ -200,7 +201,12 @@ export default function RecordingStudio({
           },
           onProgress: (progress: any) => console.log('Original save progress:', progress)
         });
-        results.push({ type: 'original', success: result.success, error: result.error });
+        results.push({
+          type: 'original',
+          success: result.success,
+          error: result.error,
+          ipfsHash: result.ipfsHash, // ✅ Store full IPFS hash from result
+        });
         if (result.success) incrementSaveUsage();
       }
       
@@ -211,7 +217,7 @@ export default function RecordingStudio({
           metadata: {
             title: `${baseTitle}-AI`,
             description: 'AI voice',
-            ipfsHash: '',
+            ipfsHash: '', // Will be populated by processRecording
             duration: 0,
             fileSize: variantBlobFree.size,
             isPublic: false,
@@ -219,7 +225,12 @@ export default function RecordingStudio({
           },
           onProgress: (progress: any) => console.log('AI Voice save progress:', progress)
         });
-        results.push({ type: 'ai-voice', success: result.success, error: result.error });
+        results.push({
+          type: 'ai-voice',
+          success: result.success,
+          error: result.error,
+          ipfsHash: result.ipfsHash, // ✅ Store full IPFS hash from result
+        });
         if (result.success) incrementSaveUsage();
       }
       
@@ -230,7 +241,7 @@ export default function RecordingStudio({
           metadata: {
             title: `${baseTitle}-Dub`,
             description: `Dubbed: ${dubbedLanguage}`,
-            ipfsHash: '',
+            ipfsHash: '', // Will be populated by processRecording
             duration: 0,
             fileSize: dubbedBlob.size,
             isPublic: false,
@@ -238,7 +249,12 @@ export default function RecordingStudio({
           },
           onProgress: (progress: any) => console.log('Dubbed save progress:', progress)
         });
-        results.push({ type: 'dubbed', success: result.success, error: result.error });
+        results.push({
+          type: 'dubbed',
+          success: result.success,
+          error: result.error,
+          ipfsHash: result.ipfsHash, // ✅ Store full IPFS hash from result
+        });
         if (result.success) incrementSaveUsage();
       }
       
@@ -940,7 +956,7 @@ export default function RecordingStudio({
                     recording.isHidden ? "opacity-50" : ""
                   }`}
                 >
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
                       {editingRecording === recording.id ? (
                         <div className="flex items-center space-x-2">
@@ -1022,6 +1038,25 @@ export default function RecordingStudio({
                       </button>
                     </div>
                   </div>
+                  
+                  {/* Audio Player - Use full IPFS hash for playback */}
+                  {recording.fullIpfsHash && (
+                    <div className="mt-3 p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <svg className="w-4 h-4 text-purple-400" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+                        </svg>
+                        <span className="text-xs text-gray-400">Stored on IPFS</span>
+                      </div>
+                      <audio
+                        src={`https://gateway.pinata.cloud/ipfs/${recording.fullIpfsHash}`}
+                        controls
+                        className="w-full"
+                        style={{ height: '32px' }}
+                        preload="metadata"
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
