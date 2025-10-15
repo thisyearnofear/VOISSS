@@ -2,9 +2,10 @@ import { IAudioTransformProvider, TransformOptions, VoiceInfo, VoiceVariantPrevi
 import { SUPPORTED_DUBBING_LANGUAGES, LanguageInfo } from '../../../constants/languages';
 
 // Use dedicated backend if configured, otherwise direct ElevenLabs API
-const USE_BACKEND = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_VOISSS_API;
+// Check both NEXT_PUBLIC_VOISSS_API (client-side) and VOISSS_API (server-side)
+const USE_BACKEND = typeof process !== 'undefined' && (process.env.NEXT_PUBLIC_VOISSS_API || process.env.VOISSS_API);
 const API_BASE = USE_BACKEND
-  ? process.env.NEXT_PUBLIC_VOISSS_API
+  ? (process.env.NEXT_PUBLIC_VOISSS_API || process.env.VOISSS_API)
   : 'https://api.elevenlabs.io/v1';
 
 function getEnv(name: string, fallback?: string): string {
@@ -257,19 +258,23 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
     // Start job
     const dubbingId = await this.startDubbingJob(blob, options);
 
-    // Poll for completion (legacy method for backward compatibility)
+    // Poll for completion with extended timeout for production
     const pollStart = Date.now();
-    const maxWaitMs = 60_000; // 60s cap for web UX
-    const pollIntervalMs = 1500;
+    const maxWaitMs = 180_000; // 3 minutes for dubbing operations
+    const pollIntervalMs = 2000; // Check every 2 seconds
     let status = 'dubbing';
+    let pollCount = 0;
 
     while (status !== 'dubbed') {
-      if (Date.now() - pollStart > maxWaitMs) {
-        throw new Error('Dubbing timed out. Please try again later.');
+      const elapsed = Date.now() - pollStart;
+      
+      if (elapsed > maxWaitMs) {
+        throw new Error(`Dubbing is taking longer than expected (${Math.round(elapsed / 1000)}s). The job may still be processing. Please check back in a moment or try with a shorter audio clip.`);
       }
 
       const statusResult = await this.getDubbingStatus(dubbingId);
       status = statusResult.status;
+      pollCount++;
 
       if (status === 'failed') {
         const errMsg = statusResult.error || 'Dubbing job failed';
@@ -277,6 +282,10 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
       }
 
       if (status !== 'dubbed') {
+        // Log progress every 10 polls (20 seconds)
+        if (pollCount % 10 === 0) {
+          console.log(`Dubbing in progress... (${Math.round(elapsed / 1000)}s elapsed, status: ${status})`);
+        }
         await new Promise((r) => setTimeout(r, pollIntervalMs));
       }
     }

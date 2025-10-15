@@ -331,10 +331,25 @@ export function useAudioDubbing() {
           formData.append('preserveBackgroundAudio', options.preserveBackgroundAudio.toString());
         }
         
-        const response = await fetch('/api/elevenlabs/dub-audio', {
-          method: 'POST',
-          body: formData,
-        });
+        // Create an AbortController for timeout handling
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+        
+        let response;
+        try {
+          response = await fetch('/api/elevenlabs/dub-audio', {
+            method: 'POST',
+            body: formData,
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+        } catch (fetchError: any) {
+          clearTimeout(timeoutId);
+          if (fetchError.name === 'AbortError') {
+            throw new Error('Dubbing request timed out. The audio may be too long or the service is experiencing high load. Please try with a shorter audio clip or try again later.');
+          }
+          throw fetchError;
+        }
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
