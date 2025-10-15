@@ -1,0 +1,99 @@
+name: Deploy VOISSS Backend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'services/voisss-backend/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HETZNER_SSH_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.HETZNER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        env:
+          DEPLOY_PATH: ${{ secrets.VOISSS_DEPLOY_PATH }}
+          SERVER_USER: ${{ secrets.HETZNER_USER }}
+          SERVER_HOST: ${{ secrets.HETZNER_HOST }}
+        run: |
+          # Create deployment package
+          cd services/voisss-backend
+          tar -czf voisss-backend.tar.gz server.js package.json ecosystem.config.js .env.example
+          
+          # Copy to server
+          scp voisss-backend.tar.gz ${SERVER_USER}@${SERVER_HOST}:/tmp/
+          
+          # Deploy on server
+          ssh ${SERVER_USER}@${SERVER_HOST} << 'ENDSSH'
+            set -e
+            
+            # Extract files
+            cd /tmp
+            tar -xzf voisss-backend.tar.gz
+            
+            # Backup current version
+            if [ -d "${DEPLOY_PATH}" ]; then
+              cp -r ${DEPLOY_PATH} ${DEPLOY_PATH}.backup.$(date +%Y%m%d_%H%M%S)
+            fi
+            
+            # Create deploy directory if needed
+            mkdir -p ${DEPLOY_PATH}
+            
+            # Copy new files (preserve .env)
+            cp server.js ${DEPLOY_PATH}/
+            cp package.json ${DEPLOY_PATH}/
+            cp ecosystem.config.js ${DEPLOY_PATH}/
+            
+            # Install dependencies
+            cd ${DEPLOY_PATH}
+            npm install --production
+            
+            # Restart service
+            pm2 restart voisss-processing || pm2 start ecosystem.config.js
+            pm2 save
+            
+            # Cleanup
+            rm -f /tmp/voisss-backend.tar.gz
+            rm -f /tmp/server.js /tmp/package.json /tmp/ecosystem.config.js
+            
+            echo "✅ Deployment complete"
+          ENDSSH
+
+      - name: Verify deployment
+        env:
+          SERVER_USER: ${{ secrets.HETZNER_USER }}
+          SERVER_HOST: ${{ secrets.HETZNER_HOST }}
+        run: |
+          ssh ${SERVER_USER}@${SERVER_HOST} << 'ENDSSH'
+            # Wait for service to start
+            sleep 5
+            
+            # Check PM2 status
+            pm2 status voisss-processing
+            
+            # Test health endpoint
+            curl -f http://localhost:5577/health || exit 1
+            
+            echo "✅ Service is healthy"
+          ENDSSH
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed. Check logs above."

@@ -58,6 +58,7 @@ export const UI_CONFIG = {
 // API Configuration
 export const API_CONFIG = {
   BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+  VOISSS_BACKEND: process.env.NEXT_PUBLIC_VOISSS_API || 'https://voisss.famile.xyz',
   ENDPOINTS: {
     RECORDINGS: '/recordings',
     USERS: '/users',
@@ -69,6 +70,7 @@ export const API_CONFIG = {
     DEFAULT: 10000, // 10 seconds
     UPLOAD: 60000, // 1 minute
     DOWNLOAD: 30000, // 30 seconds
+    AUDIO_TRANSFORM: 120000, // 2 minutes for audio processing
   },
 } as const;
 

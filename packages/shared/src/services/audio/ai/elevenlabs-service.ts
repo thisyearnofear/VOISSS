@@ -1,8 +1,11 @@
 import { IAudioTransformProvider, TransformOptions, VoiceInfo, VoiceVariantPreview, DubbingOptions, DubbingResult, DubbingLanguage } from '../../../types/audio';
 import { SUPPORTED_DUBBING_LANGUAGES, LanguageInfo } from '../../../constants/languages';
 
-// Minimal ElevenLabs client via fetch to keep deps light
-const ELEVEN_API_BASE = 'https://api.elevenlabs.io/v1';
+// Use dedicated backend if configured, otherwise direct ElevenLabs API
+const USE_BACKEND = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_VOISSS_API;
+const API_BASE = USE_BACKEND
+  ? process.env.NEXT_PUBLIC_VOISSS_API
+  : 'https://api.elevenlabs.io/v1';
 
 function getEnv(name: string, fallback?: string): string {
   const v = process.env[name] ?? fallback;
@@ -17,19 +20,23 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
   private voicesCache: VoiceInfo[] | undefined;
 
   constructor() {
-    this.apiKey = getEnv('ELEVENLABS_API_KEY');
-    // Use eleven_multilingual_sts_v2 for speech-to-speech conversion (Voice Changer API)
+    // API key only needed for direct API calls, not for backend
+    this.apiKey = USE_BACKEND ? '' : getEnv('ELEVENLABS_API_KEY');
     this.modelId = process.env.ELEVENLABS_MODEL_ID || 'eleven_multilingual_sts_v2';
     this.outputFormat = process.env.ELEVENLABS_OUTPUT_FORMAT || 'mp3_44100_128';
   }
 
   async listVoices(): Promise<VoiceInfo[]> {
     if (this.voicesCache) return this.voicesCache;
-    const res = await fetch(`${ELEVEN_API_BASE}/voices`, {
-      headers: { 'xi-api-key': this.apiKey },
-      // Next.js edge compat
+    
+    const url = USE_BACKEND ? `${API_BASE}/api/voices` : `${API_BASE}/voices`;
+    const headers: Record<string, string> = USE_BACKEND ? {} : { 'xi-api-key': this.apiKey };
+    
+    const res = await fetch(url, {
+      headers,
       cache: 'no-store' as any,
     });
+    
     if (!res.ok) throw new Error(`Failed to list voices: ${res.status}`);
     const data = await res.json();
     const voices: VoiceInfo[] = (data.voices || []).map((v: any) => ({
@@ -47,47 +54,58 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
     const outputFormat = options.outputFormat || this.outputFormat;
 
     const form = new FormData();
-    form.append('model_id', modelId);
-    form.append('output_format', outputFormat);
-    // Normalize blob MIME type: browsers often set 'audio/webm;codecs=opus', which
-    // can be rejected by upstream APIs. Strip codecs and ensure a supported content type.
+    
+    // Normalize blob MIME type
     const originalType = (blob.type || '').toLowerCase();
     const normalizedType = originalType.split(';')[0] || 'audio/webm';
     const buffer = await blob.arrayBuffer();
     const normalizedBlob = new Blob([buffer], { type: normalizedType });
-    const filename = normalizedType.includes('webm')
-      ? 'input.webm'
-      : normalizedType.includes('ogg')
-        ? 'input.ogg'
-        : normalizedType.includes('mpeg') || normalizedType.includes('mp3')
-          ? 'input.mp3'
-          : 'input';
-    form.append('audio', normalizedBlob, filename);
+    const filename = normalizedType.includes('webm') ? 'input.webm' :
+                     normalizedType.includes('ogg') ? 'input.ogg' :
+                     normalizedType.includes('mpeg') || normalizedType.includes('mp3') ? 'input.mp3' : 'input';
+    
+    if (USE_BACKEND) {
+      // Backend API format
+      form.append('audio', normalizedBlob, filename);
+      form.append('voiceId', voiceId);
+      form.append('modelId', modelId);
+      form.append('outputFormat', outputFormat);
+    } else {
+      // Direct ElevenLabs API format
+      form.append('model_id', modelId);
+      form.append('output_format', outputFormat);
+      form.append('audio', normalizedBlob, filename);
+    }
 
-    const res = await fetch(`${ELEVEN_API_BASE}/speech-to-speech/${voiceId}`, {
+    const url = USE_BACKEND ? `${API_BASE}/api/transform` : `${API_BASE}/speech-to-speech/${voiceId}`;
+    const headers: Record<string, string> = USE_BACKEND ? {} : { 'xi-api-key': this.apiKey };
+
+    const res = await fetch(url, {
       method: 'POST',
-      headers: { 'xi-api-key': this.apiKey },
+      headers,
       body: form as any,
     });
+    
     if (!res.ok) {
       const text = await res.text().catch(() => '');
-      console.error('ElevenLabs API Error:', {
+      console.error('Voice transform error:', {
         status: res.status,
         statusText: res.statusText,
         responseText: text,
-        url: res.url,
         voiceId,
         modelId,
-        outputFormat
+        outputFormat,
+        backend: USE_BACKEND
       });
       throw new Error(`Voice transform failed: ${res.status} ${res.statusText} - ${text}`);
     }
+    
     const arrayBuffer = await res.arrayBuffer();
     return new Blob([arrayBuffer], { type: 'audio/mpeg' });
   }
 
   async remixVoice(params: { baseVoiceId: string; description: string; text: string }): Promise<VoiceVariantPreview[]> {
-    const res = await fetch(`${ELEVEN_API_BASE}/text-to-voice/remix`, {
+    const res = await fetch(`${API_BASE}/text-to-voice/remix`, {
       method: 'POST',
       headers: {
         'xi-api-key': this.apiKey,
@@ -112,7 +130,7 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
   }
 
   async createVoiceFromPreview(previewId: string, params: { name: string; description?: string }): Promise<{ voiceId: string }> {
-    const res = await fetch(`${ELEVEN_API_BASE}/text-to-voice/create`, {
+    const res = await fetch(`${API_BASE}/text-to-voice/create`, {
       method: 'POST',
       headers: {
         'xi-api-key': this.apiKey,
@@ -137,51 +155,52 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
     const sourceLanguage = options.sourceLanguage;
     const modelId = options.modelId || this.modelId;
 
-    // Build multipart form for job creation
     const form = new FormData();
-    // Normalize blob MIME type for upstream API acceptance
     const originalType = (blob.type || '').toLowerCase();
     const normalizedType = originalType.split(';')[0] || 'audio/webm';
     const buffer = await blob.arrayBuffer();
     const normalizedBlob = new Blob([buffer], { type: normalizedType });
-    const filename = normalizedType.includes('webm')
-      ? 'input.webm'
-      : normalizedType.includes('ogg')
-        ? 'input.ogg'
-        : normalizedType.includes('mpeg') || normalizedType.includes('mp3')
-          ? 'input.mp3'
-          : 'input';
-    form.append('file', normalizedBlob, filename);
-    form.append('target_lang', targetLanguage);
+    const filename = normalizedType.includes('webm') ? 'input.webm' :
+                     normalizedType.includes('ogg') ? 'input.ogg' :
+                     normalizedType.includes('mpeg') || normalizedType.includes('mp3') ? 'input.mp3' : 'input';
+    
+    form.append(USE_BACKEND ? 'audio' : 'file', normalizedBlob, filename);
+    form.append(USE_BACKEND ? 'targetLanguage' : 'target_lang', targetLanguage);
+    
     if (sourceLanguage) {
-      form.append('source_lang', sourceLanguage);
+      form.append(USE_BACKEND ? 'sourceLanguage' : 'source_lang', sourceLanguage);
     }
     if (options.modelId) {
-      form.append('model_id', options.modelId);
+      form.append(USE_BACKEND ? 'modelId' : 'model_id', options.modelId);
     }
     if (options.preserveBackgroundAudio !== undefined) {
-      form.append('drop_background_audio', String(!options.preserveBackgroundAudio));
+      form.append(USE_BACKEND ? 'preserveBackgroundAudio' : 'drop_background_audio',
+                  USE_BACKEND ? String(options.preserveBackgroundAudio) : String(!options.preserveBackgroundAudio));
     }
 
-    // Create dubbing job (returns dubbing_id immediately)
-    const createRes = await fetch(`${ELEVEN_API_BASE}/dubbing`, {
+    const url = USE_BACKEND ? `${API_BASE}/api/dubbing/start` : `${API_BASE}/dubbing`;
+    const headers: Record<string, string> = USE_BACKEND ? {} : { 'xi-api-key': this.apiKey };
+
+    const createRes = await fetch(url, {
       method: 'POST',
-      headers: { 'xi-api-key': this.apiKey },
+      headers,
       body: form as any,
     });
+    
     if (!createRes.ok) {
       const text = await createRes.text().catch(() => '');
-      console.error('ElevenLabs Dubbing API Error (create):', {
+      console.error('Dubbing start error:', {
         status: createRes.status,
         statusText: createRes.statusText,
         responseText: text,
-        url: createRes.url,
         targetLanguage,
         sourceLanguage,
-        modelId
+        modelId,
+        backend: USE_BACKEND
       });
       throw new Error(`Dubbing failed to start: ${createRes.status} ${createRes.statusText} - ${text}`);
     }
+    
     const createData = await createRes.json();
     const dubbingId = createData.dubbing_id;
     if (!dubbingId) {
@@ -192,13 +211,16 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
   }
 
   async getDubbingStatus(dubbingId: string): Promise<{ status: string; error?: string }> {
-    const statusRes = await fetch(`${ELEVEN_API_BASE}/dubbing/${dubbingId}`, {
-      headers: { 'xi-api-key': this.apiKey },
-    });
+    const url = USE_BACKEND ? `${API_BASE}/api/dubbing/${dubbingId}/status` : `${API_BASE}/dubbing/${dubbingId}`;
+    const headers: Record<string, string> = USE_BACKEND ? {} : { 'xi-api-key': this.apiKey };
+    
+    const statusRes = await fetch(url, { headers });
+    
     if (!statusRes.ok) {
       const text = await statusRes.text().catch(() => '');
       throw new Error(`Failed to get dubbing status: ${statusRes.status} ${statusRes.statusText} - ${text}`);
     }
+    
     const statusData = await statusRes.json();
     return {
       status: statusData.status,
@@ -207,14 +229,18 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
   }
 
   async getDubbedAudio(dubbingId: string, targetLanguage: string): Promise<DubbingResult> {
-    // Retrieve dubbed audio (streamed MP3/MP4)
-    const audioRes = await fetch(`${ELEVEN_API_BASE}/dubbing/${dubbingId}/audio/${targetLanguage}`, {
-      headers: { 'xi-api-key': this.apiKey },
-    });
+    const url = USE_BACKEND
+      ? `${API_BASE}/api/dubbing/${dubbingId}/audio/${targetLanguage}`
+      : `${API_BASE}/dubbing/${dubbingId}/audio/${targetLanguage}`;
+    const headers: Record<string, string> = USE_BACKEND ? {} : { 'xi-api-key': this.apiKey };
+    
+    const audioRes = await fetch(url, { headers });
+    
     if (!audioRes.ok) {
       const text = await audioRes.text().catch(() => '');
       throw new Error(`Failed to fetch dubbed audio: ${audioRes.status} ${audioRes.statusText} - ${text}`);
     }
+    
     const audioBuffer = await audioRes.arrayBuffer();
 
     return {
@@ -223,7 +249,7 @@ export class ElevenLabsTransformProvider implements IAudioTransformProvider {
       translatedTranscript: '',
       detectedSpeakers: 1,
       targetLanguage,
-      processingTime: 0, // Not tracked in this flow
+      processingTime: 0,
     };
   }
 

@@ -239,6 +239,15 @@ Temporary Items
 *.ogg
 *.flac
 
+# Server deployment (contains sensitive server details)
+server-deployment/
+
+# Deployment artifacts
+*.tar.gz
+services/voisss-backend/.env
+services/voisss-backend/logs/
+services/voisss-backend/node_modules/
+
 # Build artifacts
 apps/**/build/
 apps/**/dist/
