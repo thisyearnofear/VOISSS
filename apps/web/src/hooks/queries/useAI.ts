@@ -310,7 +310,7 @@ export function useVoiceTransform() {
   });
 }
 
-// Hook to dub audio (enhanced to use backend service with retry logic)
+// Hook to dub audio (enhanced to use backend service with status polling)
 export function useAudioDubbing() {
   const queryClient = useQueryClient();
   
@@ -337,51 +337,57 @@ export function useAudioDubbing() {
           body: formData,
         });
 
-        // Handle 202 (still processing) - retry after delay
+        // Handle 202 (still processing) - poll the existing job
         if (response.status === 202) {
           const data = await response.json();
-          console.log('Dubbing still processing, retrying...', data);
+          const dubbingId = data.dubbingId;
+          const targetLanguage = data.targetLanguage;
+          console.log('Dubbing still processing, polling status...', { dubbingId, targetLanguage });
           
-          // Wait a bit then retry
-          await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second delay
+          // Get backend URL
+          const backendUrl = process.env.NEXT_PUBLIC_VOISSS_API || 'https://voisss.famile.xyz';
           
-          // Retry the request
-          const retryResponse = await fetch('/api/elevenlabs/dub-audio', {
-            method: 'POST',
-            body: formData,
-          });
-          
-          if (!retryResponse.ok && retryResponse.status !== 202) {
-            const errorData = await retryResponse.json().catch(() => ({}));
-            throw new Error(errorData.error || `Audio dubbing failed: ${retryResponse.status}`);
+          // Poll for completion (client-side)
+          const maxAttempts = 30; // 30 attempts * 2s = 60s max
+          for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+            
+            console.log(`Polling dubbing status (attempt ${attempt + 1}/${maxAttempts})...`);
+            const statusResponse = await fetch(`${backendUrl}/api/dubbing/${dubbingId}/status`);
+            
+            if (!statusResponse.ok) {
+              console.error('Status check failed:', statusResponse.status);
+              continue;
+            }
+            
+            const statusData = await statusResponse.json();
+            console.log('Status:', statusData.status);
+            
+            if (statusData.status === 'dubbed') {
+              // Get the final audio
+              console.log('Dubbing complete, fetching audio...');
+              const audioResponse = await fetch(`${backendUrl}/api/dubbing/${dubbingId}/audio/${targetLanguage}`);
+              
+              if (!audioResponse.ok) {
+                throw new Error(`Failed to fetch audio: ${audioResponse.status}`);
+              }
+              
+              const audioBlob = await audioResponse.blob();
+              console.log('Audio fetched successfully:', { size: audioBlob.size });
+              
+              return {
+                blob: audioBlob,
+                transcript: undefined,
+                translatedTranscript: undefined,
+              };
+            }
+            
+            if (statusData.status === 'failed') {
+              throw new Error(`Dubbing job failed: ${statusData.error || 'Unknown error'}`);
+            }
           }
           
-          // If still 202, throw error to trigger mutation retry
-          if (retryResponse.status === 202) {
-            throw new Error('Dubbing still in progress, please retry');
-          }
-          
-          const retryData = await retryResponse.json();
-          console.log('Dubbing completed after retry:', { audioSize: retryData.audio_base64?.length });
-          
-          if (!retryData.audio_base64) {
-            throw new Error('Invalid response: missing audio_base64');
-          }
-
-          const dubbedBlob = await base64ToBlobAsync(
-            retryData.audio_base64,
-            retryData.content_type || 'audio/mpeg'
-          );
-          
-          if (dubbedBlob.size === 0) {
-            throw new Error('Received empty dubbed audio response');
-          }
-
-          return {
-            blob: dubbedBlob,
-            transcript: retryData.transcript || undefined,
-            translatedTranscript: retryData.translated_transcript || undefined,
-          };
+          throw new Error('Dubbing timeout: took longer than expected');
         }
 
         if (!response.ok) {
@@ -414,8 +420,8 @@ export function useAudioDubbing() {
         throw handleQueryError(error);
       }
     },
-    retry: 2, // Retry twice for dubbing (handles 202 responses)
-    retryDelay: 5000, // 5 second delay before retry
+    retry: 1, // Retry once for network errors
+    retryDelay: 3000, // 3 second delay before retry
   });
 }
 
