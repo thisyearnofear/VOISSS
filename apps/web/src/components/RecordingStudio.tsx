@@ -966,8 +966,8 @@ export default function RecordingStudio({
                   } as Recording}
                   className={recording.isHidden ? "opacity-50" : ""}
                   onDelete={() => deleteRecording(recording.id)}
-                  onPlay={(id) => console.log('Play recording', id)}
-                  onPause={(id) => console.log('Pause recording', id)}
+                  onPlay={(id: string) => console.log('Play recording', id)}
+                  onPause={(id: string) => console.log('Pause recording', id)}
                 />
               ))}
             </div>
