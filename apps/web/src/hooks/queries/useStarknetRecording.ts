@@ -3,11 +3,13 @@ import { useAccount } from '@starknet-react/core';
 import {
   createIPFSService,
   createStarknetRecordingService,
-  createRecordingService,
-  VoiceRecording
+  createRecordingService
 } from '@voisss/shared';
 import { queryKeys, handleQueryError } from '../../lib/query-client';
 import { useSession, useUpdateSession } from '@voisss/shared/src/hooks/useSession';
+
+// Import the VoiceRecording type directly from the source
+import type { VoiceRecording } from '@voisss/shared/src/types';
 
 // Extended recording interface for this component
 interface Recording extends Omit<VoiceRecording, 'createdAt' | 'updatedAt'> {
