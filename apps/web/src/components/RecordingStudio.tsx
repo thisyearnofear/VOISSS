@@ -11,7 +11,8 @@ import {
   useRecordingStats
 } from "../hooks/queries/useStarknetRecording";
 import { useFreemiumStore } from "../store/freemiumStore";
-import { RecordingCard, type Recording } from "@voisss/ui";
+import { RecordingCard } from "@voisss/ui";
+import type { Recording } from "@voisss/ui/components/RecordingCard";
 import WalletModal from "./WalletModal";
 import DubbingPanel from "./dubbing/DubbingPanel";
 
