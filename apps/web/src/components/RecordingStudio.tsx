@@ -11,7 +11,7 @@ import {
   useRecordingStats
 } from "../hooks/queries/useStarknetRecording";
 import { useFreemiumStore } from "../store/freemiumStore";
-import { RecordingCard } from "@voisss/ui";
+import { RecordingCard, type Recording } from "@voisss/ui";
 import WalletModal from "./WalletModal";
 import DubbingPanel from "./dubbing/DubbingPanel";
 
@@ -960,9 +960,13 @@ export default function RecordingStudio({
                     createdAt: recording.timestamp ? new Date(recording.timestamp).toISOString() : new Date().toISOString(),
                     tags: recording.tags,
                     isPlaying: false, // We'll handle playback separately
-                  }}
+                    fileSize: recording.fileSize,
+                    onChain: recording.onChain,
+                  } as Recording}
                   className={recording.isHidden ? "opacity-50" : ""}
                   onDelete={() => deleteRecording(recording.id)}
+                  onPlay={(id) => console.log('Play recording', id)}
+                  onPause={(id) => console.log('Pause recording', id)}
                 />
               ))}
             </div>
