@@ -73,11 +73,11 @@ export class IPFSService {
     }
 
     const formData = new FormData();
-    
+
     // Convert data to blob if needed
-    const blob = audioData instanceof Blob 
-      ? audioData 
-      : new Blob([audioData], { type: metadata.mimeType });
+    const blob = audioData instanceof Blob
+      ? audioData
+      : new Blob([audioData as BlobPart], { type: metadata.mimeType });
 
     formData.append('file', blob, metadata.filename);
 
@@ -110,7 +110,7 @@ export class IPFSService {
     }
 
     const result = await response.json();
-    
+
     return {
       hash: result.IpfsHash,
       size: result.PinSize,
@@ -130,9 +130,9 @@ export class IPFSService {
     }
 
     const formData = new FormData();
-    const blob = audioData instanceof Blob 
-      ? audioData 
-      : new Blob([audioData], { type: metadata.mimeType });
+    const blob = audioData instanceof Blob
+      ? audioData
+      : new Blob([audioData as BlobPart], { type: metadata.mimeType });
 
     formData.append('file', blob, metadata.filename);
 
@@ -151,7 +151,7 @@ export class IPFSService {
     }
 
     const result = await response.json();
-    
+
     return {
       hash: result.Hash,
       size: result.Size,
@@ -170,9 +170,9 @@ export class IPFSService {
       throw new Error('Web3.Storage API token is required');
     }
 
-    const blob = audioData instanceof Blob 
-      ? audioData 
-      : new Blob([audioData], { type: metadata.mimeType });
+    const blob = audioData instanceof Blob
+      ? audioData
+      : new Blob([audioData as BlobPart], { type: metadata.mimeType });
 
     const formData = new FormData();
     formData.append('file', blob, metadata.filename);
@@ -190,7 +190,7 @@ export class IPFSService {
     }
 
     const result = await response.json();
-    
+
     return {
       hash: result.cid,
       size: blob.size,
@@ -206,11 +206,11 @@ export class IPFSService {
     metadata: AudioMetadata
   ): Promise<IPFSUploadResult> {
     const nodeUrl = this.config.gatewayUrl || 'http://localhost:5001';
-    
+
     const formData = new FormData();
-    const blob = audioData instanceof Blob 
-      ? audioData 
-      : new Blob([audioData], { type: metadata.mimeType });
+    const blob = audioData instanceof Blob
+      ? audioData
+      : new Blob([audioData as BlobPart], { type: metadata.mimeType });
 
     formData.append('file', blob, metadata.filename);
 
@@ -224,7 +224,7 @@ export class IPFSService {
     }
 
     const result = await response.json();
-    
+
     return {
       hash: result.Hash,
       size: result.Size,
@@ -246,7 +246,7 @@ export class IPFSService {
     // Basic IPFS hash validation (CIDv0 and CIDv1)
     const cidv0Regex = /^Qm[1-9A-HJ-NP-Za-km-z]{44}$/;
     const cidv1Regex = /^b[a-z2-7]{58}$/;
-    
+
     return cidv0Regex.test(hash) || cidv1Regex.test(hash);
   }
 
@@ -278,7 +278,7 @@ export class IPFSService {
     try {
       const url = this.getAudioUrl(ipfsHash);
       const response = await fetch(url, { method: 'HEAD' });
-      
+
       if (!response.ok) {
         return null;
       }
@@ -299,14 +299,26 @@ export class IPFSService {
  */
 export function createIPFSService(): IPFSService {
   // Try to get config from environment variables
+  // Note: In browser context, only NEXT_PUBLIC_ prefixed vars are accessible
   const provider = (process.env.NEXT_PUBLIC_IPFS_PROVIDER || 'pinata') as IPFSConfig['provider'];
-  
+
   const config: IPFSConfig = {
     provider,
-    apiKey: process.env.NEXT_PUBLIC_IPFS_API_KEY,
-    apiSecret: process.env.NEXT_PUBLIC_IPFS_API_SECRET,
+    // Check both server-side and client-side environment variables
+    apiKey: process.env.PINATA_API_KEY || process.env.NEXT_PUBLIC_PINATA_API_KEY || process.env.NEXT_PUBLIC_IPFS_API_KEY,
+    apiSecret: process.env.PINATA_API_SECRET || process.env.NEXT_PUBLIC_PINATA_API_SECRET || process.env.NEXT_PUBLIC_IPFS_API_SECRET,
     gatewayUrl: process.env.NEXT_PUBLIC_IPFS_GATEWAY_URL,
   };
+
+  // Debug logging to help troubleshoot
+  console.log('🔧 IPFS Service Configuration:', {
+    provider: config.provider,
+    hasApiKey: !!config.apiKey,
+    hasApiSecret: !!config.apiSecret,
+    apiKeyLength: config.apiKey?.length || 0,
+    apiSecretLength: config.apiSecret?.length || 0,
+    gatewayUrl: config.gatewayUrl,
+  });
 
   return new IPFSService(config);
 }

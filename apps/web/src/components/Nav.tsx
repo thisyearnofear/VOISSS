@@ -2,15 +2,33 @@
 
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
-import { useAccount, useDisconnect } from "@starknet-react/core";
+import { useAccount, useDisconnect, useNetwork } from "@starknet-react/core";
 import WalletModal from "./WalletModal";
 
 export default function Nav() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
+  const { chain } = useNetwork();
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [showWalletMenu, setShowWalletMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Get network display info
+  const getNetworkInfo = () => {
+    if (!chain) return { name: 'Unknown', color: 'gray' };
+    
+    const isTestnet = chain.network?.toLowerCase().includes('sepolia') ||
+                      chain.network?.toLowerCase().includes('goerli') ||
+                      chain.testnet;
+    
+    return {
+      name: isTestnet ? 'Sepolia Testnet' : chain.name || 'Mainnet',
+      color: isTestnet ? 'yellow' : 'green',
+      isTestnet
+    };
+  };
+
+  const networkInfo = getNetworkInfo();
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -145,6 +163,29 @@ export default function Nav() {
                           </div>
                           <p className="text-white font-semibold text-sm mt-0.5">Starknet Wallet</p>
                         </div>
+                      </div>
+                      
+                      {/* Network Badge */}
+                      <div className={`mb-3 px-3 py-2 rounded-lg border ${
+                        networkInfo.isTestnet
+                          ? 'bg-yellow-500/10 border-yellow-500/30'
+                          : 'bg-green-500/10 border-green-500/30'
+                      }`}>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${
+                            networkInfo.isTestnet ? 'bg-yellow-400' : 'bg-green-400'
+                          } animate-pulse`}></div>
+                          <span className={`text-xs font-medium ${
+                            networkInfo.isTestnet ? 'text-yellow-400' : 'text-green-400'
+                          }`}>
+                            {networkInfo.name}
+                          </span>
+                        </div>
+                        {networkInfo.isTestnet && (
+                          <p className="text-xs text-gray-400 mt-1">
+                            💡 Switch network in your wallet extension
+                          </p>
+                        )}
                       </div>
                       <div className="p-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg">
                         <p className="text-gray-400 text-xs mb-1">Address</p>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSession, useUpdateSession, useCreateSession } from '@voisss/shared/src/hooks/useSession';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createStarknetRecordingService } from '@voisss/shared';
 
 /**
  * Starknet Hook for React Native - Production Implementation
@@ -43,7 +44,8 @@ interface StarknetActions {
   getBalance: () => Promise<string | null>;
   sendTransaction: (calls: any[]) => Promise<string>;
   signMessage: (message: string) => Promise<string>;
-  storeRecording: (ipfsHash: string, metadata: any) => Promise<string>;
+  storeRecording: (metadata: any) => Promise<string>;
+  getUserRecordings: (userAddress: string) => Promise<any[]>;
   switchNetwork: (network: 'mainnet' | 'sepolia') => Promise<void>;
 }
 
@@ -274,36 +276,47 @@ export function useStarknet(): StarknetState & StarknetActions {
     }
   }, [state.account]);
 
-  const storeRecording = useCallback(async (ipfsHash: string, metadata: any): Promise<string> => {
+  const storeRecording = useCallback(async (metadata: any): Promise<string> => {
     if (!state.account || !state.provider) {
       throw new Error('Not connected to Starknet');
     }
 
     try {
-      // Mock contract interaction for now
-      // In production, interact with the actual recordings contract
-      const contractCall = {
-        contractAddress: CONTRACT_ADDRESSES.sepolia.recordings,
-        entrypoint: 'store_recording',
-        calldata: [
-          metadata.title || '',
-          metadata.description || '',
-          ipfsHash,
-          metadata.duration?.toString() || '0',
-          metadata.fileSize?.toString() || '0',
-          metadata.isPublic ? '1' : '0',
-          metadata.tags?.length?.toString() || '0',
-          ...(metadata.tags || []),
-        ],
+      // Use the actual Starknet recording service
+      const starknetService = createStarknetRecordingService();
+      
+      // Mock account for now - in production, use the actual account
+      const mockAccount = {
+        address: state.account.address,
+        execute: async (calls: any[]) => {
+          const txHash = await sendTransaction(calls);
+          return { transaction_hash: txHash };
+        }
       };
-
-      const txHash = await sendTransaction([contractCall]);
+      
+      const txHash = await starknetService.storeRecording(mockAccount, metadata);
       return txHash;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to store recording';
       throw new Error(errorMessage);
     }
   }, [state.account, state.provider, sendTransaction]);
+
+  const getUserRecordings = useCallback(async (userAddress: string): Promise<any[]> => {
+    if (!state.provider) {
+      throw new Error('Not connected to Starknet');
+    }
+
+    try {
+      // Use the actual Starknet recording service
+      const starknetService = createStarknetRecordingService();
+      const recordings = await starknetService.getUserRecordings(userAddress);
+      return recordings;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get recordings';
+      throw new Error(errorMessage);
+    }
+  }, [state.provider]);
 
   const switchNetwork = useCallback(async (network: 'mainnet' | 'sepolia') => {
     try {
@@ -349,6 +362,7 @@ export function useStarknet(): StarknetState & StarknetActions {
     sendTransaction,
     signMessage,
     storeRecording,
+    getUserRecordings,
     switchNetwork,
   };
 }

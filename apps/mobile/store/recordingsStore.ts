@@ -183,7 +183,11 @@ export const useRecordingsStore = create<RecordingsState>()(
 
           // Upload to IPFS
           set({ ipfsUploadProgress: 50 });
-          const ipfsHash = await ipfsService.uploadFile(audioBlob);
+          const ipfsResult = await ipfsService.uploadAudio(audioBlob, {
+            filename: recording.title,
+            mimeType: recording.mimeType || 'audio/mpeg',
+            duration: recording.duration,
+          });
 
           set({ ipfsUploadProgress: 75 });
 
@@ -193,11 +197,14 @@ export const useRecordingsStore = create<RecordingsState>()(
             if (starknetActions?.storeRecording) {
               const metadata = {
                 title: recording.title,
+                description: recording.description || '',
+                ipfsHash: ipfsResult.hash, // Use the full IPFS hash
                 duration: recording.duration,
-                tags: recording.tags,
-                createdAt: recording.createdAt,
+                fileSize: ipfsResult.size,
+                isPublic: recording.isPublic || false,
+                tags: recording.tags || [],
               };
-              starknetTxHash = await starknetActions.storeRecording(ipfsHash, metadata);
+              starknetTxHash = await starknetActions.storeRecording(ipfsResult.hash, metadata);
             }
           } catch (starknetError) {
             console.warn('Starknet storage failed, continuing with IPFS only:', starknetError);
@@ -208,9 +215,13 @@ export const useRecordingsStore = create<RecordingsState>()(
           // Add recording with IPFS hash and optional Starknet hash
           const recordingWithBlockchain = {
             ...recording,
-            ipfsHash,
+            id: recording.id || Date.now().toString(),
+            ipfsHash: ipfsResult.hash,
+            ipfsUrl: ipfsResult.url,
+            fileSize: ipfsResult.size,
             starknetTxHash,
             isPublic: true, // IPFS recordings are public by default
+            createdAt: recording.createdAt || new Date(),
           };
 
           set((state) => ({
@@ -225,14 +236,90 @@ export const useRecordingsStore = create<RecordingsState>()(
 
           // Still add the recording locally even if IPFS fails
           set((state) => ({
-            recordings: [...state.recordings, recording],
+            recordings: [...state.recordings, {
+              ...recording,
+              id: recording.id || Date.now().toString(),
+              createdAt: recording.createdAt || new Date(),
+            }],
           }));
+        }
+      },
+
+      // New function to sync recordings from Starknet
+      syncWithStarknet: async (starknetService: any, walletAddress: string) => {
+        try {
+          // Get recordings from Starknet
+          const onChainRecordings = await starknetService.getUserRecordings(walletAddress);
+          
+          // Initialize IPFS service if not already done
+          if (!get().ipfsService) {
+            const ipfsService = createIPFSService();
+            set({ ipfsService });
+          }
+          
+          const ipfsService = get().ipfsService;
+          
+          // Enhance recordings with IPFS data
+          const enhancedRecordings = await Promise.all(
+            onChainRecordings.map(async (recording: any) => {
+              try {
+                // Get playback URL for the recording
+                const ipfsUrl = ipfsService.getAudioUrl(recording.ipfsHash);
+                
+                // Try to get file info
+                const fileInfo = await ipfsService.getFileInfo(recording.ipfsHash);
+                
+                return {
+                  ...recording,
+                  id: recording.id.toString(),
+                  ipfsUrl,
+                  fileSize: fileInfo?.size || recording.fileSize,
+                  mimeType: fileInfo?.type || 'audio/mpeg',
+                  // Add a flag to indicate this is from blockchain
+                  onChain: true,
+                  createdAt: new Date(recording.createdAt * 1000), // Convert from seconds to milliseconds
+                };
+              } catch (error) {
+                console.warn('Failed to enhance recording with IPFS data:', error);
+                return {
+                  ...recording,
+                  id: recording.id.toString(),
+                  ipfsUrl: ipfsService.getAudioUrl(recording.ipfsHash),
+                  onChain: true,
+                  createdAt: new Date(recording.createdAt * 1000), // Convert from seconds to milliseconds
+                };
+              }
+            })
+          );
+          
+          // Merge with existing recordings, prioritizing on-chain data
+          const existingRecordings = get().recordings;
+          const localOnlyRecordings = existingRecordings.filter(
+            (local: any) => !enhancedRecordings.some(
+              (onChain: any) => onChain.id === local.id
+            )
+          );
+          
+          set({
+            recordings: [...enhancedRecordings, ...localOnlyRecordings],
+          });
+          
+          return enhancedRecordings.length;
+        } catch (error) {
+          console.error('Failed to sync with Starknet:', error);
+          throw error;
         }
       },
     }),
     {
       name: "voisss-recordings-storage",
       storage: createJSONStorage(() => AsyncStorage),
+      // Add partialize to prevent storing the IPFS service in persisted state
+      partialize: (state) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { ipfsService, isUploadingToIPFS, ipfsUploadProgress, ...rest } = state;
+        return rest;
+      },
     }
   )
 );

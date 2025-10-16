@@ -5,7 +5,7 @@ import {
   createStarknetRecordingService,
   createRecordingService
 } from '@voisss/shared';
-import { VoiceRecording } from '@voisss/shared/types';
+import { VoiceRecording } from '@voisss/shared';
 import { queryKeys, handleQueryError } from '../../lib/query-client';
 import { useSession, useUpdateSession } from '@voisss/shared/src/hooks/useSession';
 
@@ -45,7 +45,7 @@ interface RecordingMetadata {
   blob?: Blob;
 }
 
-// Hook to get user recordings
+// Hook to get user recordings with proper sync
 export function useUserRecordings() {
   const { address } = useAccount();
   
@@ -56,10 +56,29 @@ export function useUserRecordings() {
       
       try {
         const starknetService = createStarknetRecordingService();
-        const onChainRecordings = await starknetService.getUserRecordings(address);
+        const ipfsService = createIPFSService();
+        const recordingService = createRecordingService(ipfsService, starknetService);
         
-        // TODO: Merge with local recordings for a more robust implementation
-        return onChainRecordings;
+        // Sync recordings from Starknet
+        const onChainRecordings = await recordingService.syncUserRecordings(address);
+        
+        // Merge with local recordings, prioritizing on-chain data
+        try {
+          const stored = localStorage.getItem(`recordings_${address}`);
+          const localRecordings = stored ? JSON.parse(stored) : [];
+          
+          // Filter out local recordings that are already on chain
+          const localOnlyRecordings = localRecordings.filter(
+            (local: any) => !onChainRecordings.some(
+              (onChain: any) => onChain.id === local.id
+            )
+          );
+          
+          return [...onChainRecordings, ...localOnlyRecordings];
+        } catch (localError) {
+          console.error('Failed to merge with local recordings:', localError);
+          return onChainRecordings;
+        }
       } catch (error) {
         console.error('Failed to load recordings from chain:', error);
         // Fallback to local storage if chain fails
@@ -74,6 +93,33 @@ export function useUserRecordings() {
     },
     enabled: !!address,
     staleTime: 1000 * 60 * 1, // 1 minute
+  });
+}
+
+// Hook to manually sync recordings
+export function useSyncRecordings() {
+  const { address } = useAccount();
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async () => {
+      if (!address) throw new Error('Wallet not connected');
+      
+      const starknetService = createStarknetRecordingService();
+      const ipfsService = createIPFSService();
+      const recordingService = createRecordingService(ipfsService, starknetService);
+      
+      const recordings = await recordingService.syncUserRecordings(address);
+      
+      // Update local storage
+      localStorage.setItem(`recordings_${address}`, JSON.stringify(recordings));
+      
+      return recordings;
+    },
+    onSuccess: (recordings) => {
+      queryClient.setQueryData(queryKeys.recordings.list(address || ''), recordings);
+    },
+    onError: handleQueryError,
   });
 }
 

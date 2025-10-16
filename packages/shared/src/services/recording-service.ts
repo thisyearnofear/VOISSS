@@ -269,6 +269,53 @@ export class RecordingService {
   }
 
   /**
+   * Sync all user recordings from Starknet to local storage
+   */
+  public async syncUserRecordings(userAddress: string): Promise<any[]> {
+    try {
+      console.log('Syncing recordings for user:', userAddress);
+      
+      // Get recordings from Starknet
+      const onChainRecordings = await this.starknetService.getUserRecordings(userAddress);
+      console.log('Found on-chain recordings:', onChainRecordings);
+      
+      // Enhance recordings with IPFS data
+      const enhancedRecordings = await Promise.all(
+        onChainRecordings.map(async (recording: any) => {
+          try {
+            // Get playback URL for the recording
+            const ipfsUrl = this.ipfsService.getAudioUrl(recording.ipfsHash);
+            
+            // Try to get file info
+            const fileInfo = await this.ipfsService.getFileInfo(recording.ipfsHash);
+            
+            return {
+              ...recording,
+              ipfsUrl,
+              fileSize: fileInfo?.size || recording.fileSize,
+              mimeType: fileInfo?.type || 'audio/mpeg',
+              // Add a flag to indicate this is from blockchain
+              onChain: true,
+            };
+          } catch (error) {
+            console.warn('Failed to enhance recording with IPFS data:', error);
+            return {
+              ...recording,
+              ipfsUrl: this.ipfsService.getAudioUrl(recording.ipfsHash),
+              onChain: true,
+            };
+          }
+        })
+      );
+      
+      return enhancedRecordings;
+    } catch (error) {
+      console.error('Failed to sync user recordings:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get audio duration from blob
    */
   private async getAudioDuration(audioBlob: Blob): Promise<number> {

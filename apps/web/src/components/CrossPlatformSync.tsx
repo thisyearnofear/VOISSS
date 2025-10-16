@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAccount } from "@starknet-react/core";
+import { useSyncRecordings } from "../hooks/queries/useStarknetRecording";
 
 interface SyncStatus {
   isOnline: boolean;
@@ -12,13 +13,13 @@ interface SyncStatus {
 
 export default function CrossPlatformSync() {
   const { address, isConnected } = useAccount();
+  const { mutateAsync: syncRecordings, isPending: isSyncing } = useSyncRecordings();
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({
     isOnline: typeof navigator !== "undefined" ? navigator.onLine : true,
     lastSync: null,
     pendingUploads: 0,
     totalRecordings: 0,
   });
-  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     const handleOnline = () =>
@@ -35,30 +36,18 @@ export default function CrossPlatformSync() {
     };
   }, []);
 
-  const syncWithBlockchain = async () => {
+  const handleSync = async () => {
     if (!isConnected || !address) return;
 
-    setIsSyncing(true);
     try {
-      // Simulate fetching recordings from Starknet
-      // In real implementation, this would:
-      // 1. Query VoiceStorage contract for user's recordings
-      // 2. Compare with local storage
-      // 3. Download missing recordings from IPFS
-      // 4. Upload pending local recordings
-
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate network delay
-
+      await syncRecordings();
       setSyncStatus((prev) => ({
         ...prev,
         lastSync: new Date(),
         pendingUploads: 0,
-        totalRecordings: prev.totalRecordings + Math.floor(Math.random() * 3),
       }));
     } catch (error) {
       console.error("Sync failed:", error);
-    } finally {
-      setIsSyncing(false);
     }
   };
 
@@ -136,7 +125,7 @@ export default function CrossPlatformSync() {
       </div>
 
       <button
-        onClick={syncWithBlockchain}
+        onClick={handleSync}
         disabled={isSyncing || !syncStatus.isOnline}
         className="w-full voisss-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
       >

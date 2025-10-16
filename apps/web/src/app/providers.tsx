@@ -15,7 +15,7 @@ import { queryClient } from "../lib/query-client";
 export function StarknetProvider({ children }: { children: React.ReactNode }) {
   const connectors = [argent(), braavos()];
 
-  // Custom RPC provider with explicit Sepolia configuration for Braavos compatibility
+  // Custom RPC provider with explicit Sepolia configuration
   const provider = jsonRpcProvider({
     rpc: (chain) => {
       if (chain.id === sepolia.id) {

@@ -368,7 +368,9 @@ export class StarknetRecordingService {
 
   async getRecording(recordingId: string): Promise<Recording | null> {
     try {
+      console.log('Fetching recording:', recordingId);
       const result = await this.voiceStorageContract.get_recording(recordingId);
+      console.log('Raw recording result:', result);
 
       return {
         id: result.id.toString(),
@@ -384,23 +386,31 @@ export class StarknetRecordingService {
         playCount: Number(result.play_count),
       };
     } catch (error) {
-      console.error('Failed to get recording:', error);
+      console.error('Failed to get recording:', recordingId, error);
       return null;
     }
   }
 
   async getUserRecordings(userAddress: string): Promise<Recording[]> {
     try {
+      console.log('Fetching recordings for user:', userAddress);
       const recordingIds = await this.voiceStorageContract.get_user_recordings(userAddress);
+      console.log('Found recording IDs:', recordingIds);
 
       const recordings: Recording[] = [];
       for (const id of recordingIds) {
-        const recording = await this.getRecording(id.toString());
-        if (recording) {
-          recordings.push(recording);
+        try {
+          const recording = await this.getRecording(id.toString());
+          if (recording) {
+            recordings.push(recording);
+          }
+        } catch (recordingError) {
+          console.warn(`Failed to fetch recording ${id.toString()}:`, recordingError);
+          // Continue with other recordings even if one fails
         }
       }
 
+      console.log('Successfully fetched recordings:', recordings);
       return recordings;
     } catch (error) {
       console.error('Failed to get user recordings:', error);

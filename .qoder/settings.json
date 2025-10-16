@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "ask": [
+      "Read(!/Users/udingethe/dev/voisss/**)",
+      "Edit(!/Users/udingethe/dev/voisss/**)"
+    ],
+    "allow": [
+      "Read(/Users/udingethe/dev/voisss/**)",
+      "Edit(/Users/udingethe/dev/voisss/**)"
+    ]
+  },
+  "memoryImport": {},
+  "monitoring": {}
+}

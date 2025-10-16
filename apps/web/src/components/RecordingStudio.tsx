@@ -11,6 +11,7 @@ import {
   useRecordingStats
 } from "../hooks/queries/useStarknetRecording";
 import { useFreemiumStore } from "../store/freemiumStore";
+import { RecordingCard } from "@voisss/ui";
 import WalletModal from "./WalletModal";
 import DubbingPanel from "./dubbing/DubbingPanel";
 
@@ -950,114 +951,19 @@ export default function RecordingStudio({
           ) : (
             <div className="space-y-4">
               {visibleRecordings.map((recording: any) => (
-                <div
+                <RecordingCard
                   key={recording.id}
-                  className={`bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg p-4 transition-opacity ${
-                    recording.isHidden ? "opacity-50" : ""
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1">
-                      {editingRecording === recording.id ? (
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="text"
-                            value={editTitle}
-                            onChange={(e) => setEditTitle(e.target.value)}
-                            className="flex-1 px-2 py-1 bg-[#0A0A0A] border border-[#3A3A3A] rounded text-white"
-                            onKeyPress={(e) => {
-                              if (e.key === "Enter") saveEditedTitle();
-                              if (e.key === "Escape") cancelEditingTitle();
-                            }}
-                            autoFocus
-                          />
-                          <button
-                            onClick={saveEditedTitle}
-                            className="text-green-400 hover:text-green-300 transition-colors"
-                          >
-                            ✓
-                          </button>
-                          <button
-                            onClick={cancelEditingTitle}
-                            className="text-red-400 hover:text-red-300 transition-colors"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ) : (
-                        <h4
-                          className="font-medium text-white cursor-pointer hover:text-purple-300 transition-colors"
-                          onClick={() => startEditingTitle(recording)}
-                        >
-                          {getDisplayTitle(recording)}
-                        </h4>
-                      )}
-                      <div className="text-sm text-gray-400 mt-1">
-                        <span>Duration: {recording.duration ? recording.duration.toFixed(1) : '0.0'}s</span>
-                        <span className="mx-2">•</span>
-                        <span>Size: {formatFileSize(recording.fileSize || 0)}</span>
-                        <span className="mx-2">•</span>
-                        <span>
-                          {recording.timestamp ? new Date(recording.timestamp).toLocaleDateString() : 'Unknown date'}{' '}
-                          {recording.timestamp ? new Date(recording.timestamp).toLocaleTimeString() : ''}
-                        </span>
-                        {recording.onChain && (
-                          <>
-                            <span className="mx-2">•</span>
-                            <span className="text-green-400">On-chain</span>
-                          </>
-                        )}
-                      </div>
-                      {recording.tags && recording.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {recording.tags.map((tag: string, idx: number) => (
-                            <span
-                              key={idx}
-                              className="px-2 py-1 bg-purple-600/20 border border-purple-500/30 rounded text-xs text-purple-300"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-2 ml-4">
-                      <button
-                        onClick={() => toggleRecordingVisibility(recording.id)}
-                        className="text-gray-400 hover:text-white transition-colors p-2"
-                        title={recording.isHidden ? "Show" : "Hide"}
-                      >
-                        {recording.isHidden ? "👁️" : "🙈"}
-                      </button>
-                      <button
-                        onClick={() => deleteRecording(recording.id)}
-                        className="text-red-400 hover:text-red-300 transition-colors p-2"
-                        title="Delete"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {/* Audio Player - Use full IPFS hash for playback */}
-                  {recording.fullIpfsHash && (
-                    <div className="mt-3 p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <svg className="w-4 h-4 text-purple-400" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
-                        </svg>
-                        <span className="text-xs text-gray-400">Stored on IPFS</span>
-                      </div>
-                      <audio
-                        src={`https://gateway.pinata.cloud/ipfs/${recording.fullIpfsHash}`}
-                        controls
-                        className="w-full"
-                        style={{ height: '32px' }}
-                        preload="metadata"
-                      />
-                    </div>
-                  )}
-                </div>
+                  recording={{
+                    id: recording.id,
+                    title: getDisplayTitle(recording),
+                    duration: recording.duration || 0,
+                    createdAt: recording.timestamp ? new Date(recording.timestamp).toISOString() : new Date().toISOString(),
+                    tags: recording.tags,
+                    isPlaying: false, // We'll handle playback separately
+                  }}
+                  className={recording.isHidden ? "opacity-50" : ""}
+                  onDelete={() => deleteRecording(recording.id)}
+                />
               ))}
             </div>
           )}

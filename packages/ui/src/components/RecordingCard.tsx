@@ -8,6 +8,8 @@ export interface Recording {
   createdAt: string;
   tags?: string[];
   isPlaying?: boolean;
+  fileSize?: number;
+  onChain?: boolean;
 }
 
 export interface RecordingCardProps {
@@ -28,7 +30,9 @@ export const RecordingCard: React.FC<RecordingCardProps> = ({
   const formatDuration = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    // Use string padding workaround for older ES versions
+    const secsStr = secs < 10 ? `0${secs}` : `${secs}`;
+    return `${mins}:${secsStr}`;
   };
 
   const formatDate = (dateString: string): string => {
@@ -41,10 +45,28 @@ export const RecordingCard: React.FC<RecordingCardProps> = ({
     });
   };
 
+  // Generate a simple waveform visualization
+  const generateWaveform = () => {
+    const barCount = 30;
+    const waveform = [];
+    for (let i = 0; i < barCount; i++) {
+      // Create a wave-like pattern with some randomness
+      const baseHeight = Math.sin(i * 0.3) * 0.5 + 0.5;
+      const randomFactor = 0.2 * Math.random();
+      waveform.push(Math.max(0.1, baseHeight + randomFactor));
+    }
+    return waveform;
+  };
+
+  const waveform = generateWaveform();
+  const barWidth = 3;
+  const barSpacing = 1;
+
   return (
     <div
       className={cn(
-        "bg-gray-800 rounded-lg p-4 border border-gray-700 hover:border-purple-500 transition-colors",
+        "bg-gray-800 rounded-lg p-4 border border-gray-700 hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md",
+        recording.onChain && "border-green-500/30",
         className
       )}
     >
@@ -77,6 +99,37 @@ export const RecordingCard: React.FC<RecordingCardProps> = ({
               </span>
             )}
           </div>
+        )}
+      </div>
+
+      {/* Waveform Visualization */}
+      <div className="flex items-end h-8 mb-3">
+        {waveform.map((height, index) => (
+          <div
+            key={index}
+            className="bg-purple-500/30 rounded-sm mx-px"
+            style={{
+              width: barWidth,
+              height: `${height * 24}px`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* File size and blockchain status */}
+      <div className="flex items-center justify-between mb-3 text-xs text-gray-500">
+        {recording.fileSize && (
+          <span>
+            {(recording.fileSize / 1024).toFixed(0)} KB
+          </span>
+        )}
+        {recording.onChain && (
+          <span className="text-green-400 flex items-center">
+            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+            On-chain
+          </span>
         )}
       </div>
 
