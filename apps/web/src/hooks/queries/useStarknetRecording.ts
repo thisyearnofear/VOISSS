@@ -3,9 +3,9 @@ import { useAccount } from '@starknet-react/core';
 import {
   createIPFSService,
   createStarknetRecordingService,
-  createRecordingService
+  createRecordingService,
+  VoiceRecording
 } from '@voisss/shared';
-import { VoiceRecording } from '@voisss/shared';
 import { queryKeys, handleQueryError } from '../../lib/query-client';
 import { useSession, useUpdateSession } from '@voisss/shared/src/hooks/useSession';
 
