@@ -372,12 +372,33 @@ export class StarknetRecordingService {
       const result = await this.voiceStorageContract.get_recording(recordingId);
       console.log('Raw recording result:', result);
 
+      // Decode the IPFS hash from felt252 format
+      let decodedIpfsHash = result.ipfs_hash;
+      try {
+        // Check if this looks like a numeric hash (old format)
+        const numericValue = Number(result.ipfs_hash);
+        if (!isNaN(numericValue) && numericValue > 1000000) {
+          // This is likely an old hashed value, we can't recover the original IPFS hash
+          console.warn('Found old numeric IPFS hash format:', numericValue);
+          decodedIpfsHash = `legacy_hash_${numericValue}`;
+        } else {
+          // Try to decode as shortString (new format)
+          const { shortString } = require('starknet');
+          decodedIpfsHash = shortString.decodeShortString(result.ipfs_hash);
+          console.log('Decoded IPFS hash:', decodedIpfsHash);
+        }
+      } catch (decodeError) {
+        console.warn('Failed to decode IPFS hash:', decodeError);
+        // Keep the original value if decoding fails
+        decodedIpfsHash = result.ipfs_hash.toString();
+      }
+
       return {
         id: result.id.toString(),
         owner: result.owner,
         title: result.title,
         description: result.description,
-        ipfsHash: result.ipfs_hash,
+        ipfsHash: decodedIpfsHash,
         duration: Number(result.duration),
         fileSize: Number(result.file_size),
         createdAt: Number(result.created_at),
@@ -402,6 +423,11 @@ export class StarknetRecordingService {
         try {
           const recording = await this.getRecording(id.toString());
           if (recording) {
+            // Filter out legacy recordings that can't be played
+            if (recording.ipfsHash.startsWith('legacy_hash_')) {
+              console.log(`Filtering out legacy recording ${id.toString()} with hash:`, recording.ipfsHash);
+              continue;
+            }
             recordings.push(recording);
           }
         } catch (recordingError) {
@@ -410,7 +436,7 @@ export class StarknetRecordingService {
         }
       }
 
-      console.log('Successfully fetched recordings:', recordings);
+      console.log('Successfully fetched recordings (legacy filtered):', recordings);
       return recordings;
     } catch (error) {
       console.error('Failed to get user recordings:', error);
@@ -426,6 +452,11 @@ export class StarknetRecordingService {
       for (const id of recordingIds) {
         const recording = await this.getRecording(id.toString());
         if (recording) {
+          // Filter out legacy recordings that can't be played
+          if (recording.ipfsHash.startsWith('legacy_hash_')) {
+            console.log(`Filtering out legacy public recording ${id.toString()} with hash:`, recording.ipfsHash);
+            continue;
+          }
           recordings.push(recording);
         }
       }

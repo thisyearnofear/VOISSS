@@ -8,22 +8,37 @@ import { AudioConverter, AudioConversionOptions, ConversionResult } from './audi
 import { StarknetRecordingService, StarknetRecordingMetadata, TransactionStatus, AccountType } from './starknet-recording';
 
 /**
- * Hash IPFS hash to fit in felt252 (31 chars) while maintaining uniqueness
+ * Store IPFS hash directly as felt252 by truncating if necessary
+ * For full IPFS hash retrieval, we'll need to store it separately
  */
 function hashIpfsForContract(ipfsHash: string): string {
-  // Create a deterministic hash that fits in felt252
-  const encoder = new TextEncoder();
-  const data = encoder.encode(ipfsHash);
-  
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    hash = ((hash << 5) - hash) + data[i];
-    hash = hash & hash; // Convert to 32bit integer
+  // For now, store the IPFS hash directly, truncating if needed
+  // felt252 can store up to 31 characters
+  if (ipfsHash.length <= 31) {
+    // Use shortString encoding for proper felt252 conversion
+    try {
+      const { shortString } = require('starknet');
+      return shortString.encodeShortString(ipfsHash);
+    } catch (error) {
+      // Fallback: convert to hex if shortString is not available
+      const encoder = new TextEncoder();
+      const data = encoder.encode(ipfsHash);
+      return '0x' + Array.from(data).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+  } else {
+    // For longer IPFS hashes, we need a different approach
+    // Store a truncated version that can still be used to identify the hash
+    const truncated = ipfsHash.substring(0, 31);
+    try {
+      const { shortString } = require('starknet');
+      return shortString.encodeShortString(truncated);
+    } catch (error) {
+      // Fallback: convert to hex
+      const encoder = new TextEncoder();
+      const data = encoder.encode(truncated);
+      return '0x' + Array.from(data).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
   }
-  
-  // Convert to hex and pad to 30 chars (leaving room for 0x prefix)
-  const hexHash = Math.abs(hash).toString(16).padStart(30, '0');
-  return `0x${hexHash}`;
 }
 
 export interface RecordingPipelineOptions {

@@ -236,6 +236,11 @@ export class IPFSService {
    * Get playable URL for IPFS hash
    */
   getAudioUrl(ipfsHash: string): string {
+    // Handle legacy hashes that can't be resolved
+    if (ipfsHash.startsWith('legacy_hash_')) {
+      console.warn('Cannot resolve legacy IPFS hash:', ipfsHash);
+      return ''; // Return empty URL for legacy hashes
+    }
     return `${this.config.gatewayUrl}${ipfsHash}`;
   }
 
