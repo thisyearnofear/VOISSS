@@ -1,5 +1,4 @@
 import EnhancedLandingHero from "../components/EnhancedLandingHero";
-import BaseShowcase from "../components/BaseShowcase";
 
 export default function Home() {
   return (
@@ -7,9 +6,6 @@ export default function Home() {
       <div className="voisss-container py-8 sm:py-12">
         {/* Enhanced Hero Section */}
         <EnhancedLandingHero />
-
-        {/* Base Showcase */}
-        <BaseShowcase />
 
         {/* Simple Footer */}
         <div className="text-center mt-16 pt-8 border-t border-[#2A2A2A]">

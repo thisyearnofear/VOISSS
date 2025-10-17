@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useBaseAccount } from "../hooks/useBaseAccount";
 import { useWebAudioRecording } from "../hooks/useWebAudioRecording";
@@ -58,7 +58,16 @@ export default function RecordingStudio({
   });
 
   const { isAuthenticated, address, signIn } = useAuth();
-  const { subAccount, sendCalls, status, isConnected, universalAddress, connect } = useBaseAccount();
+  const {
+    subAccount,
+    sendCalls,
+    status,
+    isConnected,
+    universalAddress,
+    connect,
+    permissionActive,
+    permissionError
+  } = useBaseAccount();
 
   // Create services - conditionally based on contract availability
   const ipfsService = React.useMemo(() => createIPFSService(), []);
@@ -86,14 +95,16 @@ export default function RecordingStudio({
     setUserTier,
   } = useFreemiumStore();
 
-  // Sync user tier with wallet connection
-  React.useEffect(() => {
-    if (address) {
+  // Sync user tier with authentication state
+  useEffect(() => {
+    if (isAuthenticated && address) {
+      // User is authenticated, set to free tier (premium detection can be added later)
       setUserTier('free');
     } else {
+      // User is not authenticated, set to guest
       setUserTier('guest');
     }
-  }, [address, setUserTier]);
+  }, [isAuthenticated, address, setUserTier]);
 
   const remainingQuota = getRemainingQuota();
 

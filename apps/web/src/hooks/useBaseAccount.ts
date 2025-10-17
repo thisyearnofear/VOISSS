@@ -28,11 +28,18 @@ interface UseBaseAccountReturn {
   // Transaction methods
   sendCalls: (calls: Array<{ to: string; data: string; value?: string }>) => Promise<string>;
   
+  // Spend permission state (consolidated from Nav and RecordingStudio)
+  permissionActive: boolean;
+  permissions: any[];
+  isLoadingPermissions: boolean;
+  permissionError: string | null;
+  
   // Spend permission helpers
   getSpendPermissions?: () => Promise<any[]>;
   hasSpendPermission?: () => Promise<boolean>;
   revokeSpendPermission?: () => Promise<string>;
   updateSpendAllowance?: (amountEth: string) => Promise<void>;
+  refreshPermissions: () => Promise<void>;
   
   // Status
   status: string;
@@ -49,6 +56,12 @@ export function useBaseAccount(): UseBaseAccountReturn {
   const [subAccount, setSubAccount] = useState<SubAccount | null>(null);
   const [status, setStatus] = useState("Ready to connect");
   const [error, setError] = useState<string | null>(null);
+  
+  // Permission state (consolidated from Nav and RecordingStudio)
+  const [permissionActive, setPermissionActive] = useState<boolean>(false);
+  const [permissions, setPermissions] = useState<any[]>([]);
+  const [isLoadingPermissions, setIsLoadingPermissions] = useState(false);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
 
   // Helper: ensure Sub Account has Auto Spend Permission
   const ensureAutoSpendPermission = useCallback(async (subAddr: `0x${string}`) => {
@@ -274,6 +287,43 @@ export function useBaseAccount(): UseBaseAccountReturn {
     throw new Error("Update spend allowance not yet implemented");
   }, []);
 
+  // Consolidated permission refresh logic (from Nav and RecordingStudio)
+  const refreshPermissions = useCallback(async () => {
+    if (!getSpendPermissions || !hasSpendPermission || !isConnected || !subAccount) {
+      setPermissionActive(false);
+      setPermissions([]);
+      return;
+    }
+    
+    setIsLoadingPermissions(true);
+    setPermissionError(null);
+    
+    try {
+      const [active, list] = await Promise.all([
+        hasSpendPermission(),
+        getSpendPermissions(),
+      ]);
+      setPermissionActive(active);
+      setPermissions(list || []);
+    } catch (err: any) {
+      setPermissionError(err?.message || "Failed to load Base Account permissions");
+      console.error("Failed to refresh permissions:", err);
+    } finally {
+      setIsLoadingPermissions(false);
+    }
+  }, [getSpendPermissions, hasSpendPermission, isConnected, subAccount]);
+
+  // Auto-refresh permissions when connection state changes
+  useEffect(() => {
+    if (isConnected && subAccount) {
+      refreshPermissions();
+    } else {
+      setPermissionActive(false);
+      setPermissions([]);
+      setPermissionError(null);
+    }
+  }, [isConnected, subAccount, refreshPermissions]);
+
   return {
     isConnected,
     isConnecting,
@@ -282,11 +332,17 @@ export function useBaseAccount(): UseBaseAccountReturn {
     connect,
     disconnect,
     sendCalls,
-    // spend permission helpers
+    // Permission state
+    permissionActive,
+    permissions,
+    isLoadingPermissions,
+    permissionError,
+    // Spend permission helpers
     getSpendPermissions,
     hasSpendPermission,
     revokeSpendPermission,
     updateSpendAllowance,
+    refreshPermissions,
     status,
     error,
   };

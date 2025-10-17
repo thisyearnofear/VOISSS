@@ -4,13 +4,29 @@ import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useBasename } from "../hooks/useBasename";
+import { useBaseAccount } from "../hooks/useBaseAccount";
 
 
 export default function Nav() {
   const { address, isAuthenticated, isAuthenticating, signIn, signOut } = useAuth();
   const { displayName, hasBasename, isLoading: isResolvingBasename } = useBasename(address as `0x${string}` | null);
+  const {
+    isConnected,
+    subAccount,
+    status: baseAccountStatus,
+    permissionActive,
+    permissionError,
+    refreshPermissions
+  } = useBaseAccount();
   const [showWalletMenu, setShowWalletMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Refresh permissions when menu opens (optional - already auto-refreshed by hook)
+  useEffect(() => {
+    if (showWalletMenu && isConnected && subAccount && refreshPermissions) {
+      refreshPermissions();
+    }
+  }, [showWalletMenu, isConnected, subAccount, refreshPermissions]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -201,6 +217,29 @@ export default function Nav() {
                           </p>
                         )}
                       </div>
+                      
+                      {/* Base Account Status */}
+                      {isConnected && subAccount && (
+                        <div className="p-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg mt-3">
+                          <p className="text-gray-400 text-xs mb-1">Base Account</p>
+                          <div className="text-white font-mono text-xs break-all leading-relaxed mb-2">
+                            {subAccount.address}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className="text-gray-400">Spend Permission:</span>
+                            <span className={permissionActive ? "text-green-400" : "text-yellow-400"}>
+                              {permissionActive ? "Active" : "Not granted"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs mt-1">
+                            <span className="text-gray-400">Status:</span>
+                            <span className="text-gray-300">{baseAccountStatus}</span>
+                          </div>
+                          {permissionError && (
+                            <p className="text-red-400 text-xs mt-1">{permissionError}</p>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Actions with Beautiful Styling */}
