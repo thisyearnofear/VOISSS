@@ -40,7 +40,7 @@ export function BaseProvider({ children }: { children: React.ReactNode }) {
     const initializeSDK = async () => {
       try {
         const sdkInstance = createBaseAccountSDK({
-          appName: 'VOISSS - Gasless Voice Platform',
+          appName: 'VOISSS - Morph Your Voice',
           appLogoUrl: 'https://voisss.app/logo.png',
           appChainIds: [base.id],
           subAccounts: {

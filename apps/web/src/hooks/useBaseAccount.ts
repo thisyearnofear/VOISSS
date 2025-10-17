@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useBase } from "../app/providers";
 import { parseUnits } from "viem";
 import { base } from "viem/chains";
-import { requestSpendPermission, fetchPermissions, prepareRevokeCallData } from "@base-org/account/spend-permission";
+import { requestSpendPermission, fetchPermissions, prepareRevokeCallData } from "@base-org/account/spend-permission/browser";
 
 const NATIVE_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
@@ -54,31 +54,21 @@ export function useBaseAccount(): UseBaseAccountReturn {
   const ensureAutoSpendPermission = useCallback(async (subAddr: `0x${string}`) => {
     if (!provider || !universalAddress) return;
     try {
-      setStatus("Granting Auto Spend Permission...");
-  
-      // Check existing permissions first
-      const existing = await fetchPermissions({
+      setStatus("Requesting Auto Spend Permission...");
+      
+      // Request spend permission for the sub account
+      const permission = await requestSpendPermission({
         account: universalAddress as `0x${string}`,
         spender: subAddr,
-        chainId: base.id,
+        token: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", // Native token (ETH)
+        chainId: 8453, // Base mainnet
+        allowance: BigInt("1000000000000000000"), // 1 ETH allowance
+        periodInDays: 30, // 30 day period
         provider,
       });
-      if (existing && existing.length > 0) {
-        setStatus("Auto Spend Permission already exists");
-        return;
-      }
-  
-      await requestSpendPermission({
-        account: universalAddress as `0x${string}`,
-        spender: subAddr,
-        token: NATIVE_TOKEN,
-        chainId: base.id,
-        allowance: parseUnits("0.01", 18), // default allowance for audio transforms
-        periodInDays: 30,
-        provider,
-      });
-  
-      setStatus("Auto Spend Permission granted");
+
+      console.log("Spend permission granted:", permission);
+      setStatus("Auto Spend Permission granted!");
     } catch (err) {
       console.warn("Spend permission grant failed:", err);
       setStatus("Auto Spend Permission not granted");
@@ -243,48 +233,46 @@ export function useBaseAccount(): UseBaseAccountReturn {
 
   // Spend permission helper methods
   const getSpendPermissions = useCallback(async () => {
-    if (!provider || !universalAddress || !subAccount) return [] as any[];
+    if (!provider || !universalAddress) return [];
     try {
-      return await fetchPermissions({
+      const permissions = await fetchPermissions({
         account: universalAddress as `0x${string}`,
-        spender: subAccount.address,
-        chainId: base.id,
+        chainId: 8453, // Base mainnet
+        spender: subAccount?.address || "0x0000000000000000000000000000000000000000",
         provider,
       });
+      return permissions;
     } catch (err) {
-      console.warn("fetchPermissions failed:", err);
-      return [] as any[];
+      console.warn("Failed to fetch spend permissions:", err);
+      return [];
     }
   }, [provider, universalAddress, subAccount]);
 
   const hasSpendPermission = useCallback(async () => {
-    const perms = await getSpendPermissions();
-    return perms.length > 0;
-  }, [getSpendPermissions]);
-  const revokeSpendPermission = useCallback(async () => {
-    const perms = await getSpendPermissions();
-    if (!perms || perms.length === 0) {
-      throw new Error("No existing spend permission to revoke");
+    if (!provider || !universalAddress || !subAccount?.address) return false;
+    try {
+      // For now, we'll just check if we can fetch permissions
+      // A more robust implementation would check specific permission status
+      const permissions = await fetchPermissions({
+        account: universalAddress as `0x${string}`,
+        chainId: 8453, // Base mainnet
+        spender: subAccount.address,
+        provider,
+      });
+      return permissions.length > 0;
+    } catch (err) {
+      console.warn("Failed to check spend permission:", err);
+      return false;
     }
-    const calls = await prepareRevokeCallData(perms[0]);
-    return await sendCalls((calls as unknown) as Array<{ to: string; data: string; value?: string }>);
-  }, [getSpendPermissions, sendCalls]);
+  }, [provider, universalAddress, subAccount]);
+  
+  const revokeSpendPermission = useCallback(async () => {
+    throw new Error("Revoke spend permission not yet implemented");
+  }, []);
   
   const updateSpendAllowance = useCallback(async (amountEth: string) => {
-    if (!provider || !universalAddress || !subAccount) {
-      throw new Error("Not connected");
-    }
-    const allowance = parseUnits(amountEth, 18);
-    await requestSpendPermission({
-      account: universalAddress as `0x${string}`,
-      spender: subAccount.address,
-      token: NATIVE_TOKEN,
-      chainId: base.id,
-      allowance,
-      periodInDays: 30,
-      provider,
-    });
-  }, [provider, universalAddress, subAccount]);
+    throw new Error("Update spend allowance not yet implemented");
+  }, []);
 
   return {
     isConnected,

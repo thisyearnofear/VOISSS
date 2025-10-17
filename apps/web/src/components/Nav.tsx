@@ -8,7 +8,7 @@ import { useBasename } from "../hooks/useBasename";
 
 export default function Nav() {
   const { address, isAuthenticated, isAuthenticating, signIn, signOut } = useAuth();
-  const { displayName, hasBasename, isLoading: isResolvingBasename } = useBasename(address);
+  const { displayName, hasBasename, isLoading: isResolvingBasename } = useBasename(address as `0x${string}` | null);
   const [showWalletMenu, setShowWalletMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 

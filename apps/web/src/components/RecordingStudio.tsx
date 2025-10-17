@@ -177,6 +177,29 @@ export default function RecordingStudio({
       }
     }
 
+    // Check if Base Account is properly connected with Sub Account
+    if (!isConnected || !subAccount) {
+      try {
+        // Try to connect and create Sub Account if needed
+        if (!isConnected) {
+          await connect();
+        }
+        
+        // Wait a bit for Sub Account to be created
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Check again if Sub Account is available
+        if (!subAccount) {
+          throw new Error('Failed to create Sub Account');
+        }
+      } catch (error) {
+        setToastType('error');
+        setToastMessage('Failed to connect Base Account. Please try again.');
+        setTimeout(() => setToastMessage(null), 4000);
+        return;
+      }
+    }
+
     // Check if user has enough quota for all selected versions
     if (userTier === 'free' && versionsToSave > remainingQuota.saves) {
       setToastType('error');
@@ -276,6 +299,11 @@ export default function RecordingStudio({
   const saveRecordingToBase = async (audioBlob: Blob, metadata: any) => {
     if (!baseRecordingService) {
       throw new Error('Base recording contract not configured. Please deploy the contract first.');
+    }
+
+    // Check if Base Account is properly connected
+    if (!isConnected || !subAccount) {
+      throw new Error('Please connect your Base Account first. The Sub Account is required for gasless transactions.');
     }
 
     // 1. Upload to IPFS

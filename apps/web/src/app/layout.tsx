@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "VOISSS | Gasless Voice Recording",
-  description: "Transform your voice with AI, store securely on blockchain, and earn rewards. The ultimate gasless voice recording platform.",
+  title: "VOISSS | Morph Your Voice",
+  description: "Transform your voice with AI, store securely onchain.",
   keywords: [
     "voice recording",
     "AI voice transformation",
@@ -37,8 +37,8 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   openGraph: {
-    title: "VOISSS | Gasless Voice Recording",
-    description: "Transform your voice with AI, store securely on blockchain, and earn rewards. The ultimate decentralized voice recording platform.",
+    title: "VOISSS | Morph Your Voice",
+    description: "Transform your voice with AI, store securely onchain.",
     url: process.env.NEXT_PUBLIC_BASE_URL || 'https://voisss.vercel.app',
     siteName: "VOISSS",
     locale: "en_US",
@@ -48,14 +48,14 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "VOISSS - Gasless Voice Recording",
+        alt: "VOISSS - Morph Your Voice",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "VOISSS | Gasless Voice Recording",
-    description: "Transform your voice with AI, store securely on blockchain, and earn rewards.",
+    title: "VOISSS | Morph Your Voice",
+    description: "Transform your voice with AI, store securely onchain.",
     images: ["/og-image.png"],
   },
   robots: {

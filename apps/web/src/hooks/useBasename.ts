@@ -15,7 +15,7 @@ const publicClient = createPublicClient({
  * Hook to resolve Basenames for Base addresses
  * Uses direct contract calls to resolve human-readable names
  */
-export function useBasename(address?: string) {
+export function useBasename(address?: `0x${string}` | null) {
   const [basename, setBasename] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -42,7 +42,7 @@ export function useBasename(address?: string) {
             },
           ],
           functionName: 'getName',
-          args: [address],
+          args: [address as `0x${string}`],
         });
 
         // If we got a resolved name and it's not empty, use it
