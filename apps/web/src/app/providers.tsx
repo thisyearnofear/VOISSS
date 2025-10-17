@@ -36,7 +36,8 @@ export function StarknetProvider({ children }: { children: React.ReactNode }) {
         chains={[sepolia, mainnet]}
         provider={provider}
         connectors={connectors}
-        autoConnect
+        autoConnect={true}
+        key="starknet-config" // Add key for stable mounting
       >
         {children}
         <ReactQueryDevtools initialIsOpen={false} />
