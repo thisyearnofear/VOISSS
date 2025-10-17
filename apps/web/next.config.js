@@ -14,7 +14,7 @@ const nextConfig = {
 
   // Enable experimental features for better performance
   experimental: {
-    optimizePackageImports: ['lucide-react', '@starknet-react/core'],
+    optimizePackageImports: ['lucide-react'],
   },
   
   // Optimize images
@@ -65,8 +65,8 @@ const nextConfig = {
     ];
   },
   
-  // Output configuration for deployment
-  output: 'standalone',
+  // Output configuration - disable static export for Base SDK pages
+  // output: 'standalone',
   
   // Webpack configuration for better tree shaking
   webpack: (config, { dev, isServer }) => {
@@ -80,9 +80,9 @@ const nextConfig = {
             name: 'vendors',
             chunks: 'all',
           },
-          starknet: {
-            test: /[\\/]node_modules[\\/](@starknet-react|starknet|starknetkit)[\\/]/,
-            name: 'starknet',
+          base: {
+            test: /[\\/]node_modules[\\/](@base-org|viem|wagmi)[\\/]/,
+            name: 'base',
             chunks: 'all',
           },
         },

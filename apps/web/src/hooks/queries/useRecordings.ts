@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAccount } from '@starknet-react/core';
+import { useBaseAccount } from '../useBaseAccount';
 import { VoiceRecording } from '@voisss/shared/types';
 import { queryKeys, handleQueryError } from '../../lib/query-client';
 
@@ -18,7 +18,7 @@ interface Recording {
 
 // Hook to fetch user's recordings
 export function useRecordings(showHidden: boolean = false) {
-  const { address } = useAccount();
+  const { universalAddress: address } = useBaseAccount();
   
   return useQuery({
     queryKey: queryKeys.recordings.list(address || '', { showHidden }),
@@ -55,7 +55,7 @@ export function useRecordings(showHidden: boolean = false) {
 
 // Hook to fetch a specific recording
 export function useRecording(recordingId: string) {
-  const { address } = useAccount();
+  const { universalAddress: address } = useBaseAccount();
   
   return useQuery({
     queryKey: queryKeys.recordings.detail(recordingId),
@@ -82,7 +82,7 @@ export function useRecording(recordingId: string) {
 // Hook to save a recording
 export function useSaveRecording() {
   const queryClient = useQueryClient();
-  const { address } = useAccount();
+  const { universalAddress: address } = useBaseAccount();
   
   return useMutation({
     mutationFn: async (recording: Omit<Recording, 'id' | 'createdAt'>) => {
@@ -121,7 +121,7 @@ export function useSaveRecording() {
 // Hook to update a recording
 export function useUpdateRecording() {
   const queryClient = useQueryClient();
-  const { address } = useAccount();
+  const { universalAddress: address } = useBaseAccount();
   
   return useMutation({
     mutationFn: async ({ 
@@ -178,7 +178,7 @@ export function useUpdateRecording() {
 // Hook to delete a recording
 export function useDeleteRecording() {
   const queryClient = useQueryClient();
-  const { address } = useAccount();
+  const { universalAddress: address } = useBaseAccount();
   
   return useMutation({
     mutationFn: async (recordingId: string) => {
@@ -216,7 +216,7 @@ export function useDeleteRecording() {
 
 // Hook to get recording statistics
 export function useRecordingStats() {
-  const { address } = useAccount();
+  const { universalAddress: address } = useBaseAccount();
   
   return useQuery({
     queryKey: [...queryKeys.recordings.all, 'stats', address],
@@ -260,7 +260,7 @@ export function useRecordingStats() {
 // Hook to bulk operations on recordings
 export function useBulkRecordingOperations() {
   const queryClient = useQueryClient();
-  const { address } = useAccount();
+  const { universalAddress: address } = useBaseAccount();
   
   return useMutation({
     mutationFn: async ({ 

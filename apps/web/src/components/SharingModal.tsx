@@ -25,7 +25,7 @@ export default function SharingModal({ recording, isOpen, onClose }: SharingModa
     setIsGenerating(true);
     try {
       // In a real implementation, this would:
-      // 1. Create a share token on Starknet
+      // 1. Create a share token on Base
       // 2. Set permissions and expiration
       // 3. Generate a shareable link
       

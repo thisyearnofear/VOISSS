@@ -165,7 +165,12 @@ export const useFreemiumStore = create<FreemiumState>()(
     }),
     {
       name: 'voisss-freemium-storage',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => typeof window !== 'undefined' ? localStorage : {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {}
+      }),
+      skipHydration: true,
     }
   )
 );

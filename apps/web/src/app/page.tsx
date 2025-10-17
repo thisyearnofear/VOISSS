@@ -1,5 +1,5 @@
 import EnhancedLandingHero from "../components/EnhancedLandingHero";
-import StarknetShowcase from "../components/StarknetShowcase";
+import BaseShowcase from "../components/BaseShowcase";
 
 export default function Home() {
   return (
@@ -8,8 +8,8 @@ export default function Home() {
         {/* Enhanced Hero Section */}
         <EnhancedLandingHero />
 
-        {/* Starknet Showcase */}
-        <StarknetShowcase />
+        {/* Base Showcase */}
+        <BaseShowcase />
 
         {/* Simple Footer */}
         <div className="text-center mt-16 pt-8 border-t border-[#2A2A2A]">

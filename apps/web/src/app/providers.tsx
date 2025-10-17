@@ -1,47 +1,76 @@
 "use client";
 
-import {
-  StarknetConfig,
-  publicProvider,
-  argent,
-  braavos,
-  jsonRpcProvider,
-} from "@starknet-react/core";
-import { sepolia, mainnet } from "@starknet-react/chains";
+import React, { useEffect, useState } from "react";
+import { createBaseAccountSDK } from "@base-org/account";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { queryClient } from "../lib/query-client";
+import { base } from "viem/chains";
 
-export function StarknetProvider({ children }: { children: React.ReactNode }) {
-  const connectors = [argent(), braavos()];
-
-  // Custom RPC provider with explicit Sepolia configuration
-  const provider = jsonRpcProvider({
-    rpc: (chain) => {
-      if (chain.id === sepolia.id) {
-        return {
-          nodeUrl: process.env.NEXT_PUBLIC_STARKNET_RPC_URL ||
-                   'https://starknet-sepolia.public.blastapi.io/rpc/v0_7',
-        };
-      }
-      return {
-        nodeUrl: 'https://starknet-mainnet.public.blastapi.io/rpc/v0_7',
-      };
+// Create query client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 30, // 30 minutes
     },
-  });
+  },
+});
+
+// Base context
+const BaseContext = React.createContext<{
+  sdk: ReturnType<typeof createBaseAccountSDK>;
+  provider: ReturnType<ReturnType<typeof createBaseAccountSDK>["getProvider"]>;
+} | null>(null);
+
+export function useBase() {
+  const context = React.useContext(BaseContext);
+  // Return null during SSR or before SDK is initialized (client-side only SDK)
+  return context;
+}
+
+export function BaseProvider({ children }: { children: React.ReactNode }) {
+  // Store provider in state, initialize on client only (following Base docs pattern)
+  const [provider, setProvider] = useState<ReturnType<
+    ReturnType<typeof createBaseAccountSDK>["getProvider"]
+  > | null>(null);
+  const [sdk, setSdk] = useState<ReturnType<typeof createBaseAccountSDK> | null>(null);
+
+  // Initialize SDK in useEffect (client-side only) - matches Base Account docs pattern
+  useEffect(() => {
+    const initializeSDK = async () => {
+      try {
+        const sdkInstance = createBaseAccountSDK({
+          appName: 'VOISSS - Gasless Voice Platform',
+          appLogoUrl: 'https://voisss.app/logo.png',
+          appChainIds: [base.id],
+          subAccounts: {
+            creation: 'on-connect',        // Auto-create sub account
+            defaultAccount: 'sub'          // Use sub account by default
+          },
+          // TODO: Add paymaster URL for sponsored transactions
+          // paymasterUrls: {
+          //   [base.id]: 'https://paymaster.base.org'
+          // }
+        });
+
+        // Get the provider
+        const providerInstance = sdkInstance.getProvider();
+        setSdk(sdkInstance);
+        setProvider(providerInstance);
+      } catch (error) {
+        console.error("SDK initialization failed:", error);
+      }
+    };
+
+    initializeSDK();
+  }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <StarknetConfig
-        chains={[sepolia, mainnet]}
-        provider={provider}
-        connectors={connectors}
-        autoConnect={true}
-        key="starknet-config" // Add key for stable mounting
-      >
-        {children}
-        <ReactQueryDevtools initialIsOpen={false} />
-      </StarknetConfig>
-    </QueryClientProvider>
+  <QueryClientProvider client={queryClient}>
+  <BaseContext.Provider value={sdk && provider ? { sdk, provider } : null}>
+  {children}
+  <ReactQueryDevtools initialIsOpen={false} />
+  </BaseContext.Provider>
+  </QueryClientProvider>
   );
 }

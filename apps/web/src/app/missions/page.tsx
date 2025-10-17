@@ -3,11 +3,10 @@
 import { useState } from "react";
 import { Mission } from "@voisss/shared/types/socialfi";
 import MissionBoard from "../../components/socialfi/MissionBoard";
-import WalletConnector from "../../components/WalletConnector";
-import { useAccount } from "@starknet-react/core";
+import { useBaseAccount } from "../../hooks/useBaseAccount";
 
 export default function MissionsPage() {
-  const { isConnected } = useAccount();
+  const { isConnected, connect } = useBaseAccount();
   const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
 
   const handleMissionSelect = (mission: Mission) => {
@@ -28,14 +27,19 @@ export default function MissionsPage() {
             SocialFi Platform for Authentic Conversations
           </p>
           <p className="text-sm text-gray-400">
-            Record candid conversations, earn STRK tokens, and contribute to the global dialogue
+            Record candid conversations, earn tokens, and contribute to the global dialogue
           </p>
         </div>
 
         {/* Wallet Connection */}
         {!isConnected && (
-          <div className="mb-8 sm:mb-12 max-w-md mx-auto">
-            <WalletConnector />
+          <div className="mb-8 sm:mb-12 max-w-md mx-auto text-center">
+            <button
+              onClick={connect}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Connect Base Account
+            </button>
           </div>
         )}
 

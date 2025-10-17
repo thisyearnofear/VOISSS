@@ -1,10 +1,15 @@
 import { NextRequest } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60; // 60 seconds - enough for polling approach
 
 export async function POST(req: NextRequest) {
     try {
+        // Require authentication for dubbing
+        const user = requireAuth(req);
+        console.log(`Dubbing request from: ${user.address}`);
+        
         const contentType = req.headers.get('content-type') || '';
 
         // Handle dubbing request
@@ -146,6 +151,13 @@ export async function POST(req: NextRequest) {
             },
         });
     } catch (err: any) {
+        // Handle auth errors
+        if (err.message === 'No authentication token' || err.message === 'Invalid or expired session') {
+          return new Response(JSON.stringify({ 
+            error: 'Please sign in to use dubbing features' 
+          }), { status: 401 });
+        }
+        
         console.error('dub-audio error:', {
             message: err?.message,
             stack: err?.stack,

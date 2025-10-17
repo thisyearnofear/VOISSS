@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 
 const ELEVEN_API_BASE = 'https://api.elevenlabs.io/v1';
 
@@ -6,6 +7,10 @@ export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
+    // Require authentication for TTS
+    const user = requireAuth(req);
+    console.log(`TTS request from: ${user.address}`);
+    
     const { text, voiceId } = await req.json();
 
     if (!text) {

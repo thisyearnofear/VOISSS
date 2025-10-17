@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { StarknetProvider } from "./providers";
+import { BaseProvider } from "./providers";
 import Nav from "../components/Nav";
 import "./globals.css";
 
@@ -10,12 +10,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "VOISSS | Morph Your Voice on Starknet",
-  description: "Transform your voice with AI, store securely on blockchain, and earn rewards. The ultimate decentralized voice recording platform on Starknet.",
+  title: "VOISSS | Gasless Voice Recording",
+  description: "Transform your voice with AI, store securely on blockchain, and earn rewards. The ultimate gasless voice recording platform.",
   keywords: [
     "voice recording",
     "AI voice transformation",
-    "Starknet",
+    "Base",
     "blockchain",
     "decentralized",
     "IPFS",
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   openGraph: {
-    title: "VOISSS | Morph Your Voice on Starknet",
+    title: "VOISSS | Gasless Voice Recording",
     description: "Transform your voice with AI, store securely on blockchain, and earn rewards. The ultimate decentralized voice recording platform.",
     url: process.env.NEXT_PUBLIC_BASE_URL || 'https://voisss.vercel.app',
     siteName: "VOISSS",
@@ -48,13 +48,13 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "VOISSS - Morph Your Voice on Starknet",
+        alt: "VOISSS - Gasless Voice Recording",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "VOISSS | Morph Your Voice on Starknet",
+    title: "VOISSS | Gasless Voice Recording",
     description: "Transform your voice with AI, store securely on blockchain, and earn rewards.",
     images: ["/og-image.png"],
   },
@@ -125,10 +125,10 @@ export default function RootLayout({
         )}
       </head>
       <body className={`${inter.variable} antialiased`}>
-        <StarknetProvider>
+        <BaseProvider>
           <Nav />
           {children}
-        </StarknetProvider>
+        </BaseProvider>
       </body>
     </html>
   );

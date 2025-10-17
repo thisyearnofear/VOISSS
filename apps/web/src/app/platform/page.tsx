@@ -1,7 +1,5 @@
 "use client";
 
-import CrossPlatformSync from "../../components/CrossPlatformSync";
-
 export default function PlatformPage() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white">
@@ -12,7 +10,7 @@ export default function PlatformPage() {
             Our Platform Ecosystem
           </h1>
           <p className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto">
-            Transform how you capture, organize, and share audio content with our comprehensive three-app ecosystem on Starknet.
+            Transform how you capture, organize, and share audio content with our comprehensive three-app ecosystem on Base.
           </p>
         </div>
 
@@ -31,7 +29,7 @@ export default function PlatformPage() {
               </div>
             </div>
             <p className="text-sm text-gray-300">
-              Next.js + Starknet.js for browser-based recording and community features
+              Next.js + Base for browser-based recording and community features
             </p>
           </div>
 
@@ -48,7 +46,7 @@ export default function PlatformPage() {
               </div>
             </div>
             <p className="text-sm text-gray-300">
-              Native performance with starknet.dart SDK for optimal mobile experience
+              Native performance with Base integration for optimal mobile experience
             </p>
           </div>
 
@@ -65,12 +63,12 @@ export default function PlatformPage() {
               </div>
             </div>
             <p className="text-sm text-gray-300">
-              Cross-platform mobile app with Expo and Starknet integration
+              Cross-platform mobile app with Expo and Base integration
             </p>
           </div>
         </div>
 
-        {/* Cross-Platform Sync */}
+        {/* Cross-Platform Sync Placeholder */}
         <div className="mb-8 sm:mb-10">
           <div className="voisss-card max-w-2xl mx-auto">
             <div className="flex items-center justify-center gap-3 mb-4">
@@ -94,9 +92,9 @@ export default function PlatformPage() {
               </h3>
             </div>
             <p className="text-gray-400 text-sm mb-4 text-center">
-              Seamlessly sync your recordings between Web and Flutter apps using Starknet blockchain
+              Seamlessly sync your recordings between Web and mobile apps using the blockchain.
             </p>
-            <CrossPlatformSync />
+            <div className="text-center text-gray-500 italic">Cross-platform sync coming soon.</div>
           </div>
         </div>
 
@@ -107,7 +105,7 @@ export default function PlatformPage() {
             <div>
               <h3 className="text-lg font-semibold text-[#7C5DFA] mb-3">Blockchain Layer</h3>
               <ul className="space-y-2 text-gray-300 text-sm">
-                <li>• Starknet L2 for scalable storage</li>
+                <li>• Base L2 for scalable storage</li>
                 <li>• IPFS for decentralized file hosting</li>
                 <li>• Smart contracts for metadata</li>
                 <li>• Cross-chain compatibility</li>

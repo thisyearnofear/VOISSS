@@ -25,7 +25,7 @@ export default function EnhancedLandingHero() {
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 rounded-full mb-6">
             <CompatibleZap className="w-4 h-4 text-yellow-400" />
             <span className="text-sm font-medium text-white">
-              Built on Starknet • Ultra-Low Fees
+              Built on Base • Gasless Transactions
             </span>
           </div>
 
@@ -94,7 +94,7 @@ export default function EnhancedLandingHero() {
               Blockchain Storage
             </h3>
             <p className="text-gray-400">
-              Permanent IPFS storage secured by Starknet smart contracts
+              Permanent IPFS storage secured by Base smart contracts
             </p>
           </div>
         </div>
@@ -104,7 +104,7 @@ export default function EnhancedLandingHero() {
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded-full mb-4">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
             <span className="text-sm font-medium text-green-400">
-              Production Ready • Live on Starknet Sepolia
+              Production Ready • Live on Base
             </span>
           </div>
           <p className="text-gray-400 text-sm">

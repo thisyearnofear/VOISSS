@@ -11,12 +11,12 @@ interface FAQItem {
 const faqData: FAQItem[] = [
   {
     question: "What is VOISSS?",
-    answer: "VOISSS is a decentralized voice recording platform built on Starknet that allows you to record, transform your voice with AI, and store recordings securely on the blockchain using IPFS.",
+    answer: "VOISSS is a decentralized voice recording platform built on Base that allows you to record, transform your voice with AI, and store recordings securely on the blockchain using IPFS.",
     category: "getting-started"
   },
   {
     question: "Do I need a wallet to use VOISSS?",
-    answer: "No! You can use VOISSS for free without a wallet. However, connecting a Starknet wallet (ArgentX or Braavos) unlocks premium features like unlimited AI transformations, blockchain storage, and SocialFi missions.",
+    answer: "No! You can use VOISSS for free without a wallet. However, connecting a Base-compatible wallet unlocks premium features like unlimited AI transformations, blockchain storage, and SocialFi missions.",
     category: "getting-started"
   },
   {
@@ -35,8 +35,8 @@ const faqData: FAQItem[] = [
     category: "recording"
   },
   {
-    question: "What is Starknet and why do you use it?",
-    answer: "Starknet is a Layer 2 scaling solution for Ethereum that provides fast, low-cost transactions. We use it to store recording metadata and enable decentralized features while keeping costs minimal.",
+    question: "What is Base and why do you use it?",
+    answer: "Base is a Layer 2 scaling solution for Ethereum that provides fast, low-cost transactions. We use it to store recording metadata and enable decentralized features while keeping costs minimal.",
     category: "blockchain"
   },
   {
@@ -46,7 +46,7 @@ const faqData: FAQItem[] = [
   },
   {
     question: "What are SocialFi missions?",
-    answer: "SocialFi missions are community-driven recording challenges where you can earn STRK tokens by creating content around specific topics. Connect your wallet to participate and earn rewards.",
+    answer: "SocialFi missions are community-driven recording challenges where you can earn tokens by creating content around specific topics. Connect your wallet to participate and earn rewards.",
     category: "blockchain"
   },
   {
@@ -61,7 +61,7 @@ const faqData: FAQItem[] = [
   },
   {
     question: "I can't connect my wallet. What's wrong?",
-    answer: "Ensure you have ArgentX or Braavos wallet installed and set to Starknet Mainnet or Sepolia testnet. Refresh the page and try connecting again. Make sure your wallet is unlocked.",
+    answer: "Ensure you have a Base-compatible wallet installed. Refresh the page and try connecting again. Make sure your wallet is unlocked.",
     category: "troubleshooting"
   },
   {

@@ -1,10 +1,15 @@
 import { NextRequest } from 'next/server';
 import { createElevenLabsProvider } from '@voisss/shared';
+import { requireAuth } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
+    // Require authentication for AI features
+    const user = requireAuth(req);
+    console.log(`Transform request from: ${user.address}`);
+    
     const contentType = req.headers.get('content-type') || '';
     if (!contentType.includes('multipart/form-data')) {
       return new Response(JSON.stringify({ error: 'Expected multipart/form-data' }), { status: 400 });
@@ -35,6 +40,13 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err: any) {
+    // Handle auth errors
+    if (err.message === 'No authentication token' || err.message === 'Invalid or expired session') {
+      return new Response(JSON.stringify({ 
+        error: 'Please sign in to use AI voice transformation' 
+      }), { status: 401 });
+    }
+    
     console.error('transform-voice error:', {
       message: err?.message,
       stack: err?.stack,

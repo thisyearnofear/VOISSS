@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useAccount } from "@starknet-react/core";
-import { useSyncRecordings } from "../hooks/queries/useStarknetRecording";
+import { useBaseAccount } from "../hooks/useBaseAccount";
 
 interface SyncStatus {
   isOnline: boolean;
@@ -12,8 +11,8 @@ interface SyncStatus {
 }
 
 export default function CrossPlatformSync() {
-  const { address, isConnected } = useAccount();
-  const { mutateAsync: syncRecordings, isPending: isSyncing } = useSyncRecordings();
+  const { universalAddress: address, isConnected } = useBaseAccount();
+  const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({
     isOnline: typeof navigator !== "undefined" ? navigator.onLine : true,
     lastSync: null,
@@ -40,7 +39,9 @@ export default function CrossPlatformSync() {
     if (!isConnected || !address) return;
 
     try {
-      await syncRecordings();
+      setIsSyncing(true);
+      // TODO: Implement Base chain sync
+      await new Promise(resolve => setTimeout(resolve, 1000));
       setSyncStatus((prev) => ({
         ...prev,
         lastSync: new Date(),
@@ -48,6 +49,8 @@ export default function CrossPlatformSync() {
       }));
     } catch (error) {
       console.error("Sync failed:", error);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -145,9 +148,9 @@ export default function CrossPlatformSync() {
         </h4>
         <ul className="text-xs text-gray-400 space-y-1">
           <li>• Web dApp: Full recording and management features</li>
-          <li>• Flutter Mobile: Native performance with starknet.dart</li>
-          <li>• React Native: Coming soon with Expo integration</li>
-          <li>• All recordings sync via Starknet + IPFS</li>
+          <li>• React Native: Cross-platform mobile development</li>
+          <li>• Flutter Mobile: On hold for future evaluation</li>
+          <li>• All recordings sync via Base + IPFS</li>
         </ul>
       </div>
 
@@ -203,7 +206,7 @@ export default function CrossPlatformSync() {
           <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center mb-1 border border-green-500/30">
             <span className="text-green-400 text-sm">⛓️</span>
           </div>
-          <span className="text-xs text-green-400 font-medium">Starknet</span>
+          <span className="text-xs text-green-400 font-medium">Base</span>
         </div>
       </div>
     </div>

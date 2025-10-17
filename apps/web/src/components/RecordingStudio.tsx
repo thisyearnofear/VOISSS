@@ -1,19 +1,12 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { useAccount } from "@starknet-react/core";
+import { useAuth } from "../hooks/useAuth";
+import { useBaseAccount } from "../hooks/useBaseAccount";
 import { useWebAudioRecording } from "../hooks/useWebAudioRecording";
-import {
-  useProcessRecording,
-  useUserRecordings,
-  useDeleteRecording,
-  useToggleRecordingVisibility,
-  useRecordingStats
-} from "../hooks/queries/useStarknetRecording";
 import { useFreemiumStore } from "../store/freemiumStore";
-import { RecordingCard } from "@voisss/ui";
-import type { Recording } from "@voisss/ui/components/RecordingCard";
-import WalletModal from "./WalletModal";
+import { createIPFSService } from "@voisss/shared";
+import { createBaseRecordingService } from "../services/baseRecordingService";
 import DubbingPanel from "./dubbing/DubbingPanel";
 
 interface RecordingStudioProps {
@@ -40,11 +33,8 @@ export default function RecordingStudio({
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTitle, setRecordingTitle] = useState("");
   const [showSaveOptions, setShowSaveOptions] = useState(false);
-  
-  // Recording list state (for connected users)
-  const [editingRecording, setEditingRecording] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [showHidden, setShowHidden] = useState(false);
+
+
 
   // AI Voice state
   const [voicesFree, setVoicesFree] = useState<{ voiceId: string; name?: string }[]>([]);
@@ -52,14 +42,14 @@ export default function RecordingStudio({
   const [variantBlobFree, setVariantBlobFree] = useState<Blob | null>(null);
   const [isLoadingVoicesFree, setLoadingVoicesFree] = useState(false);
   const [isGeneratingFree, setGeneratingFree] = useState(false);
-  const [showWalletModal, setShowWalletModal] = useState(false);
+
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error'>('error');
-  
+
   // Dubbing state
   const [dubbedBlob, setDubbedBlob] = useState<Blob | null>(null);
   const [dubbedLanguage, setDubbedLanguage] = useState<string>("");
-  
+
   // Version selection state for unified save
   const [selectedVersions, setSelectedVersions] = useState({
     original: true,
@@ -67,15 +57,22 @@ export default function RecordingStudio({
     dubbed: false,
   });
 
-  const { mutateAsync: processRecording } = useProcessRecording();
-  const { address, isConnected } = useAccount();
-  
-  // Starknet recording hooks (only active when connected)
-  const { data: recordings = [], isLoading: isLoadingRecordings } = useUserRecordings();
-  const deleteRecordingMutation = useDeleteRecording();
-  const toggleVisibilityMutation = useToggleRecordingVisibility();
-  const { data: recordingStats } = useRecordingStats();
-  
+  const { isAuthenticated, address, signIn } = useAuth();
+  const { subAccount, sendCalls, status, isConnected, universalAddress, connect } = useBaseAccount();
+
+  // Create services - conditionally based on contract availability
+  const ipfsService = React.useMemo(() => createIPFSService(), []);
+
+  // Base recording service - only initialize if contract is configured
+  const baseRecordingService = React.useMemo(() => {
+    try {
+      return createBaseRecordingService(sendCalls);
+    } catch (error) {
+      console.warn('Base recording service not available:', error);
+      return null;
+    }
+  }, [sendCalls]);
+
   // Freemium state from global store
   const {
     userTier,
@@ -88,17 +85,16 @@ export default function RecordingStudio({
     getRemainingQuota,
     setUserTier,
   } = useFreemiumStore();
-  
+
   // Sync user tier with wallet connection
   React.useEffect(() => {
     if (address) {
-      // TODO: Check if user has premium subscription
-      setUserTier('free'); // For now, connected users are free tier
+      setUserTier('free');
     } else {
       setUserTier('guest');
     }
   }, [address, setUserTier]);
-  
+
   const remainingQuota = getRemainingQuota();
 
   const handleStartRecording = useCallback(async () => {
@@ -150,7 +146,7 @@ export default function RecordingStudio({
   // Unified save handler for all selected versions
   const handleSaveSelectedVersions = useCallback(async () => {
     if (!audioBlob) return;
-    
+
     // Count selected versions
     const versionsToSave = Object.values(selectedVersions).filter(Boolean).length;
     if (versionsToSave === 0) {
@@ -159,127 +155,111 @@ export default function RecordingStudio({
       setTimeout(() => setToastMessage(null), 4000);
       return;
     }
-    
+
     // Check if user can save (check against number of versions)
     if (!canSaveRecording()) {
       if (userTier === 'guest') {
-        setShowWalletModal(true);
+        try {
+          await signIn();
+          // If sign-in succeeds, continue with save
+        } catch (error) {
+          setToastType('error');
+          setToastMessage('Sign-in failed. Please try again.');
+          setTimeout(() => setToastMessage(null), 4000);
+          return;
+        }
+      } else {
+        // Free tier hit limit
+        setToastType('error');
+        setToastMessage('Weekly save limit reached. Upgrade for unlimited saves!');
+        setTimeout(() => setToastMessage(null), 4000);
         return;
       }
-      // Free tier hit limit
-      setToastType('error');
-      setToastMessage('Weekly save limit reached. Upgrade for unlimited saves!');
-      setTimeout(() => setToastMessage(null), 4000);
-      setShowWalletModal(true);
-      return;
     }
-    
+
     // Check if user has enough quota for all selected versions
     if (userTier === 'free' && versionsToSave > remainingQuota.saves) {
       setToastType('error');
       setToastMessage(`Not enough saves remaining. You have ${remainingQuota.saves} saves left but selected ${versionsToSave} versions.`);
       setTimeout(() => setToastMessage(null), 4000);
-      setShowWalletModal(true);
       return;
     }
-    
+
     try {
-      // Shorten title to fit felt252 (31 chars max)
-      const baseTitle = recordingTitle.slice(0, 20) || `Rec-${new Date().toISOString().slice(11, 19).replace(/:/g, '')}`;
+      const baseTitle = recordingTitle || `Recording ${new Date().toLocaleString()}`;
       const results = [];
-      
+
       // Save original if selected
       if (selectedVersions.original && audioBlob) {
-        const result = await processRecording({
-          blob: audioBlob,
-          metadata: {
-            title: baseTitle,
-            description: 'Original Recording',
-            ipfsHash: '', // Will be populated by processRecording
-            duration: duration / 1000,
-            fileSize: audioBlob.size,
-            isPublic: false,
-            tags: ['recording', 'original'],
-          },
-          onProgress: (progress: any) => console.log('Original save progress:', progress)
+        const result = await saveRecordingToBase(audioBlob, {
+          title: baseTitle,
+          description: 'Original recording',
+          isPublic: true,
+          tags: ['original'],
         });
         results.push({
           type: 'original',
-          success: result.success,
-          error: result.error,
-          ipfsHash: result.ipfsHash, // ✅ Store full IPFS hash from result
+          success: true,
+          error: null,
+          ipfsHash: result.ipfsHash,
         });
-        if (result.success) incrementSaveUsage();
+        incrementSaveUsage();
       }
-      
+
       // Save AI voice if selected
       if (selectedVersions.aiVoice && variantBlobFree) {
-        const result = await processRecording({
-          blob: variantBlobFree,
-          metadata: {
-            title: `${baseTitle}-AI`,
-            description: 'AI voice',
-            ipfsHash: '', // Will be populated by processRecording
-            duration: 0,
-            fileSize: variantBlobFree.size,
-            isPublic: false,
-            tags: ['recording', 'ai-voice', selectedVoiceFree],
-          },
-          onProgress: (progress: any) => console.log('AI Voice save progress:', progress)
+        const result = await saveRecordingToBase(variantBlobFree, {
+          title: `${baseTitle} (AI Voice)`,
+          description: `AI voice transformation using ${selectedVoiceFree}`,
+          isPublic: true,
+          tags: ['ai-voice', selectedVoiceFree],
         });
         results.push({
           type: 'ai-voice',
-          success: result.success,
-          error: result.error,
-          ipfsHash: result.ipfsHash, // ✅ Store full IPFS hash from result
+          success: true,
+          error: null,
+          ipfsHash: result.ipfsHash,
         });
-        if (result.success) incrementSaveUsage();
+        incrementSaveUsage();
       }
-      
+
       // Save dubbed if selected
       if (selectedVersions.dubbed && dubbedBlob) {
-        const result = await processRecording({
-          blob: dubbedBlob,
-          metadata: {
-            title: `${baseTitle}-Dub`,
-            description: `Dubbed: ${dubbedLanguage}`,
-            ipfsHash: '', // Will be populated by processRecording
-            duration: 0,
-            fileSize: dubbedBlob.size,
-            isPublic: false,
-            tags: ['recording', 'dubbed', dubbedLanguage],
-          },
-          onProgress: (progress: any) => console.log('Dubbed save progress:', progress)
+        const result = await saveRecordingToBase(dubbedBlob, {
+          title: `${baseTitle} (${dubbedLanguage})`,
+          description: `Dubbed to ${dubbedLanguage}`,
+          isPublic: true,
+          tags: ['dubbed', dubbedLanguage],
         });
         results.push({
           type: 'dubbed',
-          success: result.success,
-          error: result.error,
-          ipfsHash: result.ipfsHash, // ✅ Store full IPFS hash from result
+          success: true,
+          error: null,
+          ipfsHash: result.ipfsHash,
         });
-        if (result.success) incrementSaveUsage();
+        incrementSaveUsage();
       }
-      
+
       // Show results
       const successCount = results.filter(r => r.success).length;
       const failCount = results.filter(r => !r.success).length;
-      
+
       if (successCount > 0) {
         setToastType('success');
         setToastMessage(`${successCount} version${successCount > 1 ? 's' : ''} saved successfully!`);
         setTimeout(() => setToastMessage(null), 4000);
-        
+
         if (onRecordingComplete && audioBlob) {
           onRecordingComplete(audioBlob, duration);
         }
       }
-      
+
       if (failCount > 0) {
         setToastType('error');
         setToastMessage(`${failCount} version${failCount > 1 ? 's' : ''} failed to save`);
         setTimeout(() => setToastMessage(null), 4000);
       }
-      
+
       if (successCount === versionsToSave) {
         // All saved successfully, can close
         setShowSaveOptions(false);
@@ -291,7 +271,33 @@ export default function RecordingStudio({
       setToastMessage('Error saving recordings');
       setTimeout(() => setToastMessage(null), 4000);
     }
-  }, [audioBlob, variantBlobFree, dubbedBlob, selectedVersions, recordingTitle, duration, selectedVoiceFree, dubbedLanguage, canSaveRecording, userTier, remainingQuota.saves, processRecording, incrementSaveUsage, onRecordingComplete]);
+  }, [audioBlob, variantBlobFree, dubbedBlob, selectedVersions, recordingTitle, duration, selectedVoiceFree, dubbedLanguage, canSaveRecording, userTier, remainingQuota.saves, incrementSaveUsage, onRecordingComplete]);
+
+  const saveRecordingToBase = async (audioBlob: Blob, metadata: any) => {
+    if (!baseRecordingService) {
+      throw new Error('Base recording contract not configured. Please deploy the contract first.');
+    }
+
+    // 1. Upload to IPFS
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `${metadata.title.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.mp3`;
+
+    const ipfsResult = await ipfsService.uploadAudio(audioBlob, {
+      filename,
+      mimeType: audioBlob.type || 'audio/mpeg',
+      duration: duration,
+    });
+
+    // 2. Save to Base chain (gasless!)
+    const txId = await baseRecordingService.saveRecording(ipfsResult.hash, {
+      title: metadata.title,
+      description: metadata.description,
+      isPublic: metadata.isPublic,
+      tags: metadata.tags,
+    });
+
+    return { ipfsHash: ipfsResult.hash, txId };
+  };
 
   const handleCancelRecording = useCallback(() => {
     cancelRecording();
@@ -304,7 +310,6 @@ export default function RecordingStudio({
     setVariantBlobFree(null);
     setLoadingVoicesFree(false);
     setGeneratingFree(false);
-    setShowWalletModal(false);
     // Reset dubbing state
     setDubbedBlob(null);
     setDubbedLanguage("");
@@ -330,60 +335,7 @@ export default function RecordingStudio({
     }
   }, [audioBlob, recordingTitle]);
 
-  // Recording list management functions
-  const toggleRecordingVisibility = (id: string) => {
-    const recording = recordings.find((r: any) => r.id === id);
-    if (recording) {
-      toggleVisibilityMutation.mutate({
-        recordingId: id,
-        isHidden: !recording.isHidden
-      });
-    }
-  };
 
-  const startEditingTitle = (recording: any) => {
-    setEditingRecording(recording.id);
-    setEditTitle(recording.customTitle || recording.title);
-  };
-
-  const saveEditedTitle = () => {
-    if (editingRecording && editTitle.trim()) {
-      const recording = recordings.find((r: any) => r.id === editingRecording);
-      if (recording) {
-        // Update via mutation - this would need to be added to useStarknetRecording
-        const updatedRecording = { ...recording, customTitle: editTitle.trim() };
-        // For now, just update localStorage directly
-        const stored = localStorage.getItem(`recordings_${address}`);
-        if (stored) {
-          const recs = JSON.parse(stored);
-          const updated = recs.map((r: any) =>
-            r.id === editingRecording ? updatedRecording : r
-          );
-          localStorage.setItem(`recordings_${address}`, JSON.stringify(updated));
-        }
-      }
-      setEditingRecording(null);
-      setEditTitle("");
-    }
-  };
-
-  const cancelEditingTitle = () => {
-    setEditingRecording(null);
-    setEditTitle("");
-  };
-
-  const getDisplayTitle = (recording: any): string => {
-    if (recording.customTitle) return recording.customTitle;
-    if (recording.title && recording.title !== recording.id)
-      return recording.title;
-    return `Recording ${recording.timestamp ? new Date(recording.timestamp).toLocaleTimeString() : 'Unknown time'}`;
-  };
-
-  const deleteRecording = (id: string) => {
-    if (confirm("Are you sure you want to delete this recording?")) {
-      deleteRecordingMutation.mutate(id);
-    }
-  };
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 Bytes";
@@ -392,11 +344,6 @@ export default function RecordingStudio({
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
-
-  // Filter recordings based on visibility
-  const visibleRecordings = recordings.filter(
-    (recording: any) => showHidden || !recording.isHidden
-  );
 
   const formatDuration = (ms: number): string => {
     const seconds = Math.floor(ms / 1000);
@@ -717,8 +664,6 @@ export default function RecordingStudio({
              // Auto-select dubbed version for saving
              setSelectedVersions(prev => ({ ...prev, dubbed: true }));
            }}
-           onWalletModalOpen={() => setShowWalletModal(true)}
-           recordingTitle={recordingTitle}
          />
 
           {/* Version Selection Checkboxes */}
@@ -732,7 +677,7 @@ export default function RecordingStudio({
             <p className="text-gray-400 text-xs mb-4">
               Choose which versions you want to save to Starknet/IPFS
             </p>
-            
+
             <div className="space-y-3">
               {/* Original Version */}
               <label className="flex items-center gap-3 p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg cursor-pointer hover:border-[#3A3A3A] transition-colors">
@@ -860,15 +805,20 @@ export default function RecordingStudio({
             </button>
             <button
               onClick={handleSaveSelectedVersions}
+              disabled={!baseRecordingService}
               className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-                userTier === 'guest'
+                !baseRecordingService
+                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  : userTier === 'guest'
                   ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-500 hover:to-purple-600'
                   : userTier === 'premium'
                   ? 'bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-500 hover:to-green-600'
                   : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-500 hover:to-blue-600'
               }`}
             >
-              {userTier === 'guest' ? (
+              {!baseRecordingService ? (
+                '⏳ Contract Not Deployed'
+              ) : userTier === 'guest' ? (
                 '🔒 Connect to Save'
               ) : userTier === 'premium' ? (
                 `💾 Save Selected (∞)`
@@ -877,6 +827,14 @@ export default function RecordingStudio({
               )}
             </button>
           </div>
+          {!baseRecordingService && (
+            <div className="mt-3 p-3 bg-yellow-900/30 border border-yellow-500/30 rounded-lg">
+              <p className="text-yellow-200 text-sm">
+                ⚠️ Blockchain saving is not yet available. The VoiceRecords contract needs to be deployed to Base first.
+                You can still download your recordings for now.
+              </p>
+            </div>
+          )}
           {userTier === 'free' && remainingQuota.saves <= 2 && (
             <p className="text-xs text-yellow-400 text-center mt-2">
               ⚠️ {remainingQuota.saves} free saves remaining this week
@@ -911,69 +869,7 @@ export default function RecordingStudio({
         </div>
       )}
 
-      {/* Wallet Modal */}
-      <WalletModal
-        isOpen={showWalletModal}
-        onClose={() => setShowWalletModal(false)}
-        title="Unlock Unlimited AI Voices"
-        subtitle="Connect your wallet to save unlimited AI variants and access premium features"
-      />
 
-      {/* Recordings List - Only show when wallet is connected */}
-      {isConnected && (
-        <div className="mt-8 voisss-card">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-bold text-white">Your Recordings</h3>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setShowHidden(!showHidden)}
-                className="text-sm text-purple-300 hover:text-purple-100 transition-colors"
-              >
-                {showHidden ? "Hide Hidden" : "Show Hidden"}
-              </button>
-              {recordingStats && (
-                <div className="text-sm text-gray-300">
-                  Total: {recordingStats.total} | Public: {recordingStats.public} | Private: {recordingStats.private}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {isLoadingRecordings ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto"></div>
-              <p className="mt-2 text-gray-300">Loading recordings...</p>
-            </div>
-          ) : visibleRecordings.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
-              <p>No recordings found.</p>
-              <p className="text-sm mt-2">Start recording to see your voice recordings here.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {visibleRecordings.map((recording: any) => (
-                <RecordingCard
-                  key={recording.id}
-                  recording={{
-                    id: recording.id,
-                    title: getDisplayTitle(recording),
-                    duration: recording.duration || 0,
-                    createdAt: recording.timestamp ? new Date(recording.timestamp).toISOString() : new Date().toISOString(),
-                    tags: recording.tags,
-                    isPlaying: false, // We'll handle playback separately
-                    fileSize: recording.fileSize,
-                    onChain: recording.onChain,
-                  } as Recording}
-                  className={recording.isHidden ? "opacity-50" : ""}
-                  onDelete={() => deleteRecording(recording.id)}
-                  onPlay={(id: string) => console.log('Play recording', id)}
-                  onPause={(id: string) => console.log('Pause recording', id)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

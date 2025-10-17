@@ -92,9 +92,9 @@ export const trackIPFSUpload = () => {
   });
 };
 
-export const trackStarknetTransaction = (type: string) => {
+export const trackBlockchainTransaction = (type: string) => {
   trackEvent({
-    action: 'starknet_transaction',
+    action: 'blockchain_transaction',
     category: 'blockchain',
     label: type,
   });

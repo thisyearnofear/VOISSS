@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Mission } from "@voisss/shared/types/socialfi";
-import { useAccount } from "@starknet-react/core";
+import { useBaseAccount } from "../../hooks/useBaseAccount";
 import { useMissions, useAcceptMission, useMissionStats } from "../../hooks/queries/useMissions";
 import MissionCard from "./MissionCard";
 import MissionFilters from "./MissionFilters";
@@ -12,7 +12,7 @@ interface MissionBoardProps {
 }
 
 export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
-  const { address, isConnected } = useAccount();
+  const { universalAddress: address, isConnected } = useBaseAccount();
   const [selectedTopic, setSelectedTopic] = useState<string>("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"newest" | "reward" | "participants">("newest");

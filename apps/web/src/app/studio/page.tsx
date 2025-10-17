@@ -4,6 +4,8 @@ import { useState } from "react";
 import RecordingStudio from "../../components/RecordingStudio";
 import { formatDuration } from "@voisss/shared";
 
+export const dynamic = 'force-dynamic';
+
 export default function RecordPage() {
   const [recordings, setRecordings] = useState<
     Array<{

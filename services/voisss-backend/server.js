@@ -3,15 +3,54 @@ const multer = require('multer');
 const FormData = require('form-data');
 const fetch = require('node-fetch');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const PORT = process.env.PORT || 5577;
 const ELEVEN_API_BASE = 'https://api.elevenlabs.io/v1';
 const API_KEY = process.env.ELEVENLABS_API_KEY;
+const AUTH_JWT_SECRET = process.env.AUTH_JWT_SECRET || 'dev-secret-change-in-prod';
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://voisss.netlify.app',
+    'https://voisss.app',
+    'http://localhost:4445',
+    'http://localhost:3000'
+  ],
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
+
+// Auth middleware - protect all /api routes
+function authMiddleware(req, res, next) {
+  // Skip auth for health check
+  if (req.path === '/health') {
+    return next();
+  }
+
+  const authHeader = req.get('authorization') || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+  if (!token) {
+    return res.status(401).json({ error: 'Missing authentication token' });
+  }
+
+  try {
+    req.user = jwt.verify(token, AUTH_JWT_SECRET);
+    next();
+  } catch (error) {
+    return res.status(401).json({ 
+      error: 'Invalid or expired token',
+      details: error.message 
+    });
+  }
+}
+
+// Apply auth to all API routes
+app.use('/api', authMiddleware);
 
 // Configure multer for memory storage
 const upload = multer({ 

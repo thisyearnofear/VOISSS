@@ -81,7 +81,7 @@ export default function FeaturesPage() {
             </div>
             <ul className="space-y-2 text-gray-300">
               <li>• IPFS permanent file storage</li>
-              <li>• Starknet blockchain metadata</li>
+              <li>• Base blockchain metadata</li>
               <li>• Immutable recording history</li>
               <li>• Censorship-resistant access</li>
             </ul>
@@ -97,7 +97,7 @@ export default function FeaturesPage() {
               <h3 className="text-xl font-semibold text-white">SocialFi Missions</h3>
             </div>
             <ul className="space-y-2 text-gray-300">
-              <li>• Earn STRK tokens for recordings</li>
+              <li>• Earn tokens for recordings</li>
               <li>• Topic-based mission system</li>
               <li>• Community-driven content</li>
               <li>• Reputation & rewards tracking</li>
@@ -141,7 +141,7 @@ export default function FeaturesPage() {
                 <li>✅ Unlimited dubbing</li>
                 <li>✅ Full voice library access</li>
                 <li>✅ Save AI variants to IPFS</li>
-                <li>✅ Starknet blockchain storage</li>
+                <li>✅ Base blockchain storage</li>
                 <li>✅ SocialFi mission rewards</li>
                 <li>✅ Cross-platform sync</li>
                 <li>✅ Advanced voice controls</li>
@@ -165,11 +165,11 @@ export default function FeaturesPage() {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-[#7C5DFA] mb-3">Blockchain</h3>
-              <ul className="space-y-1 text-gray-300 text-sm">
-                <li>• Network: Starknet L2</li>
+              <ul className="space-y-2 text-gray-300 text-sm">
+                <li>• Network: Base L2</li>
                 <li>• Storage: IPFS</li>
-                <li>• Contracts: Cairo</li>
-                <li>• Wallets: ArgentX, Braavos</li>
+                <li>• Contracts: Solidity</li>
+                <li>• Wallets: Base-compatible wallets</li>
               </ul>
             </div>
             <div>

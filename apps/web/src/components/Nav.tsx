@@ -2,33 +2,15 @@
 
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
-import { useAccount, useDisconnect, useNetwork } from "@starknet-react/core";
-import WalletModal from "./WalletModal";
+import { useAuth } from "../hooks/useAuth";
+import { useBasename } from "../hooks/useBasename";
+
 
 export default function Nav() {
-  const { address, isConnected } = useAccount();
-  const { disconnect } = useDisconnect();
-  const { chain } = useNetwork();
-  const [showWalletModal, setShowWalletModal] = useState(false);
+  const { address, isAuthenticated, isAuthenticating, signIn, signOut } = useAuth();
+  const { displayName, hasBasename, isLoading: isResolvingBasename } = useBasename(address);
   const [showWalletMenu, setShowWalletMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  // Get network display info
-  const getNetworkInfo = () => {
-    if (!chain) return { name: 'Unknown', color: 'gray' };
-    
-    const isTestnet = chain.network?.toLowerCase().includes('sepolia') ||
-                      chain.network?.toLowerCase().includes('goerli') ||
-                      chain.testnet;
-    
-    return {
-      name: isTestnet ? 'Sepolia Testnet' : chain.name || 'Mainnet',
-      color: isTestnet ? 'yellow' : 'green',
-      isTestnet
-    };
-  };
-
-  const networkInfo = getNetworkInfo();
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -53,10 +35,10 @@ export default function Nav() {
 
   const handleDisconnect = async () => {
     try {
-      await disconnect();
+      await signOut();
       setShowWalletMenu(false);
     } catch (error) {
-      console.error("Failed to disconnect:", error);
+      console.error("Failed to sign out:", error);
     }
   };
 
@@ -65,6 +47,12 @@ export default function Nav() {
       navigator.clipboard.writeText(address);
       // Could add a toast notification here
     }
+  };
+
+  // Network info for Base
+  const networkInfo = {
+    name: 'Base',
+    isTestnet: false
   };
   
   return (
@@ -103,26 +91,37 @@ export default function Nav() {
               </Link>
             </div>
             
-            {!isConnected && (
+            {!isAuthenticated && (
               <div className="flex items-center gap-3">
-                                            <Link 
-                                              href="/studio" 
-                                              className="px-3 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium"
-                                            >
-                                              Studio
-                                            </Link>                <button
-                  onClick={() => setShowWalletModal(true)}
-                  className="px-4 py-2 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-lg text-white text-sm font-medium hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-200 flex items-center gap-2"
+                <Link 
+                  href="/studio" 
+                  className="px-3 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                  Connect
+                  Studio
+                </Link>
+                <button
+                  onClick={signIn}
+                  disabled={isAuthenticating}
+                  className="px-4 py-2 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-lg text-white text-sm font-medium hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isAuthenticating ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span className="hidden sm:inline">Connecting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      <span>Sign In</span>
+                    </>
+                  )}
                 </button>
               </div>
             )}
             
-            {isConnected && address && (
+            {isAuthenticated && address && (
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setShowWalletMenu(!showWalletMenu)}
@@ -161,7 +160,7 @@ export default function Nav() {
                             <span className="text-xs font-semibold text-green-400 uppercase tracking-wide">Connected</span>
                             <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
                           </div>
-                          <p className="text-white font-semibold text-sm mt-0.5">Starknet Wallet</p>
+                          <p className="text-white font-semibold text-sm mt-0.5">Base Account</p>
                         </div>
                       </div>
                       
@@ -188,10 +187,19 @@ export default function Nav() {
                         )}
                       </div>
                       <div className="p-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg">
-                        <p className="text-gray-400 text-xs mb-1">Address</p>
-                        <p className="text-white font-mono text-xs break-all leading-relaxed">
-                          {address}
-                        </p>
+                      <p className="text-gray-400 text-xs mb-1">Identity</p>
+                      <div className="text-white font-mono text-xs break-all leading-relaxed">
+                      {isResolvingBasename ? (
+                        <span className="text-gray-400">Resolving...</span>
+                      ) : (
+                        displayName || address
+                          )}
+                        </div>
+                      {!hasBasename && !isResolvingBasename && (
+                          <p className="text-gray-400 text-xs mt-2">
+                            💡 Get a Basename for human-readable identity
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -213,7 +221,7 @@ export default function Nav() {
                       </button>
                       
                       <a
-                        href={`https://sepolia.starkscan.co/contract/${address}`}
+                        href={`https://basescan.org/address/${address}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-full px-4 py-3 text-left text-sm text-white hover:bg-[#2A2A2A] rounded-xl transition-all duration-200 flex items-center gap-3 group mb-1"
@@ -224,7 +232,7 @@ export default function Nav() {
                           </svg>
                         </div>
                         <div className="flex-1">
-                          <p className="font-medium">View on Starkscan</p>
+                          <p className="font-medium">View on Basescan</p>
                           <p className="text-xs text-gray-400">Verify on blockchain</p>
                         </div>
                         <svg className="w-4 h-4 text-gray-500 group-hover:text-purple-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -245,7 +253,7 @@ export default function Nav() {
                         </div>
                         <div className="flex-1">
                           <p className="font-medium text-red-400">Disconnect Wallet</p>
-                          <p className="text-xs text-gray-400">Sign out from Starknet</p>
+                          <p className="text-xs text-gray-400">Sign out from Base</p>
                         </div>
                       </button>
                     </div>
@@ -253,7 +261,7 @@ export default function Nav() {
                     {/* Footer Tip */}
                     <div className="px-4 py-3 bg-[#0A0A0A] border-t border-[#2A2A2A]">
                       <p className="text-xs text-gray-500 text-center">
-                        💡 Your recordings are secured on Starknet
+                        💡 Your recordings are secured on Base
                       </p>
                     </div>
                   </div>
@@ -264,13 +272,7 @@ export default function Nav() {
         </div>
       </div>
 
-      {/* Wallet Modal */}
-      <WalletModal
-        isOpen={showWalletModal}
-        onClose={() => setShowWalletModal(false)}
-        title="Connect Your Starknet Wallet"
-        subtitle="Unlock unlimited AI transformations and decentralized storage"
-      />
+
     </nav>
   );
 }

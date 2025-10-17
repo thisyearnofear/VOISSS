@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAccount } from '@starknet-react/core';
+import { useBaseAccount } from '../useBaseAccount';
 import { createPersistentMissionService } from '@voisss/shared';
 import { Mission, MissionResponse } from '@voisss/shared/types/socialfi';
 import { queryKeys, handleQueryError } from '../../lib/query-client';
@@ -98,7 +98,7 @@ export function useMission(missionId: string) {
 
 // Hook to fetch user's missions
 export function useUserMissions() {
-  const { address } = useAccount();
+  const { universalAddress: address } = useBaseAccount();
   
   return useQuery({
     queryKey: queryKeys.missions.userMissions(address || ''),
@@ -119,7 +119,7 @@ export function useUserMissions() {
 // Hook to accept a mission
 export function useAcceptMission() {
   const queryClient = useQueryClient();
-  const { address } = useAccount();
+  const { universalAddress: address } = useBaseAccount();
   
   return useMutation({
     mutationFn: async (missionId: string) => {
@@ -147,7 +147,7 @@ export function useAcceptMission() {
 // Hook to complete a mission
 export const useCompleteMission = () => {
   const queryClient = useQueryClient();
-  const { address } = useAccount();
+  const { universalAddress: address } = useBaseAccount();
 
   return useMutation({
     mutationFn: async ({ 
@@ -180,17 +180,19 @@ export const useCompleteMission = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.missions.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.missions.stats(address) });
+      if (address) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.missions.stats(address) });
+      }
     },
   });
 };
 
 // Hook to get mission statistics
 export const useMissionStats = () => {
-  const { address } = useAccount();
+  const { universalAddress: address } = useBaseAccount();
   
   return useQuery({
-    queryKey: queryKeys.missions.stats(address),
+    queryKey: queryKeys.missions.stats(address || ''),
     queryFn: async () => {
       const missions = await missionService.getActiveMissions();
       

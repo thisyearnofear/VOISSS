@@ -8,7 +8,6 @@ import { isDubbingEnabled } from '@voisss/shared';
 import type { LanguageInfo } from '@voisss/shared/src/constants/languages';
 import type { DubbingLanguage } from '@voisss/shared/src/types/audio';
 import { useDubbingLanguages, useAudioDubbing, useAIServiceStatus } from '../../hooks/queries/useAI';
-import { useProcessRecording } from '../../hooks/queries/useStarknetRecording';
 import { getPopularLanguages } from '@voisss/shared/src/constants/languages';
 import { useFreemiumStore } from '../../store/freemiumStore';
 
@@ -53,7 +52,6 @@ export default function DubbingPanel({
 
   const { data: languagesData, isLoading: isLoadingLangs } = useDubbingLanguages();
   const { mutateAsync: dubAudio } = useAudioDubbing();
-  const { mutateAsync: processRecording } = useProcessRecording();
   const { data: aiStatus } = useAIServiceStatus();
   
   // Use global freemium state
@@ -607,7 +605,7 @@ export default function DubbingPanel({
                     Download Dubbed Audio
                   </button>
                   <p className="text-gray-400 text-xs mt-3 text-center">
-                    💡 Use the main "Save Recording" button above to save to Starknet/IPFS
+                    💡 Use the main "Save Recording" button above to save to Base/IPFS
                   </p>
                 </div>
               </div>
