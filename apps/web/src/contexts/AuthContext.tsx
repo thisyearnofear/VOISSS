@@ -43,11 +43,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+
+  // Check for existing session on app load
+  useEffect(() => {
+    const checkExistingSession = async () => {
+      try {
+        // Check if we have a valid session cookie
+        const response = await fetch('/api/auth/verify-session', {
+          method: 'GET',
+          credentials: 'include',
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.authenticated) {
+            setIsAuthenticated(true);
+            console.log('Existing session found, user is authenticated');
+          }
+        }
+      } catch (error) {
+        console.log('No existing session found');
+      } finally {
+        setIsCheckingSession(false);
+      }
+    };
+
+    checkExistingSession();
+  }, []);
 
   // Sync authentication state with Base Account connection
   useEffect(() => {
-    setIsAuthenticated(isConnected);
-  }, [isConnected]);
+    // Only sync if we're not checking session
+    if (!isCheckingSession) {
+      if (isConnected && !isAuthenticated) {
+        setIsAuthenticated(true);
+      } else if (!isConnected && isAuthenticated && !isAuthenticating) {
+        // Only clear auth if we're sure there's no Base Account connection
+        // and we're not in the middle of a sign-in process
+        setIsAuthenticated(false);
+      }
+    }
+  }, [isConnected, isCheckingSession, isAuthenticated, isAuthenticating]);
 
   const signIn = useCallback(async () => {
     setIsAuthenticating(true);
