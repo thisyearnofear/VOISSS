@@ -50,14 +50,8 @@ export function BaseProvider({ children }: { children: React.ReactNode }) {
           appName: 'VOISSS - Morph Your Voice',
           appLogoUrl: `${currentDomain}/logo.png`,
           appChainIds: [base.id],
-          subAccounts: {
-            creation: 'on-connect',        // Auto-create sub account
-            defaultAccount: 'sub'          // Use sub account by default
-          },
-          // TODO: Add paymaster URL for sponsored transactions
-          // paymasterUrls: {
-          //   [base.id]: 'https://paymaster.base.org'
-          // }
+          // Note: We use backend spender wallet for gasless transactions
+          // No Sub Accounts needed - users grant spend permission to our backend
         });
 
         // Get the provider with error handling

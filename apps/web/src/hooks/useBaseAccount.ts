@@ -2,16 +2,20 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useBase } from "../app/providers";
-import { parseUnits } from "viem";
+import { parseEther } from "viem";
 import { base } from "viem/chains";
-import { requestSpendPermission, fetchPermissions, prepareRevokeCallData } from "@base-org/account/spend-permission/browser";
+import {
+  requestSpendPermission,
+  fetchPermissions,
+  getPermissionStatus,
+  type SpendPermission
+} from "@base-org/account/spend-permission/browser";
 
 const NATIVE_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+const SPENDER_ADDRESS = process.env.NEXT_PUBLIC_SPENDER_ADDRESS as `0x${string}`;
 
-interface SubAccount {
-  address: `0x${string}`;
-  factory?: `0x${string}`;
-  factoryData?: `0x${string}`;
+if (!SPENDER_ADDRESS) {
+  console.warn('⚠️ NEXT_PUBLIC_SPENDER_ADDRESS not configured. Gasless transactions will not work.');
 }
 
 interface UseBaseAccountReturn {
@@ -19,26 +23,19 @@ interface UseBaseAccountReturn {
   isConnected: boolean;
   isConnecting: boolean;
   universalAddress: string | null;
-  subAccount: SubAccount | null;
   
   // Actions
   connect: () => Promise<void>;
   disconnect: () => void;
   
-  // Transaction methods
-  sendCalls: (calls: Array<{ to: string; data: string; value?: string }>) => Promise<string>;
-  
-  // Spend permission state (consolidated from Nav and RecordingStudio)
+  // Spend permission state
   permissionActive: boolean;
-  permissions: any[];
+  currentPermission: SpendPermission | null;
   isLoadingPermissions: boolean;
   permissionError: string | null;
   
-  // Spend permission helpers
-  getSpendPermissions?: () => Promise<any[]>;
-  hasSpendPermission?: () => Promise<boolean>;
-  revokeSpendPermission?: () => Promise<string>;
-  updateSpendAllowance?: (amountEth: string) => Promise<void>;
+  // Spend permission actions
+  requestPermission: () => Promise<void>;
   refreshPermissions: () => Promise<void>;
   
   // Status
@@ -53,40 +50,14 @@ export function useBaseAccount(): UseBaseAccountReturn {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [universalAddress, setUniversalAddress] = useState<string | null>(null);
-  const [subAccount, setSubAccount] = useState<SubAccount | null>(null);
   const [status, setStatus] = useState("Ready to connect");
   const [error, setError] = useState<string | null>(null);
   
-  // Permission state (consolidated from Nav and RecordingStudio)
+  // Permission state
   const [permissionActive, setPermissionActive] = useState<boolean>(false);
-  const [permissions, setPermissions] = useState<any[]>([]);
+  const [currentPermission, setCurrentPermission] = useState<SpendPermission | null>(null);
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
-
-  // Helper: ensure Sub Account has Auto Spend Permission
-  const ensureAutoSpendPermission = useCallback(async (subAddr: `0x${string}`) => {
-    if (!provider || !universalAddress) return;
-    try {
-      setStatus("Requesting Auto Spend Permission...");
-      
-      // Request spend permission for the sub account
-      const permission = await requestSpendPermission({
-        account: universalAddress as `0x${string}`,
-        spender: subAddr,
-        token: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", // Native token (ETH)
-        chainId: 8453, // Base mainnet
-        allowance: BigInt("1000000000000000000"), // 1 ETH allowance
-        periodInDays: 30, // 30 day period
-        provider,
-      });
-
-      console.log("Spend permission granted:", permission);
-      setStatus("Auto Spend Permission granted!");
-    } catch (err) {
-      console.warn("Spend permission grant failed:", err);
-      setStatus("Auto Spend Permission not granted");
-    }
-  }, [provider, universalAddress]);
 
   // Check for existing connection on mount
   useEffect(() => {
@@ -106,62 +77,56 @@ export function useBaseAccount(): UseBaseAccountReturn {
         setUniversalAddress(universalAddr);
         setIsConnected(true);
         setStatus("Connected");
-
-        // Check for existing sub account
-        await checkForSubAccount(universalAddr);
+        
+        // Check for existing spend permission
+        await checkForPermission(universalAddr);
       }
     } catch (err) {
       console.warn("No existing connection found");
     }
   };
 
-  const checkForSubAccount = async (universalAddr: string) => {
-    if (!provider) return;
+  const checkForPermission = async (userAddress: string) => {
+    if (!provider || !SPENDER_ADDRESS) return;
+    
     try {
-      const response = await provider.request({
-        method: "wallet_getSubAccounts",
-        params: [{
-          account: universalAddr,
-          domain: window.location.origin,
-        }],
-      }) as { subAccounts: SubAccount[] };
+      console.log('🔍 Checking for spend permission...');
+      setIsLoadingPermissions(true);
+      
+      const permissions = await fetchPermissions({
+        account: userAddress as `0x${string}`,
+        chainId: 8453,
+        spender: SPENDER_ADDRESS,
+        provider,
+      });
 
-      const existing = response.subAccounts[0];
-      if (existing) {
-        setSubAccount(existing);
-        setStatus("Connected with Sub Account");
-        // Ensure Auto Spend Permission exists
-        await ensureAutoSpendPermission(existing.address);
+      if (permissions.length > 0) {
+        const permission = permissions[0];
+        const status = await getPermissionStatus(permission);
+        
+        if (status.isActive) {
+          console.log('✅ Active spend permission found');
+          setCurrentPermission(permission);
+          setPermissionActive(true);
+          setStatus("Connected with spend permission");
+          
+          // Store permission hash in localStorage for API calls
+          localStorage.setItem('spendPermissionHash', permission.hash);
+        } else {
+          console.log('⚠️ Permission exists but is not active');
+          setPermissionActive(false);
+          setStatus("Connected (permission inactive)");
+        }
       } else {
-        // Auto-create sub account since we have creation: 'on-connect'
-        await createSubAccount();
+        console.log('⚠️ No spend permission found');
+        setPermissionActive(false);
+        setStatus("Connected (no permission)");
       }
     } catch (err) {
-      console.warn("Failed to check for sub account:", err);
-    }
-  };
-
-  const createSubAccount = async () => {
-    if (!provider) return;
-    try {
-      setStatus("Creating Sub Account...");
-      
-      const newSubAccount = await provider.request({
-        method: "wallet_addSubAccount",
-        params: [{
-          account: { type: 'create' },
-        }],
-      }) as SubAccount;
-
-      setSubAccount(newSubAccount);
-      setStatus("Sub Account created successfully!");
-
-      // Grant Auto Spend Permission for the new Sub Account
-      await ensureAutoSpendPermission(newSubAccount.address);
-    } catch (err) {
-      console.error("Sub Account creation failed:", err);
-      setError("Failed to create Sub Account");
-      setStatus("Sub Account creation failed");
+      console.error("❌ Failed to check permission:", err);
+      setPermissionError("Failed to check spend permission");
+    } finally {
+      setIsLoadingPermissions(false);
     }
   };
 
@@ -173,7 +138,6 @@ export function useBaseAccount(): UseBaseAccountReturn {
     setStatus("Connecting...");
 
     try {
-      // Connect to Base Account
       const accounts = await provider.request({
         method: "eth_requestAccounts",
         params: [],
@@ -184,8 +148,8 @@ export function useBaseAccount(): UseBaseAccountReturn {
       setIsConnected(true);
       setStatus("Connected");
 
-      // Check for existing sub account or create one
-      await checkForSubAccount(universalAddr);
+      // Check for existing permission
+      await checkForPermission(universalAddr);
       
     } catch (err: any) {
       console.error("Connection failed:", err);
@@ -199,149 +163,76 @@ export function useBaseAccount(): UseBaseAccountReturn {
   const disconnect = useCallback(() => {
     setIsConnected(false);
     setUniversalAddress(null);
-    setSubAccount(null);
+    setCurrentPermission(null);
+    setPermissionActive(false);
     setStatus("Disconnected");
     setError(null);
+    localStorage.removeItem('spendPermissionHash');
   }, []);
 
-  const sendCalls = useCallback(async (calls: Array<{ to: string; data: string; value?: string }>) => {
-    if (!provider) {
-      throw new Error("Provider not initialized");
+  const requestPermission = useCallback(async () => {
+    if (!provider || !universalAddress || !SPENDER_ADDRESS) {
+      throw new Error("Not connected or spender not configured");
     }
-    if (!subAccount) {
-      throw new Error("Sub Account not available");
-    }
-
-    setStatus("Sending transaction...");
 
     try {
-      const callsId = await provider.request({
-        method: "wallet_sendCalls",
-        params: [{
-          version: "2.0",
-          atomicRequired: true,
-          chainId: `0x${(8453).toString(16)}`, // Base mainnet
-          from: subAccount.address,
-          calls: calls.map(call => ({
-            to: call.to,
-            data: call.data,
-            value: call.value || "0x0",
-          })),
-          capabilities: {
-            // TODO: Add paymaster URL for sponsored transactions
-            // paymasterUrl: "https://paymaster.base.org",
-          },
-        }],
-      }) as string;
+      setStatus("Requesting spend permission...");
+      setIsLoadingPermissions(true);
+      setPermissionError(null);
 
-      setStatus("Transaction sent successfully!");
-      return callsId;
+      console.log('📝 Requesting spend permission for gasless transactions...');
+
+      // Request spend permission (ONE-TIME POPUP)
+      const permission = await requestSpendPermission({
+        account: universalAddress as `0x${string}`,
+        spender: SPENDER_ADDRESS,
+        token: NATIVE_TOKEN,
+        chainId: 8453,
+        allowance: parseEther("10"), // 10 ETH max per period
+        periodInDays: 30, // Monthly reset
+        provider,
+      });
+
+      console.log('✅ Spend permission granted:', permission);
+
+      setCurrentPermission(permission);
+      setPermissionActive(true);
+      setStatus("Spend permission granted!");
+      
+      // Store permission hash for API calls
+      localStorage.setItem('spendPermissionHash', permission.hash);
+
     } catch (err: any) {
-      console.error("Transaction failed:", err);
-      setError(err.message || "Transaction failed");
-      setStatus("Transaction failed");
+      console.error("❌ Permission request failed:", err);
+      setPermissionError(err.message || "Failed to request permission");
+      setStatus("Permission request failed");
       throw err;
-    }
-  }, [subAccount, provider]);
-
-  // Spend permission helper methods
-  const getSpendPermissions = useCallback(async () => {
-    if (!provider || !universalAddress) return [];
-    try {
-      const permissions = await fetchPermissions({
-        account: universalAddress as `0x${string}`,
-        chainId: 8453, // Base mainnet
-        spender: subAccount?.address || "0x0000000000000000000000000000000000000000",
-        provider,
-      });
-      return permissions;
-    } catch (err) {
-      console.warn("Failed to fetch spend permissions:", err);
-      return [];
-    }
-  }, [provider, universalAddress, subAccount]);
-
-  const hasSpendPermission = useCallback(async () => {
-    if (!provider || !universalAddress || !subAccount?.address) return false;
-    try {
-      // For now, we'll just check if we can fetch permissions
-      // A more robust implementation would check specific permission status
-      const permissions = await fetchPermissions({
-        account: universalAddress as `0x${string}`,
-        chainId: 8453, // Base mainnet
-        spender: subAccount.address,
-        provider,
-      });
-      return permissions.length > 0;
-    } catch (err) {
-      console.warn("Failed to check spend permission:", err);
-      return false;
-    }
-  }, [provider, universalAddress, subAccount]);
-  
-  const revokeSpendPermission = useCallback(async () => {
-    throw new Error("Revoke spend permission not yet implemented");
-  }, []);
-  
-  const updateSpendAllowance = useCallback(async (amountEth: string) => {
-    throw new Error("Update spend allowance not yet implemented");
-  }, []);
-
-  // Consolidated permission refresh logic (from Nav and RecordingStudio)
-  const refreshPermissions = useCallback(async () => {
-    if (!getSpendPermissions || !hasSpendPermission || !isConnected || !subAccount) {
-      setPermissionActive(false);
-      setPermissions([]);
-      return;
-    }
-    
-    setIsLoadingPermissions(true);
-    setPermissionError(null);
-    
-    try {
-      const [active, list] = await Promise.all([
-        hasSpendPermission(),
-        getSpendPermissions(),
-      ]);
-      setPermissionActive(active);
-      setPermissions(list || []);
-    } catch (err: any) {
-      setPermissionError(err?.message || "Failed to load Base Account permissions");
-      console.error("Failed to refresh permissions:", err);
     } finally {
       setIsLoadingPermissions(false);
     }
-  }, [getSpendPermissions, hasSpendPermission, isConnected, subAccount]);
+  }, [provider, universalAddress]);
 
-  // Auto-refresh permissions when connection state changes
-  useEffect(() => {
-    if (isConnected && subAccount) {
-      refreshPermissions();
-    } else {
+  const refreshPermissions = useCallback(async () => {
+    if (!universalAddress) {
       setPermissionActive(false);
-      setPermissions([]);
-      setPermissionError(null);
+      setCurrentPermission(null);
+      return;
     }
-  }, [isConnected, subAccount, refreshPermissions]);
+    
+    await checkForPermission(universalAddress);
+  }, [universalAddress, provider]);
 
   return {
     isConnected,
     isConnecting,
     universalAddress,
-    subAccount,
     connect,
     disconnect,
-    sendCalls,
-    // Permission state
     permissionActive,
-    permissions,
+    currentPermission,
     isLoadingPermissions,
     permissionError,
-    // Spend permission helpers
-    getSpendPermissions,
-    hasSpendPermission,
-    revokeSpendPermission,
-    updateSpendAllowance,
+    requestPermission,
     refreshPermissions,
     status,
     error,
