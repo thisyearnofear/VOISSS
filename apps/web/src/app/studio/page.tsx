@@ -157,6 +157,7 @@ export default function RecordPage() {
                     onPlay={handlePlayRecording}
                     onPause={handlePauseRecording}
                     onDelete={recording.onChain ? undefined : handleDeleteRecording}
+                    className=""
                   />
                 ))}
               </div>
@@ -201,6 +202,7 @@ export default function RecordPage() {
                   onPlay={handlePlayRecording}
                   onPause={handlePauseRecording}
                   onDelete={handleDeleteRecording}
+                  className=""
                 />
               ))}
             </div>
