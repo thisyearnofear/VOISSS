@@ -41,7 +41,8 @@ export function verifyNonce(sealedNonce: string): string {
   }
 }
 
-// Build the message to sign (EIP-191)
+// Build the message to sign (EIP-191) - UNUSED: Base Account handles message generation
+// Kept for potential future use with custom auth flows
 export function buildSignInMessage(params: {
   address: string;
   nonce: string;

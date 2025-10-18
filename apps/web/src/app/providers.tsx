@@ -5,6 +5,7 @@ import { createBaseAccountSDK } from "@base-org/account";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { base } from "viem/chains";
+import { AuthProvider } from "../contexts/AuthContext";
 
 // Create query client
 const queryClient = new QueryClient({
@@ -39,9 +40,15 @@ export function BaseProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initializeSDK = async () => {
       try {
+        // Ensure we're in browser environment
+        if (typeof window === 'undefined') return;
+        
+        // Get current domain for proper configuration
+        const currentDomain = window.location.origin;
+        
         const sdkInstance = createBaseAccountSDK({
           appName: 'VOISSS - Morph Your Voice',
-          appLogoUrl: 'https://voisss.app/logo.png',
+          appLogoUrl: `${currentDomain}/logo.png`,
           appChainIds: [base.id],
           subAccounts: {
             creation: 'on-connect',        // Auto-create sub account
@@ -53,12 +60,22 @@ export function BaseProvider({ children }: { children: React.ReactNode }) {
           // }
         });
 
-        // Get the provider
+        // Get the provider with error handling
         const providerInstance = sdkInstance.getProvider();
-        setSdk(sdkInstance);
-        setProvider(providerInstance);
+        
+        // Verify provider is working
+        if (providerInstance) {
+          setSdk(sdkInstance);
+          setProvider(providerInstance);
+          console.log('Base Account SDK initialized successfully');
+        } else {
+          throw new Error('Provider initialization failed');
+        }
       } catch (error) {
         console.error("SDK initialization failed:", error);
+        // Set null values to prevent app crash
+        setSdk(null);
+        setProvider(null);
       }
     };
 
@@ -68,7 +85,9 @@ export function BaseProvider({ children }: { children: React.ReactNode }) {
   return (
   <QueryClientProvider client={queryClient}>
   <BaseContext.Provider value={sdk && provider ? { sdk, provider } : null}>
+  <AuthProvider>
   {children}
+  </AuthProvider>
   <ReactQueryDevtools initialIsOpen={false} />
   </BaseContext.Provider>
   </QueryClientProvider>

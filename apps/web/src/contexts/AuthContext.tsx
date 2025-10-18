@@ -1,14 +1,10 @@
-/**
- * Unified auth hook - single source of truth for authentication
- * Handles wallet connection + signature-based auth
- */
+"use client";
 
-import { useCallback, useState } from 'react';
-import { useBaseAccount } from './useBaseAccount';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { useBaseAccount } from '../hooks/useBaseAccount';
 import { useBase } from '../app/providers';
-import { buildSignInMessage } from '../lib/auth';
 
-interface UseAuthReturn {
+interface AuthContextType {
   isAuthenticated: boolean;
   isAuthenticating: boolean;
   address: string | null;
@@ -17,6 +13,8 @@ interface UseAuthReturn {
   signOut: () => Promise<void>;
   error: string | null;
 }
+
+const AuthContext = createContext<AuthContextType | null>(null);
 
 // Typed shape for Base Account `wallet_connect` response
 type WalletConnectResponse = {
@@ -31,7 +29,7 @@ type WalletConnectResponse = {
   }>;
 };
 
-export function useAuth(): UseAuthReturn {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const baseContext = useBase();
   const {
     isConnected,
@@ -41,8 +39,15 @@ export function useAuth(): UseAuthReturn {
     disconnect
   } = useBaseAccount();
 
+  // Global auth state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Sync authentication state with Base Account connection
+  useEffect(() => {
+    setIsAuthenticated(isConnected);
+  }, [isConnected]);
 
   const signIn = useCallback(async () => {
     setIsAuthenticating(true);
@@ -121,10 +126,12 @@ export function useAuth(): UseAuthReturn {
       }
 
       console.log('✅ Signed in with Base Account successfully');
+      setIsAuthenticated(true);
 
     } catch (err) {
       console.error('Sign in failed:', err);
       setError(err instanceof Error ? err.message : 'Sign in failed');
+      setIsAuthenticated(false);
       throw err;
     } finally {
       setIsAuthenticating(false);
@@ -140,13 +147,16 @@ export function useAuth(): UseAuthReturn {
       if (disconnect) {
         await disconnect();
       }
+      
+      setIsAuthenticated(false);
+      setError(null);
     } catch (err) {
       console.error('Sign out failed:', err);
     }
   }, [disconnect]);
 
-  return {
-    isAuthenticated: isConnected || false, // Simple: connected = authenticated
+  const value: AuthContextType = {
+    isAuthenticated,
     isAuthenticating,
     address: universalAddress || null,
     subAccount: subAccount?.address || null,
@@ -154,4 +164,18 @@ export function useAuth(): UseAuthReturn {
     signOut,
     error,
   };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth(): AuthContextType {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }

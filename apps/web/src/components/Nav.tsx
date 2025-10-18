@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "../contexts/AuthContext";
 import { useBasename } from "../hooks/useBasename";
 import { useBaseAccount } from "../hooks/useBaseAccount";
 

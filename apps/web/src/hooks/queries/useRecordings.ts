@@ -2,21 +2,26 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useBaseAccount } from '../useBaseAccount';
 import { VoiceRecording } from '@voisss/shared/types';
 import { queryKeys, handleQueryError } from '../../lib/query-client';
+import { createPublicClient, http } from 'viem';
+import { base } from 'viem/chains';
+import { VoiceRecordsABI } from '../../contracts/VoiceRecordsABI';
 
 // Recording interface for web app
 interface Recording {
   id: string;
   title: string;
   duration: number;
-  blob: Blob;
+  blob?: Blob; // Optional for on-chain recordings
   isPublic: boolean;
   createdAt: Date;
   transactionHash?: string;
   ipfsHash?: string;
   isHidden?: boolean;
+  onChain?: boolean; // Track if recording is on blockchain
+  owner?: string; // Contract owner address
 }
 
-// Hook to fetch user's recordings
+// Enhanced hook to fetch user's recordings (local + on-chain)
 export function useRecordings(showHidden: boolean = false) {
   const { universalAddress: address } = useBaseAccount();
   
@@ -26,31 +31,131 @@ export function useRecordings(showHidden: boolean = false) {
       if (!address) return [];
       
       try {
-        const storageKey = `voisss_recordings_${address}`;
-        const stored = localStorage.getItem(storageKey);
+        // Fetch local recordings
+        const localRecordings = await fetchLocalRecordings(address, showHidden);
         
-        if (!stored) return [];
+        // Fetch on-chain recordings
+        const onChainRecordings = await fetchOnChainRecordings(address);
         
-        const recordings: Recording[] = JSON.parse(stored);
-        
-        // Filter hidden recordings if needed
-        const filteredRecordings = showHidden 
-          ? recordings 
-          : recordings.filter(r => !r.isHidden);
+        // Merge and deduplicate (prioritize on-chain data)
+        const allRecordings = [...onChainRecordings, ...localRecordings];
+        const uniqueRecordings = deduplicateRecordings(allRecordings);
         
         // Sort by creation date (newest first)
-        return filteredRecordings.sort((a, b) => 
+        return uniqueRecordings.sort((a, b) => 
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
       } catch (error) {
         console.error('Failed to load recordings:', error);
-        return [];
+        // Fallback to local recordings only
+        return await fetchLocalRecordings(address, showHidden);
       }
     },
     enabled: !!address,
     staleTime: 30 * 1000, // 30 seconds for recordings (they change frequently)
     gcTime: 2 * 60 * 1000, // 2 minutes cache
   });
+}
+
+// Helper: Fetch local recordings from localStorage
+async function fetchLocalRecordings(address: string, showHidden: boolean): Promise<Recording[]> {
+  try {
+    const storageKey = `voisss_recordings_${address}`;
+    const stored = localStorage.getItem(storageKey);
+    
+    if (!stored) return [];
+    
+    const recordings: Recording[] = JSON.parse(stored);
+    
+    // Filter hidden recordings if needed
+    const filteredRecordings = showHidden 
+      ? recordings 
+      : recordings.filter(r => !r.isHidden);
+    
+    return filteredRecordings.map(r => ({ ...r, onChain: false }));
+  } catch (error) {
+    console.error('Failed to load local recordings:', error);
+    return [];
+  }
+}
+
+// Helper: Fetch on-chain recordings from Base contract
+async function fetchOnChainRecordings(address: string): Promise<Recording[]> {
+  const contractAddress = process.env.NEXT_PUBLIC_VOICE_RECORDS_CONTRACT as `0x${string}`;
+  
+  if (!contractAddress) {
+    console.warn('Contract address not configured');
+    return [];
+  }
+  
+  try {
+    const publicClient = createPublicClient({
+      chain: base,
+      transport: http(),
+    });
+    
+    // Get user's recording IDs
+    const recordingIds = await publicClient.readContract({
+      address: contractAddress,
+      abi: VoiceRecordsABI,
+      functionName: 'getUserRecordings',
+      args: [address as `0x${string}`],
+    }) as bigint[];
+    
+    // Fetch details for each recording
+    const recordings: Recording[] = [];
+    
+    for (const id of recordingIds) {
+      try {
+        const recordingData = await publicClient.readContract({
+          address: contractAddress,
+          abi: VoiceRecordsABI,
+          functionName: 'getRecording',
+          args: [id],
+        }) as [bigint, string, string, string, boolean, bigint];
+        
+        const [recordingId, owner, ipfsHash, title, isPublic, timestamp] = recordingData;
+        
+        recordings.push({
+          id: `onchain_${recordingId.toString()}`,
+          title: title || `Recording #${recordingId.toString()}`,
+          duration: 0, // Duration not stored on-chain, could be fetched from IPFS metadata
+          isPublic,
+          createdAt: new Date(Number(timestamp) * 1000),
+          ipfsHash,
+          onChain: true,
+          owner,
+        });
+      } catch (error) {
+        console.warn(`Failed to fetch recording ${id}:`, error);
+      }
+    }
+    
+    return recordings;
+  } catch (error) {
+    console.error('Failed to fetch on-chain recordings:', error);
+    return [];
+  }
+}
+
+// Helper: Remove duplicates (prioritize on-chain data)
+function deduplicateRecordings(recordings: Recording[]): Recording[] {
+  const seen = new Set<string>();
+  const unique: Recording[] = [];
+  
+  // Process on-chain recordings first (higher priority)
+  const onChain = recordings.filter(r => r.onChain);
+  const local = recordings.filter(r => !r.onChain);
+  
+  for (const recording of [...onChain, ...local]) {
+    const key = recording.ipfsHash || recording.id;
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(recording);
+    }
+  }
+  
+  return unique;
 }
 
 // Hook to fetch a specific recording
