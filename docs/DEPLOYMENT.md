@@ -1,6 +1,6 @@
-# Gasless Transactions Deployment Checklist
+# 🚀 VOISSS Deployment Guide
 
-## Pre-Deployment
+## Pre-Deployment Checklist
 
 ### 1. Generate Spender Wallet
 
@@ -141,7 +141,7 @@ vercel logs --follow
 netlify logs
 ```
 
-## Post-Deployment
+## Post-Deployment Monitoring
 
 ### 1. Monitor Spender Wallet
 
@@ -217,22 +217,6 @@ if (txReceipt.status === 'reverted') {
    - Average response time
    - Error rate
 
-### Example Monitoring Query
-
-```sql
--- Track daily transaction volume
-SELECT 
-  DATE(created_at) as date,
-  COUNT(*) as total_transactions,
-  SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful,
-  SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
-  AVG(gas_used) as avg_gas
-FROM transactions
-WHERE created_at >= NOW() - INTERVAL '30 days'
-GROUP BY DATE(created_at)
-ORDER BY date DESC;
-```
-
 ## Rollback Plan
 
 ### If Issues Occur
@@ -251,7 +235,7 @@ ORDER BY date DESC;
    // Temporary: Disable backend spender
    // Set environment variable
    DISABLE_GASLESS_SAVES=true
-   
+
    // Frontend will fall back to user-paid transactions
    ```
 
@@ -275,21 +259,18 @@ ORDER BY date DESC;
 ## Maintenance
 
 ### Weekly Tasks
-
 - [ ] Check spender wallet balance
 - [ ] Review transaction success rate
 - [ ] Check for failed transactions
 - [ ] Review error logs
 
 ### Monthly Tasks
-
 - [ ] Analyze gas costs
 - [ ] Review permission usage
 - [ ] Optimize gas usage if needed
 - [ ] Update documentation
 
 ### Quarterly Tasks
-
 - [ ] Rotate spender wallet keys
 - [ ] Review security practices
 - [ ] Update dependencies

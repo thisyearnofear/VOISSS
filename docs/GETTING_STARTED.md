@@ -1,10 +1,6 @@
-# 🚀 VOISSS Base Chain - Quick Start
+# 🚀 VOISSS - Getting Started
 
-## ✅ Migration Complete!
-
-VOISSS has been successfully migrated from Starknet to Base chain with gasless transactions enabled.
-
-## 🏃‍♂️ Quick Start (5 minutes)
+## Quick Start (5 minutes)
 
 ### 1. Install Dependencies
 ```bash

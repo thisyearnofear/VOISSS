@@ -1,11 +1,9 @@
 # VOISSS 🎤
 
-[![Starknet](https://img.shields.io/badge/Starknet-Sepolia-blue)](https://sepolia.starkscan.co/)
+[![Base](https://img.shields.io/badge/Base-Sepolia-blue)](https://sepolia.basescan.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-15.3.2-black)](https://nextjs.org/)
 [![Flutter](https://img.shields.io/badge/Flutter-3.32.0-blue)](https://flutter.dev/)
 [![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
-
-> **🏆 Built for the Starknet Re{ignite} Hackathon**
 
 **VOISSS** is a decentralized AI-powered voice recording platform that transforms how we capture, organize, and share audio content. Built as a comprehensive ecosystem with a **Web-first strategy** and phased mobile development.
 
@@ -17,17 +15,17 @@
 
 **Web-First Strategy with Phased Mobile Rollout:**
 
-- 🌐 **Web dApp** (Next.js + starknet.js) - **PRODUCTION READY** ✅
+- 🌐 **Web dApp** (Next.js + Base Account SDK) - **PRODUCTION READY** ✅
   - AI voice transformation & community features
-  - Full Starknet integration
+  - Full Base chain integration with gasless transactions
   - Ready for user acquisition
 
-- 📱 **React Native Mobile** (Expo + starknet.js) - **FUNCTIONAL, NEEDS COMPLETION** 🔄
+- 📱 **React Native Mobile** (Expo + Base Account SDK) - **FUNCTIONAL, NEEDS COMPLETION** 🔄
   - Cross-platform mobile recording
   - 2-3 months to production readiness
   - Core features working, needs polish
 
-- 📱 **Flutter iOS** (starknet.dart) - **ON HOLD** ⏸️
+- 📱 **Flutter iOS** (Base Account SDK) - **ON HOLD** ⏸️
   - Native iOS exploration paused
   - Development is currently focused on Web and React Native
   - Will be re-evaluated in the future
@@ -44,9 +42,9 @@
 - **Native Accents**: Preserve authentic pronunciation and intonation
 - **Freemium Access**: 1 free dubbing per session, unlimited with wallet
 
-### 🔗 Starknet Integration
-- **Decentralized Storage**: IPFS + Starknet smart contracts
-- **SocialFi Missions**: Complete tasks for STRK rewards
+### 🔗 Base Chain Integration
+- **Decentralized Storage**: IPFS + Base smart contracts
+- **Gasless Transactions**: Zero-cost recording saves via Sub Accounts
 - **Creator Economy**: Monetize recordings through blockchain
 
 ### 📱 Cross-Platform Development
@@ -61,19 +59,19 @@
 ```
 voisss/
 ├── apps/
-│   ├── web/                   # Next.js + Starknet.js
+│   ├── web/                   # Next.js + Base Account SDK
 │   ├── mobile/                # React Native + Expo
 │   └── mobile-flutter/        # Flutter (On Hold)
 ├── packages/
 │   ├── shared/                # Common types & utilities
-│   ├── contracts/             # Cairo smart contracts
+│   ├── contracts/             # Solidity smart contracts
 │   └── ui/                    # Shared components
 └── docs/                      # Documentation
 ```
 
 ### Core Technologies
 - **Frontend**: Next.js 15, React Native, Flutter
-- **Blockchain**: Starknet, Cairo smart contracts
+- **Blockchain**: Base, Solidity smart contracts
 - **AI**: ElevenLabs voice transformation
 - **Storage**: IPFS for decentralized content
 - **Build**: Turbo monorepo with pnpm workspaces
@@ -143,17 +141,16 @@ cd apps/mobile && pnpm start
 ```bash
 # apps/web/.env.local
 ELEVENLABS_API_KEY=your_elevenlabs_key
-NEXT_PUBLIC_STARKNET_CHAIN_ID=SN_SEPOLIA
+NEXT_PUBLIC_BASE_CHAIN_ID=84532
 NEXT_PUBLIC_CONTRACT_ADDRESS=your_contract_address
 ```
 
 ### Smart Contract Deployment
 
 ```bash
-cd packages/contracts
-scarb build
-starkli declare target/dev/voisss_VoiceStorage.contract_class.json
-starkli deploy [class_hash] [constructor_args]
+cd apps/web
+npm run deploy:base-sepolia
+npm run update:contract <contract_address>
 ```
 
 ## 📱 Mobile Development
@@ -181,8 +178,8 @@ pnpm test
 # Test specific package
 pnpm test --filter=@voisss/shared
 
-# Test smart contracts
-cd packages/contracts && scarb test
+# Test gasless transactions
+cd apps/web && npm run test:gasless
 ```
 
 ## 🤝 Contributing
@@ -201,10 +198,10 @@ cd packages/contracts && scarb test
 
 ## 📚 Documentation
 
-- **[Development Guide](./docs/DEVELOPMENT.md)** - Technical implementation details and honest app assessments
-- **[Roadmap](./docs/ROADMAP.md)** - Web-first strategy and realistic development phases
-- **[Consolidation Guide](./docs/CONSOLIDATION_GUIDE.md)** - Platform strategy and launch timeline
-- **[API Documentation](./docs/api/)** - Smart contract and API references
+- **[Getting Started](./docs/GETTING_STARTED.md)** - Quick setup and first run
+- **[Architecture](./docs/ARCHITECTURE.md)** - Technical implementation details
+- **[Deployment](./docs/DEPLOYMENT.md)** - Production deployment guide
+- **[Roadmap](./docs/ROADMAP.md)** - Future vision and development phases
 
 ## 📄 License
 
@@ -213,10 +210,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🔗 Links
 
 - **Live Demo**: https://voisss.netlify.app/
-- **Starknet Contracts**: [Sepolia Starkscan](https://sepolia.starkscan.co/)
-- **Hackathon Group**: https://t.me/+jG3_jEJF8YFmOTY1
 
 ---
 
-**Built with ❤️ for the Starknet ecosystem**  
 **🌐 Web-First Strategy | 📱 Phased Mobile Development | 🚀 Production Ready Web App**
