@@ -55,6 +55,7 @@ The mobile app provides a native, high-performance interface for recording, orga
 - **Audio**: Expo AV for recording and playback
 - **Styling**: NativeWind (Tailwind for React Native)
 - **State Management**: Zustand for global state
+- **IPFS**: Pinata for decentralized audio storage
 - **Shared Dependencies**: `@voisss/shared`, `@voisss/ui`
 
 ## ✨ Key Features
@@ -161,6 +162,24 @@ turbo run build --filter=mobile
 - `pnpm start` - Start Expo development server
 - `pnpm build` - Build mobile app only
 - `pnpm clean` - Clean mobile build artifacts
+
+## 📤 IPFS Configuration
+
+To enable audio upload functionality, you need to configure IPFS credentials:
+
+1. Sign up for a free account at [Pinata](https://www.pinata.cloud/)
+2. Create API keys in your Pinata dashboard
+3. Add the following environment variables to your project:
+
+```bash
+# Create a .env file in the apps/mobile directory
+EXPO_PUBLIC_PINATA_API_KEY=your_pinata_api_key_here
+EXPO_PUBLIC_PINATA_API_SECRET=your_pinata_api_secret_here
+```
+
+4. Restart your development server
+
+The mobile app will automatically use these credentials to upload recordings to IPFS via Pinata's API.
 
 ## 📱 Platform-Specific Notes
 

@@ -10,7 +10,8 @@
     "dev:tunnel": "expo start --tunnel",
     "build": "expo export",
     "lint": "eslint .",
-    "clean": "rm -rf .expo .turbo node_modules"
+    "clean": "rm -rf .expo .turbo node_modules",
+    "postinstall": "node -e \"if (!process.env.EXPO_PUBLIC_PINATA_API_KEY) { console.log('\\n\\n⚠️  WARNING: IPFS credentials not configured!\\nPlease set EXPO_PUBLIC_PINATA_API_KEY and EXPO_PUBLIC_PINATA_API_SECRET in your .env file\\nSee .env.example for details\\n\\n')}\""
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
@@ -47,7 +48,10 @@
     "react-native-screens": "~4.11.1",
     "react-native-svg": "15.11.2",
     "react-native-web": "~0.20.0",
-    "starknet": "^0.1.2",
+    "react-native-get-random-values": "~1.11.0",
+    "viem": "^2.18.3",
+    "@base-org/account": "^2.4.0",
+    "wagmi": "^2.12.1",
     "zustand": "^5.0.2"
   },
   "devDependencies": {
