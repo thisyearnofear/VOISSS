@@ -8,8 +8,10 @@ import {
   requestSpendPermission,
   fetchPermissions,
   getPermissionStatus,
-  type SpendPermission
 } from "@base-org/account/spend-permission/browser";
+
+// Type for the spend permission returned by the Base Account API  
+type SpendPermission = any;
 
 const NATIVE_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 const SPENDER_ADDRESS = process.env.NEXT_PUBLIC_SPENDER_ADDRESS as `0x${string}`;
@@ -23,21 +25,21 @@ interface UseBaseAccountReturn {
   isConnected: boolean;
   isConnecting: boolean;
   universalAddress: string | null;
-  
+
   // Actions
   connect: () => Promise<void>;
   disconnect: () => void;
-  
+
   // Spend permission state
   permissionActive: boolean;
   currentPermission: SpendPermission | null;
   isLoadingPermissions: boolean;
   permissionError: string | null;
-  
+
   // Spend permission actions
   requestPermission: () => Promise<void>;
   refreshPermissions: () => Promise<void>;
-  
+
   // Status
   status: string;
   error: string | null;
@@ -46,13 +48,13 @@ interface UseBaseAccountReturn {
 export function useBaseAccount(): UseBaseAccountReturn {
   const context = useBase();
   const provider = context?.provider ?? null;
-  
+
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [universalAddress, setUniversalAddress] = useState<string | null>(null);
   const [status, setStatus] = useState("Ready to connect");
   const [error, setError] = useState<string | null>(null);
-  
+
   // Permission state
   const [permissionActive, setPermissionActive] = useState<boolean>(false);
   const [currentPermission, setCurrentPermission] = useState<SpendPermission | null>(null);
@@ -77,7 +79,7 @@ export function useBaseAccount(): UseBaseAccountReturn {
         setUniversalAddress(universalAddr);
         setIsConnected(true);
         setStatus("Connected");
-        
+
         // Check for existing spend permission
         await checkForPermission(universalAddr);
       }
@@ -88,11 +90,11 @@ export function useBaseAccount(): UseBaseAccountReturn {
 
   const checkForPermission = async (userAddress: string) => {
     if (!provider || !SPENDER_ADDRESS) return;
-    
+
     try {
       console.log('🔍 Checking for spend permission...');
       setIsLoadingPermissions(true);
-      
+
       const permissions = await fetchPermissions({
         account: userAddress as `0x${string}`,
         chainId: 8453,
@@ -103,15 +105,15 @@ export function useBaseAccount(): UseBaseAccountReturn {
       if (permissions.length > 0) {
         const permission = permissions[0];
         const status = await getPermissionStatus(permission);
-        
+
         if (status.isActive) {
           console.log('✅ Active spend permission found');
           setCurrentPermission(permission);
           setPermissionActive(true);
           setStatus("Connected with spend permission");
-          
+
           // Store permission hash in localStorage for API calls
-          localStorage.setItem('spendPermissionHash', permission.hash);
+          localStorage.setItem('spendPermissionHash', (permission as any).hash);
         } else {
           console.log('⚠️ Permission exists but is not active');
           setPermissionActive(false);
@@ -132,7 +134,7 @@ export function useBaseAccount(): UseBaseAccountReturn {
 
   const connect = useCallback(async () => {
     if (isConnecting || !provider) return;
-    
+
     setIsConnecting(true);
     setError(null);
     setStatus("Connecting...");
@@ -150,7 +152,7 @@ export function useBaseAccount(): UseBaseAccountReturn {
 
       // Check for existing permission
       await checkForPermission(universalAddr);
-      
+
     } catch (err: any) {
       console.error("Connection failed:", err);
       setError(err.message || "Connection failed");
@@ -198,9 +200,9 @@ export function useBaseAccount(): UseBaseAccountReturn {
       setCurrentPermission(permission);
       setPermissionActive(true);
       setStatus("Spend permission granted!");
-      
+
       // Store permission hash for API calls
-      localStorage.setItem('spendPermissionHash', permission.hash);
+      localStorage.setItem('spendPermissionHash', (permission as any).hash);
 
     } catch (err: any) {
       console.error("❌ Permission request failed:", err);
@@ -218,7 +220,7 @@ export function useBaseAccount(): UseBaseAccountReturn {
       setCurrentPermission(null);
       return;
     }
-    
+
     await checkForPermission(universalAddress);
   }, [universalAddress, provider]);
 

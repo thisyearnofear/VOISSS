@@ -34,7 +34,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const {
     isConnected,
     universalAddress,
-    subAccount,
     connect,
     disconnect
   } = useBaseAccount();
@@ -153,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           message,
           signature,
           nonce,
-          subAccount: subAccount?.address,
+          subAccount: address, // Use the address directly since we don't have a subAccount object
         }),
       });
 
@@ -173,7 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsAuthenticating(false);
     }
-  }, [baseContext, subAccount, isConnected, connect]);
+  }, [baseContext, isConnected, connect]);
 
   const signOut = useCallback(async () => {
     try {
@@ -196,7 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated,
     isAuthenticating,
     address: universalAddress || null,
-    subAccount: subAccount?.address || null,
+    subAccount: universalAddress || null, // Use universalAddress directly since we don't have a subAccount object
     signIn,
     signOut,
     error,

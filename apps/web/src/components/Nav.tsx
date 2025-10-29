@@ -12,7 +12,7 @@ export default function Nav() {
   const { displayName, hasBasename, isLoading: isResolvingBasename } = useBasename(address as `0x${string}` | null);
   const {
     isConnected,
-    subAccount,
+    universalAddress,
     status: baseAccountStatus,
     permissionActive,
     permissionError,
@@ -23,10 +23,10 @@ export default function Nav() {
 
   // Refresh permissions when menu opens (optional - already auto-refreshed by hook)
   useEffect(() => {
-    if (showWalletMenu && isConnected && subAccount && refreshPermissions) {
+    if (showWalletMenu && isConnected && universalAddress && refreshPermissions) {
       refreshPermissions();
     }
-  }, [showWalletMenu, isConnected, subAccount, refreshPermissions]);
+  }, [showWalletMenu, isConnected, universalAddress, refreshPermissions]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -219,11 +219,11 @@ export default function Nav() {
                       </div>
                       
                       {/* Base Account Status */}
-                      {isConnected && subAccount && (
+                      {isConnected && universalAddress && (
                         <div className="p-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg mt-3">
                           <p className="text-gray-400 text-xs mb-1">Base Account</p>
                           <div className="text-white font-mono text-xs break-all leading-relaxed mb-2">
-                            {subAccount.address}
+                            {universalAddress}
                           </div>
                           <div className="flex items-center gap-2 text-xs">
                             <span className="text-gray-400">Spend Permission:</span>
