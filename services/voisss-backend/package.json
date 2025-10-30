@@ -7,15 +7,23 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js"
   },
-  "keywords": ["voisss", "elevenlabs", "audio", "processing"],
+  "keywords": [
+    "voisss",
+    "elevenlabs",
+    "audio",
+    "processing"
+  ],
   "author": "VOISSS Team",
   "license": "MIT",
   "dependencies": {
+    "@base-org/account": "^2.4.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "express": "^4.18.2",
-    "multer": "^1.4.5-lts.1",
     "form-data": "^4.0.0",
+    "multer": "^1.4.5-lts.1",
     "node-fetch": "^2.7.0",
-    "cors": "^2.8.5"
+    "viem": "^2.38.5"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
