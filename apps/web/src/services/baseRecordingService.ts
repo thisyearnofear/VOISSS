@@ -58,8 +58,11 @@ export function createBaseRecordingService(userAddress: string | null) {
 
       console.log('📤 Sending gasless save request to backend...');
 
+      // Get backend URL (Hetzner server)
+      const backendUrl = process.env.NEXT_PUBLIC_VOISSS_API || 'https://voisss.famile.xyz';
+
       // Call backend API for gasless transaction
-      const response = await fetch('/api/base/save-recording', {
+      const response = await fetch(`${backendUrl}/api/base/save-recording`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
