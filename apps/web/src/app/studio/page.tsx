@@ -5,7 +5,7 @@ import RecordingStudio from "../../components/RecordingStudio";
 import { formatDuration } from "@voisss/shared";
 import { useRecordings } from "../../hooks/queries/useRecordings";
 import { useAuth } from "../../contexts/AuthContext";
-import { RecordingCard } from "@voisss/ui";
+import { RecordingCard, SocialShare } from "@voisss/ui";
 import { createIPFSService } from "@voisss/shared";
 
 export const dynamic = 'force-dynamic';
@@ -29,6 +29,9 @@ export default function RecordPage() {
   // Audio playback state
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
   const [audioElements, setAudioElements] = useState<Map<string, HTMLAudioElement>>(new Map());
+
+  // Sharing state
+  const [sharingRecording, setSharingRecording] = useState<any>(null);
 
   const handleRecordingComplete = (audioBlob: Blob, duration: number) => {
     const newRecording = {
@@ -99,7 +102,7 @@ export default function RecordPage() {
   const handleDeleteRecording = (recordingId: string) => {
     // Only allow deletion of local recordings for now
     setLocalRecordings(prev => prev.filter(r => r.id !== recordingId));
-    
+
     // Clean up audio element
     const audio = audioElements.get(recordingId);
     if (audio) {
@@ -111,10 +114,14 @@ export default function RecordPage() {
         return newMap;
       });
     }
-    
+
     if (currentlyPlaying === recordingId) {
       setCurrentlyPlaying(null);
     }
+  };
+
+  const handleShareRecording = (recording: any) => {
+    setSharingRecording(recording);
   };
 
   return (
@@ -157,7 +164,8 @@ export default function RecordPage() {
                     onPlay={handlePlayRecording}
                     onPause={handlePauseRecording}
                     onDelete={recording.onChain ? undefined : handleDeleteRecording}
-                    className=""
+                    onShare={handleShareRecording}
+                     className=""
                   />
                 ))}
               </div>
@@ -202,9 +210,36 @@ export default function RecordPage() {
                   onPlay={handlePlayRecording}
                   onPause={handlePauseRecording}
                   onDelete={handleDeleteRecording}
+                  onShare={handleShareRecording}
                   className=""
                 />
               ))}
+            </div>
+          </div>
+        )}
+
+            {/* Sharing Modal */}
+              {sharingRecording && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-[#0A0A0A] rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-4 border-b border-gray-700">
+                <h3 className="text-lg font-semibold text-white">Share Recording</h3>
+                <button
+                  onClick={() => setSharingRecording(null)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="p-4">
+                <SocialShare
+                  recording={sharingRecording}
+                  onShare={(platform, url) => {
+                    console.log(`Shared to ${platform}:`, url);
+                    // Could add analytics tracking here
+                  }}
+                />
+              </div>
             </div>
           </div>
         )}

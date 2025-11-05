@@ -35,6 +35,7 @@ const { width } = Dimensions.get("window");
 import WaveformVisualization from "../../components/WaveformVisualization";
 import AITransformationPanel from "../../components/AITransformationPanel";
 import DubbingPanel from "../../components/DubbingPanel";
+import { SocialShare } from "@voisss/ui";
 
 export default function RecordScreen() {
   const router = useRouter();
@@ -92,6 +93,10 @@ export default function RecordScreen() {
     aiVoice: false,
     dubbed: false,
   });
+
+  // Sharing state
+  const [savedRecordings, setSavedRecordings] = useState<any[]>([]);
+  const [showSharing, setShowSharing] = useState(false);
 
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTitle, setRecordingTitle] = useState("");
@@ -461,6 +466,10 @@ export default function RecordScreen() {
             },
           ]
         );
+
+        // Add saved recordings to sharing state
+        setSavedRecordings(results.filter(r => r.success).map(r => r.recording));
+        setShowSharing(true);
 
         if (onRecordingComplete && audioBlobForDubbing) {
           onRecordingComplete(audioBlobForDubbing, duration);
@@ -846,6 +855,17 @@ export default function RecordScreen() {
               <Text style={styles.downloadButtonText}>Download (Free)</Text>
             </TouchableOpacity>
           </View>
+        )}
+
+        {/* Social Sharing */}
+        {showSharing && savedRecordings.length > 0 && (
+          <SocialShare
+            recording={savedRecordings[0]} // Show sharing for the first saved recording
+            onShare={(platform, url) => {
+              console.log(`Shared to ${platform}:`, url);
+              // TODO: Track sharing analytics
+            }}
+          />
         )}
 
         {error && (
