@@ -30,7 +30,6 @@ export const RecordingCard: React.FC<RecordingCardProps> = ({
   const formatDuration = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    // Use string padding workaround for older ES versions
     const secsStr = secs < 10 ? `0${secs}` : `${secs}`;
     return `${mins}:${secsStr}`;
   };
@@ -50,7 +49,6 @@ export const RecordingCard: React.FC<RecordingCardProps> = ({
     const barCount = 30;
     const waveform = [];
     for (let i = 0; i < barCount; i++) {
-      // Create a wave-like pattern with some randomness
       const baseHeight = Math.sin(i * 0.3) * 0.5 + 0.5;
       const randomFactor = 0.2 * Math.random();
       waveform.push(Math.max(0.1, baseHeight + randomFactor));
@@ -58,9 +56,8 @@ export const RecordingCard: React.FC<RecordingCardProps> = ({
     return waveform;
   };
 
-  const waveform = generateWaveform();
-  const barWidth = 3;
-  const barSpacing = 1;
+const waveform = generateWaveform();
+const barWidth = 3;
 
   return (
     <div
@@ -81,7 +78,7 @@ export const RecordingCard: React.FC<RecordingCardProps> = ({
 
       <div className="flex items-center justify-between mb-3">
         <span className="text-gray-500 text-sm">
-          {formatDate(recording.createdAt)}
+      {formatDate(recording.createdAt)}
         </span>
         {recording.tags && recording.tags.length > 0 && (
           <div className="flex gap-1">
@@ -102,46 +99,46 @@ export const RecordingCard: React.FC<RecordingCardProps> = ({
         )}
       </div>
 
-      {/* Waveform Visualization */}
-      <div className="flex items-end h-8 mb-3">
-        {waveform.map((height, index) => (
-          <div
-            key={index}
-            className="bg-purple-500/30 rounded-sm mx-px"
-            style={{
-              width: barWidth,
-              height: `${height * 24}px`,
-            }}
+    {/* Waveform Visualization */}
+<div className="flex items-end h-8 mb-3">
+{waveform.map((height, index) => (
+      <div
+      key={index}
+      className="bg-purple-500/30 rounded-sm mx-px"
+      style={{
+        width: barWidth,
+          height: `${height * 24}px`,
+          }}
           />
-        ))}
-      </div>
+      ))}
+</div>
 
-      {/* File size and blockchain status */}
-      <div className="flex items-center justify-between mb-3 text-xs text-gray-500">
-        {recording.fileSize && (
-          <span>
+{/* File size and blockchain status */}
+<div className="flex items-center justify-between mb-3 text-xs text-gray-500">
+{recording.fileSize && (
+        <span>
             {(recording.fileSize / 1024).toFixed(0)} KB
           </span>
         )}
         {recording.onChain && (
-          <span className="text-green-400 flex items-center">
-            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-            </svg>
+        <span className="text-green-400 flex items-center">
+      <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          </svg>
             On-chain
           </span>
         )}
       </div>
 
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => recording.isPlaying ? onPause?.(recording.id) : onPlay?.(recording.id)}
-          className="flex items-center justify-center w-8 h-8 bg-purple-600 hover:bg-purple-700 rounded-full transition-colors"
-        >
+    <div className="flex items-center gap-2">
+  <button
+onClick={() => recording.isPlaying ? onPause?.(recording.id) : onPlay?.(recording.id)}
+    className="flex items-center justify-center w-8 h-8 bg-purple-600 hover:bg-purple-700 rounded-full transition-colors"
+      >
           {recording.isPlaying ? (
-            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-            </svg>
+          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+          </svg>
           ) : (
             <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
@@ -150,17 +147,17 @@ export const RecordingCard: React.FC<RecordingCardProps> = ({
         </button>
 
         <div className="flex-1 bg-gray-700 rounded-full h-2">
-          <div className="bg-purple-600 h-2 rounded-full w-0"></div>
-        </div>
+      <div className="bg-purple-600 h-2 rounded-full w-0"></div>
+</div>
 
-        {onDelete && (
-          <button
-            onClick={() => onDelete(recording.id)}
+    {onDelete && (
+      <button
+  onClick={() => onDelete(recording.id)}
             className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-red-400 transition-colors"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-            </svg>
+            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+        </svg>
           </button>
         )}
       </div>

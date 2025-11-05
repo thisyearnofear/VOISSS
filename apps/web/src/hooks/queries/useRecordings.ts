@@ -1,25 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useBaseAccount } from '../useBaseAccount';
-import { VoiceRecording } from '@voisss/shared/types';
+import { Recording } from '@voisss/shared/types';
 import { queryKeys, handleQueryError } from '../../lib/query-client';
 import { createPublicClient, http } from 'viem';
 import { base } from 'viem/chains';
 import { VoiceRecordsABI } from '../../contracts/VoiceRecordsABI';
-
-// Recording interface for web app
-interface Recording {
-  id: string;
-  title: string;
-  duration: number;
-  blob?: Blob; // Optional for on-chain recordings
-  isPublic: boolean;
-  createdAt: Date;
-  transactionHash?: string;
-  ipfsHash?: string;
-  isHidden?: boolean;
-  onChain?: boolean; // Track if recording is on blockchain
-  owner?: string; // Contract owner address
-}
 
 // Enhanced hook to fetch user's recordings (local + on-chain)
 export function useRecordings(showHidden: boolean = false) {
@@ -159,10 +144,10 @@ function deduplicateRecordings(recordings: Recording[]): Recording[] {
 }
 
 // Hook to fetch a specific recording
-export function useRecording(recordingId: string) {
+export function useRecording(recordingId: string): ReturnType<typeof useQuery<Recording | null>> {
   const { universalAddress: address } = useBaseAccount();
-  
-  return useQuery({
+
+  return useQuery<Recording | null>({
     queryKey: queryKeys.recordings.detail(recordingId),
     queryFn: async (): Promise<Recording | null> => {
       if (!address || !recordingId) return null;

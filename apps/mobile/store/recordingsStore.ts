@@ -1,12 +1,12 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { VoiceRecording, RecordingFilter, Tag } from "@voisss/shared";
+import { Recording, RecordingFilter, Tag } from "@voisss/shared";
 import { mockRecordings, mockTags } from "../mocks/recordings";
 import { createIPFSService } from "@voisss/shared";
 
 interface RecordingsState {
-  recordings: VoiceRecording[];
+  recordings: Recording[];
   tags: Tag[];
   filter: RecordingFilter;
   currentRecordingId: string | null;
@@ -18,9 +18,9 @@ interface RecordingsState {
   ipfsUploadProgress: number;
 
   // Actions
-  addRecording: (recording: VoiceRecording) => void;
-  addRecordingWithIPFS: (recording: VoiceRecording, fileUri: string, starknetActions?: { storeRecording: (ipfsHash: string, metadata: any) => Promise<string> }) => Promise<void>;
-  updateRecording: (id: string, updates: Partial<VoiceRecording>) => void;
+  addRecording: (recording: Recording) => void;
+  addRecordingWithIPFS: (recording: Recording, fileUri: string, starknetActions?: { storeRecording: (ipfsHash: string, metadata: any) => Promise<string> }) => Promise<void>;
+  updateRecording: (id: string, updates: Partial<Recording>) => void;
   deleteRecording: (id: string) => void;
   addTag: (tag: Tag) => void;
   updateTag: (id: string, updates: Partial<Tag>) => void;
@@ -29,7 +29,7 @@ interface RecordingsState {
   resetFilter: () => void;
   setCurrentRecording: (id: string | null) => void;
   setIsPlaying: (isPlaying: boolean) => void;
-  importRecordings: (recordings: VoiceRecording[]) => void;
+  importRecordings: (recordings: Recording[]) => void;
   addTagToRecording: (recordingId: string, tagId: string) => void;
   removeTagFromRecording: (recordingId: string, tagId: string) => void;
 }
@@ -245,11 +245,11 @@ export const useRecordingsStore = create<RecordingsState>()(
         }
       },
 
-      // New function to sync recordings from Starknet
-      syncWithStarknet: async (starknetService: any, walletAddress: string) => {
+      // New function to sync recordings from Base
+      syncWithBase: async (baseService: any, walletAddress: string) => {
         try {
-          // Get recordings from Starknet
-          const onChainRecordings = await starknetService.getUserRecordings(walletAddress);
+          // Get recordings from Base
+          const onChainRecordings = await baseService.getUserRecordings(walletAddress);
           
           // Initialize IPFS service if not already done
           if (!get().ipfsService) {
@@ -306,7 +306,7 @@ export const useRecordingsStore = create<RecordingsState>()(
           
           return enhancedRecordings.length;
         } catch (error) {
-          console.error('Failed to sync with Starknet:', error);
+          console.error('Failed to sync with Base:', error);
           throw error;
         }
       },

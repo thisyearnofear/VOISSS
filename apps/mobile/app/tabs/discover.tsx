@@ -651,7 +651,7 @@ export default function DiscoverScreen() {
                         <Text style={styles.upgradeTitle}>Premium Member</Text>
                       </View>
                       <Text style={styles.upgradeDescription}>
-                        Connect your Starknet wallet to unlock Ultimate features and Web3 capabilities
+                        Connect your Base wallet to unlock Web3 features and Web3 capabilities
                       </Text>
                       <TouchableOpacity style={styles.upgradeButton}>
                         <Wallet size={16} color={colors.dark.text} />
@@ -681,7 +681,7 @@ export default function DiscoverScreen() {
                     <>
                       <Text style={styles.upgradeTitle}>Choose Your Path</Text>
                       <Text style={styles.upgradeDescription}>
-                        Unlock AI features with Premium or Web3 features with Starknet wallet
+                        Unlock AI features with Premium or Web3 features with Base wallet
                       </Text>
                       <View style={styles.dualPathButtons}>
                         <TouchableOpacity style={[styles.upgradeButton, styles.upgradeButtonPrimary]}>

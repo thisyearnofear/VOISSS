@@ -113,7 +113,13 @@ export default function RecordingScreen() {
       const ipfsHash = await uploadToIpfs(uri);
 
       // 3. Save to blockchain via backend
-      const recordingService = createBaseRecordingService(universalAddress);
+      const recordingService = createBaseRecordingService(universalAddress, {
+        permissionRetriever: () => {
+          // TODO: Implement proper permission storage for mobile
+          // For now, return a placeholder - mobile permission handling needs implementation
+          return null;
+        }
+      });
       const metadata = {
         title: `Recording ${id}`,
         description: "",

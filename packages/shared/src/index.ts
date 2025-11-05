@@ -1,11 +1,12 @@
 // Shared types and utilities for VOISSS platform
 export * from './types';
 export * from './types/socialfi';
+export type { Recording } from './types';
 export * from './utils';
 export * from './theme';
 
 // Services with explicit exports to avoid conflicts
-export * from './services/starknet-recording';
+export * from './services/baseRecordingService';
 export * from './services/ipfs-service';
 export * from './services/audio-converter';
 export * from './services/recording-service';

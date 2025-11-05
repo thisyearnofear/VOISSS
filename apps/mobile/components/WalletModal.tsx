@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { X, Wallet, Shield, Zap, Globe, CheckCircle, AlertCircle } from 'lucide-react-native';
 import colors from '../constants/colors';
-import { useStarknet } from '../hooks/useStarknet';
+import { useBase } from '../hooks/useBase';
 
 interface WalletModalProps {
   visible: boolean;
@@ -19,7 +19,7 @@ interface WalletModalProps {
 }
 
 export function WalletModal({ visible, onClose, onConnected }: WalletModalProps) {
-  const { isConnected, isConnecting, account, error, connect, disconnect, getBalance } = useStarknet();
+  const { isConnected, isConnecting, account, error, connect, disconnect } = useBase();
   const [balance, setBalance] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'connect' | 'features' | 'manage'>('connect');
 
@@ -46,7 +46,7 @@ export function WalletModal({ visible, onClose, onConnected }: WalletModalProps)
     } catch (err) {
       Alert.alert(
         'Connection Failed',
-        'Failed to connect to Starknet wallet. Please try again.',
+        'Failed to connect to Base wallet. Please try again.',
         [{ text: 'OK' }]
       );
     }
@@ -85,7 +85,7 @@ export function WalletModal({ visible, onClose, onConnected }: WalletModalProps)
     {
       icon: Shield,
       title: 'NFT Minting',
-      description: 'Mint your recordings as unique NFTs on Starknet',
+      description: 'Store your recordings permanently on Base',
     },
     {
       icon: Globe,
@@ -94,7 +94,7 @@ export function WalletModal({ visible, onClose, onConnected }: WalletModalProps)
     },
     {
       icon: Zap,
-      title: 'Starknet Rewards',
+      title: 'Base Rewards',
       description: 'Earn rewards for participating in the ecosystem',
     },
     {
@@ -114,7 +114,7 @@ export function WalletModal({ visible, onClose, onConnected }: WalletModalProps)
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Starknet Wallet</Text>
+          <Text style={styles.title}>Base Wallet</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <X size={24} color={colors.dark.text} />
           </TouchableOpacity>
@@ -159,9 +159,9 @@ export function WalletModal({ visible, onClose, onConnected }: WalletModalProps)
                     <Wallet size={64} color={colors.dark.primary} />
                   </View>
                   
-                  <Text style={styles.connectTitle}>Connect Your Starknet Wallet</Text>
+                  <Text style={styles.connectTitle}>Connect Your Base Wallet</Text>
                   <Text style={styles.connectDescription}>
-                    Connect your Starknet wallet to unlock Web3 features and join the decentralized ecosystem.
+                    Connect your Base wallet to unlock Web3 features and gasless transactions.
                   </Text>
 
                   {error && (

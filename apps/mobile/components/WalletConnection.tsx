@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Wallet, Key, AlertCircle, CheckCircle } from 'lucide-react-native';
 import colors from '../constants/colors';
-import { useStarknet } from '../hooks/useStarknet';
+import { useBase } from '../hooks/useBase';
 
 interface WalletConnectionProps {
   onConnected?: () => void;
@@ -18,7 +18,7 @@ interface WalletConnectionProps {
 }
 
 export function WalletConnection({ onConnected, onClose }: WalletConnectionProps) {
-  const { isConnected, isConnecting, account, error, connect, disconnect } = useStarknet();
+  const { isConnected, isConnecting, account, error, connect, disconnect } = useBase();
   const [privateKey, setPrivateKey] = useState('');
   const [showPrivateKeyInput, setShowPrivateKeyInput] = useState(false);
 
@@ -36,7 +36,7 @@ export function WalletConnection({ onConnected, onClose }: WalletConnectionProps
     } catch (err) {
       Alert.alert(
         'Connection Failed',
-        'Failed to connect to Starknet. Please check your private key and try again.',
+        'Failed to connect to Base wallet. Please check your wallet and try again.',
         [{ text: 'OK' }]
       );
     }
@@ -84,9 +84,9 @@ export function WalletConnection({ onConnected, onClose }: WalletConnectionProps
     <View style={styles.container}>
       <View style={styles.header}>
         <Wallet size={48} color={colors.dark.primary} />
-        <Text style={styles.title}>Connect Starknet Wallet</Text>
+        <Text style={styles.title}>Connect Base Wallet</Text>
         <Text style={styles.description}>
-          Connect your Starknet wallet to store recordings on-chain and access Web3 features.
+          Connect your Base wallet to store recordings on-chain and access Web3 features.
         </Text>
       </View>
 

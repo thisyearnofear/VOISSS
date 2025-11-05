@@ -1,5 +1,6 @@
 import { useSubscriptionStore } from "../store/subscriptionStore";
-import { useStarknet } from "../hooks/useStarknet";
+// TODO: Replace with Base wallet hook
+import { useBase } from "../hooks/useBase";
 
 // Feature categories for our dual-path approach
 export type FeatureCategory = "ai" | "web3" | "ultimate" | "premium";
@@ -41,7 +42,7 @@ export interface FeatureAccessResult {
 // Main feature gating function
 export function useFeatureGating() {
   const subscription = useSubscriptionStore();
-  const wallet = useStarknet();
+  const wallet = useBase();
 
   // Determine current user tier
   const getCurrentTier = (): "free" | "premium" | "web3" | "ultimate" => {

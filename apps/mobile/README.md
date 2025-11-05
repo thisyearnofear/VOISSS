@@ -1,8 +1,8 @@
 # VOISSS Mobile App 📱
 
-> React Native mobile application for VOISSS voice recording platform, built with Expo 53 and Starknet.dart integration
+> React Native mobile application for VOISSS voice recording platform, built with Expo 53 and Base chain integration
 
-The mobile app provides a native, high-performance interface for recording, organizing, and sharing voice content on Starknet. Designed for iOS and Android with offline-first architecture.
+The mobile app provides a native, high-performance interface for recording, organizing, and sharing voice content on Base. Designed for iOS and Android with offline-first architecture.
 
 ## ✅ **CURRENT STATUS: WORKING**
 
@@ -50,7 +50,7 @@ The mobile app provides a native, high-performance interface for recording, orga
 ## 🛠 Tech Stack
 
 - **Framework**: React Native with Expo 53
-- **Blockchain**: Starknet.dart for mobile blockchain integration
+- **Blockchain**: Base chain for mobile blockchain integration
 - **Navigation**: Expo Router for file-based routing
 - **Audio**: Expo AV for recording and playback
 - **Styling**: NativeWind (Tailwind for React Native)
@@ -88,7 +88,7 @@ apps/mobile/
 ├── app/                  # Expo Router pages
 │   ├── tabs/            # Tab navigation screens
 │   └── _layout.tsx      # Root layout
-├── hooks/               # Mobile-specific hooks (useStarknet)
+├── hooks/               # Mobile-specific hooks (useBase)
 ├── components/          # Mobile-specific React components
 ├── constants/           # App constants and theme
 ├── store/              # Zustand state management
@@ -99,17 +99,17 @@ apps/mobile/
 └── package.json        # Mobile app dependencies
 ```
 
-## 🔗 Starknet Integration
+## 🔗 Base Integration
 
 ### Mobile Wallet Support
 
-The app integrates with Starknet mobile wallets through Starknet.dart:
+The app integrates with Base wallets through Wagmi and Base Account SDK:
 
 ```typescript
-// Example: Connect to Starknet wallet
-import { useStarknet } from "../hooks/useStarknet";
+// Example: Connect to Base wallet
+import { useBase } from "../hooks/useBase";
 
-const { connect, isConnected, account } = useStarknet();
+const { connect, isConnected, account } = useBase();
 
 // Connect to wallet
 await connect();

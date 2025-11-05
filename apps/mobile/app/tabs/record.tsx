@@ -22,7 +22,8 @@ import {
 } from "lucide-react-native";
 import { useAudioRecording } from "../../hooks/useAudioRecording";
 import { useRecordingsStore } from "../../store/recordingsStore";
-import { useStarknet } from "../../hooks/useStarknet";
+// TODO: Replace with Base wallet hook
+import { useBase } from "../../hooks/useBase";
 import { useFeatureGating } from "../../utils/featureGating";
 import colors from "../../constants/colors";
 import { createAIServiceClient, formatDuration } from "@voisss/shared";
@@ -33,6 +34,7 @@ const { width } = Dimensions.get("window");
 
 import WaveformVisualization from "../../components/WaveformVisualization";
 import AITransformationPanel from "../../components/AITransformationPanel";
+import DubbingPanel from "../../components/DubbingPanel";
 
 export default function RecordScreen() {
   const router = useRouter();
@@ -52,7 +54,7 @@ export default function RecordScreen() {
   } = useAudioRecording();
 
   const { addRecording, addRecordingWithIPFS } = useRecordingsStore();
-  const { storeRecording } = useStarknet();
+  const { account, permissionActive, requestPermission } = useBase();
   const { getCurrentTier, getUserCapabilities } = useFeatureGating();
 
   // IPFS upload state from store
@@ -73,11 +75,23 @@ export default function RecordScreen() {
   const [isTransforming, setIsTransforming] = useState(false);
   const [transformedBlob, setTransformedBlob] = useState<Blob | null>(null);
   const [aiService] = useState(() =>
-    createAIServiceClient({
-      apiBaseUrl: "https://voisss.netlify.app/api",
-      platform: "mobile",
-    })
+  createAIServiceClient({
+  apiBaseUrl: "https://voisss.netlify.app/api",
+  platform: "mobile",
+  })
   );
+
+  // Dubbing state
+  const [dubbedBlob, setDubbedBlob] = useState<Blob | null>(null);
+  const [dubbedLanguage, setDubbedLanguage] = useState<string>("");
+  const [audioBlobForDubbing, setAudioBlobForDubbing] = useState<Blob | null>(null);
+
+  // Version selection state for unified save
+  const [selectedVersions, setSelectedVersions] = useState({
+    original: true,
+    aiVoice: false,
+    dubbed: false,
+  });
 
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTitle, setRecordingTitle] = useState("");
@@ -141,10 +155,26 @@ export default function RecordScreen() {
 
   // Load voices when AI features become available
   useEffect(() => {
-    if (capabilities.canAccessAI && showSaveOptions) {
-      loadVoices();
-    }
+  if (capabilities.canAccessAI && showSaveOptions) {
+  loadVoices();
+  }
   }, [capabilities.canAccessAI, showSaveOptions, loadVoices]);
+
+  // Convert URI to Blob for dubbing when recording is complete
+  useEffect(() => {
+    if (uri && showSaveOptions) {
+      const convertUriToBlob = async () => {
+        try {
+          const response = await fetch(uri);
+          const blob = await response.blob();
+          setAudioBlobForDubbing(blob);
+        } catch (error) {
+          console.error('Failed to convert URI to Blob:', error);
+        }
+      };
+      convertUriToBlob();
+    }
+  }, [uri, showSaveOptions]);
 
   // Animate recording button when recording
   useEffect(() => {
@@ -188,10 +218,25 @@ export default function RecordScreen() {
   }, [startRecording]);
 
   const handleStopRecording = useCallback(async () => {
-    try {
-      const recordingUri = await stopRecording();
-      if (recordingUri) {
-        setShowSaveOptions(true);
+  try {
+  const recordingUri = await stopRecording();
+  if (recordingUri) {
+  setShowSaveOptions(true);
+  // Reset AI state for new recording
+    setVoices([]);
+      setSelectedVoiceId("");
+    setTransformedBlob(null);
+  setIsLoadingVoices(false);
+  setIsTransforming(false);
+    // Reset dubbing state
+    setDubbedBlob(null);
+      setDubbedLanguage("");
+        // Reset version selection
+        setSelectedVersions({
+          original: true,
+          aiVoice: false,
+          dubbed: false,
+        });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (error) {
@@ -324,6 +369,203 @@ export default function RecordScreen() {
       ]
     );
   }, [cancelRecording]);
+
+  // Unified save handler for all selected versions
+  const handleUnifiedSave = useCallback(async () => {
+    if (!audioBlobForDubbing) return;
+
+    // Count selected versions
+    const versionsToSave = Object.values(selectedVersions).filter(Boolean).length;
+    if (versionsToSave === 0) {
+      Alert.alert("No Versions Selected", "Please select at least one version to save.");
+      return;
+    }
+
+    try {
+      const baseTitle = recordingTitle || `Recording ${new Date().toLocaleString()}`;
+      const results = [];
+
+      // Save original if selected
+      if (selectedVersions.original && audioBlobForDubbing) {
+        try {
+          const recording = await saveRecordingToBase(
+            audioBlobForDubbing,
+            {
+              title: baseTitle,
+              description: 'Original recording',
+              isPublic: true,
+              tags: ['original'],
+            }
+          );
+          results.push({ type: 'original', success: true, recording });
+        } catch (error) {
+          console.error('Failed to save original:', error);
+          results.push({ type: 'original', success: false, error });
+        }
+      }
+
+      // Save AI voice if selected
+      if (selectedVersions.aiVoice && transformedBlob) {
+        try {
+          const recording = await saveRecordingToBase(
+            transformedBlob,
+            {
+              title: `${baseTitle} (AI Voice)`,
+              description: `AI voice transformation using ${selectedVoiceId}`,
+              isPublic: true,
+              tags: ['ai-voice', selectedVoiceId],
+            }
+          );
+          results.push({ type: 'ai-voice', success: true, recording });
+        } catch (error) {
+          console.error('Failed to save AI voice:', error);
+          results.push({ type: 'ai-voice', success: false, error });
+        }
+      }
+
+      // Save dubbed if selected
+      if (selectedVersions.dubbed && dubbedBlob) {
+        try {
+          const recording = await saveRecordingToBase(
+            dubbedBlob,
+            {
+              title: `${baseTitle} (${dubbedLanguage})`,
+              description: `Dubbed to ${dubbedLanguage}`,
+              isPublic: true,
+              tags: ['dubbed', dubbedLanguage],
+            }
+          );
+          results.push({ type: 'dubbed', success: true, recording });
+        } catch (error) {
+          console.error('Failed to save dubbed:', error);
+          results.push({ type: 'dubbed', success: false, error });
+        }
+      }
+
+      // Show results
+      const successCount = results.filter(r => r.success).length;
+      const failCount = results.filter(r => !r.success).length;
+
+      if (successCount > 0) {
+        Alert.alert(
+          "Success",
+          `${successCount} version${successCount > 1 ? 's' : ''} saved successfully!`,
+          [
+            {
+              text: "View Recordings",
+              onPress: () => router.push("/tabs/index" as any),
+            },
+            {
+              text: "Record Another",
+              style: "cancel",
+            },
+          ]
+        );
+
+        if (onRecordingComplete && audioBlobForDubbing) {
+          onRecordingComplete(audioBlobForDubbing, duration);
+        }
+      }
+
+      if (failCount > 0) {
+        Alert.alert(
+          "Partial Success",
+          `${failCount} version${failCount > 1 ? 's' : ''} failed to save, but ${successCount} succeeded.`
+        );
+      }
+
+      if (successCount === versionsToSave) {
+        // All saved successfully, can close
+        setShowSaveOptions(false);
+        setRecordingTitle("");
+      }
+    } catch (error) {
+      console.error('Error saving recordings:', error);
+      Alert.alert("Save Error", "Failed to save recordings. Please try again.");
+    }
+  }, [
+    audioBlobForDubbing,
+    transformedBlob,
+    dubbedBlob,
+    selectedVersions,
+    recordingTitle,
+    duration,
+    selectedVoiceId,
+    dubbedLanguage,
+    router,
+  ]);
+
+  // Save recording to Base blockchain
+  const saveRecordingToBase = async (audioBlob: Blob, metadata: any) => {
+    // Use shared BaseRecordingService
+    if (!account?.address) {
+      throw new Error('Wallet not connected');
+    }
+
+    // Upload to IPFS first
+    const { createIPFSService } = await import('@voisss/shared');
+    const ipfsService = createIPFSService();
+
+    const ipfsResult = await ipfsService.uploadAudio(audioBlob, {
+      filename: `${metadata.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`,
+      mimeType: audioBlob.type || 'audio/mpeg',
+      duration: duration,
+    });
+
+    // Save to Base blockchain
+    const { createBaseRecordingService } = await import('@voisss/shared');
+    const baseService = createBaseRecordingService(account.address, {
+      permissionRetriever: async () => {
+        // TODO: Implement proper permission retrieval for mobile
+        // For now, return stored permission hash
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+        return await AsyncStorage.getItem('spendPermissionHash');
+      }
+    });
+
+    const txHash = await baseService.saveRecording(ipfsResult.hash, metadata);
+
+    const recording = {
+      id: Date.now().toString(),
+      title: metadata.title,
+      description: metadata.description || "",
+      duration: duration,
+      fileSize: audioBlob.size,
+      format: "mp3" as const,
+      quality: "medium" as const,
+      tags: metadata.tags || [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isPublic: metadata.isPublic || false,
+      ipfsHash: ipfsResult.hash,
+      transactionHash: txHash,
+      onChain: true,
+    };
+
+    // Save to local store
+    addRecording(recording);
+
+    return recording;
+  };
+
+  // Download handler
+  const handleDownload = useCallback(() => {
+    if (!audioBlobForDubbing) return;
+
+    // On mobile, we can't directly download files like on web
+    // Instead, we'll inform the user that recordings are saved locally
+    Alert.alert(
+      "Download",
+      "On mobile, recordings are saved locally. You can access them in your recordings list.",
+      [
+        { text: "OK" },
+        {
+          text: "View Recordings",
+          onPress: () => router.push("/tabs/index" as any),
+        },
+      ]
+    );
+  }, [audioBlobForDubbing, router]);
 
   const renderRecordingButton = () => {
     const buttonColor = isRecording
@@ -461,17 +703,149 @@ export default function RecordScreen() {
 
         {/* AI Transformation Panel */}
         {showSaveOptions && capabilities.canAccessAI && (
-          <AITransformationPanel
-            voices={voices}
-            selectedVoiceId={selectedVoiceId}
-            setSelectedVoiceId={setSelectedVoiceId}
-            isLoadingVoices={isLoadingVoices}
-            isTransforming={isTransforming}
-            transformedBlob={transformedBlob}
-            onTransform={transformVoice}
-            capabilities={capabilities}
-            currentTier={currentTier}
+        <AITransformationPanel
+        voices={voices}
+        selectedVoiceId={selectedVoiceId}
+        setSelectedVoiceId={setSelectedVoiceId}
+        isLoadingVoices={isLoadingVoices}
+        isTransforming={isTransforming}
+        transformedBlob={transformedBlob}
+        onTransform={transformVoice}
+        capabilities={capabilities}
+        currentTier={currentTier}
+        />
+        )}
+
+        {/* Dubbing Panel */}
+        {showSaveOptions && audioBlobForDubbing && (
+          <DubbingPanel
+            audioBlob={audioBlobForDubbing}
+            onDubbingComplete={(dubbedBlob, language) => {
+              setDubbedBlob(dubbedBlob);
+              setDubbedLanguage(language);
+              setSelectedVersions(prev => ({ ...prev, dubbed: true }));
+            }}
+            onDubbingError={(error) => {
+              Alert.alert("Dubbing Error", error);
+            }}
           />
+        )}
+
+        {/* Version Selection Panel */}
+        {showSaveOptions && (
+          <View style={styles.versionSelectionPanel}>
+            <Text style={styles.versionSelectionTitle}>Select Versions to Save</Text>
+            <Text style={styles.versionSelectionSubtitle}>
+              Choose which versions you want to save to blockchain
+            </Text>
+
+            <View style={styles.versionOptions}>
+              {/* Original Version */}
+              <TouchableOpacity
+                style={[styles.versionOption, selectedVersions.original && styles.versionOptionSelected]}
+                onPress={() => setSelectedVersions(prev => ({ ...prev, original: !prev.original }))}
+              >
+                <View style={styles.versionOptionLeft}>
+                  <View style={[styles.versionDot, { backgroundColor: '#3B82F6' }]} />
+                  <View>
+                    <Text style={styles.versionOptionTitle}>Original Recording</Text>
+                    <Text style={styles.versionOptionSubtitle}>Your original voice recording</Text>
+                  </View>
+                </View>
+                <Text style={styles.versionSize}>
+                  {audioBlobForDubbing ? `${(audioBlobForDubbing.size / 1024).toFixed(0)} KB` : ''}
+                </Text>
+              </TouchableOpacity>
+
+              {/* AI Voice Version */}
+              <TouchableOpacity
+                style={[
+                  styles.versionOption,
+                  selectedVersions.aiVoice && styles.versionOptionSelected,
+                  !transformedBlob && styles.versionOptionDisabled
+                ]}
+                onPress={() => transformedBlob && setSelectedVersions(prev => ({ ...prev, aiVoice: !prev.aiVoice }))}
+                disabled={!transformedBlob}
+              >
+                <View style={styles.versionOptionLeft}>
+                  <View style={[styles.versionDot, { backgroundColor: '#8B5CF6' }]} />
+                  <View>
+                    <Text style={styles.versionOptionTitle}>AI Voice Transform</Text>
+                    <Text style={styles.versionOptionSubtitle}>
+                      {transformedBlob ? `AI voice using ${selectedVoiceId}` : 'Generate AI voice first'}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.versionSize}>
+                  {transformedBlob ? `${(transformedBlob.size / 1024).toFixed(0)} KB` : ''}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Dubbed Version */}
+              <TouchableOpacity
+                style={[
+                  styles.versionOption,
+                  selectedVersions.dubbed && styles.versionOptionSelected,
+                  !dubbedBlob && styles.versionOptionDisabled
+                ]}
+                onPress={() => dubbedBlob && setSelectedVersions(prev => ({ ...prev, dubbed: !prev.dubbed }))}
+                disabled={!dubbedBlob}
+              >
+                <View style={styles.versionOptionLeft}>
+                  <View style={[styles.versionDot, { backgroundColor: '#10B981' }]} />
+                  <View>
+                    <Text style={styles.versionOptionTitle}>Dubbed Version</Text>
+                    <Text style={styles.versionOptionSubtitle}>
+                      {dubbedBlob ? `Dubbed in ${dubbedLanguage}` : 'Generate dubbed version first'}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.versionSize}>
+                  {dubbedBlob ? `${(dubbedBlob.size / 1024).toFixed(0)} KB` : ''}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Selection Summary */}
+            <View style={styles.selectionSummary}>
+              <Text style={styles.selectionSummaryText}>
+                Selected: {Object.values(selectedVersions).filter(Boolean).length} of {[
+                  audioBlobForDubbing,
+                  transformedBlob,
+                  dubbedBlob
+                ].filter(Boolean).length} available
+              </Text>
+              {currentTier === 'free' && (
+                <Text style={styles.selectionWarning}>
+                  Free tier: Limited saves per week
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Save Actions */}
+        {showSaveOptions && (
+          <View style={styles.saveActions}>
+            <TouchableOpacity
+              style={[buttonStyles.primaryButton, styles.saveButton]}
+              onPress={handleUnifiedSave}
+              disabled={!Object.values(selectedVersions).some(Boolean)}
+            >
+              <Text style={styles.saveButtonText}>
+                {Object.values(selectedVersions).filter(Boolean).length === 0
+                  ? 'Select versions to save'
+                  : `Save Selected (${Object.values(selectedVersions).filter(Boolean).length})`}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[buttonStyles.secondaryButton, styles.downloadButton]}
+              onPress={handleDownload}
+            >
+              <Text style={styles.downloadButtonText}>Download (Free)</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         {error && (
@@ -600,5 +974,110 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSizes.sm,
     color: colors.dark.textSecondary,
     textAlign: "center",
+  },
+  // Version Selection Panel
+  versionSelectionPanel: {
+    marginHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+    padding: theme.spacing.lg,
+    backgroundColor: colors.dark.card,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+  },
+  versionSelectionTitle: {
+    fontSize: theme.typography.fontSizes.xl,
+    fontWeight: "600",
+    color: colors.dark.text,
+    marginBottom: theme.spacing.xs,
+  },
+  versionSelectionSubtitle: {
+    fontSize: theme.typography.fontSizes.sm,
+    color: colors.dark.textSecondary,
+    marginBottom: theme.spacing.lg,
+  },
+  versionOptions: {
+    marginBottom: theme.spacing.lg,
+  },
+  versionOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+    backgroundColor: colors.dark.cardAlt,
+  },
+  versionOptionSelected: {
+    borderColor: colors.dark.primary,
+    backgroundColor: colors.dark.primary + "10",
+  },
+  versionOptionDisabled: {
+    opacity: 0.5,
+  },
+  versionOptionLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  versionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: theme.spacing.sm,
+  },
+  versionOptionTitle: {
+    fontSize: theme.typography.fontSizes.md,
+    fontWeight: "500",
+    color: colors.dark.text,
+    marginBottom: 2,
+  },
+  versionOptionSubtitle: {
+    fontSize: theme.typography.fontSizes.sm,
+    color: colors.dark.textSecondary,
+  },
+  versionSize: {
+    fontSize: theme.typography.fontSizes.sm,
+    color: colors.dark.textSecondary,
+    fontWeight: "500",
+  },
+  selectionSummary: {
+    paddingTop: theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.dark.border,
+  },
+  selectionSummaryText: {
+    fontSize: theme.typography.fontSizes.sm,
+    color: colors.dark.textSecondary,
+    marginBottom: theme.spacing.xs,
+  },
+  selectionWarning: {
+    fontSize: theme.typography.fontSizes.sm,
+    color: colors.dark.warning,
+    fontWeight: "500",
+  },
+  // Save Actions
+  saveActions: {
+    marginHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+    gap: theme.spacing.md,
+  },
+  saveButton: {
+    flex: 1,
+  },
+  saveButtonText: {
+    fontSize: theme.typography.fontSizes.md,
+    fontWeight: "600",
+    color: colors.dark.text,
+  },
+  downloadButton: {
+    flex: 1,
+  },
+  downloadButtonText: {
+    fontSize: theme.typography.fontSizes.md,
+    fontWeight: "600",
+    color: colors.dark.text,
   },
 });

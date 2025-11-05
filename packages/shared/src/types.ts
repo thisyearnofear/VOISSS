@@ -179,3 +179,38 @@ export const CommunitySchema = z.object({
 });
 
 export type Community = z.infer<typeof CommunitySchema>;
+
+// Recording types for unified cross-platform usage
+export const RecordingSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string().optional(),
+  duration: z.number(),
+  fileSize: z.number().optional(),
+  format: z.enum(['mp3', 'wav', 'aac', 'm4a']).optional(),
+  quality: z.enum(['low', 'medium', 'high', 'lossless']).optional(),
+  tags: z.array(z.string()),
+  createdAt: z.union([z.date(), z.string()]),
+  updatedAt: z.union([z.date(), z.string()]).optional(),
+  isPublic: z.boolean(),
+  ipfsHash: z.string().optional(),
+  ipfsUrl: z.string().optional(),
+  transactionHash: z.string().optional(),
+  onChain: z.boolean().optional(),
+  owner: z.string().optional(),
+  isHidden: z.boolean().optional(),
+  // Mobile-specific fields
+  filePath: z.string().optional(),
+  // Additional metadata
+  location: z.object({
+    city: z.string(),
+    country: z.string(),
+    coordinates: z.object({
+      lat: z.number(),
+      lng: z.number(),
+    }).optional(),
+  }).optional(),
+  context: z.string().optional(),
+});
+
+export type Recording = z.infer<typeof RecordingSchema>;

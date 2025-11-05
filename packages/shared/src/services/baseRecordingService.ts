@@ -11,29 +11,48 @@
  * 4. User receives transaction hash (no wallet popup!)
  */
 
-const VOICE_RECORDS_CONTRACT = process.env.NEXT_PUBLIC_VOICE_RECORDS_CONTRACT as `0x${string}`;
-
-interface RecordingMetadata {
+export interface BaseRecordingMetadata {
   title: string;
   description: string;
   isPublic: boolean;
   tags: string[];
 }
 
-interface SaveRecordingResponse {
+export interface SaveRecordingResponse {
   success: boolean;
   txHash: string;
   status: string;
   blockNumber: string;
 }
 
-export function createBaseRecordingService(userAddress: string | null) {
-  if (!VOICE_RECORDS_CONTRACT) {
-    throw new Error("VOICE_RECORDS_CONTRACT environment variable not set. Please deploy the VoiceRecords contract first.");
-  }
+export interface BaseRecordingService {
+  saveRecording(ipfsHash: string, metadata: BaseRecordingMetadata): Promise<string>;
+}
 
-  if (!userAddress) {
-    throw new Error("User address is required. Please connect your wallet first.");
+export class BaseRecordingServiceImpl implements BaseRecordingService {
+  private userAddress: string;
+  private contractAddress: string;
+  private backendUrl: string;
+  private permissionRetriever: () => string | null;
+
+  constructor(
+    userAddress: string,
+    contractAddress: string,
+    backendUrl: string,
+    permissionRetriever: () => string | null
+  ) {
+    if (!contractAddress) {
+      throw new Error("VOICE_RECORDS_CONTRACT environment variable not set. Please deploy the VoiceRecords contract first.");
+    }
+
+    if (!userAddress) {
+      throw new Error("User address is required. Please connect your wallet first.");
+    }
+
+    this.userAddress = userAddress;
+    this.contractAddress = contractAddress;
+    this.backendUrl = backendUrl;
+    this.permissionRetriever = permissionRetriever;
   }
 
   /**
@@ -44,31 +63,28 @@ export function createBaseRecordingService(userAddress: string | null) {
    * @param metadata The recording's metadata
    * @returns Promise resolving with the transaction hash
    */
-  const saveRecording = async (
+  async saveRecording(
     ipfsHash: string,
-    metadata: RecordingMetadata
-  ): Promise<string> => {
+    metadata: BaseRecordingMetadata
+  ): Promise<string> {
     try {
       // Get stored permission hash
-      const permissionHash = localStorage.getItem('spendPermissionHash');
-      
+      const permissionHash = this.permissionRetriever();
+
       if (!permissionHash) {
         throw new Error('No spend permission found. Please grant permission first.');
       }
 
       console.log('📤 Sending gasless save request to backend...');
 
-      // Get backend URL (Hetzner server)
-      const backendUrl = process.env.NEXT_PUBLIC_VOISSS_API || 'https://voisss.famile.xyz';
-
       // Call backend API for gasless transaction
-      const response = await fetch(`${backendUrl}/api/base/save-recording`, {
+      const response = await fetch(`${this.backendUrl}/api/base/save-recording`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userAddress,
+          userAddress: this.userAddress,
           permissionHash,
           ipfsHash,
           title: metadata.title,
@@ -90,7 +106,7 @@ export function createBaseRecordingService(userAddress: string | null) {
 
     } catch (error: any) {
       console.error("Failed to save recording to Base:", error);
-      
+
       // Provide user-friendly error messages
       if (error.message?.includes('permission')) {
         throw new Error('Spend permission expired or invalid. Please grant permission again.');
@@ -100,9 +116,43 @@ export function createBaseRecordingService(userAddress: string | null) {
         throw new Error(error.message || 'Failed to save recording to the blockchain.');
       }
     }
-  };
+  }
+}
 
-  return {
-    saveRecording,
-  };
+/**
+ * Create Base recording service instance with platform-specific configuration
+ */
+export function createBaseRecordingService(
+  userAddress: string | null,
+  options?: {
+    backendUrl?: string;
+    contractAddress?: string;
+    permissionRetriever?: () => string | null;
+  }
+): BaseRecordingService {
+  const backendUrl = options?.backendUrl ||
+    (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VOISSS_API) ||
+    'https://voisss.famile.xyz';
+
+  const contractAddress = options?.contractAddress ||
+    (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VOICE_RECORDS_CONTRACT) ||
+    '0x0';
+
+  // Platform-specific permission retrieval
+  const permissionRetriever = options?.permissionRetriever ||
+    (() => {
+      // Web: use localStorage
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return window.localStorage.getItem('spendPermissionHash');
+      }
+      // Mobile: placeholder for now - will be implemented per platform
+      return null;
+    });
+
+  return new BaseRecordingServiceImpl(
+    userAddress || '',
+    contractAddress,
+    backendUrl,
+    permissionRetriever
+  );
 }

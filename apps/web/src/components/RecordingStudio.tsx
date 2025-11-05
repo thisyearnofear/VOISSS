@@ -5,8 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useBaseAccount } from "../hooks/useBaseAccount";
 import { useWebAudioRecording } from "../hooks/useWebAudioRecording";
 import { useFreemiumStore } from "../store/freemiumStore";
-import { createIPFSService } from "@voisss/shared";
-import { createBaseRecordingService } from "../services/baseRecordingService";
+import { createIPFSService, createBaseRecordingService } from "@voisss/shared";
 import DubbingPanel from "./dubbing/DubbingPanel";
 
 interface RecordingStudioProps {
@@ -75,7 +74,14 @@ export default function RecordingStudio({
   // Base recording service - only initialize if contract is configured
   const baseRecordingService = React.useMemo(() => {
     try {
-      return createBaseRecordingService(universalAddress);
+      return createBaseRecordingService(universalAddress, {
+        permissionRetriever: () => {
+          if (typeof window !== 'undefined') {
+            return window.localStorage.getItem('spendPermissionHash');
+          }
+          return null;
+        }
+      });
     } catch (error) {
       console.warn('Base recording service not available:', error);
       return null;

@@ -28,7 +28,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { colors } from "../constants/colors";
 import { useSubscriptionStore } from "../store/subscriptionStore";
-import { useStarknet } from "../hooks/useStarknet";
+import { useBase } from "../hooks/useBase";
 import { WalletModal } from "./WalletModal";
 
 interface SubscriptionModalProps {
@@ -121,7 +121,7 @@ export function SubscriptionModal({
     restorePurchases,
   } = useSubscriptionStore();
 
-  const { isConnected: isWalletConnected, account } = useStarknet();
+  const { isConnected: isWalletConnected, account } = useBase();
 
   const [activeTab, setActiveTab] = useState<"premium" | "ultimate" | "manage">(
     initialTab
@@ -337,7 +337,7 @@ export function SubscriptionModal({
             <Text
               style={[styles.statusText, hasWallet && styles.statusTextActive]}
             >
-              Starknet Wallet {hasWallet ? "✓" : "✗"}
+              Base Wallet {hasWallet ? "✓" : "✗"}
             </Text>
           </View>
         </View>
@@ -382,7 +382,7 @@ export function SubscriptionModal({
             >
               <Wallet size={16} color={colors.dark.text} />
               <Text style={styles.ultimateActionText}>
-                Connect Starknet Wallet
+                Connect Base Wallet
               </Text>
             </TouchableOpacity>
           )}

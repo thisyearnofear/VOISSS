@@ -2,7 +2,8 @@ import React from "react";
 import { Tabs } from "expo-router";
 import { FileAudio, Settings, Import, Mic } from "lucide-react-native";
 import colors from "../../constants/colors";
-import { useStarknetStatus } from "../../hooks/useStarknet";
+// TODO: Replace with Base wallet hook
+import { useStarknetStatus } from "../../hooks/useBase";
 import { View, Text, StyleSheet } from "react-native";
 
 export default function TabsLayout() {
