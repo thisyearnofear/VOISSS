@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { X, Wallet, Shield, Zap, Globe, CheckCircle, AlertCircle } from 'lucide-react-native';
-import colors from '../constants/colors';
+import { colors } from "@voisss/ui";
 import { useBase } from '../hooks/useBase';
 
 interface WalletModalProps {

@@ -11,8 +11,8 @@ import {
   Platform,
 } from "react-native";
 import { X } from "lucide-react-native";
-import { theme } from "../constants/theme";
-import colors from "../constants/colors";
+import { theme } from "@voisss/ui";
+import { colors } from "@voisss/ui";
 
 interface BottomSheetProps {
   visible: boolean;

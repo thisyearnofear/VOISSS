@@ -6,6 +6,8 @@ import { useBaseAccount } from "../hooks/useBaseAccount";
 import { useWebAudioRecording } from "../hooks/useWebAudioRecording";
 import { useFreemiumStore } from "../store/freemiumStore";
 import { createIPFSService, createBaseRecordingService } from "@voisss/shared";
+import { SocialShare } from "@voisss/ui";
+import type { SocialShareProps } from "@voisss/ui";
 import DubbingPanel from "./dubbing/DubbingPanel";
 
 interface RecordingStudioProps {
@@ -55,6 +57,10 @@ export default function RecordingStudio({
     aiVoice: false,
     dubbed: false,
   });
+
+  // Sharing state
+  const [savedRecordings, setSavedRecordings] = useState<SocialShareProps["recording"][]>([]);
+  const [showSharing, setShowSharing] = useState(false);
 
   const { isAuthenticated, address, signIn } = useAuth();
   const {
@@ -281,6 +287,13 @@ export default function RecordingStudio({
         setToastType('success');
         setToastMessage(`${successCount} version${successCount > 1 ? 's' : ''} saved successfully!`);
         setTimeout(() => setToastMessage(null), 4000);
+
+        // Add saved recordings to sharing state
+        const newSavedRecordings = results
+          .filter(r => r.success)
+          .map(r => r.recording);
+        setSavedRecordings(newSavedRecordings);
+        setShowSharing(true);
 
         if (onRecordingComplete && audioBlob) {
           onRecordingComplete(audioBlob, duration);
@@ -939,6 +952,19 @@ export default function RecordingStudio({
               ⚠️ {remainingQuota.saves} free saves remaining this week
             </p>
           )}
+        </div>
+      )}
+
+      {/* Social Sharing */}
+      {showSharing && savedRecordings.length > 0 && (
+        <div className="mt-6">
+          <SocialShare
+            recording={savedRecordings[0]} // Show sharing for the first saved recording
+            onShare={(platform, url) => {
+              console.log(`Shared to ${platform}:`, url);
+              // TODO: Track sharing analytics
+            }}
+          />
         </div>
       )}
 

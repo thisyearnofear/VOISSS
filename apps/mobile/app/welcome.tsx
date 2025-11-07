@@ -22,8 +22,8 @@ import {
   ChevronRight,
 } from "lucide-react-native";
 import AnimatedGradientBackground from "../components/AnimatedGradientBackground";
-import colors from "../constants/colors";
-import { theme } from "../constants/theme";
+import { colors } from "@voisss/ui";
+import { theme } from "@voisss/ui";
 import { useOnboardingStore } from "../store/onboardingStore";
 
 const { width } = Dimensions.get("window");

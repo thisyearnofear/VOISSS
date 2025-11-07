@@ -11,7 +11,7 @@ import { createElevenLabsProvider } from "@voisss/shared/src/services/audio/ai/e
 import { SUPPORTED_DUBBING_LANGUAGES } from "@voisss/shared";
 import type { LanguageInfo } from "@voisss/shared/src/constants/languages";
 import LanguageSelector from "./LanguageSelector";
-import colors from "../constants/colors";
+import { colors } from "@voisss/ui";
 
 interface DubbingPanelProps {
   audioBlob: Blob;

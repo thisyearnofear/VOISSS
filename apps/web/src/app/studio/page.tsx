@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import RecordingStudio from "../../components/RecordingStudio";
+import { RecordingCard } from "@voisss/ui";
 import { formatDuration } from "@voisss/shared";
 import { useRecordings } from "../../hooks/queries/useRecordings";
 import { useAuth } from "../../contexts/AuthContext";
-import { RecordingCard, SocialShare } from "@voisss/ui";
-import { createIPFSService } from "@voisss/shared";
+import { SocialShare } from "@voisss/ui";
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +18,7 @@ export default function RecordPage() {
       title: string;
       duration: number;
       blob: Blob;
-      createdAt: Date;
+      createdAt: string;  // Now always a string to match Recording interface
     }>
   >([]);
 
@@ -31,7 +31,7 @@ export default function RecordPage() {
   const [audioElements, setAudioElements] = useState<Map<string, HTMLAudioElement>>(new Map());
 
   // Sharing state
-  const [sharingRecording, setSharingRecording] = useState<any>(null);
+  const [sharingRecording, setSharingRecording] = useState<any | null>(null);
 
   const handleRecordingComplete = (audioBlob: Blob, duration: number) => {
     const newRecording = {
@@ -39,7 +39,7 @@ export default function RecordPage() {
       title: `Recording ${localRecordings.length + 1}`,
       duration,
       blob: audioBlob,
-      createdAt: new Date(),
+      createdAt: new Date().toISOString(),  // Convert to string to match Recording interface
     };
     setLocalRecordings((prev) => [newRecording, ...prev]);
   };
@@ -156,7 +156,9 @@ export default function RecordPage() {
                       id: recording.id,
                       title: recording.title,
                       duration: recording.duration,
-                      createdAt: recording.createdAt.toISOString(),
+                      createdAt: typeof recording.createdAt === 'string' 
+                        ? recording.createdAt 
+                        : (recording.createdAt instanceof Date ? recording.createdAt.toISOString() : new Date().toISOString()),
                       tags: recording.onChain ? ['on-chain'] : ['local'],
                       isPlaying: currentlyPlaying === recording.id,
                       onChain: recording.onChain,
@@ -202,7 +204,7 @@ export default function RecordPage() {
                     id: recording.id,
                     title: recording.title,
                     duration: recording.duration,
-                    createdAt: recording.createdAt.toISOString(),
+                    createdAt: typeof recording.createdAt === 'string' ? recording.createdAt : new Date().toISOString(),
                     tags: ['session'],
                     isPlaying: currentlyPlaying === recording.id,
                     onChain: false,
@@ -234,10 +236,12 @@ export default function RecordPage() {
               <div className="p-4">
                 <SocialShare
                   recording={sharingRecording}
-                  onShare={(platform, url) => {
+                  onShare={(platform: string, url: string) => {
                     console.log(`Shared to ${platform}:`, url);
                     // Could add analytics tracking here
                   }}
+                  className=""
+                  style={{}}
                 />
               </div>
             </div>

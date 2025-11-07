@@ -1,7 +1,7 @@
 import React from "react";
 import { Tabs } from "expo-router";
 import { FileAudio, Settings, Import, Mic } from "lucide-react-native";
-import colors from "../../constants/colors";
+import { colors } from "@voisss/ui";
 // TODO: Replace with Base wallet hook
 import { useStarknetStatus } from "../../hooks/useBase";
 import { View, Text, StyleSheet } from "react-native";

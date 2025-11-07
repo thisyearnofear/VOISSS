@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
-  TextInput,
   Alert,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
 import { Wallet, Key, AlertCircle, CheckCircle } from 'lucide-react-native';
-import colors from '../constants/colors';
+import { colors } from '@voisss/ui';
 import { useBase } from '../hooks/useBase';
 
 interface WalletConnectionProps {
@@ -19,19 +18,10 @@ interface WalletConnectionProps {
 
 export function WalletConnection({ onConnected, onClose }: WalletConnectionProps) {
   const { isConnected, isConnecting, account, error, connect, disconnect } = useBase();
-  const [privateKey, setPrivateKey] = useState('');
-  const [showPrivateKeyInput, setShowPrivateKeyInput] = useState(false);
 
   const handleConnect = async () => {
-    if (!privateKey.trim()) {
-      Alert.alert('Error', 'Please enter your private key');
-      return;
-    }
-
     try {
-      await connect(privateKey.trim());
-      setPrivateKey('');
-      setShowPrivateKeyInput(false);
+      connect(); // Call without arguments - uses the first available connector
       onConnected?.();
     } catch (err) {
       Alert.alert(
@@ -97,56 +87,24 @@ export function WalletConnection({ onConnected, onClose }: WalletConnectionProps
         </View>
       )}
 
-      {!showPrivateKeyInput ? (
-        <TouchableOpacity
-          style={styles.connectButton}
-          onPress={() => setShowPrivateKeyInput(true)}
-          disabled={isConnecting}
-        >
-          <Key size={20} color={colors.dark.text} />
-          <Text style={styles.connectButtonText}>Connect with Private Key</Text>
-        </TouchableOpacity>
-      ) : (
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Private Key</Text>
-          <TextInput
-            style={styles.input}
-            value={privateKey}
-            onChangeText={setPrivateKey}
-            placeholder="Enter your Starknet private key"
-            placeholderTextColor={colors.dark.textSecondary}
-            secureTextEntry
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <View style={styles.inputActions}>
-            <TouchableOpacity
-              style={[styles.button, styles.cancelButton]}
-              onPress={() => {
-                setShowPrivateKeyInput(false);
-                setPrivateKey('');
-              }}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.button, styles.confirmButton]}
-              onPress={handleConnect}
-              disabled={isConnecting || !privateKey.trim()}
-            >
-              {isConnecting ? (
-                <ActivityIndicator size="small" color={colors.dark.text} />
-              ) : (
-                <Text style={styles.confirmButtonText}>Connect</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
+      <TouchableOpacity
+        style={styles.connectButton}
+        onPress={handleConnect}
+        disabled={isConnecting}
+      >
+        {isConnecting ? (
+          <ActivityIndicator size="small" color={colors.dark.text} />
+        ) : (
+          <>
+            <Key size={20} color={colors.dark.text} />
+            <Text style={styles.connectButtonText}>Connect Wallet</Text>
+          </>
+        )}
+      </TouchableOpacity>
 
       <View style={styles.disclaimer}>
         <Text style={styles.disclaimerText}>
-          ⚠️ This is a demo implementation. In production, use secure wallet connections like WalletConnect or browser extensions.
+          🔐 Your wallet connection is secured through the Base ecosystem. For best security, use official wallet apps.
         </Text>
       </View>
     </View>
@@ -202,51 +160,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.dark.text,
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: colors.dark.card,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: colors.dark.text,
-    marginBottom: 16,
-  },
-  inputActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: colors.dark.card,
-  },
-  cancelButtonText: {
-    color: colors.dark.textSecondary,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  confirmButton: {
-    backgroundColor: colors.dark.primary,
-  },
-  confirmButtonText: {
-    color: colors.dark.text,
-    fontSize: 16,
-    fontWeight: '600',
   },
   connectedState: {
     alignItems: 'center',

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { View, StyleSheet } from "react-native";
-import colors from "../constants/colors";
+import { colors } from "@voisss/ui";
 
 interface RecordingWaveformProps {
   duration?: number;

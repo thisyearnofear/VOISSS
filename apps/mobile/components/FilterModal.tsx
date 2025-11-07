@@ -17,8 +17,8 @@ import {
 } from "lucide-react-native";
 import { RecordingFilter } from "@voisss/shared";
 import { useRecordingsStore } from "../store/recordingsStore";
-import { theme, globalStyles } from "../constants/theme";
-import colors from "../constants/colors";
+import { theme } from "@voisss/ui";
+import { colors } from "@voisss/ui";
 import TagBadge from "./TagBadge";
 
 interface FilterModalProps {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import WaveformVisualization from "./WaveformVisualization";
-import colors from "../constants/colors";
+import { colors } from "@voisss/ui";
 
 export default function WaveformTest() {
   const [isRecording, setIsRecording] = useState(false);

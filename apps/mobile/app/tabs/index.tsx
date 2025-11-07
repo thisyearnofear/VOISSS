@@ -14,8 +14,8 @@ import {
   useRecordingsStore,
 } from "@/store/recordingsStore";
 import { useUIStore, useIsFavorite } from "@/store/uiStore";
-import { globalStyles } from "@/constants/theme";
-import colors from "@/constants/colors";
+import { globalStyles } from "@voisss/ui";
+import { colors } from "@voisss/ui";
 import RecordingItem from "@/components/RecordingItem";
 import SearchBar from "@/components/SearchBar";
 import FilterModal from "@/components/FilterModal";

@@ -6,22 +6,22 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --external react --external react-native --external clsx --external tailwind-merge",
+    "build": "tsup src/index.ts --format cjs,esm --external react --external clsx --external tailwind-merge",
     "dev": "tsup src/index.ts --format cjs,esm --watch --dts",
     "lint": "eslint src/",
     "clean": "rm -rf dist"
   },
   "dependencies": {
     "@voisss/shared": "workspace:*",
-    "react": "19.0.0",
-    "react-native": "0.79.2",
     "clsx": "^2.0.0",
+    "lucide-react": "^0.525.0",
+    "react": "19.0.0",
     "tailwind-merge": "^2.0.0"
   },
   "devDependencies": {
+    "@types/node": "^20",
     "@types/react": "~18.3.12",
-    "@types/react-native": "~0.73.0",
-    "typescript": "~5.3.3",
-    "tsup": "^8.0.2"
+    "tsup": "^8.0.2",
+    "typescript": "~5.3.3"
   }
 }

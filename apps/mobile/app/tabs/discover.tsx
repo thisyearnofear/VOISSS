@@ -44,13 +44,10 @@ import {
   MapPin,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import colors from "../../constants/colors";
-import { theme, globalStyles } from "../../constants/theme";
+import { colors, theme, globalStyles } from "@voisss/ui";
 import { useOnboardingStore } from "../../store/onboardingStore";
 import { useFeatureGating, useUpgradePrompts } from "../../utils/featureGating";
-import { formatDuration } from "../../utils/formatters";
-import { createPersistentMissionService } from "@voisss/shared";
-import type { Mission } from "@voisss/shared/types/socialfi";
+import { formatDuration, createPersistentMissionService, type Mission } from "@voisss/shared";
 
 // Top navigation items
 const topNavItems = [

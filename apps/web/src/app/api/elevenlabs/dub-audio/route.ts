@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
         }
 
         const form = await req.formData();
-        const file = form.get('audio');
+        const file = form.get('audio') as File | null;
         const targetLanguage = String(form.get('targetLanguage') || '');
         const sourceLanguage = String(form.get('sourceLanguage') || '');
         const preserveBackgroundAudio = form.get('preserveBackgroundAudio') === 'true';

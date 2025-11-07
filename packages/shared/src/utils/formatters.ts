@@ -78,3 +78,4 @@ export const formatDate = (date: string | Date): string => {
     year: "numeric",
   });
 };
+

@@ -35,8 +35,8 @@ import {
   Sparkles,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { globalStyles, theme } from "@/constants/theme";
-import colors from "@/constants/colors";
+import { globalStyles } from "@voisss/ui";
+import { colors } from "@voisss/ui";
 import { useRecordingsStore } from "@/store/recordingsStore";
 import { VoiceRecording, Tag } from "@voisss/shared";
 import {

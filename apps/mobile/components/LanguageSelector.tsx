@@ -15,7 +15,7 @@ import {
   getPopularLanguages,
 } from "@voisss/shared";
 import type { LanguageInfo } from "@voisss/shared/src/constants/languages";
-import colors from "../constants/colors";
+import { colors } from "@voisss/ui";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 

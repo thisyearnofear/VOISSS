@@ -18,8 +18,8 @@ import {
   ChevronUp,
   Sparkles,
 } from "lucide-react-native";
-import colors from "../constants/colors";
-import { theme, buttonStyles } from "../constants/theme";
+import { colors } from "@voisss/ui";
+import { theme } from "@voisss/ui";
 import type { VoiceInfo } from "@voisss/shared/types/audio";
 
 interface AITransformationPanelProps {

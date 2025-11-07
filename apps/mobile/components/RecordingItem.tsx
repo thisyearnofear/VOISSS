@@ -5,8 +5,8 @@ import { MissionRecording } from "@voisss/shared";
 import { formatDuration, formatRelativeTime } from "../utils/formatters";
 import { useRecordingTags } from "../store/recordingsStore";
 import { useUIStore, useIsFavorite } from "../store/uiStore";
-import { theme, globalStyles } from "../constants/theme";
-import colors from "../constants/colors";
+import { theme } from "@voisss/ui";
+import { colors } from "@voisss/ui";
 import TagBadge from "./TagBadge";
 import RecordingWaveform from "./RecordingWaveform";
 

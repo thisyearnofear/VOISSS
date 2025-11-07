@@ -1,8 +1,8 @@
 import React from "react";
 import { StyleSheet, TextInput, View, TouchableOpacity } from "react-native";
 import { Search, X, SlidersHorizontal } from "lucide-react-native";
-import { theme } from "../constants/theme";
-import colors from "../constants/colors";
+import { theme } from "@voisss/ui";
+import { colors } from "@voisss/ui";
 
 interface SearchBarProps {
   value: string;

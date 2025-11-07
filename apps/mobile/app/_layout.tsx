@@ -7,7 +7,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { Platform } from "react-native";
 import { ErrorBoundary } from "./error-boundary";
-import colors from "../constants/colors";
+import { colors } from "@voisss/ui";
 import { useOnboardingStore } from "../store/onboardingStore";
 import { AppProviders } from "../providers";
 

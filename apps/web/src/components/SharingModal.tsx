@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Share2, Copy, ExternalLink } from 'lucide-react';
+import { getFarcasterSocialService } from '@voisss/shared';
 
 interface SharingModalProps {
   recording: {
@@ -8,46 +10,64 @@ interface SharingModalProps {
     title: string;
     duration: number;
     transactionHash?: string;
+    topic?: string;
+    metadata?: any;
   };
   isOpen: boolean;
   onClose: () => void;
 }
 
 export default function SharingModal({ recording, isOpen, onClose }: SharingModalProps) {
-  const [shareType, setShareType] = useState<'public' | 'private' | 'temporary'>('public');
-  const [expirationDays, setExpirationDays] = useState(7);
-  const [shareLink, setShareLink] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [shareType, setShareType] = useState<'farcaster' | 'direct'>('farcaster');
+  const [shareText, setShareText] = useState('');
+  const [isSharing, setIsSharing] = useState(false);
+  const [farcasterUser, setFarcasterUser] = useState<any>(null);
+
+  useEffect(() => {
+    if (isOpen && recording.title) {
+      setShareText(`Just recorded: "${recording.title}" 🎤`);
+      
+      // Store in Memory Protocol for future context
+      if (recording.metadata) {
+        const socialService = getFarcasterSocialService();
+        socialService.storeVoiceMemory({
+          content: recording.title,
+          metadata: {
+            duration: recording.duration,
+            topic: recording.topic || 'general',
+            sentiment: 'neutral',
+          },
+        }).catch(console.error);
+      }
+    }
+  }, [isOpen, recording]);
 
   if (!isOpen) return null;
 
-  const generateShareLink = async () => {
-    setIsGenerating(true);
+  const shareToFarcaster = async () => {
+    setIsSharing(true);
     try {
-      // In a real implementation, this would:
-      // 1. Create a share token on Base
-      // 2. Set permissions and expiration
-      // 3. Generate a shareable link
+      const socialService = getFarcasterSocialService();
+      const success = await socialService.shareToFarcaster(
+        recording.id,
+        shareText,
+        farcasterUser?.fid || 0
+      );
       
-      const mockShareId = Math.random().toString(36).substring(2, 15);
-      const baseUrl = window.location.origin;
-      const link = `${baseUrl}/share/${mockShareId}`;
-      
-      setShareLink(link);
+      if (success) {
+        onClose();
+      }
     } catch (error) {
-      console.error('Failed to generate share link:', error);
+      console.error('Failed to share:', error);
     } finally {
-      setIsGenerating(false);
+      setIsSharing(false);
     }
   };
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      // Show success feedback
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
-    }
+  const copyLink = async () => {
+    const link = `${window.location.origin}/recording/${recording.id}`;
+    await navigator.clipboard.writeText(link);
+  };
   };
 
   const shareToSocial = (platform: string) => {

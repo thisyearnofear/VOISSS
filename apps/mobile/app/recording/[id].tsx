@@ -13,8 +13,8 @@ import {
 } from "../../hooks/useAudioRecording";
 import { useBaseAccount } from "../../hooks/useBaseAccount";
 import { createBaseRecordingService } from "../../services/baseRecordingService";
+import { colors } from "@voisss/ui";
 import RecordingWaveform from "../../components/RecordingWaveform";
-import colors from "../../constants/colors";
 import {
   createMobileIPFSService,
   MobileIPFSService,

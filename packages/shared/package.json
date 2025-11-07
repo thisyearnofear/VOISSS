@@ -6,17 +6,20 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --external zod",
+    "build": "tsup src/index.ts --format cjs,esm --external zod --external react --external @neynar/nodejs-sdk",
     "dev": "tsup src/index.ts --format cjs,esm --watch --dts",
     "lint": "eslint src/",
     "clean": "rm -rf dist"
   },
   "dependencies": {
     "starknet": "^6.24.1",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "react": "19.0.0",
+    "@neynar/nodejs-sdk": "^1.71.0"
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/react": "^18.2.45",
     "tsup": "^8.0.2",
     "typescript": "^5"
   }

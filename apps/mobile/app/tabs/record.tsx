@@ -25,9 +25,9 @@ import { useRecordingsStore } from "../../store/recordingsStore";
 // TODO: Replace with Base wallet hook
 import { useBase } from "../../hooks/useBase";
 import { useFeatureGating } from "../../utils/featureGating";
-import colors from "../../constants/colors";
+import { colors } from "@voisss/ui";
 import { createAIServiceClient, formatDuration } from "@voisss/shared";
-import { theme, buttonStyles } from "../../constants/theme";
+import { theme } from "@voisss/ui";
 import type { VoiceInfo } from "@voisss/shared/types/audio";
 
 const { width } = Dimensions.get("window");
