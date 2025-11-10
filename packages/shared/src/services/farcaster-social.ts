@@ -1,4 +1,7 @@
-import { NeynarAPIClient } from "@neynar/nodejs-sdk";
+// Conditional import to avoid Node.js SDK in browser
+const NeynarAPIClient = typeof window === 'undefined' 
+  ? require('@neynar/nodejs-sdk').NeynarAPIClient 
+  : null;
 
 interface FarcasterConfig {
   apiKey: string;
@@ -36,13 +39,21 @@ export class FarcasterSocialService {
   private memoryApiKey: string;
 
   constructor(farcasterConfig: FarcasterConfig, memoryConfig: MemoryProtocolConfig) {
-    this.neynar = new NeynarAPIClient(farcasterConfig.apiKey);
+    // Only initialize Neynar client on server side
+    if (typeof window === 'undefined' && NeynarAPIClient) {
+      this.neynar = new NeynarAPIClient(farcasterConfig.apiKey);
+    }
     this.memoryEndpoint = memoryConfig.endpoint;
     this.memoryApiKey = memoryConfig.apiKey;
   }
 
   // Farcaster Integration
   async getUserContext(fid: number): Promise<SocialContext> {
+    // Browser fallback - return basic context
+    if (typeof window !== 'undefined' || !this.neynar) {
+      return { fid };
+    }
+    
     try {
       const user = await this.neynar.lookupUserByFid(fid);
       return {
@@ -54,11 +65,17 @@ export class FarcasterSocialService {
       };
     } catch (error) {
       console.error('Failed to fetch user context:', error);
-      return {};
+      return { fid };
     }
   }
 
   async shareToFarcaster(recordingId: string, text: string, fid: number): Promise<boolean> {
+    // Browser fallback - cannot publish from client side
+    if (typeof window !== 'undefined' || !this.neynar) {
+      console.warn('Farcaster sharing only available on server side');
+      return false;
+    }
+    
     try {
       const manifestUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/farcaster-miniapp/manifest?recordingId=${recordingId}`;
       const cast = await this.neynar.publishCast(

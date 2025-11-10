@@ -70,6 +70,34 @@ const nextConfig = {
   
   // Webpack configuration for better tree shaking
   webpack: (config, { dev, isServer }) => {
+    // Exclude react-native from bundling to prevent build errors
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'react-native': false,
+    };
+    
+    // Add fallbacks for Node.js modules
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      'react-native': false,
+      'process': false,
+      'fs': false,
+      'path': false,
+      'crypto': false,
+    };
+    
+    // Provide process polyfill for browser
+    const webpack = require('webpack');
+    config.plugins = config.plugins || [];
+    config.plugins.push(
+      new webpack.DefinePlugin({
+        'process.env': JSON.stringify(process.env),
+        'process.exit': 'undefined',
+        'process.version': JSON.stringify(process.version),
+        'process.platform': JSON.stringify('browser'),
+      })
+    );
+    
     // Optimize bundle size
     if (!dev && !isServer) {
       config.optimization.splitChunks = {

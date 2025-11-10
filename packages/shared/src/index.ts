@@ -20,7 +20,8 @@ export * from './services/mission-service';
 export * from './services/database-service';
 export * from './services/localStorage-database';
 export * from './services/persistent-mission-service';
-export * from './services/farcaster-social';
+// Export Farcaster service conditionally for server-side only
+// export * from './services/farcaster-social';
 
 // Audio types and services
 export * from './types/audio';
