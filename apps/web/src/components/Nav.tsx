@@ -152,7 +152,7 @@ export default function Nav() {
                 >
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
                   <span className="text-green-400 text-sm font-medium hidden sm:inline">
-                    {formatAddress(address)}
+                    {displayName ? displayName : formatAddress(address)}
                   </span>
                   <span className="text-green-400 text-sm font-medium sm:hidden">
                     Wallet

@@ -1,14 +1,11 @@
 import { useState, useEffect } from 'react';
-import { createPublicClient, http } from 'viem';
-import { base } from 'viem/chains';
+import { resolveL2Name, BASENAME_RESOLVER_ADDRESS } from 'thirdweb/extensions/ens';
+import { createThirdwebClient } from 'thirdweb';
+import { base } from 'thirdweb/chains';
 
-// Basenames Registry Contract Address
-const BASENAMES_REGISTRY = '0x4cCb0BB02FCABA27e82a56646E81d8c5bC4119a5';
-
-// Create a public client for Base
-const publicClient = createPublicClient({
-  chain: base,
-  transport: http(),
+// Thirdweb client for basename resolution
+const client = createThirdwebClient({
+  clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID || 'cd2fc16a6b59aa67ccaa3c76eaa421f3',
 });
 
 /**
@@ -26,33 +23,34 @@ export function useBasename(address?: `0x${string}` | null) {
       return;
     }
 
+    // Validate address format
+    if (!address.match(/^0x[a-fA-F0-9]{40}$/)) {
+      console.error('Invalid address format:', address);
+      setBasename(null);
+      setIsLoading(false);
+      return;
+    }
+
     const resolveBasename = async () => {
       setIsLoading(true);
       try {
-        // Call the Basenames registry contract
-        const resolvedName = await publicClient.readContract({
-          address: BASENAMES_REGISTRY,
-          abi: [
-            {
-              name: 'getName',
-              type: 'function',
-              stateMutability: 'view',
-              inputs: [{ name: 'addr', type: 'address' }],
-              outputs: [{ name: '', type: 'string' }],
-            },
-          ],
-          functionName: 'getName',
-          args: [address as `0x${string}`],
+        // Use Thirdweb's L2 name resolution for Basenames
+        const resolvedName = await resolveL2Name({
+          client,
+          address: address as `0x${string}`,
+          resolverAddress: BASENAME_RESOLVER_ADDRESS,
+          resolverChain: base,
         });
 
-        // If we got a resolved name and it's not empty, use it
-        if (resolvedName && typeof resolvedName === 'string' && resolvedName.length > 0) {
+        // Set the resolved basename if found, otherwise null
+        if (resolvedName && resolvedName.length > 0) {
           setBasename(resolvedName);
         } else {
           setBasename(null);
         }
       } catch (error) {
-        console.warn('Failed to resolve basename:', error);
+        // Silently fail if no basename is registered (expected for most addresses)
+        console.error('Error resolving basename:', error);
         setBasename(null);
       } finally {
         setIsLoading(false);

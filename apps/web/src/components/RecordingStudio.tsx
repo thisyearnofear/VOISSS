@@ -78,8 +78,13 @@ export default function RecordingStudio({
   // Create services - conditionally based on contract availability
   const ipfsService = React.useMemo(() => createIPFSService(), []);
 
-  // Base recording service - only initialize if contract is configured
+  // Base recording service - only initialize if wallet is connected
   const baseRecordingService = React.useMemo(() => {
+    // Don't attempt to create service if no address is available
+    if (!universalAddress) {
+      return null;
+    }
+
     try {
       return createBaseRecordingService(universalAddress, {
         permissionRetriever: () => {
