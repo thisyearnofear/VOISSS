@@ -5,9 +5,12 @@ export * from './components/WalletConnector';
 export * from './components/AudioPlayer';
 export * from './components/WaveformVisualization';
 
-// Import Web specific SocialShare
+// Import Web specific SocialShare and its types
 export { SocialShare } from './components/SocialShare.web';
-export type { SocialShareProps, ShareableRecording } from './components/SocialShare.web';
+export type {
+    SocialShareProps,
+    ShareableRecording
+} from './components/SocialShare.web';
 
 import { colors } from './theme/colors';
 import { theme, globalStyles, buttonStyles } from './theme/theme';
