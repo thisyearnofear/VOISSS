@@ -7,6 +7,7 @@ import { useBase } from '../app/providers';
 interface AuthContextType {
   isAuthenticated: boolean;
   isAuthenticating: boolean;
+  isCheckingSession: boolean;
   address: string | null;
   subAccount: string | null;
   signIn: () => Promise<void>;
@@ -43,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [sessionAddress, setSessionAddress] = useState<string | null>(null);
 
   // Check for existing session on app load
   useEffect(() => {
@@ -58,11 +60,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const data = await response.json();
           if (data.authenticated) {
             setIsAuthenticated(true);
-            console.log('Existing session found, user is authenticated');
+            setSessionAddress(data.address || null);
           }
         }
       } catch (error) {
-        console.log('No existing session found');
+        // Silent failure - user will need to sign in
       } finally {
         setIsCheckingSession(false);
       }
@@ -77,13 +79,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!isCheckingSession) {
       if (isConnected && !isAuthenticated) {
         setIsAuthenticated(true);
-      } else if (!isConnected && isAuthenticated && !isAuthenticating) {
-        // Only clear auth if we're sure there's no Base Account connection
-        // and we're not in the middle of a sign-in process
+      } else if (!isConnected && isAuthenticated && !isAuthenticating && !sessionAddress) {
+        // Only clear auth if we're sure there's no Base Account connection,
+        // we're not in the middle of a sign-in process,
+        // AND we don't have a valid session address from a restored session
         setIsAuthenticated(false);
       }
     }
-  }, [isConnected, isCheckingSession, isAuthenticated, isAuthenticating]);
+  }, [isConnected, isCheckingSession, isAuthenticated, isAuthenticating, sessionAddress]);
 
   const signIn = useCallback(async () => {
     setIsAuthenticating(true);
@@ -185,6 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       setIsAuthenticated(false);
+      setSessionAddress(null);
       setError(null);
     } catch (err) {
       console.error('Sign out failed:', err);
@@ -194,8 +198,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value: AuthContextType = {
     isAuthenticated,
     isAuthenticating,
-    address: universalAddress || null,
-    subAccount: universalAddress || null, // Use universalAddress directly since we don't have a subAccount object
+    isCheckingSession,
+    address: universalAddress || sessionAddress || null,
+    subAccount: universalAddress || sessionAddress || null, // Use universalAddress directly since we don't have a subAccount object
     signIn,
     signOut,
     error,

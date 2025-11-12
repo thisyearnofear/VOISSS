@@ -8,7 +8,7 @@ import { useBaseAccount } from "../hooks/useBaseAccount";
 
 
 export default function Nav() {
-  const { address, isAuthenticated, isAuthenticating, signIn, signOut } = useAuth();
+  const { address, isAuthenticated, isAuthenticating, isCheckingSession, signIn, signOut } = useAuth();
   const { displayName, hasBasename, isLoading: isResolvingBasename } = useBasename(address as `0x${string}` | null);
   const {
     isConnected,
@@ -107,7 +107,14 @@ export default function Nav() {
               </Link>
             </div>
             
-            {!isAuthenticated && (
+            {/* Show loading state while checking session */}
+            {isCheckingSession && (
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            )}
+            
+            {!isAuthenticated && !isCheckingSession && (
               <div className="flex items-center gap-3">
                 <Link 
                   href="/studio" 

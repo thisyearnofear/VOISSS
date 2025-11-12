@@ -34,6 +34,7 @@ export default function RecordingStudio({
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTitle, setRecordingTitle] = useState("");
   const [showSaveOptions, setShowSaveOptions] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
 
 
@@ -117,6 +118,18 @@ export default function RecordingStudio({
       setUserTier('guest');
     }
   }, [isAuthenticated, address, setUserTier]);
+
+  useEffect(() => {
+    if (!audioBlob) {
+      setPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(audioBlob);
+    setPreviewUrl(url);
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [audioBlob]);
 
   const remainingQuota = getRemainingQuota();
 
@@ -565,6 +578,18 @@ export default function RecordingStudio({
           <h3 className="text-xl font-semibold text-white mb-4">
             Save Recording
           </h3>
+
+          {previewUrl && (
+            <div className="mb-6 p-4 bg-[#1A1A1A] rounded-xl border border-[#2A2A2A]">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-white font-semibold">Preview Recording</span>
+                {audioBlob && (
+                  <span className="text-xs text-gray-500">{formatFileSize(audioBlob.size)}</span>
+                )}
+              </div>
+              <audio controls src={previewUrl} className="w-full h-8" />
+            </div>
+          )}
 
           {/* Spend Permission Status */}
           {isConnected && !permissionActive && (

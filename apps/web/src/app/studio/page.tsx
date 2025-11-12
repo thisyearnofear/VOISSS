@@ -23,7 +23,7 @@ export default function RecordPage() {
   >([]);
 
   // Enhanced recordings from hook (local + on-chain)
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isCheckingSession } = useAuth();
   const { data: allRecordings = [], isLoading: isLoadingRecordings } = useRecordings();
   
   // Audio playback state
