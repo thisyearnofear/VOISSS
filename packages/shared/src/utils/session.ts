@@ -119,12 +119,14 @@ export interface UserSession {
   refreshToken?: string;
   expiresAt?: number;
   network?: string;
+  chain?: string;
   preferences?: Record<string, any>;
 }
 
 const SESSION_KEY = '@voisss:user_session';
 const WALLET_ADDRESS_KEY = '@voisss:wallet_address';
 const NETWORK_KEY = '@voisss:network';
+const CHAIN_KEY = '@voisss:chain';
 
 /**
  * Save user session
@@ -142,6 +144,11 @@ export async function saveUserSession(session: UserSession): Promise<void> {
     // Save network preference
     if (session.network) {
       await storageAdapter.setItem(NETWORK_KEY, session.network);
+    }
+    
+    // Save chain preference
+    if (session.chain) {
+      await storageAdapter.setItem(CHAIN_KEY, session.chain);
     }
   } catch (error) {
     console.error('Failed to save user session:', error);
@@ -179,6 +186,7 @@ export async function clearUserSession(): Promise<void> {
     await storageAdapter.removeItem(SESSION_KEY);
     await storageAdapter.removeItem(WALLET_ADDRESS_KEY);
     await storageAdapter.removeItem(NETWORK_KEY);
+  await storageAdapter.removeItem(CHAIN_KEY);
   } catch (error) {
     console.error('Failed to clear user session:', error);
   }
@@ -204,6 +212,18 @@ export async function getStoredNetwork(): Promise<string | null> {
     return await storageAdapter.getItem(NETWORK_KEY);
   } catch (error) {
     console.error('Failed to get network preference:', error);
+    return null;
+  }
+}
+
+/**
+ * Get chain preference from session
+ */
+export async function getStoredChain(): Promise<string | null> {
+  try {
+    return await storageAdapter.getItem(CHAIN_KEY);
+  } catch (error) {
+    console.error('Failed to get chain preference:', error);
     return null;
   }
 }
@@ -250,12 +270,13 @@ export function generateUserId(): string {
 /**
  * Create a new session for a user
  */
-export async function createSession(walletAddress?: string, network?: string): Promise<UserSession> {
+export async function createSession(walletAddress?: string, network?: string, chain?: string): Promise<UserSession> {
   const userId = generateUserId();
   const session: UserSession = {
     userId,
     walletAddress,
     network,
+    chain,
     expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
   };
   

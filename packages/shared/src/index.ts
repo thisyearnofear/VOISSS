@@ -5,7 +5,8 @@ export type { Recording, VoiceRecording, Tag, MissionContext } from './types';
 export * from './constants/languages';
 export * from './types/audio';
 export * from './services/audio/ai/elevenlabs-service';
-export * from './starknet/index';
+export * from './blockchain/index';
+export * from './starknet/index'; // Legacy export for backward compatibility
 export * from './utils/session';
 export * from './utils';
 export * from './utils/formatters';
@@ -20,6 +21,7 @@ export * from './services/mission-service';
 export * from './services/database-service';
 export * from './services/localStorage-database';
 export * from './services/persistent-mission-service';
+export * from './services/onboarding-service';
 // Export Farcaster service conditionally for server-side only
 // export * from './services/farcaster-social';
 

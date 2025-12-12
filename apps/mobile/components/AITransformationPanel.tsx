@@ -21,6 +21,8 @@ import {
 import { colors } from "@voisss/ui";
 import { theme } from "@voisss/ui";
 import type { VoiceInfo } from "@voisss/shared/types/audio";
+import { AIVoiceSelector } from "./AIVoiceSelector";
+import { mobileAIService, type AIVoiceStyle } from "../services/ai-service";
 
 interface AITransformationPanelProps {
   voices: VoiceInfo[];
@@ -29,11 +31,13 @@ interface AITransformationPanelProps {
   isLoadingVoices: boolean;
   isTransforming: boolean;
   transformedBlob: Blob | null;
+  audioBlobForDubbing?: Blob | null; // NEW: Original audio blob for preview
   onTransform: () => void;
   capabilities: {
     remainingAIUses: number | null;
   };
   currentTier: string;
+  useEnhancedSelector?: boolean; // Flag to use enhanced voice selector
 }
 
 export default function AITransformationPanel({
@@ -43,11 +47,39 @@ export default function AITransformationPanel({
   isLoadingVoices,
   isTransforming,
   transformedBlob,
+  audioBlobForDubbing,
   onTransform,
   capabilities,
   currentTier,
+  useEnhancedSelector = false, // Default to false for backward compatibility
 }: AITransformationPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [aiVoiceStyles, setAIVoiceStyles] = useState<AIVoiceStyle[]>([]);
+  const [loadingAIVoiceStyles, setLoadingAIVoiceStyles] = useState(false);
+
+  // Load AI voice styles if enhanced selector is enabled
+  React.useEffect(() => {
+    if (useEnhancedSelector && isExpanded && aiVoiceStyles.length === 0) {
+      const loadAIVoiceStyles = async () => {
+        try {
+          setLoadingAIVoiceStyles(true);
+          const styles = await mobileAIService.getVoiceStyles();
+          setAIVoiceStyles(styles);
+        } catch (error) {
+          console.error('Failed to load AI voice styles:', error);
+        } finally {
+          setLoadingAIVoiceStyles(false);
+        }
+      };
+      
+      loadAIVoiceStyles();
+    }
+  }, [useEnhancedSelector, isExpanded, aiVoiceStyles.length]);
+
+  // Map ElevenLabs voices to our AI voice styles for compatibility
+  const mapVoiceIdToStyle = (voiceId: string): AIVoiceStyle | undefined => {
+    return aiVoiceStyles.find(style => style.voiceId === voiceId);
+  };
 
   return (
     <View style={styles.sectionContainer}>
@@ -72,47 +104,87 @@ export default function AITransformationPanel({
             Transform your recording with professional AI voices
           </Text>
 
-          {/* Voice Selection */}
-          <View style={styles.voiceSection}>
-            <Text style={styles.sectionTitle}>Choose Voice</Text>
-
-            {isLoadingVoices ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={colors.dark.primary} />
-                <Text style={styles.loadingText}>Loading voices...</Text>
-              </View>
-            ) : (
-              <FlatList
-                data={voices}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.voiceItem,
-                      selectedVoiceId === item.voiceId &&
-                        styles.voiceItemSelected,
-                    ]}
-                    onPress={() => setSelectedVoiceId(item.voiceId)}
-                  >
-                    <View style={styles.voiceInfo}>
-                      <Text style={styles.voiceName}>{item.name}</Text>
-                      {item.description && (
-                        <Text style={styles.voiceDescription}>
-                          {item.description}
-                        </Text>
-                      )}
+          {/* Voice Selection - Use enhanced selector if enabled */}
+          {useEnhancedSelector ? (
+            <View style={styles.voiceSection}>
+              <Text style={styles.sectionTitle}>Choose AI Voice Style</Text>
+              
+              {loadingAIVoiceStyles ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color={colors.dark.primary} />
+                  <Text style={styles.loadingText}>Loading AI voice styles...</Text>
+                </View>
+              ) : (
+                <AIVoiceSelector
+                  onVoiceSelected={(voiceStyle) => setSelectedVoiceId(voiceStyle.voiceId)}
+                  selectedVoiceId={selectedVoiceId}
+                  showCategories={true}
+                />
+              )}
+              
+              {/* Show selected voice info */}
+              {selectedVoiceId && !loadingAIVoiceStyles && (
+                <View style={styles.selectedVoiceInfo}>
+                  <Text style={styles.selectedVoiceTitle}>Selected Voice</Text>
+                  {mapVoiceIdToStyle(selectedVoiceId) ? (
+                    <View style={styles.selectedVoiceDetails}>
+                      <Text style={styles.selectedVoiceName}>
+                        {mapVoiceIdToStyle(selectedVoiceId)?.name}
+                      </Text>
+                      <Text style={styles.selectedVoiceDescription}>
+                        {mapVoiceIdToStyle(selectedVoiceId)?.description}
+                      </Text>
                     </View>
-                    {selectedVoiceId === item.voiceId && (
-                      <Check size={20} color={colors.dark.primary} />
-                    )}
-                  </TouchableOpacity>
-                )}
-                keyExtractor={(item) => item.voiceId}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.voicesList}
-              />
-            )}
-          </View>
+                  ) : (
+                    <Text style={styles.selectedVoiceFallback}>
+                      Custom voice selected
+                    </Text>
+                  )}
+                </View>
+              )}
+            </View>
+          ) : (
+            <View style={styles.voiceSection}>
+              <Text style={styles.sectionTitle}>Choose Voice</Text>
+
+              {isLoadingVoices ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color={colors.dark.primary} />
+                  <Text style={styles.loadingText}>Loading voices...</Text>
+                </View>
+              ) : (
+                <FlatList
+                  data={voices}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={[
+                        styles.voiceItem,
+                        selectedVoiceId === item.voiceId &&
+                          styles.voiceItemSelected,
+                      ]}
+                      onPress={() => setSelectedVoiceId(item.voiceId)}
+                    >
+                      <View style={styles.voiceInfo}>
+                        <Text style={styles.voiceName}>{item.name}</Text>
+                        {item.description && (
+                          <Text style={styles.voiceDescription}>
+                            {item.description}
+                          </Text>
+                        )}
+                      </View>
+                      {selectedVoiceId === item.voiceId && (
+                        <Check size={20} color={colors.dark.primary} />
+                      )}
+                    </TouchableOpacity>
+                  )}
+                  keyExtractor={(item) => item.voiceId}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.voicesList}
+                />
+              )}
+            </View>
+          )}
 
           {/* Transform Button */}
           <TouchableOpacity
@@ -138,16 +210,71 @@ export default function AITransformationPanel({
             )}
           </TouchableOpacity>
 
-          {/* Transformed Audio Preview */}
-          {transformedBlob && (
-            <View style={styles.transformedContainer}>
-              <Text style={styles.transformedTitle}>
-                Transformed Audio Ready!
-              </Text>
-              <TouchableOpacity style={buttonStyles.primary}>
-                <View style={styles.buttonContent}>
-                  <Volume2 size={20} color={colors.dark.text} />
-                  <Text style={buttonStyles.primaryText}>Play Preview</Text>
+          {/* Audio Preview Section */}
+          {(transformedBlob || audioBlobForDubbing) && (
+            <View style={styles.previewSection}>
+              <Text style={styles.previewSectionTitle}>Audio Preview</Text>
+              
+              {/* Original Audio Preview */}
+              {audioBlobForDubbing && (
+                <View style={styles.previewItem}>
+                  <Text style={styles.previewItemTitle}>Original Recording</Text>
+                  <AudioPreviewPlayer
+                    audioBlob={audioBlobForDubbing}
+                    title="Original"
+                    subtitle="Your original voice recording"
+                    showWaveform={true}
+                  />
+                </View>
+              )}
+              
+              {/* Transformed Audio Preview */}
+              {transformedBlob && (
+                <View style={styles.previewItem}>
+                  <Text style={styles.previewItemTitle}>AI Transformed</Text>
+                  <AudioPreviewPlayer
+                    audioBlob={transformedBlob}
+                    title="AI Voice"
+                    subtitle={`Transformed with ${selectedVoiceId}`}
+                    showWaveform={true}
+                  />
+                </View>
+              )}
+              
+              {/* Comparison View */}
+              {transformedBlob && audioBlobForDubbing && (
+                <View style={styles.comparisonContainer}>
+                  <Text style={styles.comparisonTitle}>🎧 Compare Versions</Text>
+                  <Text style={styles.comparisonSubtitle}>
+                    Listen to both versions to choose your favorite
+                  </Text>
+                  
+                  <View style={styles.comparisonControls}>
+                    <Button
+                      title="Play Both"
+                      variant="secondary"
+                      size="sm"
+                      icon="play"
+                      onPress={() => {
+                        // Would play both audio clips sequentially
+                        console.log('Play both audio clips');
+                      }}
+                    />
+                    <Button
+                      title="A/B Test"
+                      variant="secondary"
+                      size="sm"
+                      icon="swap-horizontal"
+                      onPress={() => {
+                        // Would toggle between versions
+                        console.log('A/B test mode');
+                      }}
+                    />
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
                 </View>
               </TouchableOpacity>
               <TouchableOpacity style={buttonStyles.secondary}>
@@ -231,6 +358,89 @@ const styles = StyleSheet.create({
   },
   voicesList: {
     paddingBottom: 8,
+  },
+  // Enhanced selector styles
+  selectedVoiceInfo: {
+    marginTop: theme.spacing.md,
+    padding: theme.spacing.md,
+    backgroundColor: colors.dark.cardAlt,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+  },
+  selectedVoiceTitle: {
+    fontSize: theme.typography.fontSizes.md,
+    fontWeight: "600",
+    color: colors.dark.primary,
+    marginBottom: theme.spacing.xs,
+  },
+  selectedVoiceDetails: {
+    gap: theme.spacing.xxs,
+  },
+  selectedVoiceName: {
+    fontSize: theme.typography.fontSizes.md,
+    fontWeight: "500",
+    color: colors.dark.text,
+  },
+  selectedVoiceDescription: {
+    fontSize: theme.typography.fontSizes.sm,
+    color: colors.dark.textSecondary,
+  },
+  selectedVoiceFallback: {
+    fontSize: theme.typography.fontSizes.sm,
+    color: colors.dark.textSecondary,
+    fontStyle: "italic",
+  },
+  // Preview section styles
+  previewSection: {
+    marginTop: theme.spacing.lg,
+    padding: theme.spacing.md,
+    backgroundColor: colors.dark.card,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+  },
+  previewSectionTitle: {
+    fontSize: theme.typography.fontSizes.xl,
+    fontWeight: "600",
+    color: colors.dark.text,
+    marginBottom: theme.spacing.md,
+    textAlign: 'center',
+  },
+  previewItem: {
+    marginBottom: theme.spacing.lg,
+  },
+  previewItemTitle: {
+    fontSize: theme.typography.fontSizes.md,
+    fontWeight: "500",
+    color: colors.dark.text,
+    marginBottom: theme.spacing.sm,
+  },
+  comparisonContainer: {
+    marginTop: theme.spacing.md,
+    padding: theme.spacing.md,
+    backgroundColor: colors.dark.cardAlt,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+  },
+  comparisonTitle: {
+    fontSize: theme.typography.fontSizes.md,
+    fontWeight: "600",
+    color: colors.dark.text,
+    marginBottom: theme.spacing.xs,
+    textAlign: 'center',
+  },
+  comparisonSubtitle: {
+    fontSize: theme.typography.fontSizes.sm,
+    color: colors.dark.textSecondary,
+    marginBottom: theme.spacing.md,
+    textAlign: 'center',
+  },
+  comparisonControls: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: theme.spacing.md,
   },
   voiceItem: {
     backgroundColor: colors.dark.card,

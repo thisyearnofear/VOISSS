@@ -710,7 +710,7 @@ export default function RecordScreen() {
           {renderControls()}
         </View>
 
-        {/* AI Transformation Panel */}
+        {/* AI Transformation Panel - Use enhanced selector */}
         {showSaveOptions && capabilities.canAccessAI && (
         <AITransformationPanel
         voices={voices}
@@ -719,9 +719,11 @@ export default function RecordScreen() {
         isLoadingVoices={isLoadingVoices}
         isTransforming={isTransforming}
         transformedBlob={transformedBlob}
+        audioBlobForDubbing={audioBlobForDubbing} // Pass original audio for preview
         onTransform={transformVoice}
         capabilities={capabilities}
         currentTier={currentTier}
+        useEnhancedSelector={true} // Enable enhanced AI voice selector
         />
         )}
 

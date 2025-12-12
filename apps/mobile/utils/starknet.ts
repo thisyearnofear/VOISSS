@@ -1,21 +1,25 @@
 import {
-  STARKNET_NETWORKS,
-  type StarknetConfig,
+  blockchainService,
+  type BaseChainConfig,
+  type SupportedChains,
   type VoiceNFTMetadata,
   type MarketplaceListing,
-} from "@voisss/shared/starknet";
+} from "@voisss/shared/blockchain";
 import { getStoredWalletAddress, saveUserSession, clearUserSession } from "@voisss/shared/src/utils/session";
 
 const STORAGE_KEYS = {
   WALLET_ADDRESS: "@voisss/wallet_address",
   NETWORK: "@voisss/network",
+  CHAIN: "@voisss/chain",
 } as const;
 
-class StarknetMobile {
-  private config: StarknetConfig;
+class BlockchainMobile {
+  private currentChain: SupportedChains;
+  private currentNetwork: string;
 
-  constructor(config: StarknetConfig) {
-    this.config = config;
+  constructor() {
+    this.currentChain = 'starknet'; // Default to Starknet for backward compatibility
+    this.currentNetwork = 'TESTNET';
   }
 
   async getStoredWalletAddress(): Promise<string | null> {
@@ -37,30 +41,66 @@ class StarknetMobile {
     return clearUserSession();
   }
 
-  async getStoredNetwork(): Promise<string> {
+  async getStoredChain(): Promise<SupportedChains> {
     const session = await import("@voisss/shared/src/utils/session");
-    const network = await session.getStoredNetwork();
-    return network || STARKNET_NETWORKS.TESTNET.networkId;
+    return (await session.getStoredChain()) || 'starknet';
   }
 
-  async setStoredNetwork(networkId: string): Promise<void> {
+  async setStoredChain(chain: SupportedChains): Promise<void> {
     const session = await import("@voisss/shared/src/utils/session");
     const existingSession = await session.loadUserSession();
     if (existingSession) {
-      await session.updateSession({ network: networkId });
+      await session.updateSession({ chain });
     } else {
-      await session.createSession(undefined, networkId);
+      await session.createSession(undefined, undefined, chain);
     }
+    this.currentChain = chain;
   }
 
-  async connectWallet(): Promise<void> {
+  async getStoredNetwork(): Promise<string> {
+    const session = await import("@voisss/shared/src/utils/session");
+    return (await session.getStoredNetwork()) || 'TESTNET';
+  }
+
+  async setStoredNetwork(network: string): Promise<void> {
+    const session = await import("@voisss/shared/src/utils/session");
+    const existingSession = await session.loadUserSession();
+    if (existingSession) {
+      await session.updateSession({ network });
+    } else {
+      await session.createSession(undefined, network);
+    }
+    this.currentNetwork = network;
+  }
+
+  async connectWallet(): Promise<string> {
     try {
-      // Initialize connection to Starknet network
-      console.log("Wallet connected successfully");
+      // Initialize connection using the new blockchain service
+      const address = await blockchainService.connectWallet();
+      console.log("Wallet connected successfully:", address);
+      return address;
     } catch (error) {
       console.error("Failed to connect wallet:", error);
       throw error;
     }
+  }
+
+  async switchChain(chain: SupportedChains, network: string): Promise<void> {
+    try {
+      await blockchainService.switchChain(chain, network);
+      await this.setStoredChain(chain);
+      await this.setStoredNetwork(network);
+      this.currentChain = chain;
+      this.currentNetwork = network;
+      console.log(`Switched to ${chain}:${network} successfully`);
+    } catch (error) {
+      console.error("Failed to switch chain:", error);
+      throw error;
+    }
+  }
+
+  async getCurrentChainConfig(): Promise<BaseChainConfig> {
+    return blockchainService.getCurrentChainConfig();
   }
 
   async disconnectWallet(): Promise<void> {
@@ -115,13 +155,24 @@ class StarknetMobile {
       throw error;
     }
   }
+  
+  // Tipping functionality
+  async sendTip(to: string, amount: string, tokenAddress?: string): Promise<string> {
+    return blockchainService.sendTip(to, amount, tokenAddress);
+  }
+  
+  async estimateTipCost(amount: string, tokenAddress?: string): Promise<string> {
+    return blockchainService.estimateTipCost(amount, tokenAddress);
+  }
+  
+  async getTokenBalance(address: string, tokenAddress: string): Promise<string> {
+    return blockchainService.getTokenBalance(address, tokenAddress);
+  }
 }
 
-export const starknet = new StarknetMobile({
-  networkId: STARKNET_NETWORKS.TESTNET.networkId,
-  nodeUrl: STARKNET_NETWORKS.TESTNET.nodeUrl,
-  contractAddresses: {
-    voiceNFT: "0x...",
-    marketplace: "0x...",
-  },
-});
+export const blockchain = new BlockchainMobile();
+
+// Legacy export for backward compatibility
+export const starknet = blockchain;
+
+export type { SupportedChains, BaseChainConfig, TipTransaction } from "@voisss/shared/blockchain";
