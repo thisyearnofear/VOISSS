@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { blockchain, type SupportedChains, type BaseChainConfig } from '../utils/starknet';
-import { ALL_CHAINS } from '@voisss/shared/blockchain';
+import { ALL_CHAINS } from '@voisss/shared';
 import { Ionicons } from '@expo/vector-icons';
 
 interface ChainSelectorProps {
@@ -10,7 +10,7 @@ interface ChainSelectorProps {
   showNetworks?: boolean;
 }
 
-export const ChainSelector: React.FC<ChainSelectorProps> = ({ 
+export const ChainSelector: React.FC<ChainSelectorProps> = ({
   onChainSelected,
   showNetworks = true,
 }) => {
@@ -27,14 +27,14 @@ export const ChainSelector: React.FC<ChainSelectorProps> = ({
         const network = await blockchain.getStoredNetwork();
         setSelectedChain(chain);
         setSelectedNetwork(network);
-        
+
         const config = await blockchain.getCurrentChainConfig();
         setCurrentChainConfig(config);
       } catch (error) {
         console.error('Failed to load current chain:', error);
       }
     };
-    
+
     loadCurrentChain();
   }, []);
 
@@ -44,10 +44,10 @@ export const ChainSelector: React.FC<ChainSelectorProps> = ({
       setSelectedChain(chain);
       setSelectedNetwork(network);
       setModalVisible(false);
-      
+
       const config = await blockchain.getCurrentChainConfig();
       setCurrentChainConfig(config);
-      
+
       onChainSelected?.(chain, network);
     } catch (error) {
       console.error('Failed to switch chain:', error);
@@ -58,14 +58,14 @@ export const ChainSelector: React.FC<ChainSelectorProps> = ({
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity 
-        style={[styles.chainButton, { paddingTop: insets.top + 10 }]} 
+      <TouchableOpacity
+        style={[styles.chainButton, { paddingTop: insets.top + 10 }]}
         onPress={() => setModalVisible(true)}
       >
         {currentChainConfig ? (
           <>
             <View style={styles.chainInfo}>
-              <Ionicons 
+              <Ionicons
                 name={selectedChain === 'starknet' ? 'diamond' : 'layers'}
                 size={20}
                 color="white"
@@ -81,8 +81,8 @@ export const ChainSelector: React.FC<ChainSelectorProps> = ({
         ) : (
           <Text style={styles.chainText}>Select Chain</Text>
         )}
-      </TouchableOpacity
-      
+      </TouchableOpacity>
+
       <Modal
         animationType="slide"
         transparent={true}
@@ -92,37 +92,40 @@ export const ChainSelector: React.FC<ChainSelectorProps> = ({
         <View style={styles.modalContainer}>
           <View style={[styles.modalContent, { paddingBottom: insets.bottom + 20 }]}>
             <Text style={styles.modalTitle}>Select Blockchain</Text>
-            
+
             {availableChains.map(([chain, networks]) => (
               <View key={chain} style={styles.chainGroup}>
                 <Text style={styles.chainGroupTitle}>{chain.charAt(0).toUpperCase() + chain.slice(1)}</Text>
-                
-                {Object.entries(networks).map(([networkKey, networkConfig]) => (
-                  <TouchableOpacity
-                    key={`${chain}-${networkKey}`}
-                    style={styles.networkButton}
-                    onPress={() => handleChainSelect(chain, networkKey)}
-                  >
-                    <View style={styles.networkInfo}>
-                      <Ionicons 
-                        name={chain === 'starknet' ? 'diamond' : 'layers'}
-                        size={18}
-                        color={networkConfig.isTestnet ? '#FFA500' : '#4CAF50'}
-                      />
-                      <Text style={styles.networkText}>
-                        {networkConfig.chainName}
-                        {networkConfig.isTestnet && ' (Testnet)'}
-                      </Text>
-                    </View>
-                    {(selectedChain === chain && selectedNetwork === networkKey) && (
-                      <Ionicons name="checkmark" size={20} color="#4CAF50" />
-                    )}
-                  </TouchableOpacity>
-                ))}
+
+                {Object.entries(networks).map(([networkKey, networkConfig]) => {
+                  const config = networkConfig as BaseChainConfig;
+                  return (
+                    <TouchableOpacity
+                      key={`${chain}-${networkKey}`}
+                      style={styles.networkButton}
+                      onPress={() => handleChainSelect(chain, networkKey)}
+                    >
+                      <View style={styles.networkInfo}>
+                        <Ionicons
+                          name={chain === 'starknet' ? 'diamond' : 'layers'}
+                          size={18}
+                          color={config.isTestnet ? '#FFA500' : '#4CAF50'}
+                        />
+                        <Text style={styles.networkText}>
+                          {config.chainName}
+                          {config.isTestnet && ' (Testnet)'}
+                        </Text>
+                      </View>
+                      {(selectedChain === chain && selectedNetwork === networkKey) && (
+                        <Ionicons name="checkmark" size={20} color="#4CAF50" />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             ))}
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setModalVisible(false)}
             >

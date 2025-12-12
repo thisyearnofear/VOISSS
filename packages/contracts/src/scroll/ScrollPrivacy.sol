@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 /**
  * ScrollPrivacy - zkEVM Privacy Contract for Scroll
@@ -279,13 +279,13 @@ contract ScrollPrivacy is AccessControl, ReentrancyGuard {
      * @param contentId The content ID
      * @param user The user to check
      * @param permissionType Type of permission to check
-     * @return hasAccess Whether user has access
+     * @return Whether user has access
      */
     function hasAccess(
         bytes32 contentId,
         address user,
         uint8 permissionType
-    ) external view returns (bool hasAccess) {
+    ) external view returns (bool) {
         // Check if content is public
         PrivateContent memory content = privateContents[contentId];
         if (content.contentId != bytes32(0) && content.isPublic) {
@@ -405,22 +405,27 @@ contract ScrollPrivacy is AccessControl, ReentrancyGuard {
      */
     function useShareLink(
         bytes32 token
-    ) external nonReentrant returns (bytes32 contentId) {
-        // Verify share link
-        (contentId, bool isValid) = verifyShareLink(token);
-        if (!isValid) {
+    ) internal returns (bytes32 contentId) {
+        // Get share link
+        ShareLink memory shareLink = shareLinks[token];
+        
+        // Check share link exists
+        if (shareLink.token == bytes32(0)) {
             revert ShareLinkInvalid();
         }
 
-        // Check if link is expired
-        ShareLink memory shareLink = shareLinks[token];
+        // Check if link is active
+        if (!shareLink.isActive) {
+            revert ShareLinkInvalid();
+        }
+
+        // Check expiration
         if (shareLink.expiresAt != 0 && block.timestamp > shareLink.expiresAt) {
             revert ShareLinkExpired();
         }
 
+        contentId = shareLink.contentId;
         emit ShareLinkUsed(token, msg.sender);
-
-        return contentId;
     }
 
     /**

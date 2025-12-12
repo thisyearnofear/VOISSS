@@ -1,43 +1,36 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
-
-/**
- * ScrollVRF - Verifiable Random Function Contract for Scroll
- * 
- * Features:
- * - Chainlink VRF integration for Scroll
- * - Verifiable randomness with on-chain proof verification
- * - Gas-optimized for Scroll's zkEVM
- * - Event-based architecture for frontend integration
- * 
- * Security:
- * - Reentrancy protection
- * - Access control
- * - Input validation
- * - Comprehensive event logging
- */
+pragma solidity ^0.8.20;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import {IAnyrand} from "@anyrand/contracts/interfaces/IAnyrand.sol";
-import {IRandomiserCallbackV3} from "@anyrand/contracts/interfaces/IRandomiserCallbackV3.sol";
 
-contract ScrollVRF is AccessControl, ReentrancyGuard, IRandomiserCallbackV3 {
-    // Anyrand configuration
-    address public anyrand;
-    uint256 public callbackGasLimit;
+/**
+ * ScrollVRF - Verifiable Random Function Contract for Scroll
+ * Simplified for Remix deployment without external VRF dependencies
+ * 
+ * Features:
+ * - On-chain randomness for fair voice selection
+ * - Access control for consumer requests
+ * - Event-based architecture for frontend integration
+ * - Gas-optimized for Scroll's zkEVM
+ */
 
-    // Randomness requests and results
+contract ScrollVRF is AccessControl, ReentrancyGuard {
+    // Randomness request structure
     struct RandomnessRequest {
         uint256 requestId;
         address requester;
         uint256 timestamp;
         string callbackFunction;
         uint256 deadline;
+        uint256 randomNumber;
+        bool fulfilled;
     }
 
+    // Storage
     mapping(uint256 => RandomnessRequest) public requests;
-    mapping(uint256 => uint256) public randomnessResults;
+    mapping(address => uint256[]) public userRequests;
+    uint256 public requestCounter;
 
     // Events
     event RandomnessRequested(
@@ -67,23 +60,18 @@ contract ScrollVRF is AccessControl, ReentrancyGuard, IRandomiserCallbackV3 {
     error InvalidInput();
     error RequestNotFound();
     error AlreadyFulfilled();
-    error VRFFailure();
 
     /**
      * Constructor
-     * Initialize with Anyrand configuration
+     * Initialize with default admin
      */
-    constructor(address anyrand_) {
-        anyrand = anyrand_;
-        callbackGasLimit = 500000; // Default gas limit
-
-        // Grant admin role to deployer
+    constructor() {
         _grantRole(VRF_ADMIN_ROLE, msg.sender);
         _grantRole(VRF_CONSUMER_ROLE, msg.sender);
     }
 
     /**
-     * Request randomness from Anyrand
+     * Request randomness for voice selection
      * @param user Address requesting randomness
      * @param callbackFunction Function to call with result
      * @param deadline Timestamp for when randomness should be fulfilled
@@ -93,7 +81,7 @@ contract ScrollVRF is AccessControl, ReentrancyGuard, IRandomiserCallbackV3 {
         address user,
         string memory callbackFunction,
         uint256 deadline
-    ) external payable nonReentrant returns (uint256 requestId) {
+    ) external nonReentrant returns (uint256 requestId) {
         // Validate input
         if (user == address(0)) {
             revert InvalidInput();
@@ -108,145 +96,124 @@ contract ScrollVRF is AccessControl, ReentrancyGuard, IRandomiserCallbackV3 {
             revert Unauthorized();
         }
 
-        // Get request price from Anyrand
-        (uint256 requestPrice, ) = IAnyrand(anyrand).getRequestPrice(callbackGasLimit);
+        // Generate request ID
+        requestId = requestCounter++;
 
-        // Ensure sufficient payment
-        if (msg.value < requestPrice) {
-            revert InvalidInput();
-        }
-
-        // Refund excess payment
-        if (msg.value > requestPrice) {
-            (bool success, ) = msg.sender.call{value: msg.value - requestPrice}("");
-            require(success, "Refund failed");
-        }
-
-        // Request randomness from Anyrand
-        requestId = IAnyrand(anyrand).requestRandomness{value: requestPrice}(
-            deadline,
-            callbackGasLimit
+        // Generate randomness using on-chain entropy
+        // In production, this would use Chainlink VRF or similar
+        // For Scroll testnet, we use block hash + timestamp for fairness
+        uint256 randomNumber = uint256(
+            keccak256(abi.encodePacked(
+                blockhash(block.number - 1),
+                block.timestamp,
+                user,
+                requestId
+            ))
         );
 
-        // Store request metadata
+        // Store request
         requests[requestId] = RandomnessRequest({
             requestId: requestId,
             requester: user,
             timestamp: block.timestamp,
             callbackFunction: callbackFunction,
-            deadline: deadline
+            deadline: deadline,
+            randomNumber: randomNumber,
+            fulfilled: true
         });
 
+        userRequests[user].push(requestId);
+
         emit RandomnessRequested(requestId, user, block.timestamp, deadline);
+        emit RandomnessFulfilled(requestId, randomNumber);
+
+        return requestId;
     }
 
     /**
-     * Anyrand fulfillment callback
-     * @param requestId The request ID
-     * @param randomWord The random word generated
-     */
-    function receiveRandomness(
-        uint256 requestId,
-        uint256 randomWord
-    ) external override {
-        // Verify request exists
-        RandomnessRequest memory request = requests[requestId];
-        if (request.requestId == 0) {
-            revert RequestNotFound();
-        }
-
-        // Verify not already fulfilled
-        if (randomnessResults[requestId] != 0) {
-            revert AlreadyFulfilled();
-        }
-
-        // Verify caller is Anyrand
-        if (msg.sender != anyrand) {
-            revert Unauthorized();
-        }
-
-        // Store randomness result
-        randomnessResults[requestId] = randomWord;
-
-        emit RandomnessFulfilled(requestId, randomWord);
-    }
-
-    /**
-     * Get randomness result with proof
+     * Get randomness result
      * @param requestId The request ID
      * @return randomNumber The random number
-     * @return proof The verification proof
+     * @return isFulfilled Whether request has been fulfilled
      */
     function getRandomness(
-        bytes32 requestId
-    ) external view returns (uint256 randomNumber, bytes memory proof) {
-        randomNumber = randomnessResults[requestId];
-        proof = randomnessProofs[requestId];
-
-        if (randomNumber == 0) {
+        uint256 requestId
+    ) external view returns (uint256 randomNumber, bool isFulfilled) {
+        RandomnessRequest memory request = requests[requestId];
+        if (request.requestId == 0 && requestId != 0) {
             revert RequestNotFound();
         }
+        return (request.randomNumber, request.fulfilled);
     }
 
     /**
-     * Verify randomness proof
+     * Verify randomness is valid
      * @param requestId The request ID
-     * @return isValid Whether the proof is valid
+     * @return isValid Whether the randomness is valid
      */
     function verifyRandomness(
-        bytes32 requestId
+        uint256 requestId
     ) external view returns (bool isValid) {
-        // In production, this would verify the cryptographic proof
-        // For now, we check if the request was fulfilled
-        return randomnessResults[requestId] != 0;
+        return requests[requestId].fulfilled;
     }
 
     /**
      * Use randomness for a specific purpose
      * @param requestId The request ID
      * @param user The user using the randomness
-     * @param useCase Description of the use case
+     * @param useCase Description of the use case (e.g., "voice-selection")
      */
     function useRandomness(
-        bytes32 requestId,
+        uint256 requestId,
         address user,
         string memory useCase
     ) external nonReentrant {
-        // Verify request exists and is fulfilled
-        if (randomnessResults[requestId] == 0) {
+        RandomnessRequest memory request = requests[requestId];
+        
+        if (!request.fulfilled) {
             revert RequestNotFound();
         }
 
-        // Emit usage event
         emit RandomnessUsed(requestId, user, useCase);
     }
 
     /**
-     * Admin functions
+     * Get user's requests
+     * @param user The user address
+     * @return requestIds Array of request IDs
      */
-    function setAnyrandAddress(address newAnyrand) external onlyRole(VRF_ADMIN_ROLE) {
-        anyrand = newAnyrand;
-    }
-
-    function setCallbackGasLimit(uint256 newGasLimit) external onlyRole(VRF_ADMIN_ROLE) {
-        callbackGasLimit = newGasLimit;
+    function getUserRequests(address user) external view returns (uint256[] memory requestIds) {
+        return userRequests[user];
     }
 
     /**
-     * Role management
+     * Admin: Grant consumer role
+     * @param user Address to grant role to
      */
     function grantConsumerRole(address user) external onlyRole(VRF_ADMIN_ROLE) {
         _grantRole(VRF_CONSUMER_ROLE, user);
     }
 
+    /**
+     * Admin: Revoke consumer role
+     * @param user Address to revoke role from
+     */
     function revokeConsumerRole(address user) external onlyRole(VRF_ADMIN_ROLE) {
         _revokeRole(VRF_CONSUMER_ROLE, user);
     }
 
+    /**
+     * Admin: Grant admin role
+     * @param user Address to grant role to
+     */
     function grantAdminRole(address user) external onlyRole(VRF_ADMIN_ROLE) {
         _grantRole(VRF_ADMIN_ROLE, user);
     }
 
+    /**
+     * Admin: Revoke admin role
+     * @param user Address to revoke role from
+     */
     function revokeAdminRole(address user) external onlyRole(VRF_ADMIN_ROLE) {
         _revokeRole(VRF_ADMIN_ROLE, user);
     }

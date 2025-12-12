@@ -29,12 +29,11 @@ import { colors } from "@voisss/ui";
 import { createAIServiceClient, formatDuration } from "@voisss/shared";
 import { theme } from "@voisss/ui";
 import type { VoiceInfo } from "@voisss/shared/types/audio";
+import { scrollBlockchainService } from "../../services/scrollBlockchainService";
 
 const { width } = Dimensions.get("window");
 
-import WaveformVisualization from "../../components/WaveformVisualization";
-import AITransformationPanel from "../../components/AITransformationPanel";
-import DubbingPanel from "../../components/DubbingPanel";
+import { WaveformVisualization, AITransformationPanel, DubbingPanel } from "@voisss/ui";
 import { SocialShare } from "@voisss/ui";
 
 export default function RecordScreen() {
@@ -97,6 +96,11 @@ export default function RecordScreen() {
   // Sharing state
   const [savedRecordings, setSavedRecordings] = useState<any[]>([]);
   const [showSharing, setShowSharing] = useState(false);
+
+  // Scroll blockchain state
+  const [isVRFLoading, setIsVRFLoading] = useState(false);
+  const [isStoringOnScroll, setIsStoringOnScroll] = useState(false);
+  const [isRecordingPublic, setIsRecordingPublic] = useState(false);
 
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTitle, setRecordingTitle] = useState("");
@@ -164,6 +168,24 @@ export default function RecordScreen() {
   loadVoices();
   }
   }, [capabilities.canAccessAI, showSaveOptions, loadVoices]);
+
+  // Handle ScrollVRF "Surprise Me" voice selection
+  const handleVRFVoiceSelection = useCallback(async (voiceId: string) => {
+    try {
+      setIsVRFLoading(true);
+      console.log('🎲 VRF Voice Selection:', voiceId);
+      // For testnet, simulate VRF request
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setSelectedVoiceId(voiceId);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.error('VRF selection failed:', error);
+      Alert.alert('Error', 'Failed to select random voice');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsVRFLoading(false);
+    }
+  }, []);
 
   // Convert URI to Blob for dubbing when recording is complete
   useEffect(() => {
@@ -375,7 +397,7 @@ export default function RecordScreen() {
     );
   }, [cancelRecording]);
 
-  // Unified save handler for all selected versions
+  // Unified save handler for all selected versions with Scroll integration
   const handleUnifiedSave = useCallback(async () => {
     if (!audioBlobForDubbing) return;
 
@@ -387,8 +409,15 @@ export default function RecordScreen() {
     }
 
     try {
+      setIsStoringOnScroll(true);
       const baseTitle = recordingTitle || `Recording ${new Date().toLocaleString()}`;
       const results = [];
+      
+      // Connect to Scroll if not already connected
+      if (!scrollBlockchainService.isConnected() && account) {
+        console.log('📡 Connecting to Scroll Sepolia...');
+        await scrollBlockchainService.connectWallet(account);
+      }
 
       // Save original if selected
       if (selectedVersions.original && audioBlobForDubbing) {
@@ -488,15 +517,21 @@ export default function RecordScreen() {
         setShowSaveOptions(false);
         setRecordingTitle("");
       }
-    } catch (error) {
+      } catch (error) {
       console.error('Error saving recordings:', error);
-      Alert.alert("Save Error", "Failed to save recordings. Please try again.");
-    }
-  }, [
-    audioBlobForDubbing,
-    transformedBlob,
-    dubbedBlob,
-    selectedVersions,
+      if (error instanceof Error && error.message.includes('Wallet not connected')) {
+        Alert.alert("Wallet Connection", "Please connect your wallet to save to Scroll blockchain.");
+      } else {
+        Alert.alert("Save Error", "Failed to save recordings. Please try again.");
+      }
+      } finally {
+      setIsStoringOnScroll(false);
+      }
+      }, [
+      audioBlobForDubbing,
+      transformedBlob,
+      dubbedBlob,
+      selectedVersions,
     recordingTitle,
     duration,
     selectedVoiceId,
@@ -710,22 +745,24 @@ export default function RecordScreen() {
           {renderControls()}
         </View>
 
-        {/* AI Transformation Panel - Use enhanced selector */}
-        {showSaveOptions && capabilities.canAccessAI && (
-        <AITransformationPanel
-        voices={voices}
-        selectedVoiceId={selectedVoiceId}
-        setSelectedVoiceId={setSelectedVoiceId}
-        isLoadingVoices={isLoadingVoices}
-        isTransforming={isTransforming}
-        transformedBlob={transformedBlob}
-        audioBlobForDubbing={audioBlobForDubbing} // Pass original audio for preview
-        onTransform={transformVoice}
-        capabilities={capabilities}
-        currentTier={currentTier}
-        useEnhancedSelector={true} // Enable enhanced AI voice selector
-        />
-        )}
+        {/* AI Transformation Panel - Use enhanced selector with VRF */}
+         {showSaveOptions && capabilities.canAccessAI && (
+         <AITransformationPanel
+         voices={voices}
+         selectedVoiceId={selectedVoiceId}
+         setSelectedVoiceId={setSelectedVoiceId}
+         isLoadingVoices={isLoadingVoices}
+         isTransforming={isTransforming}
+         transformedBlob={transformedBlob}
+         audioBlobForDubbing={audioBlobForDubbing} // Pass original audio for preview
+         onTransform={transformVoice}
+         onVRFSelect={handleVRFVoiceSelection}
+         isVRFLoading={isVRFLoading}
+         capabilities={capabilities}
+         currentTier={currentTier}
+         useEnhancedSelector={true} // Enable enhanced AI voice selector
+         />
+         )}
 
         {/* Dubbing Panel */}
         {showSaveOptions && audioBlobForDubbing && (
@@ -743,14 +780,32 @@ export default function RecordScreen() {
         )}
 
         {/* Version Selection Panel */}
-        {showSaveOptions && (
-          <View style={styles.versionSelectionPanel}>
-            <Text style={styles.versionSelectionTitle}>Select Versions to Save</Text>
-            <Text style={styles.versionSelectionSubtitle}>
-              Choose which versions you want to save to blockchain
-            </Text>
+         {showSaveOptions && (
+           <View style={styles.versionSelectionPanel}>
+             <Text style={styles.versionSelectionTitle}>Select Versions to Save</Text>
+             <Text style={styles.versionSelectionSubtitle}>
+               Choose which versions you want to save to blockchain
+             </Text>
 
-            <View style={styles.versionOptions}>
+             {/* Privacy Toggle - Scroll Integration */}
+             <TouchableOpacity
+               style={[styles.privacyToggle, isRecordingPublic && styles.privacyTogglePublic]}
+               onPress={() => setIsRecordingPublic(!isRecordingPublic)}
+             >
+               <View style={styles.privacyToggleContent}>
+                 <Text style={styles.privacyToggleLabel}>
+                   {isRecordingPublic ? '🌐 Public Recording' : '🔒 Private Recording'}
+                 </Text>
+                 <Text style={styles.privacyToggleSubtitle}>
+                   {isRecordingPublic
+                     ? 'Anyone can view this recording'
+                     : 'Only you can access via Scroll Privacy'}
+                 </Text>
+               </View>
+               <View style={[styles.toggleSwitch, isRecordingPublic && styles.toggleSwitchActive]} />
+             </TouchableOpacity>
+
+             <View style={styles.versionOptions}>
               {/* Original Version */}
               <TouchableOpacity
                 style={[styles.versionOption, selectedVersions.original && styles.versionOptionSelected]}
@@ -836,19 +891,21 @@ export default function RecordScreen() {
         )}
 
         {/* Save Actions */}
-        {showSaveOptions && (
-          <View style={styles.saveActions}>
-            <TouchableOpacity
-              style={[buttonStyles.primaryButton, styles.saveButton]}
-              onPress={handleUnifiedSave}
-              disabled={!Object.values(selectedVersions).some(Boolean)}
-            >
-              <Text style={styles.saveButtonText}>
-                {Object.values(selectedVersions).filter(Boolean).length === 0
-                  ? 'Select versions to save'
-                  : `Save Selected (${Object.values(selectedVersions).filter(Boolean).length})`}
-              </Text>
-            </TouchableOpacity>
+         {showSaveOptions && (
+           <View style={styles.saveActions}>
+             <TouchableOpacity
+               style={[buttonStyles.primaryButton, styles.saveButton, isStoringOnScroll && { opacity: 0.6 }]}
+               onPress={handleUnifiedSave}
+               disabled={!Object.values(selectedVersions).some(Boolean) || isStoringOnScroll}
+             >
+               <Text style={styles.saveButtonText}>
+                 {isStoringOnScroll
+                   ? 'Saving to Scroll...'
+                   : Object.values(selectedVersions).filter(Boolean).length === 0
+                   ? 'Select versions to save'
+                   : `Save Selected (${Object.values(selectedVersions).filter(Boolean).length})`}
+               </Text>
+             </TouchableOpacity>
 
             <TouchableOpacity
               style={[buttonStyles.secondaryButton, styles.downloadButton]}
@@ -1017,6 +1074,44 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSizes.sm,
     color: colors.dark.textSecondary,
     marginBottom: theme.spacing.lg,
+  },
+  // Privacy Toggle
+  privacyToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+    backgroundColor: colors.dark.cardAlt,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: "#8B5CF6",
+  },
+  privacyTogglePublic: {
+    borderColor: "#3B82F6",
+  },
+  privacyToggleContent: {
+    flex: 1,
+  },
+  privacyToggleLabel: {
+    fontSize: theme.typography.fontSizes.md,
+    fontWeight: "600",
+    color: colors.dark.text,
+    marginBottom: theme.spacing.xs,
+  },
+  privacyToggleSubtitle: {
+    fontSize: theme.typography.fontSizes.sm,
+    color: colors.dark.textSecondary,
+  },
+  toggleSwitch: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#8B5CF6",
+    marginLeft: theme.spacing.md,
+  },
+  toggleSwitchActive: {
+    backgroundColor: "#3B82F6",
   },
   versionOptions: {
     marginBottom: theme.spacing.lg,

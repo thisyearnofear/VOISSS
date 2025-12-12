@@ -5,7 +5,7 @@
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "react-native": "./src/index.native.js",
+  "react-native": "./dist/index.native.js",
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --external react --external clsx --external tailwind-merge && npm run build:native",
     "build:native": "tsup src/index.native.ts --format cjs,esm --external react-native --external react",

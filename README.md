@@ -7,23 +7,30 @@
 
 **VOISSS** is a decentralized AI-powered voice recording platform that transforms how we capture, organize, and share audio content. Built as a comprehensive ecosystem with a **Web-first strategy** and phased mobile development.
 
-## 🚀 Live Platform
+## 🚀 Live Platform & Contracts
 
 **🌐 Web App**: https://voisss.netlify.app/ ✅ **PRODUCTION READY**
 
+**🔗 Smart Contracts (Scroll Sepolia)** ✅ **DEPLOYED**
+- ScrollVRF: `0x50a0365A3BD6a3Ab4bC31544A955Ba4974Fc7208`
+- ScrollPrivacy: `0x0abD2343311985Fd1e0159CE39792483b908C03a`
+- [Deployment Details](./packages/contracts/SCROLL_SEPOLIA_DEPLOYED.md)
+
 ## 🏗️ Architecture & Status
 
-**Web-First Strategy with Phased Mobile Rollout:**
+**Web-First Strategy with Phased Mobile Rollout + Scroll Integration:**
 
 - 🌐 **Web dApp** (Next.js + Base Account SDK) - **PRODUCTION READY** ✅
   - AI voice transformation & community features
   - Full Base chain integration with gasless transactions
   - Ready for user acquisition
 
-- 📱 **React Native Mobile** (Expo + Base Account SDK) - **FUNCTIONAL, NEEDS COMPLETION** 🔄
-  - Cross-platform mobile recording
+- 📱 **React Native Mobile** (Expo + Scroll Sepolia) - **SCROLL INTEGRATION IN PROGRESS** 🔄
+  - Cross-platform mobile recording with AI transformation
+  - **ScrollVRF**: Fair randomness for voice style selection
+  - **ScrollPrivacy**: Private recording storage with access control
+  - Core features working, Scroll contracts integrated
   - 2-3 months to production readiness
-  - Core features working, needs polish
 
 - 📱 **Flutter iOS** (Base Account SDK) - **ON HOLD** ⏸️
   - Native iOS exploration paused

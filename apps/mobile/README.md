@@ -4,7 +4,7 @@
 
 The mobile app provides a native, high-performance interface for recording, organizing, and sharing voice content on Base. Designed for iOS and Android with offline-first architecture.
 
-## ✅ **CURRENT STATUS: WORKING**
+## ✅ **CURRENT STATUS: SCROLL INTEGRATION IN PROGRESS**
 
 - ✅ **Development Server**: Running with Expo tunnel
 - ✅ **QR Code Access**: Available for testing on physical devices
@@ -13,6 +13,9 @@ The mobile app provides a native, high-performance interface for recording, orga
 - ✅ **Shared Components**: Using @voisss/ui and @voisss/shared packages
 - ✅ **Expo Router**: File-based navigation implemented
 - ✅ **Development Workflow**: Optimized for monorepo structure
+- ✅ **Scroll Blockchain Service**: Integrated with ScrollVRF and ScrollPrivacy
+- 🔄 **ScrollVRF Integration**: Fair randomness for voice selection (ready for UI)
+- 🔄 **ScrollPrivacy Integration**: Private recording storage (ready for testing)
 
 ## 🚀 Quick Start
 
@@ -74,10 +77,18 @@ The mobile app provides a native, high-performance interface for recording, orga
 - Custom filtering and sorting options
 - Offline-first with automatic sync
 
-### Starknet Integration
+### Scroll Sepolia Integration
 
-- **Wallet Connection**: Connect with mobile Starknet wallets
-- **On-chain Storage**: Store recording metadata on Starknet
+- **ScrollVRF**: Fair randomness for voice style selection
+- **ScrollPrivacy**: Private recording storage with zk proof support
+- **Access Control**: Grant/revoke access to private recordings
+- **Share Links**: Create time-limited share links for recordings
+- **Gas Savings**: 60-80% cheaper transactions vs Ethereum mainnet
+
+### Base Chain Integration
+
+- **Wallet Connection**: Connect with mobile wallets via Wagmi
+- **Recording Metadata**: Store on Base chain via Account SDK
 - **Ownership Verification**: Cryptographic proof of creation
 - **Cross-platform Sync**: Sync with web app via blockchain
 
@@ -99,33 +110,50 @@ apps/mobile/
 └── package.json        # Mobile app dependencies
 ```
 
-## 🔗 Base Integration
+## 🔗 Scroll & Base Integration
 
-### Mobile Wallet Support
+### Scroll Sepolia Smart Contracts
 
-The app integrates with Base wallets through Wagmi and Base Account SDK:
+The app integrates with two key Scroll contracts:
 
 ```typescript
-// Example: Connect to Base wallet
-import { useBase } from "../hooks/useBase";
+// Example: Request VRF for random voice selection
+import { scrollBlockchainService } from "../services/scrollBlockchainService";
 
-const { connect, isConnected, account } = useBase();
+// Connect wallet first
+await scrollBlockchainService.connectWallet(account);
 
-// Connect to wallet
-await connect();
+// Request randomness
+const vrfRequest = await scrollBlockchainService.requestVRF(userAddress);
 
-// Store recording metadata on-chain
-const metadata = {
-  title: "My Recording",
-  duration: 120,
-  tags: ["meeting", "important"],
-};
-await storeRecordingMetadata(metadata);
+// Select random voice style
+const selectedVoice = await scrollBlockchainService.selectRandomVoiceStyle(
+  voiceStyles,
+  vrfRequest.requestId
+);
+
+// Store private recording
+const recording = await scrollBlockchainService.storePrivateRecording(
+  ipfsHash,
+  isPublic: false
+);
+
+// Grant access to another user
+await scrollBlockchainService.grantAccess(
+  recording.contentId,
+  friendAddress,
+  0, // view permission
+  7  // 7 days expiration
+);
 ```
 
 ### Key Blockchain Features
 
-- **Decentralized Storage**: Recording metadata stored on Starknet
+- **Fair Randomness (VRF)**: ScrollVRF for unbiased voice style selection
+- **Privacy Control**: ScrollPrivacy for private recording storage with zk proofs
+- **Access Management**: Grant/revoke permissions with time-based expiration
+- **Share Links**: Create temporary access tokens for sharing
+- **Low Gas Costs**: 60-80% savings vs Ethereum mainnet
 - **Ownership Proof**: Immutable proof of creation and ownership
 - **Creator Economy**: Monetization through smart contracts
 - **Cross-device Sync**: Sync recordings across devices via blockchain
@@ -199,8 +227,10 @@ The mobile app will automatically use these credentials to upload recordings to 
 
 - [Main Project README](../../README.md) - Project overview and setup
 - [Web App README](../web/README.md) - Web app documentation
-- [Starknet.dart Documentation](https://starknetdart.dev/) - Mobile blockchain integration
+- [Scroll Deployment Guide](../../packages/contracts/SCROLL_SEPOLIA_DEPLOYED.md) - Contract details
+- [Scroll Documentation](https://scroll.io/docs) - Scroll network info
 - [Expo Documentation](https://docs.expo.dev/) - React Native framework
+- [Viem Documentation](https://viem.sh/) - Web3 library used for blockchain
 
 ## 🐛 Troubleshooting
 
@@ -215,13 +245,27 @@ The mobile app will automatically use these credentials to upload recordings to 
    pnpm dev:mobile
    ```
 
-2. **Starknet connection issues**:
+2. **Scroll Sepolia connection issues**:
 
-   - Ensure you're on Starknet testnet
-   - Check wallet app is installed and updated
+   - Add Scroll Sepolia to MetaMask: https://sepolia.scroll.io/
+   - Get testnet ETH: https://sepolia.scroll.io/faucet
+   - Check RPC endpoint: https://sepolia-rpc.scroll.io/
 
-3. **Audio recording not working**:
+3. **VRF request fails**:
+
+   - Ensure wallet is connected to Scroll Sepolia
+   - Check you have testnet ETH for gas
+   - Verify ScrollVRF contract is deployed: `0x50a0365A3BD6a3Ab4bC31544A955Ba4974Fc7208`
+
+4. **Private recording storage fails**:
+
+   - Verify ScrollPrivacy contract: `0x0abD2343311985Fd1e0159CE39792483b908C03a`
+   - Ensure IPFS hash is valid
+   - Check wallet has sufficient gas
+
+5. **Audio recording not working**:
    - Check microphone permissions
    - Ensure device has microphone access
+   - Test on physical device if simulator has issues
 
 For more help, see the [main troubleshooting guide](../../README.md#troubleshooting).

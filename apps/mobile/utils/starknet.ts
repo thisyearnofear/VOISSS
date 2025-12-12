@@ -1,11 +1,45 @@
+/**
+ * Mobile-compatible blockchain utilities for VOISSS
+ * 
+ * Note: This file avoids importing the blockchainService singleton from @voisss/shared
+ * because it uses adapters that may have Node.js dependencies (starknet SDK with node:crypto).
+ * Instead, we import only safe types and chain configurations.
+ */
 import {
-  blockchainService,
   type BaseChainConfig,
-  type SupportedChains,
-  type VoiceNFTMetadata,
-  type MarketplaceListing,
-} from "@voisss/shared/blockchain";
+  ALL_CHAINS,
+} from "@voisss/shared";
+
+// Mobile-compatible chain types (excludes ethereum which is not in ALL_CHAINS)
+export type MobileSupportedChains = keyof typeof ALL_CHAINS; // 'starknet' | 'scroll'
 import { getStoredWalletAddress, saveUserSession, clearUserSession } from "@voisss/shared/src/utils/session";
+
+// Re-export types for local use
+export type VoiceNFTMetadata = {
+  title: string;
+  description: string;
+  duration: number;
+  recordedAt: string;
+  ipfsHash: string;
+  creator: string;
+};
+
+export type MarketplaceListing = {
+  tokenId: string;
+  price: string;
+  seller: string;
+  isActive: boolean;
+};
+
+export type TipTransaction = {
+  from: string;
+  to: string;
+  amount: string;
+  token?: string;
+  chain: MobileSupportedChains;
+  network: string;
+  timestamp: number;
+};
 
 const STORAGE_KEYS = {
   WALLET_ADDRESS: "@voisss/wallet_address",
@@ -14,7 +48,7 @@ const STORAGE_KEYS = {
 } as const;
 
 class BlockchainMobile {
-  private currentChain: SupportedChains;
+  private currentChain: MobileSupportedChains;
   private currentNetwork: string;
 
   constructor() {
@@ -41,12 +75,17 @@ class BlockchainMobile {
     return clearUserSession();
   }
 
-  async getStoredChain(): Promise<SupportedChains> {
+  async getStoredChain(): Promise<MobileSupportedChains> {
     const session = await import("@voisss/shared/src/utils/session");
-    return (await session.getStoredChain()) || 'starknet';
+    const chain = await session.getStoredChain();
+    // Only allow mobile-supported chains
+    if (chain === 'starknet' || chain === 'scroll') {
+      return chain;
+    }
+    return 'starknet'; // Default to starknet
   }
 
-  async setStoredChain(chain: SupportedChains): Promise<void> {
+  async setStoredChain(chain: MobileSupportedChains): Promise<void> {
     const session = await import("@voisss/shared/src/utils/session");
     const existingSession = await session.loadUserSession();
     if (existingSession) {
@@ -74,20 +113,24 @@ class BlockchainMobile {
   }
 
   async connectWallet(): Promise<string> {
-    try {
-      // Initialize connection using the new blockchain service
-      const address = await blockchainService.connectWallet();
-      console.log("Wallet connected successfully:", address);
-      return address;
-    } catch (error) {
-      console.error("Failed to connect wallet:", error);
-      throw error;
-    }
+    // TODO: Implement React Native wallet connection
+    // This should use WalletConnect or similar for mobile
+    console.warn("Mobile wallet connection not yet implemented");
+    throw new Error("Mobile wallet connection not yet implemented. Please use WalletConnect integration.");
   }
 
-  async switchChain(chain: SupportedChains, network: string): Promise<void> {
+  async switchChain(chain: MobileSupportedChains, network: string): Promise<void> {
     try {
-      await blockchainService.switchChain(chain, network);
+      // Validate chain and network
+      if (!(chain in ALL_CHAINS)) {
+        throw new Error(`Chain ${chain} is not supported on mobile`);
+      }
+      const chainConfigs = ALL_CHAINS[chain];
+      const chainConfig = chainConfigs[network as keyof typeof chainConfigs];
+      if (!chainConfig) {
+        throw new Error(`Network ${network} is not supported for chain ${chain}`);
+      }
+
       await this.setStoredChain(chain);
       await this.setStoredNetwork(network);
       this.currentChain = chain;
@@ -100,7 +143,12 @@ class BlockchainMobile {
   }
 
   async getCurrentChainConfig(): Promise<BaseChainConfig> {
-    return blockchainService.getCurrentChainConfig();
+    const chainConfigs = ALL_CHAINS[this.currentChain];
+    const config = chainConfigs[this.currentNetwork as keyof typeof chainConfigs];
+    if (!config) {
+      throw new Error(`Chain configuration not found for ${this.currentChain}:${this.currentNetwork}`);
+    }
+    return config;
   }
 
   async disconnectWallet(): Promise<void> {
@@ -118,7 +166,8 @@ class BlockchainMobile {
       const walletAddress = await this.getStoredWalletAddress();
       if (!walletAddress) throw new Error("Wallet not connected");
 
-      console.log("Voice NFT minted successfully");
+      // TODO: Implement mobile-compatible NFT minting
+      console.log("Voice NFT minting not yet implemented for mobile");
     } catch (error) {
       console.error("Failed to mint Voice NFT:", error);
       throw error;
@@ -137,7 +186,8 @@ class BlockchainMobile {
         isActive: true,
       };
 
-      console.log("Voice NFT listed successfully");
+      // TODO: Implement mobile-compatible NFT listing
+      console.log("Voice NFT listing not yet implemented for mobile", listing);
     } catch (error) {
       console.error("Failed to list Voice NFT:", error);
       throw error;
@@ -149,24 +199,30 @@ class BlockchainMobile {
       const walletAddress = await this.getStoredWalletAddress();
       if (!walletAddress) throw new Error("Wallet not connected");
 
-      console.log("Voice NFT purchased successfully");
+      // TODO: Implement mobile-compatible NFT purchasing
+      console.log("Voice NFT purchasing not yet implemented for mobile");
     } catch (error) {
       console.error("Failed to buy Voice NFT:", error);
       throw error;
     }
   }
-  
+
   // Tipping functionality
   async sendTip(to: string, amount: string, tokenAddress?: string): Promise<string> {
-    return blockchainService.sendTip(to, amount, tokenAddress);
+    // TODO: Implement mobile-compatible tipping via WalletConnect
+    console.warn("Tipping not yet implemented for mobile");
+    throw new Error("Tipping not yet implemented for mobile");
   }
-  
+
   async estimateTipCost(amount: string, tokenAddress?: string): Promise<string> {
-    return blockchainService.estimateTipCost(amount, tokenAddress);
+    // Return a mock estimate for now
+    return '21000'; // Base gas limit
   }
-  
+
   async getTokenBalance(address: string, tokenAddress: string): Promise<string> {
-    return blockchainService.getTokenBalance(address, tokenAddress);
+    // TODO: Implement mobile-compatible balance checking
+    console.warn("Token balance checking not yet implemented for mobile");
+    return '0';
   }
 }
 
@@ -175,4 +231,7 @@ export const blockchain = new BlockchainMobile();
 // Legacy export for backward compatibility
 export const starknet = blockchain;
 
-export type { SupportedChains, BaseChainConfig, TipTransaction } from "@voisss/shared/blockchain";
+export type { BaseChainConfig };
+
+// Re-export MobileSupportedChains as SupportedChains for backward compatibility
+export type SupportedChains = MobileSupportedChains;

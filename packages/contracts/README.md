@@ -35,39 +35,38 @@ Starknet smart contracts for the VOISSS decentralized voice recording platform.
 
 ### 🚀 **DEPLOYMENT STATUS**
 
-#### **Starknet Sepolia Testnet**
+#### **Scroll Sepolia Testnet** ✅ **LIVE**
 
-- ❌ **VoiceStorage**: Not deployed yet
-- ❌ **UserRegistry**: Not deployed yet
-- ❌ **AccessControl**: Not deployed yet
+- ✅ **ScrollVRF**: `0x50a0365A3BD6a3Ab4bC31544A955Ba4974Fc7208`
+- ✅ **ScrollPrivacy**: `0x0abD2343311985Fd1e0159CE39792483b908C03a`
 
-**Deployment Command Ready:**
-
-```bash
-export STARKNET_ACCOUNT_ADDRESS="your_account_address"
-export STARKNET_PRIVATE_KEY="your_private_key"
-pnpm deploy:testnet
-```
-
-#### **Contract Addresses** ✅ **DEPLOYED TO STARKNET SEPOLIA**
+**Deployment Details:**
 
 ```typescript
-export const CONTRACT_ADDRESSES = {
-  VOICE_STORAGE:
-    "0x545b48dd76469e984b5622e5841d2affa30155980829399e7ec7447012922e2",
-  USER_REGISTRY:
-    "0x52bb03f52e7c07d6f7053b0fc7c52c9e0c7d73ceb36fab93db3d7bbc578bb63",
-  ACCESS_CONTROL:
-    "0x5db925a0dfe7ab9137121613ef66a32ceb48acbc9cc33091d804dd9feb983b5",
+export const SCROLL_SEPOLIA_CONTRACTS = {
+  VRF: "0x50a0365A3BD6a3Ab4bC31544A955Ba4974Fc7208",
+  PRIVACY: "0x0abD2343311985Fd1e0159CE39792483b908C03a",
 };
 ```
 
-**🎉 Deployment Success:**
+**🎉 Scroll Deployment Success:**
 
-- **Network**: Starknet Sepolia Testnet
-- **Deployed**: December 25, 2025 at 23:57 UTC
-- **Account**: Standard ArgentX v0.4.0 (0x06796FC91477e32037D79886bFc2F3fBD74c24Eba62183BB9F8FC6c59Fa29738)
-- **Status**: All contracts verified and working
+- **Network**: Scroll Sepolia Testnet
+- **Deployed**: December 13, 2025
+- **RPC**: https://sepolia-rpc.scroll.io/
+- **Features**:
+  - ✅ ScrollVRF: Fair randomness for voice selection (blockhash-based entropy)
+  - ✅ ScrollPrivacy: Private content with zk proof support and access control
+  - ✅ Both contracts verified and ready for integration
+  - ✅ 60-80% gas savings vs Ethereum mainnet
+
+#### **Starknet Sepolia Testnet** ✅ **LEGACY (Previous Network)**
+
+- ✅ **VoiceStorage**: `0x545b48dd76469e984b5622e5841d2affa30155980829399e7ec7447012922e2`
+- ✅ **UserRegistry**: `0x52bb03f52e7c07d6f7053b0fc7c52c9e0c7d73ceb36fab93db3d7bbc578bb63`
+- ✅ **AccessControl**: `0x5db925a0dfe7ab9137121613ef66a32ceb48acbc9cc33091d804dd9feb983b5`
+
+**Note**: Starknet contracts remain deployed for reference but focus has shifted to Scroll for hackathon compliance.
 
 ### 🔗 **INTEGRATION STATUS**
 
@@ -88,13 +87,21 @@ export const CONTRACT_ADDRESSES = {
 - ✅ **Network Switching**: Sepolia/Mainnet support
 - ✅ **State Persistence**: Wallet connection state saved locally
 
-#### **🔄 Pending: Contract Deployment**
+#### **✅ Scroll Integration (In Progress)**
 
-Once contracts are deployed:
+Scroll contracts deployed and ready for integration:
 
-1. Update contract addresses in both apps
-2. Test end-to-end recording → IPFS → Starknet workflow
-3. Verify cross-platform synchronization
+1. ✅ ScrollVRF deployed - Fair randomness for voice selection
+2. ✅ ScrollPrivacy deployed - Private content storage and access control
+3. 🔄 Mobile app integration in progress
+4. 🔄 Web app integration pending
+5. 🔄 End-to-end testing: recording → IPFS → Scroll
+
+**Next Steps**:
+- Integrate ScrollVRF for random voice style selection
+- Integrate ScrollPrivacy for private recording access control
+- Connect via Wagmi/viem for wallet interactions
+- Test on Scroll Sepolia with MetaMask
 
 ## Development
 

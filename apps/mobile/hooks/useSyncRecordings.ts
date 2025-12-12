@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import { useRecordingsStore } from '../store/recordingsStore';
-import { createStarknetRecordingService } from '@voisss/shared';
+// TODO: createStarknetRecordingService uses starknet SDK which has node:crypto dependency
+// For React Native, we need to implement a mobile-specific Starknet service
+// import { createStarknetRecordingService } from '@voisss/shared';
 
 interface SyncResult {
   success: boolean;
@@ -13,16 +15,21 @@ export function useSyncRecordings() {
 
   const syncRecordings = useCallback(async (walletAddress: string): Promise<SyncResult> => {
     try {
-      // Create Starknet recording service
-      const starknetService = createStarknetRecordingService();
-      
-      // Sync recordings from Starknet
-      const count = await syncWithStarknet(starknetService, walletAddress);
-      
+      // TODO: Implement mobile-compatible Starknet sync
+      // The starknet SDK uses node:crypto which is not available in React Native
+      // For now, return a placeholder response
+      console.warn('Starknet sync not yet implemented for React Native');
+
       return {
-        success: true,
-        count,
+        success: false,
+        count: 0,
+        error: 'Starknet sync not yet implemented for React Native',
       };
+
+      // Original code (requires starknet SDK):
+      // const starknetService = createStarknetRecordingService();
+      // const count = await syncWithStarknet(starknetService, walletAddress);
+      // return { success: true, count };
     } catch (error) {
       console.error('Failed to sync recordings:', error);
       return {

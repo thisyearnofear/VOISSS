@@ -17,6 +17,7 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
+  Dice5,
 } from "lucide-react-native";
 import { colors } from "@voisss/ui";
 import { theme } from "@voisss/ui";
@@ -33,6 +34,8 @@ interface AITransformationPanelProps {
   transformedBlob: Blob | null;
   audioBlobForDubbing?: Blob | null; // NEW: Original audio blob for preview
   onTransform: () => void;
+  onVRFSelect?: (voiceId: string) => Promise<void>; // NEW: ScrollVRF integration
+  isVRFLoading?: boolean; // NEW: VRF loading state
   capabilities: {
     remainingAIUses: number | null;
   };
@@ -49,6 +52,8 @@ export default function AITransformationPanel({
   transformedBlob,
   audioBlobForDubbing,
   onTransform,
+  onVRFSelect,
+  isVRFLoading = false,
   capabilities,
   currentTier,
   useEnhancedSelector = false, // Default to false for backward compatibility
@@ -186,29 +191,64 @@ export default function AITransformationPanel({
             </View>
           )}
 
-          {/* Transform Button */}
-          <TouchableOpacity
-            style={[
-              buttonStyles.primary,
-              styles.transformButton,
-              (!selectedVoiceId || isTransforming) &&
-                styles.transformButtonDisabled,
-            ]}
-            onPress={onTransform}
-            disabled={!selectedVoiceId || isTransforming}
-          >
-            {isTransforming ? (
-              <View style={styles.transformingContainer}>
-                <Loader2 size={20} color={colors.dark.text} />
-                <Text style={buttonStyles.primaryText}>Transforming...</Text>
-              </View>
-            ) : (
-              <>
-                <Bot size={20} color={colors.dark.text} />
-                <Text style={buttonStyles.primaryText}>Transform Voice</Text>
-              </>
+          {/* Transform Buttons */}
+          <View style={styles.transformButtonsContainer}>
+            <TouchableOpacity
+              style={[
+                buttonStyles.primary,
+                styles.transformButton,
+                styles.transformButtonFlex,
+                (!selectedVoiceId || isTransforming) &&
+                  styles.transformButtonDisabled,
+              ]}
+              onPress={onTransform}
+              disabled={!selectedVoiceId || isTransforming}
+            >
+              {isTransforming ? (
+                <View style={styles.transformingContainer}>
+                  <Loader2 size={20} color={colors.dark.text} />
+                  <Text style={buttonStyles.primaryText}>Transforming...</Text>
+                </View>
+              ) : (
+                <>
+                  <Bot size={20} color={colors.dark.text} />
+                  <Text style={buttonStyles.primaryText}>Transform Voice</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            {/* ScrollVRF "Surprise Me" Button */}
+            {onVRFSelect && (
+              <TouchableOpacity
+                style={[
+                  buttonStyles.secondary,
+                  styles.transformButton,
+                  styles.transformButtonFlex,
+                  (isVRFLoading || isTransforming) &&
+                    styles.transformButtonDisabled,
+                ]}
+                onPress={() => {
+                  if (voices.length > 0) {
+                    const randomVoice = voices[Math.floor(Math.random() * voices.length)];
+                    onVRFSelect(randomVoice.voiceId);
+                  }
+                }}
+                disabled={isVRFLoading || isTransforming || voices.length === 0}
+              >
+                {isVRFLoading ? (
+                  <View style={styles.transformingContainer}>
+                    <Loader2 size={20} color={colors.dark.primary} />
+                    <Text style={buttonStyles.secondaryText}>VRF...</Text>
+                  </View>
+                ) : (
+                  <>
+                    <Dice5 size={20} color={colors.dark.primary} />
+                    <Text style={buttonStyles.secondaryText}>Surprise Me</Text>
+                  </>
+                )}
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
+          </View>
 
           {/* Audio Preview Section */}
           {(transformedBlob || audioBlobForDubbing) && (
@@ -471,8 +511,16 @@ const styles = StyleSheet.create({
     color: colors.dark.textSecondary,
     textAlign: "center",
   },
-  transformButton: {
+  transformButtonsContainer: {
+    flexDirection: "row",
+    gap: theme.spacing.md,
     marginBottom: 16,
+  },
+  transformButton: {
+    marginBottom: 0,
+  },
+  transformButtonFlex: {
+    flex: 1,
   },
   transformButtonDisabled: {
     opacity: 0.5,

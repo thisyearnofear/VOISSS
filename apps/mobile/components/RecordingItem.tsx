@@ -1,8 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View, Animated, Dimensions } from "react-native";
 import { Heart, MoreVertical, Play, Pause, Music, Globe, Link } from "lucide-react-native";
-import { MissionRecording } from "@voisss/shared";
-import { formatDuration, formatRelativeTime } from "../utils/formatters";
+import { MissionRecording, formatDuration, formatRelativeTime } from "@voisss/shared";
 import { useRecordingTags } from "../store/recordingsStore";
 import { useUIStore, useIsFavorite } from "../store/uiStore";
 import { theme } from "@voisss/ui";
