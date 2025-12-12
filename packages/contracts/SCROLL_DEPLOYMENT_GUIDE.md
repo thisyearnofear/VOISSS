@@ -14,10 +14,10 @@ This guide provides step-by-step instructions for deploying Scroll-specific cont
 ### 1. Development Environment
 ```bash
 # Install required tools
-npm install -g @openzeppelin/contracts @chainlink/contracts hardhat
+npm install -g @openzeppelin/contracts hardhat
 
 # Install dependencies
-npm install @openzeppelin/contracts @chainlink/contracts dotenv
+npm install @openzeppelin/contracts dotenv
 ```
 
 ### 2. Environment Variables
@@ -66,7 +66,7 @@ packages/contracts/
 #### 1. Install Dependencies
 ```bash
 cd packages/contracts
-npm install @openzeppelin/contracts @chainlink/contracts
+npm install @openzeppelin/contracts
 ```
 
 #### 2. Compile Contracts
@@ -369,7 +369,7 @@ graph TD
 
 ### Chainlink VRF
 - [Chainlink VRF Docs](https://docs.chain.link/vrf)
-- [Chainlink VRF Contracts](https://github.com/smartcontractkit/chainlink)
+- [Anyrand](https://anyrand.io)
 
 ### OpenZeppelin
 - [OpenZeppelin Contracts](https://docs.openzeppelin.com/contracts)
