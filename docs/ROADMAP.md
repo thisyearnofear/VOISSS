@@ -156,13 +156,9 @@
 // Scroll VRF service for verifiable randomness
 class ScrollVRFService {
   async requestRandomVoiceStyle(userAddress: string): Promise<string> {
-    // 1. Request random number from Scroll VRF
     const randomNumber = await scrollVRFContract.requestRandomness(userAddress);
-
-    // 2. Use random number to select voice style
     const voiceStyles = await mobileAIService.getVoiceStyles();
     const randomIndex = randomNumber % voiceStyles.length;
-
     return voiceStyles[randomIndex].id;
   }
 }
@@ -173,22 +169,10 @@ class ScrollVRFService {
 // zkEVM privacy service for voice content
 class ScrollZkEVMService {
   async createPrivateRecording(audioBlob: Blob, userAddress: string) {
-    // 1. Generate zk proof of ownership
-    const ownershipProof = await scrollZkService.generateOwnershipProof(
-      userAddress,
-      audioBlob.hash
-    );
-
-    // 2. Store encrypted audio with proof
+    const ownershipProof = await scrollZkService.generateOwnershipProof(userAddress, audioBlob.hash);
     const encryptedAudio = await encryptAudio(audioBlob);
     const ipfsHash = await ipfsService.upload(encryptedAudio);
-
-    // 3. Store proof on Scroll
-    const txHash = await scrollContract.savePrivateRecording(
-      ipfsHash,
-      ownershipProof
-    );
-
+    const txHash = await scrollContract.savePrivateRecording(ipfsHash, ownershipProof);
     return { ipfsHash, txHash, ownershipProof };
   }
 }
@@ -201,9 +185,7 @@ class ScrollGasService {
   async showGasComparison() {
     const starknetGasCost = await estimateStarknetGas('tip', '0.01');
     const scrollGasCost = await estimateScrollGas('tip', '0.01');
-
     const savings = ((starknetGasCost - scrollGasCost) / starknetGasCost) * 100;
-
     return {
       starknetCost: formatEther(starknetGasCost),
       scrollCost: formatEther(scrollGasCost),
@@ -259,200 +241,6 @@ class ScrollGasService {
 - **zkEVM Complexity**: Maintain user-friendly privacy
 - **Gas Volatility**: Monitor and adapt to gas changes
 - **Cross-Chain Sync**: Ensure seamless chain switching
-
-## Technical Architecture Details
-
-### Scroll VRF Service Architecture
-```typescript
-// Verifiable randomness for voice applications
-class ScrollVRFService {
-  private vrfContract: ScrollVRFContract;
-
-  constructor() {
-    this.vrfContract = new ScrollVRFContract();
-  }
-
-  async requestRandomness(userAddress: string): Promise<bigint> {
-    // Request random number from Scroll VRF
-    const requestTx = await this.vrfContract.requestRandomness(userAddress);
-
-    // Wait for fulfillment
-    const fulfillment = await this.vrfContract.waitForFulfillment(requestTx.hash);
-
-    return fulfillment.randomNumber;
-  }
-
-  async getRandomVoiceStyle(userAddress: string): Promise<string> {
-    const randomNumber = await this.requestRandomness(userAddress);
-    const voiceStyles = await mobileAIService.getVoiceStyles();
-    
-    return voiceStyles[Number(randomNumber) % voiceStyles.length].id;
-  }
-}
-```
-
-### Scroll zkEVM Privacy Architecture
-```typescript
-// Privacy-preserving voice content
-class ScrollZkEVMService {
-  private zkContract: ScrollZkContract;
-
-  constructor() {
-    this.zkContract = new ScrollZkContract();
-  }
-
-  async generateProof(data: string, userAddress: string): Promise<string> {
-    // Generate zk proof
-    const proof = await this.zkContract.generateProof(data, userAddress);
-
-    // Verify proof
-    const isValid = await this.zkContract.verifyProof(proof);
-
-    if (!isValid) {
-      throw new Error('Proof generation failed');
-    }
-
-    return proof;
-  }
-
-  async createPrivateContent(contentHash: string, userAddress: string) {
-    const proof = await this.generateProof(contentHash, userAddress);
-    
-    // Store with proof
-    return await this.zkContract.storePrivateContent(contentHash, proof);
-  }
-}
-```
-
-### Scroll Gas Optimization Architecture
-```typescript
-// Gas cost monitoring and optimization
-class ScrollGasService {
-  private gasOracle: ScrollGasOracle;
-
-  constructor() {
-    this.gasOracle = new ScrollGasOracle();
-  }
-
-  async getCurrentGasPrices(): Promise<{ fast: bigint; standard: bigint; slow: bigint }> {
-    return await this.gasOracle.getGasPrices();
-  }
-
-  async estimateTransactionCost(txType: string, data: any): Promise<bigint> {
-    const gasLimit = this.getGasLimit(txType);
-    const gasPrice = await this.getCurrentGasPrices();
-    
-    return gasLimit * gasPrice.standard;
-  }
-
-  async compareChains(txType: string, data: any): Promise<{ 
-    starknet: bigint; 
-    scroll: bigint; 
-    savings: bigint 
-  }> {
-    const starknetCost = await estimateStarknetGas(txType, data);
-    const scrollCost = await this.estimateTransactionCost(txType, data);
-    
-    return {
-      starknet: starknetCost,
-      scroll: scrollCost,
-      savings: starknetCost - scrollCost
-    };
-  }
-}
-```
-
-## Memory API Integration Plan
-
-### Phase 1: Identity Graph Integration (Q1 2026)
-```typescript
-// Unified identity service combining wallet + social
-class UnifiedIdentityService {
-  async getUserIdentity(userAddress: string) {
-    // Query Memory API for complete identity graph
-    const identityGraph = await memoryAPI.getIdentityGraph(userAddress);
-
-    // Extract social connections for voice recommendations
-    const socialConnections = this.extractSocialConnections(identityGraph);
-
-    // Get voice recordings from social graph
-    const socialVoices = await voiceService.getRecordingsFromConnections(socialConnections);
-
-    return {
-      identity: identityGraph,
-      socialVoices,
-      recommendations: await this.generateRecommendations(socialVoices)
-    };
-  }
-}
-```
-
-### Phase 2: Social Voice Discovery (Q2 2026)
-```typescript
-// Social-powered voice content discovery
-class SocialVoiceDiscovery {
-  async discoverContent(userAddress: string) {
-    // Get user's social graph via Memory API
-    const socialGraph = await memoryAPI.getSocialGraph(userAddress);
-
-    // Find trending voices in social circles
-    const trendingVoices = await this.analyzeSocialTrends(socialGraph);
-
-    // AI-powered voice similarity matching
-    const similarVoices = await elevenlabs.compareVoiceSimilarities(
-      userAddress,
-      trendingVoices
-    );
-
-    return {
-      trending: trendingVoices,
-      similar: similarVoices,
-      personalized: await this.createPersonalizedFeed(socialGraph)
-    };
-  }
-}
-```
-
-### Phase 3: Viral Social Features (Q3 2026)
-```typescript
-// Voice challenges and social competitions
-class ViralVoiceFeatures {
-  async createVoiceChallenge(challengeData: ChallengeData) {
-    // Use Memory API to find participants
-    const participants = await memoryAPI.findUsersByInterests(
-      challengeData.targetAudience
-    );
-
-    // Create challenge with social sharing
-    const challenge = await this.createChallenge(challengeData, participants);
-
-    // Enable cross-platform sharing
-    await this.enableSocialSharing(challenge, participants);
-
-    return challenge;
-  }
-}
-```
-
-### Monetization Through Memory Protocol
-```typescript
-// Users earn $MEM by sharing social data
-class MemoryMonetizationService {
-  async enableDataMonetization(userAddress: string) {
-    // Upload user's voice interaction data
-    await memoryAPI.uploadStructuredData({
-      type: 'voice_interactions',
-      data: await this.getUserVoiceData(userAddress),
-      schema: voiceInteractionSchema
-    });
-
-    // Users earn when apps query their data
-    const earnings = await memoryAPI.getEarnings(userAddress);
-
-    return earnings;
-  }
-}
-```
 
 ## Strategic Roadmap Summary
 
