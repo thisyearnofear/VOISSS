@@ -31,6 +31,83 @@ export interface AIEnhancementOption {
   defaultValue?: string;
 }
 
+/**
+ * Scroll-exclusive voice challenge
+ * Gamification feature using VRF for fair selection
+ */
+export interface ScrollVoiceChallenge {
+  id: string;
+  title: string;
+  description: string;
+  theme: string;
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+  reward: string;
+  voiceStyleRequirements?: string[];
+  durationRequirements?: {
+    minSeconds: number;
+    maxSeconds: number;
+  };
+  chainSpecific: 'scroll' | 'starknet' | 'both';
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  participants?: string[];
+  winners?: string[];
+}
+
+/**
+ * Voice challenge submission
+ */
+export interface VoiceChallengeSubmission {
+  challengeId: string;
+  userAddress: string;
+  recordingId: string;
+  submissionDate: string;
+  voiceStyleUsed: string;
+  enhancementsUsed: Record<string, string>;
+  status: 'pending' | 'approved' | 'rejected' | 'winner';
+  vrfProof?: string; // Proof of fair selection if winner
+}
+
+/**
+ * Scroll leaderboard entry
+ */
+export interface ScrollLeaderboardEntry {
+  userAddress: string;
+  username: string;
+  score: number;
+  rank: number;
+  challengesCompleted: number;
+  challengesWon: number;
+  totalRecordings: number;
+  privateRecordings: number;
+  lastActive: string;
+}
+
+/**
+ * Scroll achievement
+ */
+export interface ScrollAchievement {
+  id: string;
+  name: string;
+  description: string;
+  criteria: string;
+  points: number;
+  isSecret?: boolean;
+  chainSpecific: 'scroll' | 'starknet' | 'both';
+}
+
+/**
+ * User achievement progress
+ */
+export interface UserAchievementProgress {
+  achievementId: string;
+  userAddress: string;
+  progress: number;
+  completed: boolean;
+  completionDate?: string;
+}
+
 export interface VoiceVariantPreview {
   generatedVoiceId: string;
   // Optional: base64 or URL for previewing

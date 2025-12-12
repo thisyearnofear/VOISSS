@@ -445,6 +445,188 @@ class BlockchainService {
     return { ...result, metadata };
   }
   
+  // ============================================
+  // VRF-Based Community Voting
+  // ============================================
+  
+  /**
+   * Create a community vote using VRF for fair selection
+   * Used for challenge winners, featured content, etc.
+   */
+  async createCommunityVote(
+    voteOptions: string[],
+    voteTitle: string,
+    voteDescription: string,
+    userAddress: string
+  ): Promise<{
+    voteId: string;
+    transactionHash: string;
+    randomSeed: bigint;
+    proof: string;
+  }> {
+    if (!this.hasVRFSupport()) {
+      throw new Error(`VRF-based voting requires VRF support, not available on ${this.currentChain}`);
+    }
+    
+    try {
+      console.log(`🗳️ Creating community vote: ${voteTitle}`);
+      
+      // Generate random seed using VRF for fairness
+      const { randomNumber: randomSeed, proof } = await this.getVerifiableRandomNumber(userAddress);
+      
+      // Mock vote creation for now
+      const voteId = 'vote-' + Math.random().toString(36).substring(2, 15);
+      const transactionHash = '0x' + Math.random().toString(16).substring(2, 66);
+      
+      console.log(`✅ Community vote created`);
+      console.log(`   Vote ID: ${voteId}`);
+      console.log(`   Options: ${voteOptions.length}`);
+      console.log(`   Random seed: ${randomSeed.toString()}`);
+      
+      return { voteId, transactionHash, randomSeed, proof };
+      
+    } catch (error) {
+      console.error('Community vote creation failed:', error);
+      throw new Error(`Failed to create community vote: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+  
+  /**
+   * Cast a vote in a community vote
+   */
+  async castVote(
+    voteId: string,
+    selectedOption: string,
+    userAddress: string
+  ): Promise<{
+    success: boolean;
+    transactionHash: string;
+    voteReceipt: string;
+  }> {
+    try {
+      console.log(`🗳️ Casting vote in vote: ${voteId}`);
+      console.log(`   Selected: ${selectedOption}`);
+      
+      // Mock vote casting for now
+      const transactionHash = '0x' + Math.random().toString(16).substring(2, 66);
+      const voteReceipt = 'receipt-' + Math.random().toString(36).substring(2, 15);
+      
+      console.log(`✅ Vote cast successfully`);
+      
+      return { success: true, transactionHash, voteReceipt };
+      
+    } catch (error) {
+      console.error('Vote casting failed:', error);
+      throw new Error(`Failed to cast vote: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+  
+  /**
+   * Determine vote winner using VRF for fair selection
+   */
+  async determineVoteWinner(
+    voteId: string,
+    voteOptions: string[],
+    votesCast: Record<string, number>
+  ): Promise<{
+    winningOption: string;
+    winnerIndex: number;
+    randomSeed: bigint;
+    proof: string;
+    isTie: boolean;
+  }> {
+    if (!this.hasVRFSupport()) {
+      throw new Error(`VRF-based voting requires VRF support, not available on ${this.currentChain}`);
+    }
+    
+    try {
+      console.log(`🎉 Determining vote winner for: ${voteId}`);
+      
+      // Use VRF for fair winner selection in case of tie
+      const { randomNumber: randomSeed, proof } = await this.getVerifiableRandomNumber('vote-system');
+      
+      // Find the option with most votes
+      const maxVotes = Math.max(...Object.values(votesCast));
+      const winningOptions = Object.entries(votesCast)
+        .filter(([_, votes]) => votes === maxVotes)
+        .map(([option]) => option);
+      
+      let winningOption: string;
+      let winnerIndex: number;
+      let isTie = false;
+      
+      if (winningOptions.length === 1) {
+        // Clear winner
+        winningOption = winningOptions[0];
+        winnerIndex = voteOptions.indexOf(winningOption);
+        isTie = false;
+      } else {
+        // Tie - use VRF for fair selection
+        isTie = true;
+        const randomIndex = Number(randomSeed % BigInt(winningOptions.length));
+        winningOption = winningOptions[randomIndex];
+        winnerIndex = voteOptions.indexOf(winningOption);
+        
+        console.log(`⚖️ Tie broken using VRF: selected option ${randomIndex}`);
+      }
+      
+      console.log(`✅ Vote winner determined`);
+      console.log(`   Winner: ${winningOption}`);
+      console.log(`   Votes: ${votesCast[winningOption] || 0}`);
+      console.log(`   Tie: ${isTie}`);
+      
+      return { winningOption, winnerIndex, randomSeed, proof, isTie };
+      
+    } catch (error) {
+      console.error('Vote winner determination failed:', error);
+      throw new Error(`Failed to determine vote winner: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+  
+  /**
+   * Select challenge winner using VRF for fairness
+   * Used for Scroll voice challenges
+   */
+  async selectChallengeWinner(
+    challengeId: string,
+    participants: string[],
+    submissions: string[]
+  ): Promise<{
+    winnerAddress: string;
+    winningSubmission: string;
+    randomSeed: bigint;
+    proof: string;
+  }> {
+    if (!this.hasVRFSupport()) {
+      throw new Error(`VRF-based winner selection requires VRF support, not available on ${this.currentChain}`);
+    }
+    
+    try {
+      console.log(`🏆 Selecting challenge winner for: ${challengeId}`);
+      console.log(`   Participants: ${participants.length}`);
+      console.log(`   Submissions: ${submissions.length}`);
+      
+      // Use VRF for fair winner selection
+      const { randomNumber: randomSeed, proof } = await this.getVerifiableRandomNumber(challengeId);
+      
+      // Select winner using VRF
+      const winnerIndex = Number(randomSeed % BigInt(participants.length));
+      const winnerAddress = participants[winnerIndex];
+      const winningSubmission = submissions[winnerIndex];
+      
+      console.log(`✅ Challenge winner selected`);
+      console.log(`   Winner: ${winnerAddress}`);
+      console.log(`   Submission: ${winningSubmission}`);
+      console.log(`   VRF proof: ${proof.substring(0, 20)}...`);
+      
+      return { winnerAddress, winningSubmission, randomSeed, proof };
+      
+    } catch (error) {
+      console.error('Challenge winner selection failed:', error);
+      throw new Error(`Failed to select challenge winner: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+  
   async getTokenBalance(address: string, tokenAddress: string): Promise<string> {
     return this.getAdapter().getTokenBalance(address, tokenAddress);
   }

@@ -28,6 +28,13 @@ export interface AIServiceClient {
 
     // Utility
     testConnection(): Promise<boolean>;
+    
+    // Scroll-Specific Social Features
+    getActiveScrollChallenges?(): Promise<ScrollVoiceChallenge[]>;
+    submitToChallenge?(challengeId: string, recordingId: string, voiceStyleId: string, enhancements: Record<string, string>): Promise<VoiceChallengeSubmission>;
+    getScrollLeaderboard?(): Promise<ScrollLeaderboardEntry[]>;
+    getUserAchievements?(userAddress: string): Promise<UserAchievementProgress[]>;
+    claimAchievement?(achievementId: string): Promise<boolean>;
 }
 
 export class ClientAIService implements AIServiceClient {
