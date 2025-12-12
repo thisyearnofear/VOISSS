@@ -17,50 +17,43 @@ pragma solidity ^0.8.19;
  * - Comprehensive event logging
  */
 
-import {
-    VRFConsumerBase,
-    VRFConsumerBaseInterface,
-    VRFV2PlusClient
-} from "@chainlink/contracts/src/v0.8/VRFV2PlusClient.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {IAnyrand} from "@anyrand/contracts/interfaces/IAnyrand.sol";
+import {IRandomiserCallbackV3} from "@anyrand/contracts/interfaces/IRandomiserCallbackV3.sol";
 
-contract ScrollVRF is VRFConsumerBase, AccessControl, ReentrancyGuard {
-    // Chainlink VRF configuration
-    uint64 public s_subscriptionId;
-    address public coordinator;
-    bytes32 public keyHash;
-    uint32 public callbackGasLimit;
-    uint32 public requestConfirmations;
-    uint32 public numWords;
+contract ScrollVRF is AccessControl, ReentrancyGuard, IRandomiserCallbackV3 {
+    // Anyrand configuration
+    address public anyrand;
+    uint256 public callbackGasLimit;
 
     // Randomness requests and results
     struct RandomnessRequest {
-        bytes32 requestId;
+        uint256 requestId;
         address requester;
         uint256 timestamp;
         string callbackFunction;
+        uint256 deadline;
     }
 
-    mapping(bytes32 => RandomnessRequest) public requests;
-    mapping(bytes32 => uint256) public randomnessResults;
-    mapping(bytes32 => bytes) public randomnessProofs;
+    mapping(uint256 => RandomnessRequest) public requests;
+    mapping(uint256 => uint256) public randomnessResults;
 
     // Events
     event RandomnessRequested(
-        bytes32 indexed requestId,
+        uint256 indexed requestId,
         address indexed requester,
-        uint256 timestamp
+        uint256 timestamp,
+        uint256 deadline
     );
 
     event RandomnessFulfilled(
-        bytes32 indexed requestId,
-        uint256 indexed randomNumber,
-        bytes proof
+        uint256 indexed requestId,
+        uint256 indexed randomNumber
     );
 
     event RandomnessUsed(
-        bytes32 indexed requestId,
+        uint256 indexed requestId,
         address indexed user,
         string useCase
     );
@@ -78,22 +71,11 @@ contract ScrollVRF is VRFConsumerBase, AccessControl, ReentrancyGuard {
 
     /**
      * Constructor
-     * Initialize with Chainlink VRF configuration
+     * Initialize with Anyrand configuration
      */
-    constructor(
-        uint64 subscriptionId,
-        address vrfCoordinator,
-        bytes32 keyHash,
-        uint32 callbackGasLimit,
-        uint32 requestConfirmations,
-        uint32 numWords
-    ) VRFConsumerBase(vrfCoordinator) {
-        s_subscriptionId = subscriptionId;
-        coordinator = vrfCoordinator;
-        this.keyHash = keyHash;
-        this.callbackGasLimit = callbackGasLimit;
-        this.requestConfirmations = requestConfirmations;
-        this.numWords = numWords;
+    constructor(address anyrand_) {
+        anyrand = anyrand_;
+        callbackGasLimit = 500000; // Default gas limit
 
         // Grant admin role to deployer
         _grantRole(VRF_ADMIN_ROLE, msg.sender);
@@ -101,17 +83,23 @@ contract ScrollVRF is VRFConsumerBase, AccessControl, ReentrancyGuard {
     }
 
     /**
-     * Request randomness from Chainlink VRF
+     * Request randomness from Anyrand
      * @param user Address requesting randomness
      * @param callbackFunction Function to call with result
+     * @param deadline Timestamp for when randomness should be fulfilled
      * @return requestId Unique request identifier
      */
     function requestRandomness(
         address user,
-        string memory callbackFunction
-    ) external nonReentrant returns (bytes32 requestId) {
+        string memory callbackFunction,
+        uint256 deadline
+    ) external payable nonReentrant returns (uint256 requestId) {
         // Validate input
         if (user == address(0)) {
+            revert InvalidInput();
+        }
+
+        if (deadline <= block.timestamp) {
             revert InvalidInput();
         }
 
@@ -120,13 +108,24 @@ contract ScrollVRF is VRFConsumerBase, AccessControl, ReentrancyGuard {
             revert Unauthorized();
         }
 
-        // Request randomness from Chainlink
-        requestId = requestRandomWords(
-            keyHash,
-            s_subscriptionId,
-            callbackGasLimit,
-            requestConfirmations,
-            numWords
+        // Get request price from Anyrand
+        (uint256 requestPrice, ) = IAnyrand(anyrand).getRequestPrice(callbackGasLimit);
+
+        // Ensure sufficient payment
+        if (msg.value < requestPrice) {
+            revert InvalidInput();
+        }
+
+        // Refund excess payment
+        if (msg.value > requestPrice) {
+            (bool success, ) = msg.sender.call{value: msg.value - requestPrice}("");
+            require(success, "Refund failed");
+        }
+
+        // Request randomness from Anyrand
+        requestId = IAnyrand(anyrand).requestRandomness{value: requestPrice}(
+            deadline,
+            callbackGasLimit
         );
 
         // Store request metadata
@@ -134,24 +133,25 @@ contract ScrollVRF is VRFConsumerBase, AccessControl, ReentrancyGuard {
             requestId: requestId,
             requester: user,
             timestamp: block.timestamp,
-            callbackFunction: callbackFunction
+            callbackFunction: callbackFunction,
+            deadline: deadline
         });
 
-        emit RandomnessRequested(requestId, user, block.timestamp);
+        emit RandomnessRequested(requestId, user, block.timestamp, deadline);
     }
 
     /**
-     * Chainlink VRF fulfillment callback
+     * Anyrand fulfillment callback
      * @param requestId The request ID
-     * @param randomWords The random words generated
+     * @param randomWord The random word generated
      */
-    function fulfillRandomWords(
-        bytes32 requestId,
-        uint256[] memory randomWords
-    ) internal override {
+    function receiveRandomness(
+        uint256 requestId,
+        uint256 randomWord
+    ) external override {
         // Verify request exists
         RandomnessRequest memory request = requests[requestId];
-        if (request.requestId == bytes32(0)) {
+        if (request.requestId == 0) {
             revert RequestNotFound();
         }
 
@@ -160,11 +160,15 @@ contract ScrollVRF is VRFConsumerBase, AccessControl, ReentrancyGuard {
             revert AlreadyFulfilled();
         }
 
-        // Store randomness result and proof
-        randomnessResults[requestId] = randomWords[0];
-        randomnessProofs[requestId] = abi.encodePacked(randomWords);
+        // Verify caller is Anyrand
+        if (msg.sender != anyrand) {
+            revert Unauthorized();
+        }
 
-        emit RandomnessFulfilled(requestId, randomWords[0], abi.encodePacked(randomWords));
+        // Store randomness result
+        randomnessResults[requestId] = randomWord;
+
+        emit RandomnessFulfilled(requestId, randomWord);
     }
 
     /**
@@ -220,28 +224,12 @@ contract ScrollVRF is VRFConsumerBase, AccessControl, ReentrancyGuard {
     /**
      * Admin functions
      */
-    function setSubscriptionId(uint64 newSubscriptionId) external onlyRole(VRF_ADMIN_ROLE) {
-        s_subscriptionId = newSubscriptionId;
+    function setAnyrandAddress(address newAnyrand) external onlyRole(VRF_ADMIN_ROLE) {
+        anyrand = newAnyrand;
     }
 
-    function setCoordinator(address newCoordinator) external onlyRole(VRF_ADMIN_ROLE) {
-        coordinator = newCoordinator;
-    }
-
-    function setKeyHash(bytes32 newKeyHash) external onlyRole(VRF_ADMIN_ROLE) {
-        keyHash = newKeyHash;
-    }
-
-    function setCallbackGasLimit(uint32 newGasLimit) external onlyRole(VRF_ADMIN_ROLE) {
+    function setCallbackGasLimit(uint256 newGasLimit) external onlyRole(VRF_ADMIN_ROLE) {
         callbackGasLimit = newGasLimit;
-    }
-
-    function setRequestConfirmations(uint32 newConfirmations) external onlyRole(VRF_ADMIN_ROLE) {
-        requestConfirmations = newConfirmations;
-    }
-
-    function setNumWords(uint32 newNumWords) external onlyRole(VRF_ADMIN_ROLE) {
-        numWords = newNumWords;
     }
 
     /**

@@ -30,19 +30,15 @@ SCROLL_MAINNET_RPC=https://rpc.scroll.io/
 # Deployer Private Key
 DEPLOYER_PRIVATE_KEY=your_private_key_here
 
-# Chainlink VRF Configuration (for ScrollVRF)
-VRF_COORDINATOR=0x8103B0A8A00be2DDC778e6e7eaa21791Cd364625
-VRF_SUBSCRIPTION_ID=123
-VRF_KEY_HASH=0x474e34a07cf384164fc4c49562dd634f4ffe55e5b6a8cf606b7a0d05d3e8386b
-VRF_CALLBACK_GAS_LIMIT=500000
-VRF_REQUEST_CONFIRMATIONS=3
-VRF_NUM_WORDS=1
+# Anyrand Configuration (for ScrollVRF)
+ANYRAND_ADDRESS=0x86d8C50E04DDd04cdaafaC9672cf1D00b6057AF5
+CALLBACK_GAS_LIMIT=500000
 
 # Contract Addresses
 VOICE_STORAGE_ADDRESS=
 USER_REGISTRY_ADDRESS=
 ACCESS_CONTROL_ADDRESS=
-```
+```} }
 
 ## 📁 Contract Structure
 
@@ -85,16 +81,12 @@ scarb build
 
 ### Phase 2: Deploy ScrollVRF Contract
 
-#### 1. Configure Chainlink VRF
+#### 1. Configure Anyrand
 ```javascript
 // In deploy-scroll-contracts.ts
-const vrfConfig = {
-  subscriptionId: process.env.VRF_SUBSCRIPTION_ID,
-  coordinator: process.env.VRF_COORDINATOR,
-  keyHash: process.env.VRF_KEY_HASH,
-  callbackGasLimit: process.env.VRF_CALLBACK_GAS_LIMIT,
-  requestConfirmations: process.env.VRF_REQUEST_CONFIRMATIONS,
-  numWords: process.env.VRF_NUM_WORDS
+const anyrandConfig = {
+  anyrandAddress: process.env.ANYRAND_ADDRESS,
+  callbackGasLimit: process.env.CALLBACK_GAS_LIMIT
 };
 ```
 
@@ -322,7 +314,7 @@ function batchStoreRecordings(
 ```mermaid
 graph TD
     A[Frontend] -->|Request VRF| B[ScrollVRF Contract]
-    B -->|Request to Chainlink| C[Chainlink VRF]
+    B -->|Request to Anyrand| C[Anyrand VRF]
     C -->|Fulfill Request| B
     B -->|Emit Event| A
     A -->|Use for Voice Selection| D[AI Service]
