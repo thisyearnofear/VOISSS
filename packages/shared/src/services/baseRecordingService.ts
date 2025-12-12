@@ -18,6 +18,22 @@ export interface BaseRecordingMetadata {
   tags: string[];
 }
 
+/**
+ * Extended metadata for private recordings
+ * Includes privacy settings and access control
+ */
+export interface PrivateRecordingMetadata extends BaseRecordingMetadata {
+  isPrivate: true;
+  allowedViewers?: string[]; // Specific addresses that can access
+  encryptionType?: 'aes-256' | 'rsa-4096' | 'custom';
+  accessExpiration?: Date; // Optional time-based access control
+  selectiveDisclosure?: {
+    titlePublic?: boolean;
+    descriptionPublic?: boolean;
+    tagsPublic?: boolean;
+  };
+}
+
 export interface SaveRecordingResponse {
   success: boolean;
   txHash: string;
@@ -25,8 +41,36 @@ export interface SaveRecordingResponse {
   blockNumber: string;
 }
 
+/**
+ * Response for private recording creation
+ * Includes privacy-specific information
+ */
+export interface SavePrivateRecordingResponse extends SaveRecordingResponse {
+  contentId: string; // Unique identifier for private content
+  zkProof?: string; // Optional zk proof for verification
+  encryptedDataHash: string; // Hash of encrypted content
+}
+
 export interface BaseRecordingService {
   saveRecording(ipfsHash: string, metadata: BaseRecordingMetadata): Promise<string>;
+  
+  // Optional privacy features
+  savePrivateRecording?(
+    encryptedDataHash: string,
+    metadata: PrivateRecordingMetadata,
+    zkProof?: string
+  ): Promise<SavePrivateRecordingResponse>;
+  
+  getPrivateRecording?(
+    contentId: string,
+    userAddress: string,
+    zkProof?: string
+  ): Promise<{
+    success: boolean;
+    encryptedDataHash?: string;
+    metadata?: PrivateRecordingMetadata;
+    accessGranted: boolean;
+  }>;
 }
 
 export class BaseRecordingServiceImpl implements BaseRecordingService {

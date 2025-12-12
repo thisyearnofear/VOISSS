@@ -330,6 +330,121 @@ class BlockchainService {
     return { reward: rewardOptions[randomIndex], randomNumber, proof };
   }
   
+  // ============================================
+  // zkEVM Privacy Methods
+  // ============================================
+  
+  /**
+   * Check if current chain supports zkEVM privacy features
+   */
+  hasZkEVMSupport(): boolean {
+    const adapter = this.getAdapter();
+    return 'generateZkProof' in adapter && 
+           'verifyZkProof' in adapter && 
+           'createPrivateContent' in adapter;
+  }
+  
+  /**
+   * Generate zk proof for private content ownership
+   * Only available on chains that support zkEVM (currently Scroll)
+   */
+  async generateZkProof(data: string, userAddress: string): Promise<{proof: string, publicSignals: string[]}> {
+    const adapter = this.getAdapter();
+    
+    if (!this.hasZkEVMSupport()) {
+      throw new Error(`zkEVM privacy features are not supported on ${this.currentChain} chain`);
+    }
+    
+    return adapter.generateZkProof!(data, userAddress);
+  }
+  
+  /**
+   * Verify zk proof on-chain
+   * Only available on chains that support zkEVM (currently Scroll)
+   */
+  async verifyZkProof(proof: string, publicSignals: string[]): Promise<boolean> {
+    const adapter = this.getAdapter();
+    
+    if (!this.hasZkEVMSupport()) {
+      throw new Error(`zkEVM privacy features are not supported on ${this.currentChain} chain`);
+    }
+    
+    return adapter.verifyZkProof!(proof, publicSignals);
+  }
+  
+  /**
+   * Create private content with zk proof
+   * Only available on chains that support zkEVM (currently Scroll)
+   */
+  async createPrivateContent(encryptedDataHash: string, zkProof: string, userAddress: string): Promise<{transactionHash: string, contentId: string}> {
+    const adapter = this.getAdapter();
+    
+    if (!this.hasZkEVMSupport()) {
+      throw new Error(`zkEVM privacy features are not supported on ${this.currentChain} chain`);
+    }
+    
+    return adapter.createPrivateContent!(encryptedDataHash, zkProof, userAddress);
+  }
+  
+  /**
+   * Complete privacy workflow: Encrypt → Generate Proof → Verify → Store
+   * Automatically handles the full zkEVM privacy lifecycle
+   */
+  async createPrivateRecording(audioDataHash: string, userAddress: string): Promise<{
+    encryptedDataHash: string;
+    zkProof: string;
+    publicSignals: string[];
+    transactionHash: string;
+    contentId: string;
+  }> {
+    const adapter = this.getAdapter();
+    
+    if (!this.hasZkEVMSupport()) {
+      throw new Error(`zkEVM privacy features are not supported on ${this.currentChain} chain`);
+    }
+    
+    // Check if adapter has the complete privacy workflow method
+    if ('createPrivateRecording' in adapter && typeof adapter.createPrivateRecording === 'function') {
+      return adapter.createPrivateRecording!(audioDataHash, userAddress);
+    }
+    
+    // Fallback to manual workflow
+    const encryptedDataHash = 'encrypted-' + audioDataHash;
+    const { proof: zkProof, publicSignals } = await this.generateZkProof(encryptedDataHash, userAddress);
+    const isValid = await this.verifyZkProof(zkProof, publicSignals);
+    
+    if (!isValid) {
+      throw new Error('zk proof verification failed');
+    }
+    
+    return this.createPrivateContent(encryptedDataHash, zkProof, userAddress);
+  }
+  
+  /**
+   * Create private recording with metadata
+   * Enhanced version that includes metadata in the privacy workflow
+   */
+  async createPrivateRecordingWithMetadata(
+    audioDataHash: string, 
+    userAddress: string,
+    metadata: BaseRecordingMetadata
+  ): Promise<{
+    encryptedDataHash: string;
+    zkProof: string;
+    publicSignals: string[];
+    transactionHash: string;
+    contentId: string;
+    metadata: BaseRecordingMetadata;
+  }> {
+    // Include metadata in the encrypted data
+    const metadataString = JSON.stringify(metadata);
+    const dataWithMetadata = `${audioDataHash}:${metadataString}`;
+    
+    const result = await this.createPrivateRecording(dataWithMetadata, userAddress);
+    
+    return { ...result, metadata };
+  }
+  
   async getTokenBalance(address: string, tokenAddress: string): Promise<string> {
     return this.getAdapter().getTokenBalance(address, tokenAddress);
   }

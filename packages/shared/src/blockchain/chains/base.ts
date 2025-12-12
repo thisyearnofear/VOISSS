@@ -31,6 +31,20 @@ export interface ChainAdapter {
   // Optional VRF (Verifiable Random Function) support
   requestRandomness?(userAddress: string, callback?: string): Promise<{requestId: string, transactionHash: string}>;
   getRandomnessResult?(requestId: string): Promise<{randomNumber: bigint, proof: string}>;
+  
+  // Optional zkEVM Privacy support
+  generateZkProof?(data: string, userAddress: string): Promise<{proof: string, publicSignals: string[]}>;
+  verifyZkProof?(proof: string, publicSignals: string[]): Promise<boolean>;
+  createPrivateContent?(encryptedDataHash: string, zkProof: string, userAddress: string): Promise<{transactionHash: string, contentId: string}>;
+}
+
+/**
+ * Extended interface for chains that support zkEVM Privacy (currently Scroll)
+ */
+export interface ZkEVMChainAdapter extends ChainAdapter {
+  generateZkProof(data: string, userAddress: string): Promise<{proof: string, publicSignals: string[]}>;
+  verifyZkProof(proof: string, publicSignals: string[]): Promise<boolean>;
+  createPrivateContent(encryptedDataHash: string, zkProof: string, userAddress: string): Promise<{transactionHash: string, contentId: string}>;
 }
 
 /**

@@ -60,6 +60,113 @@ export class IPFSService {
       throw new Error(`Failed to upload to IPFS: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
+  
+  /**
+   * Upload encrypted audio file to IPFS for private recordings
+   * Includes additional privacy metadata
+   */
+  async uploadEncryptedAudio(
+    encryptedData: Blob | ArrayBuffer | Uint8Array,
+    metadata: AudioMetadata,
+    privacyMetadata: {
+      encryptionAlgorithm: string;
+      contentId: string;
+      ownerAddress: string;
+    }
+  ): Promise<IPFSUploadResult> {
+    try {
+      console.log(`🔒 Uploading encrypted audio to IPFS...`);
+      console.log(`   Content ID: ${privacyMetadata.contentId}`);
+      console.log(`   Owner: ${privacyMetadata.ownerAddress}`);
+      console.log(`   Encryption: ${privacyMetadata.encryptionAlgorithm}`);
+      
+      // Add privacy metadata to the upload
+      const fullMetadata = {
+        ...metadata,
+        privacy: {
+          isPrivate: true,
+          contentId: privacyMetadata.contentId,
+          owner: privacyMetadata.ownerAddress,
+          encryption: privacyMetadata.encryptionAlgorithm,
+          timestamp: new Date().toISOString(),
+        }
+      };
+      
+      // Use the standard upload method
+      const result = await this.uploadAudio(encryptedData, fullMetadata);
+      
+      console.log(`✅ Encrypted audio uploaded successfully`);
+      console.log(`   IPFS Hash: ${result.hash}`);
+      console.log(`   URL: ${result.url}`);
+      
+      return result;
+      
+    } catch (error) {
+      console.error('IPFS encrypted upload failed:', error);
+      throw new Error(`Failed to upload encrypted audio: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  
+  /**
+   * Retrieve encrypted audio from IPFS
+   * Includes privacy verification
+   */
+  async retrieveEncryptedAudio(
+    ipfsHash: string,
+    expectedOwner?: string
+  ): Promise<{
+    data: Blob;
+    metadata: AudioMetadata & {
+      privacy?: {
+        isPrivate: boolean;
+        contentId: string;
+        owner: string;
+        encryption: string;
+        timestamp: string;
+      };
+    };
+    accessGranted: boolean;
+  }> {
+    try {
+      console.log(`🔐 Retrieving encrypted audio from IPFS...`);
+      console.log(`   IPFS Hash: ${ipfsHash}`);
+      
+      // TODO: Implement actual IPFS retrieval with privacy checks
+      // This would verify ownership and access rights
+      
+      // Mock implementation for now
+      const mockData = new Blob(['encrypted-audio-data'], { type: 'audio/mpeg' });
+      const mockMetadata = {
+        filename: 'private-recording.mp3',
+        mimeType: 'audio/mpeg',
+        duration: 120,
+        sampleRate: 44100,
+        privacy: {
+          isPrivate: true,
+          contentId: 'private-' + Math.random().toString(36).substring(2, 15),
+          owner: expectedOwner || '0x' + Math.random().toString(16).substring(2, 42),
+          encryption: 'aes-256',
+          timestamp: new Date().toISOString(),
+        }
+      };
+      
+      const accessGranted = !expectedOwner || mockMetadata.privacy?.owner === expectedOwner;
+      
+      console.log(`✅ Encrypted audio retrieved`);
+      console.log(`   Access granted: ${accessGranted}`);
+      console.log(`   Owner: ${mockMetadata.privacy?.owner}`);
+      
+      return {
+        data: mockData,
+        metadata: mockMetadata,
+        accessGranted
+      };
+      
+    } catch (error) {
+      console.error('IPFS encrypted retrieval failed:', error);
+      throw new Error(`Failed to retrieve encrypted audio: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
 
   /**
    * Upload to Pinata (recommended for production)

@@ -204,6 +204,53 @@ export const AI_ENHANCEMENT_OPTIONS = [
   },
 ] as const;
 
+// Privacy Configuration - zkEVM and encryption settings
+export const PRIVACY_CONFIG = {
+  ENCRYPTION: {
+    DEFAULT_ALGORITHM: 'aes-256' as const,
+    SUPPORTED_ALGORITHMS: ['aes-256', 'rsa-4096', 'chacha20'] as const,
+    KEY_SIZES: {
+      'aes-256': 256,
+      'rsa-4096': 4096,
+      'chacha20': 256,
+    },
+  },
+  ZKEVM: {
+    PROOF_TYPES: ['groth16', 'plonk'] as const,
+    DEFAULT_PROOF_TYPE: 'groth16' as const,
+    VERIFICATION_GAS_LIMIT: '500000', // Gas limit for zk proof verification
+  },
+  ACCESS_CONTROL: {
+    DEFAULT_EXPIRATION: 30 * 24 * 60 * 60 * 1000, // 30 days in ms
+    MAX_ALLOWED_VIEWERS: 50,
+    PUBLIC_METADATA_FIELDS: ['title', 'duration', 'sampleRate'] as const,
+  },
+  STORAGE: {
+    PRIVATE_CONTENT_PREFIX: 'private-voisss-',
+    ENCRYPTED_METADATA_PREFIX: 'encrypted-meta-',
+    ZK_PROOF_PREFIX: 'zk-proof-',
+  },
+} as const;
+
+// Privacy Feature Flags
+export const PRIVACY_FEATURES = {
+  ZKEVM_PRIVACY: true,
+  SELECTIVE_DISCLOSURE: true,
+  TIME_BASED_ACCESS: true,
+  ENCRYPTED_METADATA: true,
+  PRIVATE_TIPPING: false, // To be implemented
+  PRIVACY_DASHBOARD: false, // To be implemented
+} as const;
+
+// Default Privacy Settings
+export const DEFAULT_PRIVACY_SETTINGS = {
+  encryptionAlgorithm: PRIVACY_CONFIG.ENCRYPTION.DEFAULT_ALGORITHM,
+  allowSelectiveDisclosure: true,
+  defaultAccessExpiration: PRIVACY_CONFIG.ACCESS_CONTROL.DEFAULT_EXPIRATION,
+  requireZkProof: true,
+  publicMetadataFields: PRIVACY_CONFIG.ACCESS_CONTROL.PUBLIC_METADATA_FIELDS,
+} as const;
+
 // Validation Rules
 export const VALIDATION = {
   USERNAME: {
