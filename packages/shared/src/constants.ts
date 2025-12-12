@@ -84,6 +84,126 @@ export const FEATURES = {
   MONETIZATION: false, // To be enabled post-hackathon
 } as const;
 
+// AI Voice Styles - Consolidated from mobile service
+export const AI_VOICE_STYLES = [
+  {
+    id: 'podcast-host',
+    name: 'Podcast Host',
+    description: 'Professional and engaging podcast voice',
+    voiceId: 'podcast-host-voice-id',
+    category: 'professional' as const,
+    previewText: 'Welcome to today\'s episode where we explore...',
+    icon: 'mic',
+    isPremium: false,
+    popularity: 95,
+    tags: ['professional', 'clear', 'engaging'],
+  },
+  {
+    id: 'storyteller',
+    name: 'Storyteller',
+    description: 'Warm and captivating storytelling voice',
+    voiceId: 'storyteller-voice-id',
+    category: 'creative' as const,
+    previewText: 'Once upon a time, in a land far away...',
+    icon: 'book',
+    isPremium: false,
+    popularity: 88,
+    tags: ['warm', 'narrative', 'children'],
+  },
+  {
+    id: 'news-anchor',
+    name: 'News Anchor',
+    description: 'Authoritative and clear news presentation',
+    voiceId: 'news-anchor-voice-id',
+    category: 'professional' as const,
+    previewText: 'Breaking news: Major developments in...',
+    icon: 'newspaper',
+    isPremium: false,
+    popularity: 85,
+    tags: ['authoritative', 'clear', 'news'],
+  },
+  {
+    id: 'robot',
+    name: 'Futuristic Robot',
+    description: 'Synthetic voice with a sci-fi feel',
+    voiceId: 'robot-voice-id',
+    category: 'fun' as const,
+    previewText: 'Initiating voice protocol. All systems operational.',
+    icon: 'robot',
+    isPremium: true,
+    popularity: 78,
+    tags: ['sci-fi', 'synthetic', 'fun'],
+  },
+  {
+    id: 'whisper',
+    name: 'Mystery Whisper',
+    description: 'Soft and intriguing whisper voice',
+    voiceId: 'whisper-voice-id',
+    category: 'emotional' as const,
+    previewText: 'Psst... I have a secret to tell you...',
+    icon: 'volume-low',
+    isPremium: true,
+    popularity: 72,
+    tags: ['mysterious', 'soft', 'intimate'],
+  },
+  {
+    id: 'epic',
+    name: 'Epic Narrator',
+    description: 'Dramatic and powerful narration',
+    voiceId: 'epic-voice-id',
+    category: 'creative' as const,
+    previewText: 'In a world where anything is possible...',
+    icon: 'megaphone',
+    isPremium: true,
+    popularity: 89,
+    tags: ['dramatic', 'powerful', 'cinematic'],
+  },
+] as const;
+
+// AI Enhancement Options - Consolidated from mobile service
+export const AI_ENHANCEMENT_OPTIONS = [
+  {
+    id: 'emotion',
+    name: 'Emotion',
+    description: 'Adjust the emotional tone of your voice',
+    type: 'emotion' as const,
+    values: ['happy', 'sad', 'angry', 'excited', 'calm', 'neutral'],
+    defaultValue: 'neutral',
+  },
+  {
+    id: 'speed',
+    name: 'Speed',
+    description: 'Control the speaking rate',
+    type: 'effect' as const,
+    values: ['slow', 'normal', 'fast'],
+    defaultValue: 'normal',
+  },
+  {
+    id: 'pitch',
+    name: 'Pitch',
+    description: 'Adjust voice pitch',
+    type: 'effect' as const,
+    values: ['low', 'normal', 'high'],
+    defaultValue: 'normal',
+  },
+  {
+    id: 'background',
+    name: 'Background',
+    description: 'Add background effects',
+    type: 'effect' as const,
+    values: ['none', 'studio', 'outdoor', 'phone', 'radio'],
+    defaultValue: 'none',
+  },
+  {
+    id: 'language',
+    name: 'Language',
+    description: 'Translate and adjust for language',
+    type: 'language' as const,
+    values: ['english', 'spanish', 'french', 'german', 'japanese', 'chinese'],
+    defaultValue: 'english',
+  },
+] as const;
+
 // Validation Rules
 export const VALIDATION = {
   USERNAME: {

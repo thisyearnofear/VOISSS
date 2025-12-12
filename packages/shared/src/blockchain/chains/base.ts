@@ -23,6 +23,31 @@ export interface ChainAdapter {
   sendTransaction(to: string, amount: string, tokenAddress?: string): Promise<string>;
   estimateGasCost(tx: any): Promise<string>;
   getTokenBalance(address: string, tokenAddress: string): Promise<string>;
+  
+  // Optional chain-specific optimizations
+  getRecommendedGasPrice?(): Promise<string>;
+  estimateTotalTransactionCost?(tx: any): Promise<{gasLimit: string, gasPrice: string, totalCost: string}>;
+  
+  // Optional VRF (Verifiable Random Function) support
+  requestRandomness?(userAddress: string, callback?: string): Promise<{requestId: string, transactionHash: string}>;
+  getRandomnessResult?(requestId: string): Promise<{randomNumber: bigint, proof: string}>;
+}
+
+/**
+ * Extended interface for chains that support VRF (currently Scroll)
+ */
+export interface VRFChainAdapter extends ChainAdapter {
+  requestRandomness(userAddress: string, callback?: string): Promise<{requestId: string, transactionHash: string}>;
+  getRandomnessResult(requestId: string): Promise<{randomNumber: bigint, proof: string}>;
+}
+
+/**
+ * Extended interface for chains that support advanced gas optimization
+ * Currently implemented by ScrollAdapter
+ */
+export interface GasOptimizedChainAdapter extends ChainAdapter {
+  getRecommendedGasPrice(): Promise<string>;
+  estimateTotalTransactionCost(tx: any): Promise<{gasLimit: string, gasPrice: string, totalCost: string}>;
 }
 
 export interface TipTransaction {

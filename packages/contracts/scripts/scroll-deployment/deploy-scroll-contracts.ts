@@ -1,8 +1,11 @@
 /**
- * Scroll Contract Deployment Script
+ * Enhanced Scroll Contract Deployment Script
  * 
- * This script deploys VOISSS contracts to the Scroll network
- * including VoiceStorage, Tipping, and UserRegistry contracts.
+ * This script deploys VOISSS contracts to the Scroll network with:
+ * - Gas optimization for Scroll's zkEVM
+ * - Automatic verification
+ * - Comprehensive error handling
+ * - Deployment cost analysis
  */
 
 import { ethers } from 'ethers';
@@ -13,21 +16,33 @@ import path from 'path';
 // Load environment variables
 config();
 
-// Scroll network configurations
+// Enhanced Scroll network configurations with gas optimization
 const SCROLL_NETWORKS = {
   sepolia: {
     rpcUrl: process.env.SCROLL_SEPOLIA_RPC || 'https://sepolia-rpc.scroll.io/',
     chainId: 534351,
     explorerUrl: 'https://sepolia.scrollscan.com/',
     explorerApiUrl: 'https://api-sepolia.scrollscan.com/api',
+    gasPrice: '10000000000', // 10 Gwei - optimized for Scroll
+    maxGasLimit: '30000000', // 30M gas limit for complex contracts
   },
   mainnet: {
     rpcUrl: process.env.SCROLL_MAINNET_RPC || 'https://rpc.scroll.io/',
     chainId: 534352,
     explorerUrl: 'https://scrollscan.com/',
     explorerApiUrl: 'https://api.scrollscan.com/api',
+    gasPrice: '15000000000', // 15 Gwei - slightly higher for mainnet
+    maxGasLimit: '30000000', // 30M gas limit
   },
 };
+
+// Deployment statistics for cost analysis
+interface DeploymentStats {
+  totalGasUsed: bigint;
+  totalCost: bigint;
+  contractCount: number;
+  averageGasPerContract: bigint;
+}
 
 // Contract ABIs (simplified for deployment)
 const CONTRACT_ABIS = {
@@ -84,6 +99,8 @@ interface DeploymentResult {
   gasUsed: string;
   network: string;
   timestamp: string;
+  gasPrice?: string;
+  deploymentCost?: string;
 }
 
 interface ScrollDeploymentConfig {
@@ -91,6 +108,8 @@ interface ScrollDeploymentConfig {
   privateKey: string;
   gasLimit?: number;
   gasPrice?: string;
+  enableVerification?: boolean;
+  saveDeploymentData?: boolean;
 }
 
 class ScrollContractDeployer {
@@ -98,9 +117,16 @@ class ScrollContractDeployer {
   private provider: ethers.JsonRpcProvider;
   private wallet: ethers.Wallet;
   private deployerAddress: string;
+  private deploymentStats: DeploymentStats;
 
   constructor(config: ScrollDeploymentConfig) {
     this.config = config;
+    this.deploymentStats = {
+      totalGasUsed: 0n,
+      totalCost: 0n,
+      contractCount: 0,
+      averageGasPerContract: 0n,
+    };
     
     // Initialize provider
     const networkConfig = SCROLL_NETWORKS[config.network];
@@ -110,8 +136,10 @@ class ScrollContractDeployer {
     this.wallet = new ethers.Wallet(config.privateKey, this.provider);
     this.deployerAddress = this.wallet.address;
     
-    console.log(`Scroll Deployer initialized for ${config.network}`);
-    console.log(`Deployer address: ${this.deployerAddress}`);
+    console.log(`🚀 Scroll Deployer initialized for ${config.network}`);
+    console.log(`👤 Deployer address: ${this.deployerAddress}`);
+    console.log(`⛽ Gas price: ${networkConfig.gasPrice} wei`);
+    console.log(`📊 Max gas limit: ${networkConfig.maxGasLimit}`);
   }
 
   async deployVoiceStorageContract(): Promise<DeploymentResult> {
@@ -148,9 +176,11 @@ class ScrollContractDeployer {
     contractName: string,
     constructorArgs: any[] = []
   ): Promise<DeploymentResult> {
-    console.log(`Deploying ${contractName} contract...`);
+    console.log(`📦 Deploying ${contractName} contract...`);
     
     try {
+      const networkConfig = SCROLL_NETWORKS[this.config.network];
+      
       // Get contract factory
       const contractFactory = new ethers.ContractFactory(
         CONTRACT_ABIS[contractName as keyof typeof CONTRACT_ABIS],
@@ -158,44 +188,115 @@ class ScrollContractDeployer {
         this.wallet
       );
       
-      // Estimate gas
+      // Estimate gas with Scroll optimization
+      console.log(`🔍 Estimating gas for ${contractName}...`);
       const gasEstimate = await contractFactory.signer.estimateGas(
         contractFactory.getDeployTransaction(...constructorArgs)
       );
       
-      console.log(`Estimated gas for ${contractName}: ${gasEstimate.toString()}`);
+      // Apply Scroll gas optimization
+      const optimizedGasLimit = this.optimizeGasLimit(gasEstimate, contractName);
       
-      // Deploy contract
-      const contract = await contractFactory.deploy(...constructorArgs);
+      console.log(`✅ Gas estimate: ${gasEstimate.toString()}`);
+      console.log(`🎯 Optimized gas limit: ${optimizedGasLimit.toString()}`);
       
-      console.log(`Transaction sent: ${contract.deploymentTransaction()?.hash}`);
+      // Deploy contract with optimized gas settings
+      console.log(`📡 Sending deployment transaction...`);
+      const contract = await contractFactory.deploy(...constructorArgs, {
+        gasLimit: optimizedGasLimit,
+        gasPrice: networkConfig.gasPrice,
+      });
+      
+      const transactionHash = contract.deploymentTransaction()?.hash;
+      console.log(`🔗 Transaction sent: ${transactionHash}`);
+      console.log(`🔄 Waiting for confirmation...`);
       
       // Wait for deployment
       const deploymentReceipt = await contract.waitForDeployment();
       
       const contractAddress = await contract.getAddress();
-      const transactionHash = deploymentReceipt.deploymentTransaction()?.hash || '';
       const blockNumber = deploymentReceipt.blockNumber || 0;
-      const gasUsed = deploymentReceipt.gasUsed?.toString() || '0';
+      const gasUsed = BigInt(deploymentReceipt.gasUsed?.toString() || '0');
       
-      console.log(`${contractName} deployed to: ${contractAddress}`);
+      // Calculate deployment cost
+      const gasPrice = BigInt(networkConfig.gasPrice);
+      const deploymentCost = gasUsed * gasPrice;
+      
+      // Update deployment statistics
+      this.updateDeploymentStats(gasUsed, deploymentCost);
+      
+      console.log(`🎉 ${contractName} deployed successfully!`);
+      console.log(`📍 Address: ${contractAddress}`);
+      console.log(`⛽ Gas used: ${gasUsed.toString()}`);
+      console.log(`💰 Cost: ${ethers.formatEther(deploymentCost)} ETH`);
       
       const result: DeploymentResult = {
         contractName,
         contractAddress,
-        transactionHash,
+        transactionHash: transactionHash || '',
         blockNumber,
-        gasUsed,
+        gasUsed: gasUsed.toString(),
         network: this.config.network,
         timestamp: new Date().toISOString(),
+        gasPrice: networkConfig.gasPrice,
+        deploymentCost: deploymentCost.toString(),
       };
       
       return result;
       
     } catch (error) {
-      console.error(`Failed to deploy ${contractName}:`, error);
-      throw error;
+      console.error(`❌ Failed to deploy ${contractName}:`, error);
+      throw new Error(`Deployment failed: ${this.formatDeploymentError(error)}`);
     }
+  }
+  
+  /**
+   * Optimize gas limit for Scroll deployment
+   * Adds buffer for safety while avoiding overpayment
+   */
+  private optimizeGasLimit(estimatedGas: bigint, contractName: string): bigint {
+    const networkConfig = SCROLL_NETWORKS[this.config.network];
+    const maxGasLimit = BigInt(networkConfig.maxGasLimit);
+    
+    // Add 20% buffer for safety
+    const bufferedGas = estimatedGas + (estimatedGas / 5n);
+    
+    // Ensure we don't exceed max gas limit
+    const optimizedGas = bufferedGas > maxGasLimit ? maxGasLimit : bufferedGas;
+    
+    console.log(`📊 Gas optimization for ${contractName}:`);
+    console.log(`   Estimated: ${estimatedGas.toString()}`);
+    console.log(`   Buffered: ${bufferedGas.toString()} (${estimatedGas.toString()} + 20%)`);
+    console.log(`   Optimized: ${optimizedGas.toString()}`);
+    
+    return optimizedGas;
+  }
+  
+  /**
+   * Update deployment statistics
+   */
+  private updateDeploymentStats(gasUsed: bigint, cost: bigint): void {
+    this.deploymentStats.totalGasUsed += gasUsed;
+    this.deploymentStats.totalCost += cost;
+    this.deploymentStats.contractCount += 1;
+    this.deploymentStats.averageGasPerContract = 
+      this.deploymentStats.totalGasUsed / BigInt(this.deploymentStats.contractCount);
+  }
+  
+  /**
+   * Format deployment errors for better debugging
+   */
+  private formatDeploymentError(error: any): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    if (typeof error === 'string') {
+      return error;
+    }
+    if (error && typeof error === 'object') {
+      return JSON.stringify(error, null, 2);
+    }
+    return 'Unknown deployment error';
   }
 
   private async saveDeploymentResults(results: Record<string, DeploymentResult>): Promise<void> {
@@ -208,21 +309,82 @@ class ScrollContractDeployer {
       const filename = `scroll-${this.config.network}-deployment-${Date.now()}.json`;
       const filePath = path.join(deploymentDir, filename);
       
+      // Calculate total deployment cost in ETH
+      const totalCostEth = ethers.formatEther(this.deploymentStats.totalCost);
+      const averageCostEth = ethers.formatEther(this.deploymentStats.averageGasPerContract * BigInt(SCROLL_NETWORKS[this.config.network].gasPrice));
+      
       const deploymentData = {
         network: this.config.network,
         deployer: this.deployerAddress,
         timestamp: new Date().toISOString(),
         contracts: results,
         scrollNetwork: SCROLL_NETWORKS[this.config.network],
+        deploymentStatistics: {
+          totalContracts: this.deploymentStats.contractCount,
+          totalGasUsed: this.deploymentStats.totalGasUsed.toString(),
+          totalCostWei: this.deploymentStats.totalCost.toString(),
+          totalCostEth,
+          averageGasPerContract: this.deploymentStats.averageGasPerContract.toString(),
+          averageCostEth,
+          gasPriceUsed: SCROLL_NETWORKS[this.config.network].gasPrice,
+        },
+        costAnalysis: {
+          costEffectiveness: this.calculateCostEffectiveness(),
+          scrollAdvantage: this.calculateScrollAdvantage(),
+        }
       };
       
       fs.writeFileSync(filePath, JSON.stringify(deploymentData, null, 2));
       
-      console.log(`Deployment results saved to: ${filePath}`);
+      console.log(`💾 Deployment results saved to: ${filePath}`);
+      console.log(`📊 Deployment Summary:`);
+      console.log(`   Contracts: ${this.deploymentStats.contractCount}`);
+      console.log(`   Total Gas: ${this.deploymentStats.totalGasUsed.toString()}`);
+      console.log(`   Total Cost: ${totalCostEth} ETH`);
+      console.log(`   Avg Cost/Contract: ${averageCostEth} ETH`);
+      console.log(`   Cost Effectiveness: ${deploymentData.costAnalysis.costEffectiveness}`);
+      console.log(`   Scroll Advantage: ${deploymentData.costAnalysis.scrollAdvantage}`);
       
     } catch (error) {
-      console.error('Failed to save deployment results:', error);
+      console.error('❌ Failed to save deployment results:', error);
     }
+  }
+  
+  /**
+   * Calculate cost effectiveness score (higher is better)
+   */
+  private calculateCostEffectiveness(): string {
+    if (this.deploymentStats.contractCount === 0) return 'N/A';
+    
+    const gasPrice = BigInt(SCROLL_NETWORKS[this.config.network].gasPrice);
+    const avgGasPerContract = this.deploymentStats.averageGasPerContract;
+    const costPerContractWei = avgGasPerContract * gasPrice;
+    
+    // Score based on gas efficiency (lower cost = higher score)
+    const costPerContractEth = Number(ethers.formatEther(costPerContractWei));
+    
+    if (costPerContractEth < 0.001) return '⭐⭐⭐⭐⭐ Excellent';
+    if (costPerContractEth < 0.005) return '⭐⭐⭐⭐ Very Good';
+    if (costPerContractEth < 0.01) return '⭐⭐⭐ Good';
+    if (costPerContractEth < 0.05) return '⭐⭐ Fair';
+    return '⭐ Needs Optimization';
+  }
+  
+  /**
+   * Calculate Scroll's cost advantage compared to Ethereum
+   */
+  private calculateScrollAdvantage(): string {
+    if (this.deploymentStats.contractCount === 0) return 'N/A';
+    
+    const scrollGasPrice = BigInt(SCROLL_NETWORKS[this.config.network].gasPrice);
+    const ethereumGasPrice = BigInt('30000000000'); // ~30 Gwei typical Ethereum price
+    
+    const scrollCost = this.deploymentStats.totalGasUsed * scrollGasPrice;
+    const ethereumCost = this.deploymentStats.totalGasUsed * ethereumGasPrice;
+    
+    const savings = ((ethereumCost - scrollCost) * 100n) / ethereumCost;
+    
+    return `${savings.toString()}% cheaper than Ethereum`;
   }
 
   async verifyContract(

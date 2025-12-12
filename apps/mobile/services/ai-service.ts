@@ -11,26 +11,11 @@ import {
   type VoiceInfo,
   type VoiceVariantPreview,
   type DubbingOptions,
-  type DubbingResult
+  type DubbingResult,
+  type AIVoiceStyle,
+  type AIEnhancementOption
 } from '@voisss/shared/types/audio';
-
-export interface AIVoiceStyle {
-  id: string;
-  name: string;
-  description: string;
-  voiceId: string;
-  category: 'professional' | 'creative' | 'fun' | 'emotional';
-  previewText: string;
-  icon: string;
-}
-
-export interface AIEnhancementOption {
-  id: string;
-  name: string;
-  description: string;
-  type: 'style' | 'emotion' | 'effect' | 'language';
-  values: string[];
-}
+import { AI_VOICE_STYLES, AI_ENHANCEMENT_OPTIONS } from '@voisss/shared/constants';
 
 export class MobileAIService {
   private elevenLabsProvider: ElevenLabsTransformProvider;
@@ -39,109 +24,9 @@ export class MobileAIService {
 
   constructor() {
     this.elevenLabsProvider = new ElevenLabsTransformProvider();
-    this.voiceStyles = this.getDefaultVoiceStyles();
-    this.enhancementOptions = this.getDefaultEnhancementOptions();
-  }
-
-  // Voice Style Presets
-  private getDefaultVoiceStyles(): AIVoiceStyle[] {
-    return [
-      {
-        id: 'podcast-host',
-        name: 'Podcast Host',
-        description: 'Professional and engaging podcast voice',
-        voiceId: 'podcast-host-voice-id', // Would be replaced with actual ElevenLabs voice ID
-        category: 'professional',
-        previewText: 'Welcome to today\'s episode where we explore...',
-        icon: 'mic',
-      },
-      {
-        id: 'storyteller',
-        name: 'Storyteller',
-        description: 'Warm and captivating storytelling voice',
-        voiceId: 'storyteller-voice-id',
-        category: 'creative',
-        previewText: 'Once upon a time, in a land far away...',
-        icon: 'book',
-      },
-      {
-        id: 'news-anchor',
-        name: 'News Anchor',
-        description: 'Authoritative and clear news presentation',
-        voiceId: 'news-anchor-voice-id',
-        category: 'professional',
-        previewText: 'Breaking news: Major developments in...',
-        icon: 'newspaper',
-      },
-      {
-        id: 'robot',
-        name: 'Futuristic Robot',
-        description: 'Synthetic voice with a sci-fi feel',
-        voiceId: 'robot-voice-id',
-        category: 'fun',
-        previewText: 'Initiating voice protocol. All systems operational.',
-        icon: 'robot',
-      },
-      {
-        id: 'whisper',
-        name: 'Mystery Whisper',
-        description: 'Soft and intriguing whisper voice',
-        voiceId: 'whisper-voice-id',
-        category: 'emotional',
-        previewText: 'Psst... I have a secret to tell you...',
-        icon: 'volume-low',
-      },
-      {
-        id: 'epic',
-        name: 'Epic Narrator',
-        description: 'Dramatic and powerful narration',
-        voiceId: 'epic-voice-id',
-        category: 'creative',
-        previewText: 'In a world where anything is possible...',
-        icon: 'megaphone',
-      },
-    ];
-  }
-
-  // Enhancement Options
-  private getDefaultEnhancementOptions(): AIEnhancementOption[] {
-    return [
-      {
-        id: 'emotion',
-        name: 'Emotion',
-        description: 'Adjust the emotional tone of your voice',
-        type: 'emotion',
-        values: ['happy', 'sad', 'angry', 'excited', 'calm', 'neutral'],
-      },
-      {
-        id: 'speed',
-        name: 'Speed',
-        description: 'Control the speaking rate',
-        type: 'effect',
-        values: ['slow', 'normal', 'fast'],
-      },
-      {
-        id: 'pitch',
-        name: 'Pitch',
-        description: 'Adjust voice pitch',
-        type: 'effect',
-        values: ['low', 'normal', 'high'],
-      },
-      {
-        id: 'background',
-        name: 'Background',
-        description: 'Add background effects',
-        type: 'effect',
-        values: ['none', 'studio', 'outdoor', 'phone', 'radio'],
-      },
-      {
-        id: 'language',
-        name: 'Language',
-        description: 'Translate and adjust for language',
-        type: 'language',
-        values: ['english', 'spanish', 'french', 'german', 'japanese', 'chinese'],
-      },
-    ];
+    // Use consolidated constants instead of duplicating code
+    this.voiceStyles = [...AI_VOICE_STYLES];
+    this.enhancementOptions = [...AI_ENHANCEMENT_OPTIONS];
   }
 
   // Get available voice styles

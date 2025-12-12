@@ -4,6 +4,33 @@ export interface VoiceInfo {
   description?: string;
 }
 
+/**
+ * Enhanced voice style with UI metadata and categorization
+ * Used for mobile and web voice selection interfaces
+ */
+export interface AIVoiceStyle extends VoiceInfo {
+  id: string;
+  category: 'professional' | 'creative' | 'fun' | 'emotional';
+  previewText: string;
+  icon: string;
+  // Additional UI metadata
+  isPremium?: boolean;
+  popularity?: number;
+  tags?: string[];
+}
+
+/**
+ * Voice enhancement options for AI transformation
+ */
+export interface AIEnhancementOption {
+  id: string;
+  name: string;
+  description: string;
+  type: 'style' | 'emotion' | 'effect' | 'language';
+  values: string[];
+  defaultValue?: string;
+}
+
 export interface VoiceVariantPreview {
   generatedVoiceId: string;
   // Optional: base64 or URL for previewing
