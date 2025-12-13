@@ -326,7 +326,7 @@ export default function RecordScreen() {
 
       // Use IPFS-enabled recording if user has premium access
       if (capabilities.canAccessWeb3) {
-        await addRecordingWithIPFS(recording, uri, { storeRecording });
+        await addRecordingWithIPFS(recording, uri);
         Alert.alert(
           "Success",
           "Recording saved locally and uploaded to IPFS!",
@@ -368,7 +368,6 @@ export default function RecordScreen() {
     recordingTitle,
     addRecording,
     addRecordingWithIPFS,
-    storeRecording,
     capabilities.canAccessWeb3,
     router,
   ]);

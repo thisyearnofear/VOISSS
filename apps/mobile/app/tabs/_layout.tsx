@@ -43,7 +43,7 @@ export default function TabsLayout() {
               />
               <Text style={styles.statusText}>
                 {isConnected
-                  ? "Connected to Starknet"
+                  ? "Connected to Starknet" // TODO: Make chain-agnostic (Scroll/Base support)
                   : isConnecting
                   ? "Connecting..."
                   : "Not Connected"}
