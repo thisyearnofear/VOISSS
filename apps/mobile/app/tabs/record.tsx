@@ -545,12 +545,9 @@ export default function RecordScreen() {
       throw new Error('Wallet not connected');
     }
 
-    // Upload to IPFS first
-    const { createIPFSService } = await import('@voisss/shared');
-    const ipfsService = createIPFSService();
-
-    const ipfsResult = await ipfsService.uploadAudio(audioBlob, {
-      filename: `${metadata.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`,
+    // Upload to IPFS first using mobile-specific service
+    const { createMobileIPFSService } = await import("../services/ipfsService");
+    const ipfsService = createMobileIPFSService();
       mimeType: audioBlob.type || 'audio/mpeg',
       duration: duration,
     });

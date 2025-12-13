@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
-import { Colors, Typography, Spacing, BorderRadius } from '../constants/design-system';
+import { colors } from '@voisss/ui';
 import { Button } from './ui/Button';
 
 interface AudioPreviewPlayerProps {
@@ -149,7 +149,7 @@ export const AudioPreviewPlayer: React.FC<AudioPreviewPlayerProps> = ({
   if (!audioBlob) {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="musical-notes" size={24} color={Colors.textSecondary} />
+        <Ionicons name="musical-notes" size={24} color={colors.dark.textSecondary} />
         <Text style={styles.emptyText}>No audio to preview</Text>
       </View>
     );
@@ -158,7 +158,7 @@ export const AudioPreviewPlayer: React.FC<AudioPreviewPlayerProps> = ({
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="warning" size={24} color={Colors.error} />
+        <Ionicons name="warning" size={24} color={colors.dark.error} />
         <Text style={styles.errorText}>{error}</Text>
         <Button 
           title="Retry"
@@ -182,7 +182,7 @@ export const AudioPreviewPlayer: React.FC<AudioPreviewPlayerProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name="volume-high" size={20} color={Colors.primary} />
+        <Ionicons name="volume-high" size={20} color={colors.dark.primary} />
         <View style={styles.textContainer}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.subtitle}>{subtitle}</Text>
@@ -207,11 +207,11 @@ export const AudioPreviewPlayer: React.FC<AudioPreviewPlayerProps> = ({
           disabled={isLoading || !sound}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color={Colors.textPrimary} />
+            <ActivityIndicator size="small" color={colors.dark.text} />
           ) : isPlaying ? (
-            <Ionicons name="pause" size={24} color={Colors.textPrimary} />
+            <Ionicons name="pause" size={24} color={colors.dark.text} />
           ) : (
-            <Ionicons name="play" size={24} color={Colors.textPrimary} />
+            <Ionicons name="play" size={24} color={colors.dark.text} />
           )}
         </TouchableOpacity>
         
@@ -240,7 +240,7 @@ export const AudioPreviewPlayer: React.FC<AudioPreviewPlayerProps> = ({
                     {
                       height,
                       opacity,
-                      backgroundColor: Colors.primary,
+                      backgroundColor: colors.dark.primary,
                     }
                   ]}
                 />
@@ -255,89 +255,89 @@ export const AudioPreviewPlayer: React.FC<AudioPreviewPlayerProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+    backgroundColor: colors.dark.surface,
+    borderRadius: 12,
+    padding: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.dark.border,
   },
   emptyContainer: {
-    padding: Spacing.lg,
+    padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
+    backgroundColor: colors.dark.surface,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.dark.border,
   },
   emptyText: {
-    color: Colors.textSecondary,
-    fontSize: Typography.bodySmall,
-    marginTop: Spacing.xs,
+    color: colors.dark.textSecondary,
+    fontSize: 14,
+    marginTop: 4,
   },
   errorContainer: {
-    padding: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
+    padding: 16,
+    backgroundColor: colors.dark.surface,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.error,
+    borderColor: colors.dark.error,
     alignItems: 'center',
   },
   errorText: {
-    color: Colors.error,
-    fontSize: Typography.body,
-    marginVertical: Spacing.sm,
+    color: colors.dark.error,
+    fontSize: 16,
+    marginVertical: 12,
     textAlign: 'center',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
+    marginBottom: 16,
+    gap: 12,
   },
   textContainer: {
     flex: 1,
   },
   title: {
-    color: Colors.textPrimary,
-    fontSize: Typography.body,
-    fontWeight: Typography.semiBold,
+    color: colors.dark.text,
+    fontSize: 16,
+    fontWeight: '600',
   },
   subtitle: {
-    color: Colors.textSecondary,
-    fontSize: Typography.bodySmall,
+    color: colors.dark.textSecondary,
+    fontSize: 14,
   },
   progressContainer: {
-    marginBottom: Spacing.md,
+    marginBottom: 16,
   },
   progressBar: {
     height: 4,
-    backgroundColor: Colors.border,
+    backgroundColor: colors.dark.border,
     borderRadius: 2,
     overflow: 'hidden',
-    marginBottom: Spacing.xs,
+    marginBottom: 4,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.dark.primary,
     borderRadius: 2,
   },
   timeText: {
-    color: Colors.textSecondary,
-    fontSize: Typography.caption,
+    color: colors.dark.textSecondary,
+    fontSize: 12,
     textAlign: 'right',
   },
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
+    gap: 16,
+    marginBottom: 16,
   },
   playButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.dark.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },

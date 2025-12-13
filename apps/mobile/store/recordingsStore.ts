@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Recording, RecordingFilter, Tag } from "@voisss/shared";
 import { mockRecordings, mockTags } from "../mocks/recordings";
-import { createIPFSService } from "@voisss/shared";
+import { createMobileIPFSService, MobileIPFSService } from "../services/ipfsService";
 
 interface RecordingsState {
   recordings: Recording[];
@@ -13,7 +13,7 @@ interface RecordingsState {
   isPlaying: boolean;
 
   // IPFS state
-  ipfsService: any;
+  ipfsService: MobileIPFSService | null;
   isUploadingToIPFS: boolean;
   ipfsUploadProgress: number;
 
@@ -166,7 +166,7 @@ export const useRecordingsStore = create<RecordingsState>()(
 
           // Initialize IPFS service if not already done
           if (!get().ipfsService) {
-            const ipfsService = createIPFSService();
+            const ipfsService = createMobileIPFSService();
             set({ ipfsService });
             // Test connection without arguments
             const isConnected = await ipfsService.testConnection();
@@ -177,13 +177,9 @@ export const useRecordingsStore = create<RecordingsState>()(
 
           const ipfsService = get().ipfsService;
 
-          // Convert file URI to blob for IPFS upload
-          const response = await fetch(fileUri);
-          const audioBlob = await response.blob();
-
-          // Upload to IPFS
+          // Upload to IPFS using mobile-specific method
           set({ ipfsUploadProgress: 50 });
-          const ipfsResult = await ipfsService.uploadAudio(audioBlob, {
+          const ipfsResult = await ipfsService.uploadAudioFromUri(fileUri, {
             filename: recording.title,
             mimeType: recording.mimeType || 'audio/mpeg',
             duration: recording.duration,
@@ -253,7 +249,7 @@ export const useRecordingsStore = create<RecordingsState>()(
           
           // Initialize IPFS service if not already done
           if (!get().ipfsService) {
-            const ipfsService = createIPFSService();
+            const ipfsService = createMobileIPFSService();
             set({ ipfsService });
           }
           

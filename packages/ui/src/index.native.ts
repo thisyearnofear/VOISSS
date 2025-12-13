@@ -1,5 +1,6 @@
 // React Native specific exports for VOISSS UI package
 export * from './components/Button';
+export * from './components/BaseModal';
 export * from './components/RecordingCard';
 export * from './components/WalletConnector';
 export * from './components/AudioPlayer';

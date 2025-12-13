@@ -3,13 +3,11 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Modal,
   ScrollView,
   ActivityIndicator,
   Alert,
 } from "react-native";
 import {
-  X,
   Sparkles,
   Check,
   Crown,
@@ -30,6 +28,7 @@ import { colors } from "../constants/colors";
 import { useSubscriptionStore } from "../store/subscriptionStore";
 import { useBase } from "../hooks/useBase";
 import { WalletModal } from "./WalletModal";
+import { BaseModal } from "@voisss/ui";
 
 interface SubscriptionModalProps {
   visible: boolean;
@@ -50,943 +49,616 @@ const premiumFeatures = [
   },
   {
     icon: FileAudio,
-    title: "Auto Transcription",
-    description: "Get instant text transcripts of recordings",
+    title: "Unlimited Length",
+    description: "Record and process audio of any length",
   },
   {
     icon: Megaphone,
-    title: "Smart Promotion",
-    description: "AI helps you reach the right audience",
-  },
-  {
-    icon: Clock,
-    title: "Unlimited Recording",
-    description: "No time limits on your recordings",
-  },
-  {
-    icon: Star,
-    title: "Priority Support",
-    description: "Get help when you need it most",
+    title: "Advanced Sharing",
+    description: "Enhanced sharing options and analytics",
   },
 ];
 
 const ultimateFeatures = [
   {
-    icon: Bot,
-    title: "All Premium AI Features",
-    description: "Unlimited AI voices, transcription, and snippets",
-  },
-  {
     icon: Wallet,
     title: "Web3 Integration",
-    description: "NFT minting and on-chain storage",
+    description: "Store recordings permanently on blockchain",
   },
   {
     icon: Shield,
-    title: "Decentralized Ownership",
-    description: "Cryptographic proof of creation and ownership",
+    title: "NFT Minting",
+    description: "Mint your recordings as collectible NFTs",
   },
   {
     icon: Globe,
-    title: "Cross-Platform Sync",
-    description: "Seamless sync between mobile and web via blockchain",
+    title: "Decentralized Storage",
+    description: "IPFS-based decentralized storage",
   },
   {
-    icon: Crown,
-    title: "Exclusive AI Models",
-    description: "Access to the latest and most advanced AI",
+    icon: Star,
+    title: "Creator Rewards",
+    description: "Earn rewards for popular content",
   },
   {
     icon: Zap,
-    title: "Enhanced Web3 Features",
-    description: "Advanced blockchain utilities and rewards",
+    title: "Priority Processing",
+    description: "Faster AI processing and transcoding",
+  },
+  {
+    icon: Crown,
+    title: "Exclusive Features",
+    description: "Early access to new features and tools",
   },
 ];
 
-export function SubscriptionModal({
-  visible,
-  onClose,
-  initialTab = "premium",
+export default function SubscriptionModal({ 
+  visible, 
+  onClose, 
+  initialTab = "premium" 
 }: SubscriptionModalProps) {
-  const {
-    isConfigured,
-    offerings,
-    isLoading,
-    error,
-    hasActiveSubscription,
-    subscriptionTier,
-    initializeRevenueCat,
-    fetchOfferings,
-    purchasePackage,
-    restorePurchases,
-  } = useSubscriptionStore();
-
-  const { isConnected: isWalletConnected, account } = useBase();
-
-  const [activeTab, setActiveTab] = useState<"premium" | "ultimate" | "manage">(
-    initialTab
-  );
-  const [isWalletModalVisible, setIsWalletModalVisible] = useState(false);
-
-  // Determine current tier based on subscription and wallet status
-  const getCurrentTier = () => {
-    if (hasActiveSubscription && isWalletConnected) return "ultimate";
-    if (hasActiveSubscription) return "premium";
-    if (isWalletConnected) return "web3";
-    return "free";
-  };
-
-  const currentTier = getCurrentTier();
+  const { subscription, purchaseSubscription, restorePurchases } = useSubscriptionStore();
+  const { isConnected } = useBase();
+  const [activeTab, setActiveTab] = useState<"premium" | "ultimate" | "manage">(initialTab);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [walletModalVisible, setWalletModalVisible] = useState(false);
 
   useEffect(() => {
-    if (visible && !isConfigured) {
-      initializeRevenueCat("your_revenuecat_api_key_here");
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  const handlePurchase = async (tier: "premium" | "ultimate") => {
+    if (tier === "ultimate" && !isConnected) {
+      setWalletModalVisible(true);
+      return;
     }
-  }, [visible, isConfigured]);
 
-  useEffect(() => {
-    if (isConfigured && visible) {
-      fetchOfferings();
-    }
-  }, [isConfigured, visible]);
-
-  // Get the current offering (first one for now)
-  const currentOffering =
-    offerings && offerings.length > 0 ? offerings[0] : null;
-
-  const handlePurchase = async (pkg: any) => {
+    setIsPurchasing(true);
     try {
-      const success = await purchasePackage(pkg);
-      if (success) {
-        Alert.alert("Success", "Subscription activated successfully!");
-        setActiveTab("manage");
-      }
-    } catch (err) {
-      Alert.alert(
-        "Purchase Failed",
-        "Failed to complete purchase. Please try again."
-      );
+      await purchaseSubscription(tier);
+      // Show success message
+    } catch (error) {
+      Alert.alert("Purchase Failed", "Unable to complete purchase. Please try again.");
+      console.error("Purchase error:", error);
+    } finally {
+      setIsPurchasing(false);
     }
   };
 
   const handleRestore = async () => {
     try {
       await restorePurchases();
-      Alert.alert("Restore Complete", "Your purchases have been restored.");
-    } catch (err) {
-      Alert.alert(
-        "Restore Failed",
-        "Failed to restore purchases. Please try again."
-      );
+      Alert.alert("Success", "Purchases restored successfully!");
+    } catch (error) {
+      Alert.alert("Restore Failed", "Unable to restore purchases. Please try again.");
+      console.error("Restore error:", error);
     }
   };
 
-  const renderPremiumTab = () => {
-    if (isLoading || !currentOffering) {
-      return (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.dark.primary} />
-          <Text style={styles.loadingText}>Loading subscription plans...</Text>
+  const renderPremiumPlan = () => (
+    <View style={{ padding: 16 }}>
+      <LinearGradient
+        colors={["#7C5DFA", "#4E7BFF"]}
+        style={{
+          borderRadius: 16,
+          padding: 24,
+          marginBottom: 24,
+        }}
+      >
+        <View style={{ alignItems: "center", marginBottom: 16 }}>
+          <Sparkles size={48} color="#FFFFFF" />
         </View>
-      );
-    }
-
-    const monthlyPackage = currentOffering.availablePackages.find(
-      (pkg: any) => pkg.packageType === "MONTHLY"
-    );
-    const annualPackage = currentOffering.availablePackages.find(
-      (pkg: any) => pkg.packageType === "ANNUAL"
-    );
-
-    return (
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Premium Header */}
-        <LinearGradient
-          colors={["#7C5DFA", "#4E7BFF"]}
-          style={styles.premiumHeader}
+        <Text
+          style={{
+            fontSize: 28,
+            fontWeight: "bold",
+            color: "#FFFFFF",
+            textAlign: "center",
+            marginBottom: 8,
+          }}
         >
-          <View style={styles.premiumBadge}>
-            <Sparkles size={24} color="#FFD700" />
-            <Text style={styles.premiumBadgeText}>PREMIUM</Text>
-          </View>
-          <Text style={styles.premiumTitle}>Unlock AI-Powered Features</Text>
-          <Text style={styles.premiumSubtitle}>
-            Transform your voice recordings with cutting-edge AI technology
-          </Text>
-        </LinearGradient>
-
-        {/* Features List */}
-        <View style={styles.featuresContainer}>
-          <Text style={styles.featuresTitle}>What's Included</Text>
-          {premiumFeatures.map((feature, index) => (
-            <View key={index} style={styles.featureItem}>
-              <View style={styles.featureIcon}>
-                <feature.icon size={20} color={colors.dark.primary} />
-              </View>
-              <View style={styles.featureContent}>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureDescription}>
-                  {feature.description}
-                </Text>
-              </View>
-              <Check size={20} color="#4CAF50" />
-            </View>
-          ))}
-        </View>
-
-        {/* Pricing Plans */}
-        <View style={styles.plansContainer}>
-          {annualPackage && (
-            <TouchableOpacity
-              style={[styles.planCard, styles.popularPlan]}
-              onPress={() => handlePurchase(annualPackage)}
-              disabled={isLoading}
-            >
-              <View style={styles.popularBadge}>
-                <Text style={styles.popularBadgeText}>MOST POPULAR</Text>
-              </View>
-              <Text style={styles.planTitle}>Annual</Text>
-              <Text style={styles.planPrice}>
-                {annualPackage.product.priceString}/year
-              </Text>
-              <Text style={styles.planSavings}>Save 40%</Text>
-              <Text style={styles.planDescription}>
-                Best value for serious creators
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {monthlyPackage && (
-            <TouchableOpacity
-              style={styles.planCard}
-              onPress={() => handlePurchase(monthlyPackage)}
-              disabled={isLoading}
-            >
-              <Text style={styles.planTitle}>Monthly</Text>
-              <Text style={styles.planPrice}>
-                {monthlyPackage.product.priceString}/month
-              </Text>
-              <Text style={styles.planDescription}>
-                Perfect for getting started
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Restore Button */}
-        <TouchableOpacity
-          style={styles.restoreButton}
-          onPress={handleRestore}
-          disabled={isLoading}
-        >
-          <RefreshCw size={16} color={colors.dark.primary} />
-          <Text style={styles.restoreButtonText}>Restore Purchases</Text>
-        </TouchableOpacity>
-
-        {/* Terms */}
-        <Text style={styles.termsText}>
-          Subscription automatically renews unless auto-renew is turned off at
-          least 24 hours before the end of the current period.
+          Premium
         </Text>
-      </ScrollView>
-    );
-  };
-
-  const renderUltimateTab = () => {
-    const hasSubscription = hasActiveSubscription;
-    const hasWallet = isWalletConnected;
-
-    return (
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Ultimate Header */}
-        <LinearGradient
-          colors={["#FFD700", "#FF6B35", "#7C5DFA"]}
-          style={styles.premiumHeader}
+        <Text
+          style={{
+            fontSize: 16,
+            color: "rgba(255, 255, 255, 0.9)",
+            textAlign: "center",
+            marginBottom: 24,
+          }}
         >
-          <View style={styles.ultimateBadge}>
-            <Crown size={24} color="#FFD700" />
-            <Text style={styles.ultimateBadgeText}>ULTIMATE</Text>
-          </View>
-          <Text style={styles.premiumTitle}>Premium + Web3 Power</Text>
-          <Text style={styles.premiumSubtitle}>
-            The complete VOISSS experience with AI and blockchain features
-          </Text>
-        </LinearGradient>
-
-        {/* Current Status */}
-        <View style={styles.statusContainer}>
-          <View style={styles.statusItem}>
-            <Sparkles
-              size={20}
-              color={hasSubscription ? "#4CAF50" : colors.dark.textSecondary}
-            />
+          Unlock advanced AI features
+        </Text>
+        <Text
+          style={{
+            fontSize: 32,
+            fontWeight: "bold",
+            color: "#FFFFFF",
+            textAlign: "center",
+            marginBottom: 8,
+          }}
+        >
+          $4.99
+        </Text>
+        <Text
+          style={{
+            fontSize: 14,
+            color: "rgba(255, 255, 255, 0.8)",
+            textAlign: "center",
+            marginBottom: 24,
+          }}
+        >
+          per month
+        </Text>
+        <TouchableOpacity
+          style={{
+            backgroundColor: "#FFFFFF",
+            padding: 16,
+            borderRadius: 12,
+            alignItems: "center",
+          }}
+          onPress={() => handlePurchase("premium")}
+          disabled={isPurchasing}
+        >
+          {isPurchasing ? (
+            <ActivityIndicator color="#7C5DFA" />
+          ) : (
             <Text
-              style={[
-                styles.statusText,
-                hasSubscription && styles.statusTextActive,
-              ]}
+              style={{
+                color: "#7C5DFA",
+                fontWeight: "bold",
+                fontSize: 18,
+              }}
             >
-              Premium Subscription {hasSubscription ? "✓" : "✗"}
+              Subscribe Now
             </Text>
-          </View>
-          <View style={styles.statusItem}>
-            <Wallet
-              size={20}
-              color={hasWallet ? "#4CAF50" : colors.dark.textSecondary}
-            />
-            <Text
-              style={[styles.statusText, hasWallet && styles.statusTextActive]}
-            >
-              Base Wallet {hasWallet ? "✓" : "✗"}
-            </Text>
-          </View>
-        </View>
+          )}
+        </TouchableOpacity>
+      </LinearGradient>
 
-        {/* Features List */}
-        <View style={styles.featuresContainer}>
-          <Text style={styles.featuresTitle}>Ultimate Features</Text>
-          {ultimateFeatures.map((feature, index) => (
-            <View key={index} style={styles.featureItem}>
-              <View style={styles.featureIcon}>
-                <feature.icon size={20} color={colors.dark.primary} />
+      <View style={{ marginBottom: 24 }}>
+        <Text
+          style={{
+            fontSize: 18,
+            fontWeight: "600",
+            color: colors.dark.text,
+            marginBottom: 16,
+            textAlign: "center",
+          }}
+        >
+          Premium Features
+        </Text>
+        {premiumFeatures.map((feature, index) => {
+          const IconComponent = feature.icon;
+          return (
+            <View
+              key={index}
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                marginBottom: 16,
+              }}
+            >
+              <View
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  backgroundColor: "rgba(124, 93, 250, 0.2)",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginRight: 12,
+                  marginTop: 2,
+                }}
+              >
+                <IconComponent size={16} color="#7C5DFA" />
               </View>
-              <View style={styles.featureContent}>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureDescription}>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "500",
+                    color: colors.dark.text,
+                    marginBottom: 4,
+                  }}
+                >
+                  {feature.title}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: colors.dark.textSecondary,
+                  }}
+                >
                   {feature.description}
                 </Text>
               </View>
-              <Check size={20} color="#4CAF50" />
             </View>
-          ))}
+          );
+        })}
+      </View>
+    </View>
+  );
+
+  const renderUltimatePlan = () => (
+    <View style={{ padding: 16 }}>
+      <LinearGradient
+        colors={["#FF6B6B", "#6B46C1"]}
+        style={{
+          borderRadius: 16,
+          padding: 24,
+          marginBottom: 24,
+        }}
+      >
+        <View style={{ alignItems: "center", marginBottom: 16 }}>
+          <Crown size={48} color="#FFFFFF" />
         </View>
-
-        {/* Action Buttons */}
-        <View style={styles.ultimateActions}>
-          {!hasSubscription && (
-            <TouchableOpacity
-              style={styles.ultimateActionButton}
-              onPress={() => setActiveTab("premium")}
+        <Text
+          style={{
+            fontSize: 28,
+            fontWeight: "bold",
+            color: "#FFFFFF",
+            textAlign: "center",
+            marginBottom: 8,
+          }}
+        >
+          Ultimate
+        </Text>
+        <Text
+          style={{
+            fontSize: 16,
+            color: "rgba(255, 255, 255, 0.9)",
+            textAlign: "center",
+            marginBottom: 24,
+          }}
+        >
+          Everything in Premium + Web3 features
+        </Text>
+        <Text
+          style={{
+            fontSize: 32,
+            fontWeight: "bold",
+            color: "#FFFFFF",
+            textAlign: "center",
+            marginBottom: 8,
+          }}
+        >
+          $9.99
+        </Text>
+        <Text
+          style={{
+            fontSize: 14,
+            color: "rgba(255, 255, 255, 0.8)",
+            textAlign: "center",
+            marginBottom: 24,
+          }}
+        >
+          per month
+        </Text>
+        <TouchableOpacity
+          style={{
+            backgroundColor: "#FFFFFF",
+            padding: 16,
+            borderRadius: 12,
+            alignItems: "center",
+          }}
+          onPress={() => handlePurchase("ultimate")}
+          disabled={isPurchasing}
+        >
+          {isPurchasing ? (
+            <ActivityIndicator color="#6B46C1" />
+          ) : (
+            <Text
+              style={{
+                color: "#6B46C1",
+                fontWeight: "bold",
+                fontSize: 18,
+              }}
             >
-              <Sparkles size={16} color={colors.dark.text} />
-              <Text style={styles.ultimateActionText}>
-                Get Premium Subscription
-              </Text>
-            </TouchableOpacity>
+              Subscribe Now
+            </Text>
           )}
+        </TouchableOpacity>
+      </LinearGradient>
 
-          {!hasWallet && (
-            <TouchableOpacity
-              style={[styles.ultimateActionButton, styles.walletActionButton]}
-              onPress={() => setIsWalletModalVisible(true)}
+      <View style={{ marginBottom: 24 }}>
+        <Text
+          style={{
+            fontSize: 18,
+            fontWeight: "600",
+            color: colors.dark.text,
+            marginBottom: 16,
+            textAlign: "center",
+          }}
+        >
+          Ultimate Features
+        </Text>
+        {ultimateFeatures.map((feature, index) => {
+          const IconComponent = feature.icon;
+          return (
+            <View
+              key={index}
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                marginBottom: 16,
+              }}
             >
-              <Wallet size={16} color={colors.dark.text} />
-              <Text style={styles.ultimateActionText}>
-                Connect Base Wallet
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {hasSubscription && hasWallet && (
-            <View style={styles.ultimateComplete}>
-              <Crown size={48} color="#FFD700" />
-              <Text style={styles.ultimateCompleteTitle}>
-                Ultimate Tier Unlocked!
-              </Text>
-              <Text style={styles.ultimateCompleteText}>
-                You have access to all Premium AI features and Web3
-                capabilities.
-              </Text>
+              <View
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  backgroundColor: "rgba(255, 107, 107, 0.2)",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginRight: 12,
+                  marginTop: 2,
+                }}
+              >
+                <IconComponent size={16} color="#FF6B6B" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "500",
+                    color: colors.dark.text,
+                    marginBottom: 4,
+                  }}
+                >
+                  {feature.title}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: colors.dark.textSecondary,
+                  }}
+                >
+                  {feature.description}
+                </Text>
+              </View>
             </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+
+  const renderManageSubscriptions = () => (
+    <View style={{ padding: 16 }}>
+      <View
+        style={{
+          backgroundColor: colors.dark.card,
+          borderRadius: 16,
+          padding: 24,
+          marginBottom: 24,
+        }}
+      >
+        <View style={{ alignItems: "center", marginBottom: 24 }}>
+          {subscription.tier === "premium" ? (
+            <Sparkles size={48} color="#7C5DFA" />
+          ) : (
+            <Crown size={48} color="#FF6B6B" />
           )}
         </View>
-      </ScrollView>
-    );
-  };
-
-  const renderManageTab = () => {
-    if (!hasActiveSubscription) {
-      return (
-        <View style={styles.noSubscriptionContainer}>
-          <Sparkles size={48} color={colors.dark.textSecondary} />
-          <Text style={styles.noSubscriptionTitle}>No Active Subscription</Text>
-          <Text style={styles.noSubscriptionText}>
-            Subscribe to Premium to unlock AI-powered features
-          </Text>
-          <TouchableOpacity
-            style={styles.subscribeButton}
-            onPress={() => setActiveTab("premium")}
+        <Text
+          style={{
+            fontSize: 24,
+            fontWeight: "bold",
+            color: colors.dark.text,
+            textAlign: "center",
+            marginBottom: 8,
+          }}
+        >
+          {subscription.tier === "premium" ? "Premium" : "Ultimate"} Plan
+        </Text>
+        <Text
+          style={{
+            fontSize: 16,
+            color: colors.dark.textSecondary,
+            textAlign: "center",
+            marginBottom: 24,
+          }}
+        >
+          Active subscription
+        </Text>
+        <View
+          style={{
+            backgroundColor: colors.dark.background,
+            borderRadius: 12,
+            padding: 16,
+            marginBottom: 24,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 14,
+              color: colors.dark.textSecondary,
+              marginBottom: 4,
+            }}
           >
-            <Text style={styles.subscribeButtonText}>View Plans</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-
-    return (
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Current Subscription Card */}
-        <View style={styles.currentSubscriptionCard}>
-          <LinearGradient
-            colors={
-              currentTier === "ultimate"
-                ? ["#FFD700", "#FF6B35"]
-                : ["#7C5DFA", "#4E7BFF"]
-            }
-            style={styles.subscriptionGradient}
-          >
-            <Crown size={48} color="#FFD700" />
-            <Text style={styles.currentSubscriptionTitle}>
-              {currentTier === "ultimate" ? "Ultimate" : "Premium"} Member
-            </Text>
-            <Text style={styles.currentSubscriptionTier}>
-              {currentTier === "ultimate"
-                ? "Premium + Web3"
-                : "AI Features Unlocked"}
-            </Text>
-          </LinearGradient>
-        </View>
-
-        {/* Subscription Details */}
-        <View style={styles.detailsContainer}>
-          <Text style={styles.detailsTitle}>Subscription Details</Text>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Status:</Text>
-            <Text style={styles.detailValue}>Active</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Tier:</Text>
-            <Text style={styles.detailValue}>{subscriptionTier}</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Wallet:</Text>
-            <Text style={styles.detailValue}>
-              {account
-                ? `${account.address.slice(0, 6)}...${account.address.slice(
-                    -4
-                  )}`
-                : "Not connected"}
-            </Text>
-          </View>
-        </View>
-
-        {/* Manage Actions */}
-        <View style={styles.manageContainer}>
-          <Text style={styles.manageTitle}>Manage Subscription</Text>
-          <Text style={styles.manageDescription}>
-            To cancel or modify your subscription, please visit the App Store or
-            Google Play Store.
+            Next billing date
           </Text>
-          <TouchableOpacity style={styles.manageButton} onPress={handleRestore}>
-            <RefreshCw size={16} color={colors.dark.text} />
-            <Text style={styles.manageButtonText}>Restore Purchases</Text>
-          </TouchableOpacity>
+          <Text
+            style={{
+              fontSize: 18,
+              fontWeight: "600",
+              color: colors.dark.text,
+            }}
+          >
+            {subscription.expiresAt
+              ? new Date(subscription.expiresAt).toLocaleDateString()
+              : "Unknown"}
+          </Text>
         </View>
-      </ScrollView>
-    );
-  };
+        <TouchableOpacity
+          style={{
+            backgroundColor: colors.dark.primary,
+            padding: 16,
+            borderRadius: 12,
+            alignItems: "center",
+            marginBottom: 12,
+          }}
+          onPress={handleRestore}
+        >
+          <RefreshCw size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+          <Text
+            style={{
+              color: "#FFFFFF",
+              fontWeight: "600",
+              fontSize: 16,
+            }}
+          >
+            Restore Purchases
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={{
+            backgroundColor: colors.dark.card,
+            padding: 16,
+            borderRadius: 12,
+            alignItems: "center",
+          }}
+          onPress={() => {
+            Alert.alert(
+              "Cancel Subscription",
+              "Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your billing period.",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Confirm",
+                  style: "destructive",
+                  onPress: () => {
+                    // TODO: Implement subscription cancellation
+                    Alert.alert(
+                      "Not Implemented",
+                      "Subscription cancellation is not yet implemented."
+                    );
+                  },
+                },
+              ]
+            );
+          }}
+        >
+          <Text
+            style={{
+              color: colors.dark.error,
+              fontWeight: "600",
+              fontSize: 16,
+            }}
+          >
+            Cancel Subscription
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Subscription</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X size={24} color={colors.dark.text} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Tabs */}
-        <View style={styles.tabs}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "premium" && styles.activeTab]}
-            onPress={() => setActiveTab("premium")}
+    <>
+      <BaseModal
+        visible={visible}
+        onClose={onClose}
+        title=""
+        showCloseButton={false}
+      >
+        <View>
+          {/* Tab Navigation */}
+          <View
+            style={{
+              flexDirection: "row",
+              backgroundColor: colors.dark.card,
+              borderRadius: 12,
+              margin: 16,
+              padding: 4,
+            }}
           >
-            <Sparkles
-              size={16}
-              color={
-                activeTab === "premium"
-                  ? colors.dark.text
-                  : colors.dark.textSecondary
-              }
-            />
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "premium" && styles.activeTabText,
-              ]}
-            >
-              Premium
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "ultimate" && styles.activeTab]}
-            onPress={() => setActiveTab("ultimate")}
-          >
-            <Crown
-              size={16}
-              color={
-                activeTab === "ultimate"
-                  ? colors.dark.text
-                  : colors.dark.textSecondary
-              }
-            />
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "ultimate" && styles.activeTabText,
-              ]}
-            >
-              Ultimate
-            </Text>
-          </TouchableOpacity>
-          {hasActiveSubscription && (
             <TouchableOpacity
-              style={[styles.tab, activeTab === "manage" && styles.activeTab]}
-              onPress={() => setActiveTab("manage")}
+              style={{
+                flex: 1,
+                padding: 12,
+                borderRadius: 8,
+                backgroundColor:
+                  activeTab === "premium" ? colors.dark.primary : "transparent",
+                alignItems: "center",
+              }}
+              onPress={() => setActiveTab("premium")}
             >
               <Text
-                style={[
-                  styles.tabText,
-                  activeTab === "manage" && styles.activeTabText,
-                ]}
+                style={{
+                  color:
+                    activeTab === "premium"
+                      ? "#FFFFFF"
+                      : colors.dark.textSecondary,
+                  fontWeight: "600",
+                }}
               >
-                Manage
+                Premium
               </Text>
             </TouchableOpacity>
-          )}
-        </View>
-
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {activeTab === "premium" && renderPremiumTab()}
-          {activeTab === "ultimate" && renderUltimateTab()}
-          {activeTab === "manage" && renderManageTab()}
-        </ScrollView>
-
-        {/* Wallet Modal */}
-        <WalletModal
-          visible={isWalletModalVisible}
-          onClose={() => setIsWalletModalVisible(false)}
-          onConnected={() => {
-            setIsWalletModalVisible(false);
-            // If user has subscription, they now have Ultimate tier
-            if (hasActiveSubscription) {
-              setActiveTab("ultimate");
-            }
-          }}
-        />
-
-        {/* Loading Overlay */}
-        {isLoading && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={colors.dark.primary} />
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                padding: 12,
+                borderRadius: 8,
+                backgroundColor:
+                  activeTab === "ultimate" ? "#FF6B6B" : "transparent",
+                alignItems: "center",
+              }}
+              onPress={() => setActiveTab("ultimate")}
+            >
+              <Text
+                style={{
+                  color:
+                    activeTab === "ultimate"
+                      ? "#FFFFFF"
+                      : colors.dark.textSecondary,
+                  fontWeight: "600",
+                }}
+              >
+                Ultimate
+              </Text>
+            </TouchableOpacity>
+            {subscription.tier && (
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  padding: 12,
+                  borderRadius: 8,
+                  backgroundColor:
+                    activeTab === "manage" ? colors.dark.primary : "transparent",
+                  alignItems: "center",
+                }}
+                onPress={() => setActiveTab("manage")}
+              >
+                <Text
+                  style={{
+                    color:
+                      activeTab === "manage"
+                        ? "#FFFFFF"
+                        : colors.dark.textSecondary,
+                    fontWeight: "600",
+                  }}
+                >
+                  Manage
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
-        )}
-      </View>
-    </Modal>
+
+          <ScrollView>
+            {activeTab === "premium" && renderPremiumPlan()}
+            {activeTab === "ultimate" && renderUltimatePlan()}
+            {activeTab === "manage" && renderManageSubscriptions()}
+          </ScrollView>
+        </View>
+      </BaseModal>
+
+      <WalletModal
+        visible={walletModalVisible}
+        onClose={() => setWalletModalVisible(false)}
+      />
+    </>
   );
 }
-
-const styles = {
-  container: {
-    flex: 1,
-    backgroundColor: colors.dark.background,
-  },
-  header: {
-    flexDirection: "row" as const,
-    justifyContent: "space-between" as const,
-    alignItems: "center" as const,
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.dark.border,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700" as const,
-    color: colors.dark.text,
-  },
-  closeButton: {
-    padding: 8,
-  },
-  tabs: {
-    flexDirection: "row" as const,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.dark.border,
-  },
-  tab: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 16,
-    borderRadius: 20,
-    backgroundColor: colors.dark.card,
-  },
-  activeTab: {
-    backgroundColor: colors.dark.primary,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: "600" as const,
-    color: colors.dark.textSecondary,
-    marginLeft: 6,
-  },
-  activeTabText: {
-    color: colors.dark.text,
-  },
-  content: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-    padding: 40,
-  },
-  loadingText: {
-    color: colors.dark.textSecondary,
-    marginTop: 16,
-  },
-  premiumHeader: {
-    padding: 32,
-    alignItems: "center" as const,
-    margin: 16,
-    borderRadius: 16,
-  },
-  premiumBadge: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    backgroundColor: "rgba(255, 215, 0, 0.2)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 16,
-  },
-  premiumBadgeText: {
-    color: "#FFD700",
-    fontWeight: "700" as const,
-    marginLeft: 8,
-  },
-  ultimateBadge: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    backgroundColor: "rgba(255, 215, 0, 0.3)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 16,
-  },
-  ultimateBadgeText: {
-    color: "#FFD700",
-    fontWeight: "700" as const,
-    marginLeft: 8,
-  },
-  premiumTitle: {
-    fontSize: 24,
-    fontWeight: "700" as const,
-    color: colors.dark.text,
-    textAlign: "center" as const,
-    marginBottom: 8,
-  },
-  premiumSubtitle: {
-    fontSize: 16,
-    color: colors.dark.text,
-    textAlign: "center" as const,
-    opacity: 0.9,
-  },
-  statusContainer: {
-    padding: 16,
-    backgroundColor: colors.dark.card,
-    margin: 16,
-    borderRadius: 12,
-  },
-  statusItem: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    paddingVertical: 8,
-  },
-  statusText: {
-    fontSize: 16,
-    color: colors.dark.textSecondary,
-    marginLeft: 12,
-  },
-  statusTextActive: {
-    color: "#4CAF50",
-    fontWeight: "600" as const,
-  },
-  featuresContainer: {
-    padding: 16,
-  },
-  featuresTitle: {
-    fontSize: 20,
-    fontWeight: "600" as const,
-    color: colors.dark.text,
-    marginBottom: 16,
-  },
-  featureItem: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.dark.border,
-  },
-  featureIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: `${colors.dark.primary}20`,
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-    marginRight: 16,
-  },
-  featureContent: {
-    flex: 1,
-  },
-  featureTitle: {
-    fontSize: 16,
-    fontWeight: "600" as const,
-    color: colors.dark.text,
-    marginBottom: 2,
-  },
-  featureDescription: {
-    fontSize: 14,
-    color: colors.dark.textSecondary,
-  },
-  plansContainer: {
-    padding: 16,
-  },
-  planCard: {
-    backgroundColor: colors.dark.card,
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: "transparent",
-    position: "relative" as const,
-  },
-  popularPlan: {
-    borderColor: colors.dark.primary,
-  },
-  popularBadge: {
-    position: "absolute" as const,
-    top: -10,
-    left: 16,
-    backgroundColor: colors.dark.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  popularBadgeText: {
-    color: colors.dark.text,
-    fontSize: 12,
-    fontWeight: "700" as const,
-  },
-  planTitle: {
-    fontSize: 20,
-    fontWeight: "700" as const,
-    color: colors.dark.text,
-    marginBottom: 4,
-  },
-  planPrice: {
-    fontSize: 28,
-    fontWeight: "700" as const,
-    color: colors.dark.primary,
-    marginBottom: 4,
-  },
-  planSavings: {
-    fontSize: 14,
-    fontWeight: "600" as const,
-    color: "#4CAF50",
-    marginBottom: 8,
-  },
-  planDescription: {
-    fontSize: 14,
-    color: colors.dark.textSecondary,
-  },
-  restoreButton: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    margin: 16,
-    padding: 16,
-  },
-  restoreButtonText: {
-    color: colors.dark.primary,
-    fontWeight: "500" as const,
-    marginLeft: 8,
-  },
-  termsText: {
-    fontSize: 12,
-    color: colors.dark.textSecondary,
-    textAlign: "center" as const,
-    padding: 16,
-    lineHeight: 16,
-  },
-  ultimateActions: {
-    padding: 16,
-  },
-  ultimateActionButton: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    backgroundColor: colors.dark.primary,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  walletActionButton: {
-    backgroundColor: "#4E7BFF",
-  },
-  ultimateActionText: {
-    color: colors.dark.text,
-    fontSize: 16,
-    fontWeight: "600" as const,
-    marginLeft: 8,
-  },
-  ultimateComplete: {
-    alignItems: "center" as const,
-    paddingVertical: 32,
-  },
-  ultimateCompleteTitle: {
-    fontSize: 24,
-    fontWeight: "700" as const,
-    color: colors.dark.text,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  ultimateCompleteText: {
-    fontSize: 16,
-    color: colors.dark.textSecondary,
-    textAlign: "center" as const,
-    lineHeight: 24,
-  },
-  noSubscriptionContainer: {
-    flex: 1,
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-    padding: 40,
-  },
-  noSubscriptionTitle: {
-    fontSize: 20,
-    fontWeight: "600" as const,
-    color: colors.dark.text,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  noSubscriptionText: {
-    fontSize: 16,
-    color: colors.dark.textSecondary,
-    textAlign: "center" as const,
-    marginBottom: 24,
-  },
-  subscribeButton: {
-    backgroundColor: colors.dark.primary,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-  },
-  subscribeButtonText: {
-    color: colors.dark.text,
-    fontWeight: "600" as const,
-  },
-  currentSubscriptionCard: {
-    margin: 16,
-    borderRadius: 16,
-    overflow: "hidden" as const,
-  },
-  subscriptionGradient: {
-    padding: 32,
-    alignItems: "center" as const,
-  },
-  currentSubscriptionTitle: {
-    fontSize: 24,
-    fontWeight: "700" as const,
-    color: colors.dark.text,
-    marginTop: 16,
-    marginBottom: 4,
-  },
-  currentSubscriptionTier: {
-    fontSize: 14,
-    color: colors.dark.text,
-    opacity: 0.8,
-  },
-  detailsContainer: {
-    backgroundColor: colors.dark.card,
-    margin: 16,
-    borderRadius: 12,
-    padding: 20,
-  },
-  detailsTitle: {
-    fontSize: 18,
-    fontWeight: "600" as const,
-    color: colors.dark.text,
-    marginBottom: 16,
-  },
-  detailItem: {
-    flexDirection: "row" as const,
-    justifyContent: "space-between" as const,
-    alignItems: "center" as const,
-    paddingVertical: 8,
-  },
-  detailLabel: {
-    fontSize: 16,
-    color: colors.dark.textSecondary,
-  },
-  detailValue: {
-    fontSize: 16,
-    fontWeight: "500" as const,
-    color: colors.dark.text,
-  },
-  manageContainer: {
-    backgroundColor: colors.dark.card,
-    margin: 16,
-    borderRadius: 12,
-    padding: 20,
-  },
-  manageTitle: {
-    fontSize: 18,
-    fontWeight: "600" as const,
-    color: colors.dark.text,
-    marginBottom: 8,
-  },
-  manageDescription: {
-    fontSize: 14,
-    color: colors.dark.textSecondary,
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  manageButton: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    backgroundColor: colors.dark.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-  },
-  manageButtonText: {
-    color: colors.dark.text,
-    fontWeight: "600" as const,
-    marginLeft: 8,
-  },
-  loadingOverlay: {
-    position: "absolute" as const,
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-  },
-};

@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { View, TextInput, Text, StyleSheet, TextInputProps, ViewStyle, TextStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, BorderRadius, InputVariants, Spacing } from '../../constants/design-system';
+import { colors } from '@voisss/ui';
 
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
   success?: string;
   icon?: string;
-  variant?: keyof typeof InputVariants;
+  variant?: 'default' | 'focused' | 'error' | 'success';
   containerStyle?: ViewStyle;
   inputStyle?: TextStyle;
   labelStyle?: TextStyle;
@@ -27,13 +27,48 @@ export const Input: React.FC<InputProps> = ({
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   
-  const inputVariant = error 
-    ? InputVariants.error
-    : success
-      ? InputVariants.success
-      : isFocused
-        ? InputVariants.focused
-        : InputVariants[variant];
+  const getInputStyle = () => {
+    let baseStyle = {
+      backgroundColor: colors.dark.surface,
+      borderColor: colors.dark.border,
+      color: colors.dark.text,
+      placeholderColor: colors.dark.textSecondary,
+    };
+    
+    if (error) {
+      return {
+        ...baseStyle,
+        backgroundColor: colors.dark.surface,
+        borderColor: colors.dark.error,
+        color: colors.dark.text,
+        placeholderColor: colors.dark.error,
+      };
+    }
+    
+    if (success) {
+      return {
+        ...baseStyle,
+        backgroundColor: colors.dark.surface,
+        borderColor: colors.dark.success,
+        color: colors.dark.text,
+        placeholderColor: colors.dark.success,
+      };
+    }
+    
+    if (isFocused) {
+      return {
+        ...baseStyle,
+        backgroundColor: colors.dark.surfaceLight,
+        borderColor: colors.dark.primary,
+        color: colors.dark.text,
+        placeholderColor: colors.dark.textSecondary,
+      };
+    }
+    
+    return baseStyle;
+  };
+  
+  const inputVariant = getInputStyle();
 
   return (
     <View style={[styles.container, containerStyle]}>
@@ -60,7 +95,7 @@ export const Input: React.FC<InputProps> = ({
         
         <TextInput
           style={[styles.input, {
-            color: inputVariant.textColor,
+            color: inputVariant.color,
           }, inputStyle]}
           placeholderTextColor={inputVariant.placeholderColor}
           onFocus={() => setIsFocused(true)}
@@ -71,7 +106,7 @@ export const Input: React.FC<InputProps> = ({
       
       {(error || success) && (
         <Text style={[styles.helperText, {
-          color: error ? Colors.error : Colors.success,
+          color: error ? colors.dark.error : colors.dark.success,
         }]}
         >
           {error || success}
@@ -83,35 +118,35 @@ export const Input: React.FC<InputProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: Spacing.md,
+    marginBottom: 16,
   },
   label: {
-    color: Colors.textPrimary,
-    fontSize: Typography.bodySmall,
-    fontWeight: Typography.medium,
-    marginBottom: Spacing.xs,
+    color: colors.dark.text,
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 4,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: BorderRadius.input,
-    paddingHorizontal: Spacing.sm,
+    borderRadius: 8,
+    paddingHorizontal: 12,
     minHeight: 56,
   },
   icon: {
-    marginRight: Spacing.sm,
+    marginRight: 12,
   },
   input: {
     flex: 1,
-    fontSize: Typography.body,
-    fontWeight: Typography.regular,
-    paddingVertical: Spacing.sm,
-    lineHeight: Typography.lineHeight.body,
+    fontSize: 16,
+    fontWeight: '400',
+    paddingVertical: 12,
+    lineHeight: 24,
   },
   helperText: {
-    fontSize: Typography.caption,
-    fontWeight: Typography.regular,
-    marginTop: Spacing.xxs,
-    paddingHorizontal: Spacing.xs,
+    fontSize: 12,
+    fontWeight: '400',
+    marginTop: 2,
+    paddingHorizontal: 4,
   },
 });

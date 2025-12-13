@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { mobileAIService, type AIVoiceStyle } from '../services/ai-service';
-import { Colors, Typography, Spacing, BorderRadius } from '../constants/design-system';
+import { colors } from '@voisss/ui';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 
@@ -55,7 +55,7 @@ export const AIVoiceSelector: React.FC<AIVoiceSelectorProps> = ({
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="large" color={colors.dark.primary} />
         <Text style={styles.loadingText}>Loading AI Voice Styles...</Text>
       </View>
     );
@@ -64,7 +64,7 @@ export const AIVoiceSelector: React.FC<AIVoiceSelectorProps> = ({
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="warning" size={24} color={Colors.error} />
+        <Ionicons name="warning" size={24} color={colors.dark.error} />
         <Text style={styles.errorText}>{error}</Text>
         <Button 
           title="Retry"
@@ -99,7 +99,7 @@ export const AIVoiceSelector: React.FC<AIVoiceSelectorProps> = ({
               <Ionicons 
                 name={category.icon as any}
                 size={16}
-                color={activeCategory === category.id ? Colors.primary : Colors.textSecondary}
+                color={activeCategory === category.id ? colors.dark.primary : colors.dark.textSecondary}
               />
               <Text style={[
                 styles.categoryText,
@@ -134,13 +134,13 @@ export const AIVoiceSelector: React.FC<AIVoiceSelectorProps> = ({
                 <Ionicons 
                   name={voiceStyle.icon as any}
                   size={24}
-                  color={Colors.primary}
+                  color={colors.dark.primary}
                 />
                 {selectedVoiceId === voiceStyle.id && (
                   <Ionicons 
                     name="checkmark-circle"
                     size={20}
-                    color={Colors.success}
+                    color={colors.dark.success}
                     style={styles.selectedIcon}
                   />
                 )}
@@ -158,7 +158,7 @@ export const AIVoiceSelector: React.FC<AIVoiceSelectorProps> = ({
                     // Would play preview audio
                   }}
                 >
-                  <Ionicons name="play" size={16} color={Colors.primary} />
+                  <Ionicons name="play" size={16} color={colors.dark.primary} />
                   <Text style={styles.previewButtonText}>Preview</Text>
                 </TouchableOpacity>
               </View>
@@ -173,95 +173,95 @@ export const AIVoiceSelector: React.FC<AIVoiceSelectorProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: Spacing.screenPadding,
+    padding: 20,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.lg,
+    padding: 24,
   },
   loadingText: {
-    color: Colors.textSecondary,
-    fontSize: Typography.body,
-    marginTop: Spacing.md,
+    color: colors.dark.textSecondary,
+    fontSize: 16,
+    marginTop: 16,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.lg,
+    padding: 24,
   },
   errorText: {
-    color: Colors.error,
-    fontSize: Typography.body,
-    marginVertical: Spacing.md,
+    color: colors.dark.error,
+    fontSize: 16,
+    marginVertical: 16,
     textAlign: 'center',
   },
   categoriesContainer: {
-    paddingVertical: Spacing.sm,
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
+    paddingVertical: 12,
+    gap: 12,
+    marginBottom: 16,
   },
   categoryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    backgroundColor: colors.dark.surface,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.dark.border,
   },
   activeCategoryButton: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: colors.dark.primary,
+    borderColor: colors.dark.primary,
   },
   categoryText: {
-    color: Colors.textSecondary,
-    fontSize: Typography.bodySmall,
-    marginLeft: Spacing.xs,
-    fontWeight: Typography.medium,
+    color: colors.dark.textSecondary,
+    fontSize: 14,
+    marginLeft: 4,
+    fontWeight: '500',
   },
   activeCategoryText: {
-    color: Colors.textPrimary,
+    color: colors.dark.text,
   },
   sectionTitle: {
-    color: Colors.textPrimary,
-    fontSize: Typography.h4,
-    fontWeight: Typography.bold,
-    marginBottom: Spacing.md,
+    color: colors.dark.text,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 16,
   },
   voiceStylesContainer: {
-    gap: Spacing.md,
-    paddingBottom: Spacing.xl,
+    gap: 16,
+    paddingBottom: 32,
   },
   voiceStyleCardContainer: {
     width: '100%',
   },
   voiceStyleCard: {
-    padding: Spacing.md,
+    padding: 16,
   },
   voiceStyleHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: 12,
   },
   selectedIcon: {
     marginLeft: 'auto',
   },
   voiceStyleName: {
-    color: Colors.textPrimary,
-    fontSize: Typography.h4,
-    fontWeight: Typography.bold,
-    marginBottom: Spacing.xs,
+    color: colors.dark.text,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
   },
   voiceStyleDescription: {
-    color: Colors.textSecondary,
-    fontSize: Typography.bodySmall,
-    marginBottom: Spacing.md,
-    lineHeight: Typography.lineHeight.body,
+    color: colors.dark.textSecondary,
+    fontSize: 14,
+    marginBottom: 16,
+    lineHeight: 24,
   },
   voiceStyleFooter: {
     flexDirection: 'row',
@@ -269,25 +269,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   voiceStyleCategory: {
-    color: Colors.primary,
-    fontSize: Typography.caption,
-    fontWeight: Typography.medium,
+    color: colors.dark.primary,
+    fontSize: 12,
+    fontWeight: '500',
     textTransform: 'capitalize',
   },
   previewButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    backgroundColor: Colors.surfaceLight,
-    borderRadius: BorderRadius.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: colors.dark.surfaceLight,
+    borderRadius: 4,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.dark.border,
   },
   previewButtonText: {
-    color: Colors.primary,
-    fontSize: Typography.caption,
-    marginLeft: Spacing.xxs,
-    fontWeight: Typography.medium,
+    color: colors.dark.primary,
+    fontSize: 12,
+    marginLeft: 2,
+    fontWeight: '500',
   },
 });

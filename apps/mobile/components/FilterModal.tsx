@@ -5,10 +5,8 @@ import {
   View,
   TouchableOpacity,
   ScrollView,
-  Modal,
 } from "react-native";
 import {
-  X,
   Check,
   ArrowDownAZ,
   ArrowUpZA,
@@ -19,6 +17,7 @@ import { RecordingFilter } from "@voisss/shared";
 import { useRecordingsStore } from "../store/recordingsStore";
 import { theme } from "@voisss/ui";
 import { colors } from "@voisss/ui";
+import { BaseModal } from "@voisss/ui";
 import TagBadge from "./TagBadge";
 
 interface FilterModalProps {
@@ -80,208 +79,169 @@ export default function FilterModal({ visible, onClose }: FilterModalProps) {
   }, []);
 
   return (
-    <Modal
+    <BaseModal
       visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
+      onClose={onClose}
+      title="Filter & Sort"
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Filter & Sort</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <X size={24} color={colors.dark.text} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.content}>
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Tags</Text>
-              <View style={styles.tagsContainer}>
-                {tags.map((tag) => (
-                  <TagBadge
-                    key={tag.id}
-                    tag={tag}
-                    selected={localFilter.tags.includes(tag.id)}
-                    onPress={() => toggleTag(tag.id)}
-                  />
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Sort By</Text>
-              <View style={styles.sortOptions}>
-                <TouchableOpacity
-                  style={[
-                    styles.sortOption,
-                    localFilter.sortBy === "date" && styles.selectedOption,
-                  ]}
-                  onPress={() => setSortBy("date")}
-                >
-                  <Calendar
-                    size={20}
-                    color={
-                      localFilter.sortBy === "date"
-                        ? colors.dark.text
-                        : colors.dark.textSecondary
-                    }
-                  />
-                  <Text
-                    style={[
-                      styles.sortOptionText,
-                      localFilter.sortBy === "date" &&
-                        styles.selectedOptionText,
-                    ]}
-                  >
-                    Date
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.sortOption,
-                    localFilter.sortBy === "duration" && styles.selectedOption,
-                  ]}
-                  onPress={() => setSortBy("duration")}
-                >
-                  <Clock
-                    size={20}
-                    color={
-                      localFilter.sortBy === "duration"
-                        ? colors.dark.text
-                        : colors.dark.textSecondary
-                    }
-                  />
-                  <Text
-                    style={[
-                      styles.sortOptionText,
-                      localFilter.sortBy === "duration" &&
-                        styles.selectedOptionText,
-                    ]}
-                  >
-                    Duration
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.sortOption,
-                    localFilter.sortBy === "name" && styles.selectedOption,
-                  ]}
-                  onPress={() => setSortBy("name")}
-                >
-                  {localFilter.sortOrder === "asc" ? (
-                    <ArrowDownAZ
-                      size={20}
-                      color={
-                        localFilter.sortBy === "name"
-                          ? colors.dark.text
-                          : colors.dark.textSecondary
-                      }
-                    />
-                  ) : (
-                    <ArrowUpZA
-                      size={20}
-                      color={
-                        localFilter.sortBy === "name"
-                          ? colors.dark.text
-                          : colors.dark.textSecondary
-                      }
-                    />
-                  )}
-                  <Text
-                    style={[
-                      styles.sortOptionText,
-                      localFilter.sortBy === "name" &&
-                        styles.selectedOptionText,
-                    ]}
-                  >
-                    Name
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity
-                style={styles.orderButton}
-                onPress={toggleSortOrder}
-              >
-                <Text style={styles.orderButtonText}>
-                  Order:{" "}
-                  {localFilter.sortOrder === "asc" ? "Ascending" : "Descending"}
-                </Text>
-                {localFilter.sortOrder === "asc" ? (
-                  <ArrowDownAZ size={20} color={colors.dark.textSecondary} />
-                ) : (
-                  <ArrowUpZA size={20} color={colors.dark.textSecondary} />
-                )}
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Other Filters</Text>
-              <TouchableOpacity
-                style={styles.checkOption}
-                onPress={toggleFavorites}
-              >
-                <View
-                  style={[
-                    styles.checkbox,
-                    localFilter.favorites && styles.checkboxSelected,
-                  ]}
-                >
-                  {localFilter.favorites && (
-                    <Check size={16} color={colors.dark.text} />
-                  )}
-                </View>
-                <Text style={styles.checkOptionText}>Show favorites only</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-
-          <View style={styles.footer}>
-            <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
-              <Text style={styles.resetButtonText}>Reset</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
-              <Text style={styles.applyButtonText}>Apply</Text>
-            </TouchableOpacity>
+      <ScrollView style={styles.content}>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Tags</Text>
+          <View style={styles.tagsContainer}>
+            {tags.map((tag) => (
+              <TagBadge
+                key={tag.id}
+                tag={tag}
+                selected={localFilter.tags.includes(tag.id)}
+                onPress={() => toggleTag(tag.id)}
+              />
+            ))}
           </View>
         </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Sort By</Text>
+          <View style={styles.sortOptions}>
+            <TouchableOpacity
+              style={[
+                styles.sortOption,
+                localFilter.sortBy === "date" && styles.selectedOption,
+              ]}
+              onPress={() => setSortBy("date")}
+            >
+              <Calendar
+                size={20}
+                color={
+                  localFilter.sortBy === "date"
+                    ? colors.dark.text
+                    : colors.dark.textSecondary
+                }
+              />
+              <Text
+                style={[
+                  styles.sortOptionText,
+                  localFilter.sortBy === "date" &&
+                    styles.selectedOptionText,
+                ]}
+              >
+                Date
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.sortOption,
+                localFilter.sortBy === "duration" && styles.selectedOption,
+              ]}
+              onPress={() => setSortBy("duration")}
+            >
+              <Clock
+                size={20}
+                color={
+                  localFilter.sortBy === "duration"
+                    ? colors.dark.text
+                    : colors.dark.textSecondary
+                }
+              />
+              <Text
+                style={[
+                  styles.sortOptionText,
+                  localFilter.sortBy === "duration" &&
+                    styles.selectedOptionText,
+                ]}
+              >
+                Duration
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.sortOption,
+                localFilter.sortBy === "name" && styles.selectedOption,
+              ]}
+              onPress={() => setSortBy("name")}
+            >
+              {localFilter.sortOrder === "asc" ? (
+                <ArrowDownAZ
+                  size={20}
+                  color={
+                    localFilter.sortBy === "name"
+                      ? colors.dark.text
+                      : colors.dark.textSecondary
+                  }
+                />
+              ) : (
+                <ArrowUpZA
+                  size={20}
+                  color={
+                    localFilter.sortBy === "name"
+                      ? colors.dark.text
+                      : colors.dark.textSecondary
+                  }
+                />
+              )}
+              <Text
+                style={[
+                  styles.sortOptionText,
+                  localFilter.sortBy === "name" &&
+                    styles.selectedOptionText,
+                ]}
+              >
+                Name
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={styles.orderButton}
+            onPress={toggleSortOrder}
+          >
+            <Text style={styles.orderButtonText}>
+              Order:{" "}
+              {localFilter.sortOrder === "asc" ? "Ascending" : "Descending"}
+            </Text>
+            {localFilter.sortOrder === "asc" ? (
+              <ArrowDownAZ size={20} color={colors.dark.textSecondary} />
+            ) : (
+              <ArrowUpZA size={20} color={colors.dark.textSecondary} />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Other Filters</Text>
+          <TouchableOpacity
+            style={styles.checkOption}
+            onPress={toggleFavorites}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                localFilter.favorites && styles.checkboxSelected,
+              ]}
+            >
+              {localFilter.favorites && (
+                <Check size={16} color={colors.dark.text} />
+              )}
+            </View>
+            <Text style={styles.checkOptionText}>Show favorites only</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
+          <Text style={styles.resetButtonText}>Reset</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
+          <Text style={styles.applyButtonText}>Apply</Text>
+        </TouchableOpacity>
       </View>
-    </Modal>
+    </BaseModal>
   );
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.dark.overlay,
-    justifyContent: "flex-end",
-  },
-  modalContainer: {
-    backgroundColor: colors.dark.background,
-    borderTopLeftRadius: theme.borderRadius.xl,
-    borderTopRightRadius: theme.borderRadius.xl,
-    maxHeight: "80%",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.dark.border,
-  },
-  title: {
-    fontSize: theme.typography.fontSizes.xl,
-    fontWeight: 700,
-    color: colors.dark.text,
-  },
-  closeButton: {
-    padding: theme.spacing.xs,
-  },
   content: {
     padding: theme.spacing.md,
   },

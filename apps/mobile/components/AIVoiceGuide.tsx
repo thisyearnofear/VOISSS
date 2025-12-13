@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
-import { Colors, Typography, Spacing, BorderRadius } from '../constants/design-system';
+import { colors } from '@voisss/ui';
 import { Button } from './ui/Button';
 import { mobileAIService } from '../services/ai-service';
 
@@ -140,7 +140,7 @@ export const AIVoiceGuide: React.FC<AIVoiceGuideProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name="robot" size={24} color={Colors.primary} />
+        <Ionicons name="robot" size={24} color={colors.dark.primary} />
         <Text style={styles.headerTitle}>AI Voice Guide</Text>
       </View>
 
@@ -157,11 +157,11 @@ export const AIVoiceGuide: React.FC<AIVoiceGuideProps> = ({
             disabled={isLoading || isPlaying}
           >
             {isLoading ? (
-              <ActivityIndicator size="small" color={Colors.textPrimary} />
+              <ActivityIndicator size="small" color={colors.dark.text} />
             ) : isPlaying ? (
-              <Ionicons name="pause" size={24} color={Colors.textPrimary} />
+              <Ionicons name="pause" size={24} color={colors.dark.text} />
             ) : (
-              <Ionicons name="play" size={24} color={Colors.textPrimary} />
+              <Ionicons name="play" size={24} color={colors.dark.text} />
             )}
           </TouchableOpacity>
           
@@ -177,7 +177,7 @@ export const AIVoiceGuide: React.FC<AIVoiceGuideProps> = ({
 
         {error && (
           <View style={styles.errorContainer}>
-            <Ionicons name="warning" size={20} color={Colors.error} />
+            <Ionicons name="warning" size={20} color={colors.dark.error} />
             <Text style={styles.errorText}>{error}</Text>
             <Button
               title="Retry"
@@ -195,7 +195,7 @@ export const AIVoiceGuide: React.FC<AIVoiceGuideProps> = ({
             <Ionicons 
               name={mobileAIService.getVoiceStyleById(guideScript.voiceStyleId)?.icon || 'mic'}
               size={18}
-              color={Colors.primary}
+              color={colors.dark.primary}
             />
             <Text style={styles.voiceStyleName}>
               {mobileAIService.getVoiceStyleById(guideScript.voiceStyleId)?.name || 'AI Voice'}
@@ -227,87 +227,87 @@ export const AIVoiceGuide: React.FC<AIVoiceGuideProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+    backgroundColor: colors.dark.surface,
+    borderRadius: 12,
+    padding: 24,
     borderWidth: 1,
-    borderColor: Colors.border,
-    marginBottom: Spacing.md,
+    borderColor: colors.dark.border,
+    marginBottom: 16,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
+    marginBottom: 16,
+    gap: 12,
   },
   headerTitle: {
-    color: Colors.textPrimary,
-    fontSize: Typography.h3,
-    fontWeight: Typography.bold,
+    color: colors.dark.text,
+    fontSize: 20,
+    fontWeight: '700',
   },
   content: {
-    marginBottom: Spacing.lg,
+    marginBottom: 24,
   },
   guideText: {
-    color: Colors.textPrimary,
-    fontSize: Typography.body,
-    lineHeight: Typography.lineHeight.body,
-    marginBottom: Spacing.lg,
+    color: colors.dark.text,
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 24,
     textAlign: 'left',
   },
   audioControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
+    gap: 16,
+    marginBottom: 16,
   },
   playButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.dark.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.sm,
-    backgroundColor: Colors.surfaceLight,
-    borderRadius: BorderRadius.sm,
-    marginBottom: Spacing.md,
+    gap: 12,
+    padding: 12,
+    backgroundColor: colors.dark.surfaceLight,
+    borderRadius: 8,
+    marginBottom: 16,
   },
   errorText: {
-    color: Colors.error,
-    fontSize: Typography.bodySmall,
+    color: colors.dark.error,
+    fontSize: 14,
     flex: 1,
   },
   voiceInfo: {
-    padding: Spacing.md,
-    backgroundColor: Colors.surfaceLight,
-    borderRadius: BorderRadius.md,
+    padding: 16,
+    backgroundColor: colors.dark.surfaceLight,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.dark.border,
   },
   voiceInfoTitle: {
-    color: Colors.textSecondary,
-    fontSize: Typography.bodySmall,
-    marginBottom: Spacing.xs,
+    color: colors.dark.textSecondary,
+    fontSize: 14,
+    marginBottom: 4,
   },
   voiceStyleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: 12,
   },
   voiceStyleName: {
-    color: Colors.textPrimary,
-    fontSize: Typography.body,
-    fontWeight: Typography.medium,
+    color: colors.dark.text,
+    fontSize: 16,
+    fontWeight: '500',
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: Spacing.md,
+    gap: 16,
   },
 });

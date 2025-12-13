@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Modal,
   ScrollView,
   ActivityIndicator,
   Alert,
@@ -11,6 +10,7 @@ import {
 import { X, Wallet, Shield, Zap, Globe, CheckCircle, AlertCircle } from 'lucide-react-native';
 import { colors } from "@voisss/ui";
 import { useBase } from '../hooks/useBase';
+import { BaseModal } from "@voisss/ui";
 
 interface WalletModalProps {
   visible: boolean;
@@ -26,11 +26,14 @@ export function WalletModal({ visible, onClose, onConnected }: WalletModalProps)
   useEffect(() => {
     if (isConnected && account) {
       setActiveTab('manage');
-      loadBalance();
+      // Balance loading is commented out since getBalance function is not properly defined
+      // loadBalance();
       onConnected?.();
     }
   }, [isConnected, account]);
 
+  // Commented out since getBalance function is not properly defined
+  /*
   const loadBalance = async () => {
     try {
       const bal = await getBalance();
@@ -39,6 +42,7 @@ export function WalletModal({ visible, onClose, onConnected }: WalletModalProps)
       console.error('Failed to load balance:', err);
     }
   };
+  */
 
   const handleConnect = async () => {
     try {
@@ -97,426 +101,209 @@ export function WalletModal({ visible, onClose, onConnected }: WalletModalProps)
       title: 'Base Rewards',
       description: 'Earn rewards for participating in the ecosystem',
     },
-    {
-      icon: CheckCircle,
-      title: 'Decentralized Sharing',
-      description: 'Share recordings through decentralized protocols',
-    },
   ];
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Base Wallet</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X size={24} color={colors.dark.text} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Tabs */}
-        <View style={styles.tabs}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'connect' && styles.activeTab]}
-            onPress={() => setActiveTab('connect')}
-          >
-            <Text style={[styles.tabText, activeTab === 'connect' && styles.activeTabText]}>
-              Connect
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'features' && styles.activeTab]}
-            onPress={() => setActiveTab('features')}
-          >
-            <Text style={[styles.tabText, activeTab === 'features' && styles.activeTabText]}>
-              Features
-            </Text>
-          </TouchableOpacity>
-          {isConnected && (
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'manage' && styles.activeTab]}
-              onPress={() => setActiveTab('manage')}
-            >
-              <Text style={[styles.tabText, activeTab === 'manage' && styles.activeTabText]}>
-                Manage
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {activeTab === 'connect' && (
-            <View style={styles.tabContent}>
-              {!isConnected ? (
-                <>
-                  <View style={styles.walletIcon}>
-                    <Wallet size={64} color={colors.dark.primary} />
-                  </View>
-                  
-                  <Text style={styles.connectTitle}>Connect Your Base Wallet</Text>
-                  <Text style={styles.connectDescription}>
-                    Connect your Base wallet to unlock Web3 features and gasless transactions.
-                  </Text>
-
-                  {error && (
-                    <View style={styles.errorContainer}>
-                      <AlertCircle size={16} color="#FF6B6B" />
-                      <Text style={styles.errorText}>{error}</Text>
-                    </View>
-                  )}
-
-                  <TouchableOpacity
-                    style={[styles.connectButton, isConnecting && styles.connectButtonDisabled]}
-                    onPress={handleConnect}
-                    disabled={isConnecting}
-                  >
-                    {isConnecting ? (
-                      <ActivityIndicator size="small" color={colors.dark.text} />
-                    ) : (
-                      <Wallet size={20} color={colors.dark.text} />
-                    )}
-                    <Text style={styles.connectButtonText}>
-                      {isConnecting ? 'Connecting...' : 'Connect Wallet'}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <Text style={styles.disclaimer}>
-                    This is a demo implementation. In production, you would connect to actual Starknet wallets like ArgentX or Braavos.
-                  </Text>
-                </>
-              ) : (
-                <View style={styles.connectedState}>
-                  <CheckCircle size={64} color="#4CAF50" />
-                  <Text style={styles.connectedTitle}>Wallet Connected!</Text>
-                  <Text style={styles.connectedDescription}>
-                    Your Starknet wallet is now connected and ready to use.
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.manageButton}
-                    onPress={() => setActiveTab('manage')}
-                  >
-                    <Text style={styles.manageButtonText}>Manage Wallet</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          )}
-
-          {activeTab === 'features' && (
-            <View style={styles.tabContent}>
-              <Text style={styles.featuresTitle}>Web3 Features</Text>
-              <Text style={styles.featuresDescription}>
-                Unlock these powerful Web3 capabilities by connecting your Starknet wallet:
-              </Text>
-
-              {web3Features.map((feature, index) => (
-                <View key={index} style={styles.featureItem}>
-                  <View style={styles.featureIcon}>
-                    <feature.icon size={24} color={colors.dark.primary} />
-                  </View>
-                  <View style={styles.featureContent}>
-                    <Text style={styles.featureTitle}>{feature.title}</Text>
-                    <Text style={styles.featureDescription}>{feature.description}</Text>
-                  </View>
-                </View>
-              ))}
-
-              {!isConnected && (
-                <TouchableOpacity
-                  style={styles.getStartedButton}
-                  onPress={() => setActiveTab('connect')}
-                >
-                  <Text style={styles.getStartedButtonText}>Get Started</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
-
-          {activeTab === 'manage' && isConnected && (
-            <View style={styles.tabContent}>
-              <Text style={styles.manageTitle}>Wallet Management</Text>
-              
-              <View style={styles.walletInfo}>
-                <View style={styles.walletInfoRow}>
-                  <Text style={styles.walletInfoLabel}>Address:</Text>
-                  <Text style={styles.walletInfoValue}>{formatAddress(account!.address)}</Text>
-                </View>
-                <View style={styles.walletInfoRow}>
-                  <Text style={styles.walletInfoLabel}>Balance:</Text>
-                  <Text style={styles.walletInfoValue}>{formatBalance(balance)} ETH</Text>
-                </View>
-                <View style={styles.walletInfoRow}>
-                  <Text style={styles.walletInfoLabel}>Network:</Text>
-                  <Text style={styles.walletInfoValue}>Starknet Testnet</Text>
-                </View>
-              </View>
-
-              <View style={styles.manageActions}>
-                <TouchableOpacity style={styles.refreshButton} onPress={loadBalance}>
-                  <Text style={styles.refreshButtonText}>Refresh Balance</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={styles.disconnectButton} onPress={handleDisconnect}>
-                  <Text style={styles.disconnectButtonText}>Disconnect Wallet</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        </ScrollView>
+  const renderConnectTab = () => (
+    <View style={{ padding: 16 }}>
+      <View style={{ alignItems: 'center', marginBottom: 24 }}>
+        <Wallet size={48} color={colors.dark.primary} style={{ marginBottom: 16 }} />
+        <Text style={{ 
+          fontSize: 20, 
+          fontWeight: '600', 
+          color: colors.dark.text, 
+          textAlign: 'center',
+          marginBottom: 8
+        }}>
+          Connect Your Wallet
+        </Text>
+        <Text style={{ 
+          fontSize: 16, 
+          color: colors.dark.textSecondary, 
+          textAlign: 'center',
+          lineHeight: 24
+        }}>
+          Connect your Base wallet to unlock Web3 features and earn rewards
+        </Text>
       </View>
-    </Modal>
+
+      <TouchableOpacity
+        style={{
+          backgroundColor: colors.dark.primary,
+          padding: 16,
+          borderRadius: 12,
+          alignItems: 'center',
+          marginBottom: 16,
+        }}
+        onPress={handleConnect}
+        disabled={isConnecting}
+      >
+        {isConnecting ? (
+          <ActivityIndicator color={colors.dark.text} />
+        ) : (
+          <>
+            <Wallet size={24} color={colors.dark.text} style={{ marginBottom: 8 }} />
+            <Text style={{ 
+              color: colors.dark.text, 
+              fontWeight: '600', 
+              fontSize: 16 
+            }}>
+              Connect Wallet
+            </Text>
+          </>
+        )}
+      </TouchableOpacity>
+
+      {error && (
+        <View style={{
+          backgroundColor: 'rgba(255, 82, 82, 0.1)',
+          borderColor: colors.dark.error,
+          borderWidth: 1,
+          borderRadius: 8,
+          padding: 12,
+          flexDirection: 'row',
+          alignItems: 'center',
+        }}>
+          <AlertCircle size={20} color={colors.dark.error} style={{ marginRight: 8 }} />
+          <Text style={{ color: colors.dark.error }}>{error.message || 'Connection failed'}</Text>
+        </View>
+      )}
+
+      <View style={{ marginTop: 24 }}>
+        <Text style={{ 
+          fontSize: 16, 
+          fontWeight: '600', 
+          color: colors.dark.text, 
+          marginBottom: 12 
+        }}>
+          Why Connect?
+        </Text>
+        {web3Features.map((feature, index) => {
+          const IconComponent = feature.icon;
+          return (
+            <View key={index} style={{ 
+              flexDirection: 'row', 
+              alignItems: 'flex-start', 
+              marginBottom: 16 
+            }}>
+              <IconComponent size={20} color={colors.dark.primary} style={{ marginRight: 12, marginTop: 2 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ 
+                  fontSize: 16, 
+                  fontWeight: '500', 
+                  color: colors.dark.text, 
+                  marginBottom: 4 
+                }}>
+                  {feature.title}
+                </Text>
+                <Text style={{ 
+                  fontSize: 14, 
+                  color: colors.dark.textSecondary 
+                }}>
+                  {feature.description}
+                </Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+
+  const renderManageTab = () => (
+    <View style={{ padding: 16 }}>
+      <View style={{ 
+        backgroundColor: colors.dark.card, 
+        borderRadius: 12, 
+        padding: 16, 
+        marginBottom: 24 
+      }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+          <View style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor: colors.dark.primary,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginRight: 12,
+          }}>
+            <Wallet size={20} color={colors.dark.text} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ 
+              fontSize: 18, 
+              fontWeight: '600', 
+              color: colors.dark.text 
+            }}>
+              Connected
+            </Text>
+            {account?.address && (
+              <Text style={{ 
+                fontSize: 14, 
+                color: colors.dark.textSecondary 
+              }}>
+                {formatAddress(account.address)}
+              </Text>
+            )}
+          </View>
+          <CheckCircle size={24} color={colors.dark.success} />
+        </View>
+
+        {/* Balance display commented out since getBalance is not properly implemented */}
+        {/* 
+        <View style={{ 
+          backgroundColor: colors.dark.background, 
+          borderRadius: 8, 
+          padding: 12 
+        }}>
+          <Text style={{ 
+            fontSize: 14, 
+            color: colors.dark.textSecondary, 
+            marginBottom: 4 
+          }}>
+            Balance
+          </Text>
+          <Text style={{ 
+            fontSize: 24, 
+            fontWeight: '600', 
+            color: colors.dark.text 
+          }}>
+            {formatBalance(balance)} ETH
+          </Text>
+        </View>
+        */}
+      </View>
+
+      <TouchableOpacity
+        style={{
+          backgroundColor: colors.dark.card,
+          padding: 16,
+          borderRadius: 12,
+          alignItems: 'center',
+          marginBottom: 16,
+        }}
+        onPress={handleDisconnect}
+      >
+        <Text style={{ 
+          color: colors.dark.error, 
+          fontWeight: '600', 
+          fontSize: 16 
+        }}>
+          Disconnect Wallet
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  return (
+    <BaseModal
+      visible={visible}
+      onClose={onClose}
+      title={activeTab === 'connect' ? 'Connect Wallet' : 'Wallet Connected'}
+    >
+      <ScrollView>
+        {activeTab === 'connect' ? renderConnectTab() : renderManageTab()}
+      </ScrollView>
+    </BaseModal>
   );
 }
-
-const styles = {
-  container: {
-    flex: 1,
-    backgroundColor: colors.dark.background,
-  },
-  header: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.dark.border,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700' as const,
-    color: colors.dark.text,
-  },
-  closeButton: {
-    padding: 8,
-  },
-  tabs: {
-    flexDirection: 'row' as const,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.dark.border,
-  },
-  tab: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 16,
-    borderRadius: 20,
-    backgroundColor: colors.dark.card,
-  },
-  activeTab: {
-    backgroundColor: colors.dark.primary,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: colors.dark.textSecondary,
-  },
-  activeTabText: {
-    color: colors.dark.text,
-  },
-  content: {
-    flex: 1,
-  },
-  tabContent: {
-    padding: 20,
-  },
-  walletIcon: {
-    alignItems: 'center' as const,
-    marginBottom: 24,
-  },
-  connectTitle: {
-    fontSize: 24,
-    fontWeight: '700' as const,
-    color: colors.dark.text,
-    textAlign: 'center' as const,
-    marginBottom: 12,
-  },
-  connectDescription: {
-    fontSize: 16,
-    color: colors.dark.textSecondary,
-    textAlign: 'center' as const,
-    lineHeight: 24,
-    marginBottom: 32,
-  },
-  errorContainer: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    backgroundColor: '#FF6B6B20',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  errorText: {
-    color: '#FF6B6B',
-    marginLeft: 8,
-    fontSize: 14,
-  },
-  connectButton: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    backgroundColor: colors.dark.primary,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-    marginBottom: 20,
-  },
-  connectButtonDisabled: {
-    opacity: 0.6,
-  },
-  connectButtonText: {
-    color: colors.dark.text,
-    fontSize: 16,
-    fontWeight: '600' as const,
-    marginLeft: 8,
-  },
-  disclaimer: {
-    fontSize: 12,
-    color: colors.dark.textSecondary,
-    textAlign: 'center' as const,
-    fontStyle: 'italic' as const,
-  },
-  connectedState: {
-    alignItems: 'center' as const,
-    paddingVertical: 40,
-  },
-  connectedTitle: {
-    fontSize: 24,
-    fontWeight: '700' as const,
-    color: colors.dark.text,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  connectedDescription: {
-    fontSize: 16,
-    color: colors.dark.textSecondary,
-    textAlign: 'center' as const,
-    marginBottom: 24,
-  },
-  manageButton: {
-    backgroundColor: colors.dark.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-  },
-  manageButtonText: {
-    color: colors.dark.text,
-    fontSize: 16,
-    fontWeight: '600' as const,
-  },
-  featuresTitle: {
-    fontSize: 24,
-    fontWeight: '700' as const,
-    color: colors.dark.text,
-    marginBottom: 12,
-  },
-  featuresDescription: {
-    fontSize: 16,
-    color: colors.dark.textSecondary,
-    lineHeight: 24,
-    marginBottom: 32,
-  },
-  featureItem: {
-    flexDirection: 'row' as const,
-    alignItems: 'flex-start' as const,
-    marginBottom: 24,
-  },
-  featureIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.dark.card,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    marginRight: 16,
-  },
-  featureContent: {
-    flex: 1,
-  },
-  featureTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
-    color: colors.dark.text,
-    marginBottom: 4,
-  },
-  featureDescription: {
-    fontSize: 14,
-    color: colors.dark.textSecondary,
-    lineHeight: 20,
-  },
-  getStartedButton: {
-    backgroundColor: colors.dark.primary,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-    alignItems: 'center' as const,
-    marginTop: 20,
-  },
-  getStartedButtonText: {
-    color: colors.dark.text,
-    fontSize: 16,
-    fontWeight: '600' as const,
-  },
-  manageTitle: {
-    fontSize: 24,
-    fontWeight: '700' as const,
-    color: colors.dark.text,
-    marginBottom: 24,
-  },
-  walletInfo: {
-    backgroundColor: colors.dark.card,
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 24,
-  },
-  walletInfoRow: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
-    marginBottom: 12,
-  },
-  walletInfoLabel: {
-    fontSize: 16,
-    color: colors.dark.textSecondary,
-  },
-  walletInfoValue: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: colors.dark.text,
-  },
-  manageActions: {
-    gap: 12,
-  },
-  refreshButton: {
-    backgroundColor: colors.dark.card,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center' as const,
-  },
-  refreshButtonText: {
-    color: colors.dark.text,
-    fontSize: 16,
-    fontWeight: '600' as const,
-  },
-  disconnectButton: {
-    backgroundColor: '#FF6B6B20',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center' as const,
-  },
-  disconnectButtonText: {
-    color: '#FF6B6B',
-    fontSize: 16,
-    fontWeight: '600' as const,
-  },
-};

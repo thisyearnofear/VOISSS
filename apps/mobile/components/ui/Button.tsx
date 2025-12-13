@@ -1,12 +1,12 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, BorderRadius, ButtonVariants } from '../../constants/design-system';
+import { colors } from '@voisss/ui';
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: keyof typeof ButtonVariants;
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
   loading?: boolean;
@@ -30,15 +30,40 @@ export const Button: React.FC<ButtonProps> = ({
   textStyle,
   fullWidth = false,
 }) => {
-  const buttonVariant = ButtonVariants[variant];
-  
   const getButtonStyle = () => {
-    let baseStyle = {
-      backgroundColor: disabled ? Colors.borderDark : buttonVariant.backgroundColor,
-      borderColor: buttonVariant.borderColor,
-      borderWidth: variant === 'outline' ? 1 : 0,
-      opacity: disabled ? 0.6 : 1,
-    };
+    let baseStyle = {};
+    
+    switch (variant) {
+      case 'primary':
+        baseStyle = {
+          backgroundColor: disabled ? colors.dark.disabled : colors.dark.primary,
+          borderColor: 'transparent',
+        };
+        break;
+      case 'secondary':
+        baseStyle = {
+          backgroundColor: disabled ? colors.dark.disabled : colors.dark.card,
+          borderColor: colors.dark.border,
+        };
+        break;
+      case 'outline':
+        baseStyle = {
+          backgroundColor: 'transparent',
+          borderColor: colors.dark.primary,
+        };
+        break;
+      case 'ghost':
+        baseStyle = {
+          backgroundColor: 'transparent',
+          borderColor: 'transparent',
+        };
+        break;
+      default:
+        baseStyle = {
+          backgroundColor: disabled ? colors.dark.disabled : colors.dark.primary,
+          borderColor: 'transparent',
+        };
+    }
     
     switch (size) {
       case 'sm':
@@ -51,11 +76,34 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   const getTextStyle = () => {
-    let baseTextStyle = {
-      color: disabled ? Colors.textDisabled : buttonVariant.textColor,
-      fontSize: Typography.button,
-      fontWeight: Typography.semiBold,
-    };
+    let baseTextStyle = {};
+    
+    switch (variant) {
+      case 'primary':
+        baseTextStyle = {
+          color: disabled ? colors.dark.textSecondary : colors.dark.text,
+        };
+        break;
+      case 'secondary':
+        baseTextStyle = {
+          color: disabled ? colors.dark.textSecondary : colors.dark.primary,
+        };
+        break;
+      case 'outline':
+        baseTextStyle = {
+          color: disabled ? colors.dark.textSecondary : colors.dark.primary,
+        };
+        break;
+      case 'ghost':
+        baseTextStyle = {
+          color: disabled ? colors.dark.textSecondary : colors.dark.primary,
+        };
+        break;
+      default:
+        baseTextStyle = {
+          color: disabled ? colors.dark.textSecondary : colors.dark.text,
+        };
+    }
     
     return { ...baseTextStyle, ...styles.buttonText };
   };
@@ -75,7 +123,7 @@ export const Button: React.FC<ButtonProps> = ({
       {loading ? (
         <ActivityIndicator 
           size={size === 'lg' ? 'large' : 'small'}
-          color={buttonVariant.textColor}
+          color={variant === 'primary' ? colors.dark.text : colors.dark.primary}
         />
       ) : (
         <>
@@ -83,7 +131,7 @@ export const Button: React.FC<ButtonProps> = ({
             <Ionicons 
               name={icon} 
               size={size === 'lg' ? 20 : 16}
-              color={disabled ? Colors.textDisabled : buttonVariant.textColor}
+              color={variant === 'primary' ? (disabled ? colors.dark.textSecondary : colors.dark.text) : (disabled ? colors.dark.textSecondary : colors.dark.primary)}
               style={styles.iconLeft}
             />
           )}
@@ -96,7 +144,7 @@ export const Button: React.FC<ButtonProps> = ({
             <Ionicons 
               name={icon} 
               size={size === 'lg' ? 20 : 16}
-              color={disabled ? Colors.textDisabled : buttonVariant.textColor}
+              color={variant === 'primary' ? (disabled ? colors.dark.textSecondary : colors.dark.text) : (disabled ? colors.dark.textSecondary : colors.dark.primary)}
               style={styles.iconRight}
             />
           )}
@@ -111,32 +159,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: BorderRadius.button,
+    borderRadius: 10, // Using UI package's button border radius
     overflow: 'hidden',
+    borderWidth: 1,
   },
   fullWidth: {
     width: '100%',
   },
   smButton: {
-    paddingVertical: Typography.button / 2,
-    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
   },
   mdButton: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   lgButton: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
   },
   buttonText: {
     textAlign: 'center',
-    lineHeight: Typography.lineHeight.button,
+    fontSize: 16,
+    fontWeight: '600',
   },
   iconLeft: {
-    marginRight: Spacing.xs,
+    marginRight: 4,
   },
   iconRight: {
-    marginLeft: Spacing.xs,
+    marginLeft: 4,
   },
 });
