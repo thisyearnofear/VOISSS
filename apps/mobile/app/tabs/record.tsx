@@ -562,8 +562,8 @@ export default function RecordScreen() {
       permissionRetriever: async () => {
         // TODO: Implement proper permission retrieval for mobile
         // For now, return stored permission hash
-        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-        return await AsyncStorage.getItem('spendPermissionHash');
+        const { crossPlatformStorage } = require('@voisss/shared');
+        return await crossPlatformStorage.getItem('spendPermissionHash');
       }
     });
 

@@ -40,6 +40,12 @@ export { createElevenLabsProvider, ElevenLabsTransformProvider } from './service
 export * from './hooks/useMemoryContext';
 export * from './hooks/useCrossPlatformStorage';
 
+// Wallet connectors
+export * from './services/wallet-connectors';
+
+// Web3 utilities
+export * from './utils/web3-utils';
+
 // Feature flags
 export * from './utils/featureFlags';
 
