@@ -10,6 +10,7 @@ config.resolver.alias = {
 
 // Enable symlinks for monorepo support
 config.resolver.unstable_enableSymlinks = true;
+config.resolver.unstable_enablePackageExports = true;
 
 // Ensure we're resolving modules correctly
 config.resolver.platforms = ["ios", "android", "native", "web"];

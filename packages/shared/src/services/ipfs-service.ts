@@ -60,7 +60,7 @@ export class IPFSService {
       throw new Error(`Failed to upload to IPFS: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
-  
+
   /**
    * Upload encrypted audio file to IPFS for private recordings
    * Includes additional privacy metadata
@@ -79,7 +79,7 @@ export class IPFSService {
       console.log(`   Content ID: ${privacyMetadata.contentId}`);
       console.log(`   Owner: ${privacyMetadata.ownerAddress}`);
       console.log(`   Encryption: ${privacyMetadata.encryptionAlgorithm}`);
-      
+
       // Add privacy metadata to the upload
       const fullMetadata = {
         ...metadata,
@@ -91,22 +91,22 @@ export class IPFSService {
           timestamp: new Date().toISOString(),
         }
       };
-      
+
       // Use the standard upload method
       const result = await this.uploadAudio(encryptedData, fullMetadata);
-      
+
       console.log(`✅ Encrypted audio uploaded successfully`);
       console.log(`   IPFS Hash: ${result.hash}`);
       console.log(`   URL: ${result.url}`);
-      
+
       return result;
-      
+
     } catch (error) {
       console.error('IPFS encrypted upload failed:', error);
       throw new Error(`Failed to upload encrypted audio: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
-  
+
   /**
    * Retrieve encrypted audio from IPFS
    * Includes privacy verification
@@ -130,10 +130,10 @@ export class IPFSService {
     try {
       console.log(`🔐 Retrieving encrypted audio from IPFS...`);
       console.log(`   IPFS Hash: ${ipfsHash}`);
-      
+
       // TODO: Implement actual IPFS retrieval with privacy checks
       // This would verify ownership and access rights
-      
+
       // Mock implementation for now
       const mockData = new Blob(['encrypted-audio-data'], { type: 'audio/mpeg' });
       const mockMetadata = {
@@ -149,19 +149,19 @@ export class IPFSService {
           timestamp: new Date().toISOString(),
         }
       };
-      
+
       const accessGranted = !expectedOwner || mockMetadata.privacy?.owner === expectedOwner;
-      
+
       console.log(`✅ Encrypted audio retrieved`);
       console.log(`   Access granted: ${accessGranted}`);
       console.log(`   Owner: ${mockMetadata.privacy?.owner}`);
-      
+
       return {
         data: mockData,
         metadata: mockMetadata,
         accessGranted
       };
-      
+
     } catch (error) {
       console.error('IPFS encrypted retrieval failed:', error);
       throw new Error(`Failed to retrieve encrypted audio: ${error instanceof Error ? error.message : String(error)}`);
@@ -416,9 +416,9 @@ export function createIPFSService(): IPFSService {
 
   const config: IPFSConfig = {
     provider,
-    // Check both server-side and client-side environment variables
-    apiKey: process.env.PINATA_API_KEY || process.env.NEXT_PUBLIC_PINATA_API_KEY || process.env.NEXT_PUBLIC_IPFS_API_KEY,
-    apiSecret: process.env.PINATA_API_SECRET || process.env.NEXT_PUBLIC_PINATA_API_SECRET || process.env.NEXT_PUBLIC_IPFS_API_SECRET,
+    // Check server-side, Next.js, and Expo environment variables
+    apiKey: process.env.PINATA_API_KEY || process.env.NEXT_PUBLIC_PINATA_API_KEY || process.env.NEXT_PUBLIC_IPFS_API_KEY || process.env.EXPO_PUBLIC_PINATA_API_KEY,
+    apiSecret: process.env.PINATA_API_SECRET || process.env.NEXT_PUBLIC_PINATA_API_SECRET || process.env.NEXT_PUBLIC_IPFS_API_SECRET || process.env.EXPO_PUBLIC_PINATA_API_SECRET,
     gatewayUrl: process.env.NEXT_PUBLIC_IPFS_GATEWAY_URL,
   };
 

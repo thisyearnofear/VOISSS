@@ -7,10 +7,10 @@ import { walletConnect } from "wagmi/connectors";
 import { queryClient } from "./lib/query-client";
 
 // 1. Get a project ID from https://cloud.walletconnect.com
-const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
+const projectId = process.env.EXPO_PUBLIC_WALLETCONNECT_PROJECT_ID || process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 
 if (!projectId) {
-  throw new Error("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is not set");
+  throw new Error("EXPO_PUBLIC_WALLETCONNECT_PROJECT_ID is not set");
 }
 
 // 2. Create wagmi config
