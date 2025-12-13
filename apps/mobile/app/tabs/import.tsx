@@ -35,15 +35,14 @@ import {
   Sparkles,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { globalStyles } from "@voisss/ui";
-import { colors } from "@voisss/ui";
+import { globalStyles, theme, colors } from "@voisss/ui";
 import { useRecordingsStore } from "@/store/recordingsStore";
 import { VoiceRecording, Tag } from "@voisss/shared";
 import {
   formatDuration,
   formatFileSize,
   formatRelativeTime,
-} from "@/utils/formatters";
+} from "@voisss/shared";
 import TagBadge from "@/components/TagBadge";
 import BottomSheet from "@/components/BottomSheet";
 import AnimatedGradientBackground from "@/components/AnimatedGradientBackground";
@@ -54,31 +53,31 @@ const importSources = [
   {
     id: "device",
     name: "Device Storage",
-    icon: "Smartphone",
+    icon: Smartphone,
     description: "Scan your device for voice recordings",
   },
   {
     id: "files",
     name: "Files App",
-    icon: "Folder",
+    icon: Folder,
     description: "Import from your files app",
   },
   {
     id: "icloud",
     name: "iCloud Drive",
-    icon: "Cloud",
+    icon: Cloud,
     description: "Import from iCloud",
   },
   {
     id: "drive",
     name: "Google Drive",
-    icon: "Cloud",
+    icon: Cloud,
     description: "Import from Google Drive",
   },
   {
     id: "downloads",
     name: "Downloads",
-    icon: "HardDrive",
+    icon: HardDrive,
     description: "Import from your downloads folder",
   },
 ];
@@ -88,31 +87,31 @@ const exportDestinations = [
   {
     id: "files",
     name: "Files App",
-    icon: "Folder",
+    icon: Folder,
     description: "Export to your files app",
   },
   {
     id: "icloud",
     name: "iCloud Drive",
-    icon: "Cloud",
+    icon: Cloud,
     description: "Export to iCloud",
   },
   {
     id: "drive",
     name: "Google Drive",
-    icon: "Cloud",
+    icon: Cloud,
     description: "Export to Google Drive",
   },
   {
     id: "dropbox",
     name: "Dropbox",
-    icon: "Cloud",
+    icon: Cloud,
     description: "Export to Dropbox",
   },
   {
     id: "share",
     name: "Share",
-    icon: "Share2",
+    icon: Share2,
     description: "Share via other apps",
   },
 ];
@@ -124,6 +123,7 @@ const suggestedCategories = [
   { id: "meetings", name: "Meetings", count: 4, color: "#4CAF50" },
   { id: "ideas", name: "Ideas", count: 2, color: "#FFC107" },
   { id: "voice-notes", name: "Voice Notes", count: 6, color: "#FF5252" },
+  { id: "misc", name: "Miscellaneous", count: 0, color: "#9E9E9E" },
 ];
 
 // Mock files that could be imported
@@ -188,100 +188,6 @@ const mockImportFiles: Partial<VoiceRecording & { uri: string, category: string,
     source: "imported",
     category: "language",
   },
-  {
-    id: "import-6",
-    title: "Bass Line Idea.m4a",
-    duration: 45,
-    fileSize: 768000,
-    uri: "https://example.com/import6.m4a",
-    createdAt: new Date(Date.now() - 432000000), // 5 days ago
-    updatedAt: new Date(Date.now() - 432000000),
-    tags: [],
-    source: "imported",
-    category: "music",
-  },
-  {
-    id: "import-7",
-    title: "Weekly Standup.mp3",
-    duration: 900,
-    fileSize: 15728640,
-    uri: "https://example.com/import7.mp3",
-    createdAt: new Date(Date.now() - 518400000), // 6 days ago
-    updatedAt: new Date(Date.now() - 518400000),
-    tags: [],
-    source: "imported",
-    category: "meetings",
-  },
-  {
-    id: "import-8",
-    title: "Quick Reminder.m4a",
-    duration: 15,
-    fileSize: 256000,
-    uri: "https://example.com/import8.m4a",
-    createdAt: new Date(Date.now() - 604800000), // 7 days ago
-    updatedAt: new Date(Date.now() - 604800000),
-    tags: [],
-    source: "imported",
-    category: "voice-notes",
-  },
-  {
-    id: "import-9",
-    title: "Drum Pattern Idea.m4a",
-    duration: 30,
-    fileSize: 512000,
-    uri: "https://example.com/import9.m4a",
-    createdAt: new Date(Date.now() - 691200000), // 8 days ago
-    updatedAt: new Date(Date.now() - 691200000),
-    tags: [],
-    source: "imported",
-    category: "music",
-  },
-  {
-    id: "import-10",
-    title: "Client Meeting Notes.mp3",
-    duration: 1800,
-    fileSize: 31457280,
-    uri: "https://example.com/import10.mp3",
-    createdAt: new Date(Date.now() - 777600000), // 9 days ago
-    updatedAt: new Date(Date.now() - 777600000),
-    tags: [],
-    source: "imported",
-    category: "meetings",
-  },
-];
-
-// Mock files for export
-const mockExportFiles: Partial<VoiceRecording & { source: string }>[] = [
-  {
-    id: "export-1",
-    title: "Project Brainstorm.m4a",
-    duration: 185,
-    fileSize: 3145728,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    tags: ["work", "ideas"],
-    source: "recorded",
-  },
-  {
-    id: "export-2",
-    title: "Voice Memo - Shopping List.mp3",
-    duration: 42,
-    fileSize: 716800,
-    createdAt: new Date(Date.now() - 86400000),
-    updatedAt: new Date(Date.now() - 86400000),
-    tags: ["personal"],
-    source: "recorded",
-  },
-  {
-    id: "export-3",
-    title: "Interview with Sarah.wav",
-    duration: 1560,
-    fileSize: 26214400,
-    createdAt: new Date(Date.now() - 172800000),
-    updatedAt: new Date(Date.now() - 172800000),
-    tags: ["work", "interview"],
-    source: "imported",
-  },
 ];
 
 // Extend VoiceRecording type to include category for grouping
@@ -291,4 +197,220 @@ interface ImportRecording extends VoiceRecording {
   isDuplicate?: boolean;
 }
 
-// ... (rest of the file is unchanged, copy from original)
+export default function ImportScreen() {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'import' | 'export'>('import');
+
+  const renderSourceItem = ({ item }: { item: typeof importSources[0] }) => {
+    const Icon = item.icon;
+    return (
+      <TouchableOpacity style={styles.sourceCard} onPress={() => Alert.alert("Coming Soon", `Import from ${item.name} is coming soon!`)}>
+        <View style={[styles.iconContainer, { backgroundColor: colors.dark.card }]}>
+          <Icon size={24} color={colors.dark.text} />
+        </View>
+        <View style={styles.sourceInfo}>
+          <Text style={styles.sourceName}>{item.name}</Text>
+          <Text style={styles.sourceDescription}>{item.description}</Text>
+        </View>
+        <ChevronRight size={20} color={colors.dark.textSecondary} />
+      </TouchableOpacity>
+    );
+  };
+
+  const renderFileItem = ({ item }: { item: typeof mockImportFiles[0] }) => (
+    <View style={styles.fileCard}>
+      <View style={styles.fileIcon}>
+        <FileAudio size={24} color={colors.dark.primary} />
+      </View>
+      <View style={styles.fileInfo}>
+        <Text style={styles.fileName}>{item.title}</Text>
+        <Text style={styles.fileDetails}>
+          {formatDuration(item.duration || 0)} • {formatFileSize(item.fileSize || 0)}
+        </Text>
+      </View>
+      <TouchableOpacity style={styles.importButton} onPress={() => Alert.alert("Import", `Importing ${item.title}`)}>
+        <ImportIcon size={16} color={colors.dark.background} />
+        <Text style={styles.importButtonText}>Import</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={globalStyles.safeArea} edges={['top']}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Import & Export</Text>
+      </View>
+
+      <View style={styles.tabs}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'import' && styles.activeTab]}
+          onPress={() => setActiveTab('import')}
+        >
+          <Text style={[styles.tabText, activeTab === 'import' && styles.activeTabText]}>Import</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'export' && styles.activeTab]}
+          onPress={() => setActiveTab('export')}
+        >
+          <Text style={[styles.tabText, activeTab === 'export' && styles.activeTabText]}>Export</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={styles.content}>
+        {activeTab === 'import' ? (
+          <>
+            <Text style={styles.sectionTitle}>Sources</Text>
+            <View style={styles.sourcesList}>
+              {importSources.map(source => (
+                <View key={source.id}>
+                  {renderSourceItem({ item: source })}
+                </View>
+              ))}
+            </View>
+
+            <Text style={styles.sectionTitle}>Recent Files</Text>
+            <View style={styles.filesList}>
+              {mockImportFiles.map(file => (
+                <View key={file.id}>
+                  {renderFileItem({ item: file })}
+                </View>
+              ))}
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={styles.sectionTitle}>Destinations</Text>
+            <View style={styles.sourcesList}>
+              {exportDestinations.map(dest => (
+                <View key={dest.id}>
+                  {renderSourceItem({ item: dest as any })}
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.dark.border,
+  },
+  headerTitle: {
+    fontSize: theme.typography.fontSizes.xl,
+    fontWeight: 'bold',
+    color: colors.dark.text,
+  },
+  tabs: {
+    flexDirection: 'row',
+    padding: theme.spacing.sm,
+    backgroundColor: colors.dark.card,
+    margin: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: theme.spacing.sm,
+    alignItems: 'center',
+    borderRadius: theme.borderRadius.md,
+  },
+  activeTab: {
+    backgroundColor: colors.dark.cardAlt,
+  },
+  tabText: {
+    color: colors.dark.textSecondary,
+    fontWeight: '600',
+  },
+  activeTabText: {
+    color: colors.dark.text,
+  },
+  content: {
+    flex: 1,
+  },
+  sectionTitle: {
+    fontSize: theme.typography.fontSizes.lg,
+    fontWeight: '600',
+    color: colors.dark.text,
+    marginLeft: theme.spacing.md,
+    marginTop: theme.spacing.lg,
+    marginBottom: theme.spacing.sm,
+  },
+  sourcesList: {
+    paddingHorizontal: theme.spacing.md,
+  },
+  filesList: {
+    paddingHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.xl,
+  },
+  sourceCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.dark.card,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    marginBottom: theme.spacing.sm,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: theme.spacing.md,
+  },
+  sourceInfo: {
+    flex: 1,
+  },
+  sourceName: {
+    fontSize: theme.typography.fontSizes.md,
+    fontWeight: '600',
+    color: colors.dark.text,
+  },
+  sourceDescription: {
+    fontSize: theme.typography.fontSizes.sm,
+    color: colors.dark.textSecondary,
+  },
+  fileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.dark.card,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    marginBottom: theme.spacing.sm,
+  },
+  fileIcon: {
+    marginRight: theme.spacing.md,
+  },
+  fileInfo: {
+    flex: 1,
+  },
+  fileName: {
+    fontSize: theme.typography.fontSizes.md,
+    fontWeight: '500',
+    color: colors.dark.text,
+  },
+  fileDetails: {
+    fontSize: theme.typography.fontSizes.sm,
+    color: colors.dark.textSecondary,
+    marginTop: 2,
+  },
+  importButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.dark.primary,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.borderRadius.full,
+  },
+  importButtonText: {
+    color: colors.dark.background,
+    fontWeight: '600',
+    marginLeft: 4,
+    fontSize: theme.typography.fontSizes.sm,
+  },
+});

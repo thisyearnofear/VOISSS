@@ -20,6 +20,8 @@ export * from './services/recording-service';
 export * from './services/mission-service';
 export * from './services/database-service';
 export * from './services/localStorage-database';
+export * from './services/asyncStorage-database';
+export * from './services/cross-platform-storage';
 export * from './services/persistent-mission-service';
 export * from './services/onboarding-service';
 // Export Farcaster service conditionally for server-side only

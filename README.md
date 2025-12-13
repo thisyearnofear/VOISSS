@@ -168,6 +168,9 @@ cd apps/mobile
 pnpm start
 # Scan QR code with Expo Go app
 # Note: Some features incomplete, 2-3 months to production
+
+pkill -f "expo start" 2>/dev/null; sleep 2; echo "Killed existing expo processes"
+
 ```
 
 ### Flutter iOS (On Hold)

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { blockchain, type TipTransaction } from '../utils/starknet';
-import { formatEther, parseEther } from 'ethers';
+import { formatEther, parseEther } from 'viem';
 
 interface TipButtonProps {
   recipientAddress: string;

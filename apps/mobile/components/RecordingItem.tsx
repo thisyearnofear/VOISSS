@@ -4,7 +4,7 @@ import { Heart, MoreVertical, Play, Pause, Music, Globe, Link } from "lucide-rea
 import { MissionRecording, formatDuration, formatRelativeTime } from "@voisss/shared";
 import { useRecordingTags } from "../store/recordingsStore";
 import { useUIStore, useIsFavorite } from "../store/uiStore";
-import { theme } from "@voisss/ui";
+import { theme, globalStyles } from "@voisss/ui";
 import { colors } from "@voisss/ui";
 import TagBadge from "./TagBadge";
 import RecordingWaveform from "./RecordingWaveform";
@@ -132,8 +132,8 @@ export default function RecordingItem({
 
         {/* Waveform Visualization */}
         <View style={styles.waveformContainer}>
-          <RecordingWaveform 
-            duration={recording.duration} 
+          <RecordingWaveform
+            duration={recording.duration}
             width={width - 120}
             height={30}
           />

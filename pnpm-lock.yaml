@@ -97,6 +97,9 @@ importers:
       expo-splash-screen:
         specifier: ~31.0.12
         version: 31.0.12(expo@54.0.29)
+      expo-standard-web-crypto:
+        specifier: 3.0.8
+        version: 3.0.8(expo-crypto@15.0.8)
       expo-status-bar:
         specifier: ~3.0.9
         version: 3.0.9(react-native@0.81.5)(react@19.1.0)
@@ -179,6 +182,9 @@ importers:
       '@expo/ngrok':
         specifier: ^4.1.0
         version: 4.1.3
+      '@types/node':
+        specifier: ^20
+        version: 20.17.50
       '@types/react':
         specifier: ^18.3.22
         version: 18.3.22
@@ -14170,6 +14176,15 @@ packages:
       - supports-color
     dev: false
 
+  /expo-crypto@15.0.8(expo@54.0.29):
+    resolution: {integrity: sha512-aF7A914TB66WIlTJvl5J6/itejfY78O7dq3ibvFltL9vnTALJ/7LYHvLT4fwmx9yUNS6ekLBtDGWivFWnj2Fcw==}
+    peerDependencies:
+      expo: '*'
+    dependencies:
+      base64-js: 1.5.1
+      expo: 54.0.29(@babel/core@7.27.1)(@expo/metro-runtime@6.1.2)(expo-router@6.0.19)(react-native@0.81.5)(react@19.1.0)
+    dev: false
+
   /expo-file-system@19.0.21(expo@54.0.29)(react-native@0.81.5):
     resolution: {integrity: sha512-s3DlrDdiscBHtab/6W1osrjGL+C2bvoInPJD7sOwmxfJ5Woynv2oc+Fz1/xVXaE/V7HE/+xrHC/H45tu6lZzzg==}
     peerDependencies:
@@ -14391,6 +14406,14 @@ packages:
       expo: 54.0.29(@babel/core@7.27.1)(@expo/metro-runtime@6.1.2)(expo-router@6.0.19)(react-native@0.81.5)(react@19.1.0)
     transitivePeerDependencies:
       - supports-color
+    dev: false
+
+  /expo-standard-web-crypto@3.0.8(expo-crypto@15.0.8):
+    resolution: {integrity: sha512-nmJnl/EgHRLj/Xm1zAgvmazmaJK/Zm3HrIlHHQSsFrcWnYnjxvOu8fzr5mqLNONSabn42xZBhZfB5Plz34ZPAA==}
+    peerDependencies:
+      expo-crypto: ^15.0.8
+    dependencies:
+      expo-crypto: 15.0.8(expo@54.0.29)
     dev: false
 
   /expo-status-bar@3.0.9(react-native@0.81.5)(react@19.1.0):
