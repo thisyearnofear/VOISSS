@@ -134,8 +134,8 @@ const mockImportFiles: Partial<VoiceRecording & { uri: string, category: string,
     duration: 65,
     fileSize: 1048576,
     uri: "https://example.com/import1.m4a",
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     tags: [],
     source: "imported",
     category: "music",
@@ -146,8 +146,8 @@ const mockImportFiles: Partial<VoiceRecording & { uri: string, category: string,
     duration: 540,
     fileSize: 8388608,
     uri: "https://example.com/import2.mp3",
-    createdAt: new Date(Date.now() - 86400000), // 1 day ago
-    updatedAt: new Date(Date.now() - 86400000),
+    createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+    updatedAt: new Date(Date.now() - 86400000).toISOString(),
     tags: [],
     source: "imported",
     category: "meetings",
@@ -158,8 +158,8 @@ const mockImportFiles: Partial<VoiceRecording & { uri: string, category: string,
     duration: 1200,
     fileSize: 20971520,
     uri: "https://example.com/import3.wav",
-    createdAt: new Date(Date.now() - 172800000), // 2 days ago
-    updatedAt: new Date(Date.now() - 172800000),
+    createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+    updatedAt: new Date(Date.now() - 172800000).toISOString(),
     tags: [],
     source: "imported",
     category: "language",
@@ -170,8 +170,8 @@ const mockImportFiles: Partial<VoiceRecording & { uri: string, category: string,
     duration: 320,
     fileSize: 5242880,
     uri: "https://example.com/import4.m4a",
-    createdAt: new Date(Date.now() - 259200000), // 3 days ago
-    updatedAt: new Date(Date.now() - 259200000),
+    createdAt: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
+    updatedAt: new Date(Date.now() - 259200000).toISOString(),
     tags: [],
     source: "imported",
     category: "ideas",
@@ -182,8 +182,8 @@ const mockImportFiles: Partial<VoiceRecording & { uri: string, category: string,
     duration: 480,
     fileSize: 7340032,
     uri: "https://example.com/import5.m4a",
-    createdAt: new Date(Date.now() - 345600000), // 4 days ago
-    updatedAt: new Date(Date.now() - 345600000),
+    createdAt: new Date(Date.now() - 345600000).toISOString(), // 4 days ago
+    updatedAt: new Date(Date.now() - 345600000).toISOString(),
     tags: [],
     source: "imported",
     category: "language",
@@ -201,10 +201,10 @@ export default function ImportScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'import' | 'export'>('import');
 
-  const renderSourceItem = ({ item }: { item: typeof importSources[0] }) => {
+  const renderSourceItem = (item: typeof importSources[0], key: string) => {
     const Icon = item.icon;
     return (
-      <TouchableOpacity style={styles.sourceCard} onPress={() => Alert.alert("Coming Soon", `Import from ${item.name} is coming soon!`)}>
+      <TouchableOpacity key={key} style={styles.sourceCard} onPress={() => Alert.alert("Coming Soon", `Import from ${item.name} is coming soon!`)}>
         <View style={[styles.iconContainer, { backgroundColor: colors.dark.card }]}>
           <Icon size={24} color={colors.dark.text} />
         </View>
@@ -217,8 +217,8 @@ export default function ImportScreen() {
     );
   };
 
-  const renderFileItem = ({ item }: { item: typeof mockImportFiles[0] }) => (
-    <View style={styles.fileCard}>
+  const renderFileItem = (item: typeof mockImportFiles[0], key: string) => (
+    <View key={key} style={styles.fileCard}>
       <View style={styles.fileIcon}>
         <FileAudio size={24} color={colors.dark.primary} />
       </View>
@@ -261,31 +261,19 @@ export default function ImportScreen() {
           <>
             <Text style={styles.sectionTitle}>Sources</Text>
             <View style={styles.sourcesList}>
-              {importSources.map(source => (
-                <View key={source.id}>
-                  {renderSourceItem({ item: source })}
-                </View>
-              ))}
+              {importSources.map(source => renderSourceItem(source, source.id))}
             </View>
 
             <Text style={styles.sectionTitle}>Recent Files</Text>
             <View style={styles.filesList}>
-              {mockImportFiles.map(file => (
-                <View key={file.id}>
-                  {renderFileItem({ item: file })}
-                </View>
-              ))}
+              {mockImportFiles.map(file => renderFileItem(file, file.id || ''))}
             </View>
           </>
         ) : (
           <>
             <Text style={styles.sectionTitle}>Destinations</Text>
             <View style={styles.sourcesList}>
-              {exportDestinations.map(dest => (
-                <View key={dest.id}>
-                  {renderSourceItem({ item: dest as any })}
-                </View>
-              ))}
+              {exportDestinations.map(dest => renderSourceItem(dest as any, dest.id))}
             </View>
           </>
         )}

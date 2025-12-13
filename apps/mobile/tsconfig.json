@@ -2,13 +2,35 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    "moduleResolution": "nodenext",
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "jsx": "react-native",
+    "lib": ["DOM", "ESNext", "ES2015.Promise"],
+    "module": "NodeNext",
+    "target": "ESNext",
+    "allowJs": true,
     "paths": {
-      "@/*": ["./*"],
-      "@voisss/shared/*": ["../../packages/shared/src/*"],
-      "@voisss/ui/*": ["../../packages/ui/src/*"]
+      "@/*": [
+        "./*"
+      ],
+      "@voisss/shared/*": [
+        "../../packages/shared/src/*"
+      ],
+      "@voisss/ui/*": [
+        "../../packages/ui/src/*"
+      ]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts", "global.d.ts"],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "global.d.ts",
+    "shared-types.d.ts",
+    "ui-types.d.ts"
+  ],
   "references": [
     {
       "path": "../../packages/shared"

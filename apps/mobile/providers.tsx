@@ -3,7 +3,7 @@ import React from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider, createConfig, http } from "wagmi";
 import { base } from "wagmi/chains";
-import { walletConnectorService } from "@voisss/shared";
+import { initializeWalletConnectors, getWalletConnectors } from "@voisss/shared";
 import { queryClient } from "./lib/query-client";
 
 // 1. Get a project ID from https://cloud.walletconnect.com
@@ -14,14 +14,14 @@ if (!projectId) {
 }
 
 // 2. Initialize wallet connectors
-walletConnectorService.initializeWalletConnectors([base], projectId);
+initializeWalletConnectors([base], projectId);
 
 const config = createConfig({
   chains: [base],
   transports: {
     [base.id]: http(),
   },
-  connectors: walletConnectorService.getConnectors(http()),
+  connectors: getWalletConnectors(http()),
   ssr: false, // Important for React Native
 });
 

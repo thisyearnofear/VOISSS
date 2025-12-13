@@ -7,8 +7,8 @@
   "types": "./dist/index.d.ts",
   "react-native": "./dist/index.native.js",
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --external zod --external react --external @neynar/nodejs-sdk --external starknet && npm run build:native",
-    "build:native": "tsup src/index.native.ts --format cjs,esm --external zod --external react --external @neynar/nodejs-sdk --external starknet",
+    "build": "tsup src/index.ts --format cjs,esm --external zod --external react --external @neynar/nodejs-sdk --external starknet --external @react-native-async-storage/async-storage --external wagmi/connectors --external viem --external wagmi && npm run build:native",
+    "build:native": "tsup src/index.native.ts --format cjs,esm --external zod --external react --external @neynar/nodejs-sdk --external starknet --external @react-native-async-storage/async-storage --external wagmi/connectors --external viem --external wagmi",
     "dev": "tsup src/index.ts --format cjs,esm --watch --dts",
     "lint": "eslint src/",
     "clean": "rm -rf dist"

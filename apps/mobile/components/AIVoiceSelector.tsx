@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { Ionicons } from '@expo/vector-icons';
 import { mobileAIService, type AIVoiceStyle } from '../services/ai-service';
 import { Colors, Typography, Spacing, BorderRadius } from '../constants/design-system';
+import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 
 interface AIVoiceSelectorProps {

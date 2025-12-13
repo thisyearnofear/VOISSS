@@ -56,6 +56,13 @@ export class WalletConnectorService {
   private isMobile: boolean;
 
   constructor(config: WalletConnectorConfig) {
+    // Ensure chains array is properly initialized
+    if (!config.chains) {
+      config.chains = [];
+    }
+    if (!Array.isArray(config.chains)) {
+      config.chains = [config.chains];
+    }
     this.config = config;
     this.isMobile = this.detectMobileEnvironment();
   }
@@ -99,6 +106,8 @@ export class WalletConnectorService {
         chains: this.config.chains,
         showQrModal: this.config.showQrModal ?? true,
         metadata: this.config.metadata,
+        // Ensure optionalChains is properly typed as ArrayOneOrMore<number>
+        ...(this.config.chains.length > 0 ? { optionalChains: this.config.chains } : {}),
       })
     );
 
@@ -121,6 +130,22 @@ export class WalletConnectorService {
     }
 
     return connectors;
+  }
+
+  /**
+   * Initialize or reinitialize the wallet connector service with proper configuration
+   */
+  public initialize(chains: Chain[], projectId: string): void {
+    this.config = {
+      projectId,
+      chains,
+      metadata: {
+        name: 'VOISSS',
+        description: 'Voice Social Network',
+        url: 'https://voisss.com',
+        icons: ['https://voisss.com/logo.png'],
+      },
+    };
   }
 
   /**
@@ -257,29 +282,49 @@ export function createWalletConnectorService(config: WalletConnectorConfig): Wal
 /**
  * Singleton instance with default configuration
  */
-export let walletConnectorService = new WalletConnectorService({
-  projectId: 'your-walletconnect-project-id', // Replace with actual project ID
-  chains: [], // Will be set when initialized
-  metadata: {
-    name: 'VOISSS',
-    description: 'Voice Social Network',
-    url: 'https://voisss.com',
-    icons: ['https://voisss.com/logo.png'],
-  },
-});
+// Simple singleton wallet connector service
+class WalletConnectorSingleton {
+  private static instance: WalletConnectorService | null = null;
 
-/**
- * Initialize wallet connector service with proper configuration
- */
+  public static getInstance(): WalletConnectorService {
+    if (!this.instance) {
+      this.instance = createWalletConnectorService({
+        projectId: '',
+        chains: [],
+        metadata: {
+          name: 'VOISSS',
+          description: 'Voice Social Network',
+          url: 'https://voisss.com',
+          icons: ['https://voisss.com/logo.png'],
+        },
+      });
+    }
+    return this.instance;
+  }
+
+  public static initialize(chains: Chain[], projectId: string): void {
+    this.instance = createWalletConnectorService({
+      projectId,
+      chains,
+      metadata: {
+        name: 'VOISSS',
+        description: 'Voice Social Network',
+        url: 'https://voisss.com',
+        icons: ['https://voisss.com/logo.png'],
+      },
+    });
+  }
+}
+
+// Export simple functions for wallet connectivity
+export function getWalletConnectorService(): WalletConnectorService {
+  return WalletConnectorSingleton.getInstance();
+}
+
 export function initializeWalletConnectors(chains: Chain[], projectId: string): void {
-  walletConnectorService = new WalletConnectorService({
-    projectId,
-    chains,
-    metadata: {
-      name: 'VOISSS',
-      description: 'Voice Social Network',
-      url: 'https://voisss.com',
-      icons: ['https://voisss.com/logo.png'],
-    },
-  });
+  WalletConnectorSingleton.initialize(chains, projectId);
+}
+
+export function getWalletConnectors(transport: any): any[] {
+  return WalletConnectorSingleton.getInstance().getConnectors(transport);
 }

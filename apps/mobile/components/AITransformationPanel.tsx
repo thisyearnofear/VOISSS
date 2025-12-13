@@ -21,8 +21,10 @@ import {
 } from "lucide-react-native";
 import { colors } from "@voisss/ui";
 import { theme } from "@voisss/ui";
+import { Button } from "../ui/Button";
 import type { VoiceInfo } from "@voisss/shared/types/audio";
 import { AIVoiceSelector } from "./AIVoiceSelector";
+import { AudioPreviewPlayer } from "./AudioPreviewPlayer";
 import { mobileAIService, type AIVoiceStyle } from "../services/ai-service";
 
 interface AITransformationPanelProps {
@@ -315,16 +317,6 @@ export default function AITransformationPanel({
               )}
             </View>
           )}
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity style={buttonStyles.secondary}>
-                <View style={styles.buttonContent}>
-                  <Download size={20} color={colors.dark.primary} />
-                  <Text style={buttonStyles.secondaryText}>Download</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-          )}
 
           {/* Usage Info */}
           {capabilities.remainingAIUses !== null && (
@@ -562,5 +554,37 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSizes.md,
     color: colors.dark.textSecondary,
     marginBottom: 12,
+  },
+});
+
+// Button styles definition
+const buttonStyles = StyleSheet.create({
+  primary: {
+    backgroundColor: colors.dark.primary,
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryText: {
+    color: colors.dark.textInverse,
+    fontSize: theme.typography.fontSizes.md,
+    fontWeight: theme.typography.fontWeight.bold,
+  },
+  secondary: {
+    backgroundColor: colors.dark.card,
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+  },
+  secondaryText: {
+    color: colors.dark.text,
+    fontSize: theme.typography.fontSizes.md,
+    fontWeight: theme.typography.fontWeight.medium,
   },
 });

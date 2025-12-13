@@ -1198,3 +1198,37 @@ const styles = StyleSheet.create({
     color: colors.dark.text,
   },
 });
+
+// Button styles definition
+const buttonStyles = StyleSheet.create({
+  iconButton: {
+    width: 48,
+    height: 48,
+    borderRadius: theme.borderRadius.full,
+    backgroundColor: colors.dark.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+  },
+  primaryButton: {
+    backgroundColor: colors.dark.primary,
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  secondaryButton: {
+    backgroundColor: colors.dark.card,
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.dark.border,
+  },
+});

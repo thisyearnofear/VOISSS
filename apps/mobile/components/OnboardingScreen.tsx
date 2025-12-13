@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image
 import { Ionicons } from '@expo/vector-icons';
 import { onboardingService, type OnboardingStep } from '../utils/onboarding';
 import { blockchain } from '../utils/starknet';
+import { Button } from './ui/Button';
 import { ChainSelector } from './ChainSelector';
 import { AIVoiceGuide } from './AIVoiceGuide';
 
