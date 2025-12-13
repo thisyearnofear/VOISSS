@@ -5,6 +5,31 @@
  * Follows MODULAR and CLEAN principles with explicit platform detection
  */
 
+// Declare global types for Node.js environment
+declare const global: {
+  __DEV__?: boolean;
+  nativeRequire?: any;
+};
+
+declare const process: {
+  versions: {
+    node: string;
+  };
+};
+
+// Extend global Window interface
+declare global {
+  interface Window {
+    ethereum?: {
+      isMetaMask?: boolean;
+      isCoinbaseWallet?: boolean;
+      request?: (...args: any[]) => Promise<any>;
+      on?: (...args: any[]) => void;
+      removeListener?: (...args: any[]) => void;
+    };
+  }
+}
+
 import { type Connector, walletConnect, injected, coinbaseWallet } from 'wagmi/connectors';
 import { type Chain, type Transport, http } from 'viem';
 
@@ -232,7 +257,7 @@ export function createWalletConnectorService(config: WalletConnectorConfig): Wal
 /**
  * Singleton instance with default configuration
  */
-export const walletConnectorService = new WalletConnectorService({
+export let walletConnectorService = new WalletConnectorService({
   projectId: 'your-walletconnect-project-id', // Replace with actual project ID
   chains: [], // Will be set when initialized
   metadata: {
