@@ -43,8 +43,7 @@ export * from './hooks/useCrossPlatformStorage';
 // Wallet connectors
 export * from './services/wallet-connectors';
 
-// Wallet components
-export * from './components/wallet/WalletConnector';
+
 
 // Web3 utilities
 export * from './utils/web3-utils';
