@@ -1,6 +1,7 @@
 import React from 'react';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { crossPlatformStorage } from '@voisss/shared';
 
 export type UserTier = 'guest' | 'free' | 'premium';
 
@@ -165,11 +166,30 @@ export const useFreemiumStore = create<FreemiumState>()(
     }),
     {
       name: 'voisss-freemium-storage',
-      storage: createJSONStorage(() => typeof window !== 'undefined' ? localStorage : {
-        getItem: () => null,
-        setItem: () => {},
-        removeItem: () => {}
-      }),
+      storage: createJSONStorage(() => ({
+        getItem: async (name: string) => {
+          try {
+            return await crossPlatformStorage.getItem(name) || null;
+          } catch (error) {
+            console.warn('Failed to get storage item:', error);
+            return null;
+          }
+        },
+        setItem: async (name: string, value: string) => {
+          try {
+            await crossPlatformStorage.setItem(name, value);
+          } catch (error) {
+            console.warn('Failed to set storage item:', error);
+          }
+        },
+        removeItem: async (name: string) => {
+          try {
+            await crossPlatformStorage.removeItem(name);
+          } catch (error) {
+            console.warn('Failed to remove storage item:', error);
+          }
+        }
+      })),
       skipHydration: true,
     }
   )
