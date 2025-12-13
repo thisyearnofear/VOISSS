@@ -546,7 +546,7 @@ export default function RecordScreen() {
     }
 
     // Upload to IPFS first using mobile-specific service
-    const { createMobileIPFSService } = await import("../services/ipfsService");
+    const { createMobileIPFSService } = await import("../../services/ipfsService");
     const ipfsService = createMobileIPFSService();
     const ipfsResult = await ipfsService.uploadAudio(
       new Uint8Array(await audioBlob.arrayBuffer()),
