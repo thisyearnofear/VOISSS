@@ -3,12 +3,12 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "expo start --tunnel",
-    "start-web": "expo start --web --tunnel",
-    "start-web-dev": "DEBUG=expo* expo start --web --tunnel",
-    "dev": "expo start --tunnel",
-    "dev:tunnel": "expo start --tunnel",
-    "build": "expo export",
+    "start": "NODE_OPTIONS='--max-old-space-size=4096' expo start --tunnel",
+    "start-web": "NODE_OPTIONS='--max-old-space-size=4096' expo start --web",
+    "start-web-dev": "NODE_OPTIONS='--max-old-space-size=4096' DEBUG=expo* expo start --web --tunnel",
+    "dev": "NODE_OPTIONS='--max-old-space-size=4096' expo start",
+    "dev:tunnel": "NODE_OPTIONS='--max-old-space-size=4096' expo start --tunnel",
+    "build": "NODE_OPTIONS='--max-old-space-size=4096' expo export",
     "lint": "eslint .",
     "clean": "rm -rf .expo .turbo node_modules",
     "postinstall": "node -e \"if (!process.env.EXPO_PUBLIC_PINATA_API_KEY) { console.log('\\n\\n⚠️  WARNING: IPFS credentials not configured!\\nPlease set EXPO_PUBLIC_PINATA_API_KEY and EXPO_PUBLIC_PINATA_API_SECRET in your .env file\\nSee .env.example for details\\n\\n')}\""
