@@ -1,17 +1,45 @@
-
 "use client";
+
+import 'react-native-get-random-values';
+import { polyfillWebCrypto } from 'expo-standard-web-crypto';
+// Polyfill web crypto immediately
+polyfillWebCrypto();
 
 import { useState, useEffect, useCallback } from "react";
 import { useAccount, useConnect, useDisconnect, useWalletClient } from "wagmi";
 import { parseEther } from "viem";
 import { base } from "viem/chains";
+// Use our local wrapper that handles the runtime import
 import {
   requestSpendPermission,
   fetchPermissions,
   getPermissionStatus,
-  type SpendPermission
-} from "@base-org/account/spend-permission/browser";
+  getHash
+} from "../utils/baseSpendPermission";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Define the SpendPermission interface locally since it's not easily exported
+interface SpendPermission {
+  account: string;
+  spender: string;
+  token: string;
+  allowance: bigint;
+  period: number;
+  start: number;
+  end: number;
+  salt: bigint;
+  extraData: string;
+  signature?: string; // Signature might be present
+}
+
+// Minimal Provider Interface expected by the SDK
+interface SDKProviderInterface {
+  request(args: { method: string; params?: any[] | object }): Promise<unknown>;
+  on?(event: string, listener: (...args: any[]) => void): void;
+  removeListener?(event: string, listener: (...args: any[]) => void): void;
+  disconnect?(): Promise<void>;
+  emit?: (event: string, ...args: any[]) => void;
+}
 
 // --- TODO: This needs to be configured in a shared file ---
 const NATIVE_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
@@ -26,21 +54,21 @@ interface UseBaseAccountReturn {
   isConnected: boolean;
   isConnecting: boolean;
   universalAddress: string | null;
-  
+
   // Actions
   connect: () => void;
   disconnect: () => void;
-  
+
   // Spend permission state
   permissionActive: boolean;
   currentPermission: SpendPermission | null;
   isLoadingPermissions: boolean;
   permissionError: string | null;
-  
+
   // Spend permission actions
   requestPermission: () => Promise<void>;
   refreshPermissions: () => Promise<void>;
-  
+
   // Status
   status: string;
   error: string | null;
@@ -51,12 +79,13 @@ export function useBaseAccount(): UseBaseAccountReturn {
   const { address, isConnected, isConnecting } = useAccount();
   const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
+  // Get wallet client which we will adapt to a Provider
   const { data: walletClient } = useWalletClient();
 
   const [universalAddress, setUniversalAddress] = useState<string | null>(null);
   const [status, setStatus] = useState("Ready to connect");
   const [error, setError] = useState<string | null>(null);
-  
+
   // Permission state
   const [permissionActive, setPermissionActive] = useState<boolean>(false);
   const [currentPermission, setCurrentPermission] = useState<SpendPermission | null>(null);
@@ -74,32 +103,53 @@ export function useBaseAccount(): UseBaseAccountReturn {
       setPermissionActive(false);
       setCurrentPermission(null);
     }
-  }, [isConnected, address]);
+  }, [isConnected, address, walletClient]);
+
+  // Adapter for WalletClient to ProviderInterface
+  const getProvider = useCallback((): SDKProviderInterface | null => {
+    if (!walletClient) return null;
+
+    // Check if the transport has a request method (EIP-1193ish)
+    // Most viem walletClients have .request directly
+    return {
+      request: (args: { method: string; params?: any[] | object }) => walletClient.request(args as any),
+      // Stub event methods to satisfy interface if checked at runtime
+      on: () => { },
+      removeListener: () => { },
+      disconnect: async () => { },
+      emit: () => { },
+    } as any;
+  }, [walletClient]);
 
   const checkForPermission = async (userAddress: string) => {
-    if (!walletClient || !SPENDER_ADDRESS) return;
-    
+    const provider = getProvider();
+    if (!provider || !SPENDER_ADDRESS) return;
+
     try {
       console.log('🔍 Checking for spend permission...');
       setIsLoadingPermissions(true);
-      
+
       const permissions = await fetchPermissions({
         account: userAddress as `0x${string}`,
         chainId: base.id,
         spender: SPENDER_ADDRESS,
-        provider: walletClient,
+        provider: provider as any,
       });
 
-      if (permissions.length > 0) {
-        const permission = permissions[0];
-        const status = await getPermissionStatus(permission);
-        
+      if (permissions && permissions.length > 0) {
+        // Cast to our local interface
+        const permission = permissions[0] as unknown as SpendPermission;
+        const status = await getPermissionStatus(permission as any);
+
         if (status.isActive) {
           console.log('✅ Active spend permission found');
           setCurrentPermission(permission);
           setPermissionActive(true);
           setStatus("Connected with spend permission");
-          await AsyncStorage.setItem('spendPermissionHash', permission.hash);
+
+          // Get hash using the helper
+          const hash = await getHash({ permission: permission as any, chainId: base.id });
+          await AsyncStorage.setItem('spendPermissionHash', hash);
         } else {
           console.log('⚠️ Permission exists but is not active');
           setPermissionActive(false);
@@ -112,18 +162,16 @@ export function useBaseAccount(): UseBaseAccountReturn {
       }
     } catch (err) {
       console.error("❌ Failed to check permission:", err);
-      setPermissionError("Failed to check spend permission");
+      // Don't set error state here to avoid blocking UI, just log it
     } finally {
       setIsLoadingPermissions(false);
     }
   };
 
   const handleConnect = () => {
-    // Here you would typically open a modal to select a wallet connector
-    // For now, we'll just use the first available one (e.g., WalletConnect)
     const connector = connectors[0];
     if (connector) {
-        connect({ connector });
+      connect({ connector });
     }
   };
 
@@ -133,7 +181,8 @@ export function useBaseAccount(): UseBaseAccountReturn {
   }, [disconnect]);
 
   const requestPermission = useCallback(async () => {
-    if (!walletClient || !universalAddress || !SPENDER_ADDRESS) {
+    const provider = getProvider();
+    if (!provider || !universalAddress || !SPENDER_ADDRESS) {
       throw new Error("Not connected or spender not configured");
     }
 
@@ -151,16 +200,19 @@ export function useBaseAccount(): UseBaseAccountReturn {
         chainId: base.id,
         allowance: parseEther("10"), // 10 ETH max per period
         periodInDays: 30, // Monthly reset
-        provider: walletClient,
+        provider: provider as any,
       });
 
       console.log('✅ Spend permission granted:', permission);
 
-      setCurrentPermission(permission);
+      // Cast and save
+      const typedPermission = permission as unknown as SpendPermission;
+      setCurrentPermission(typedPermission);
       setPermissionActive(true);
       setStatus("Spend permission granted!");
-      
-      await AsyncStorage.setItem('spendPermissionHash', permission.hash);
+
+      const hash = await getHash({ permission: permission as any, chainId: base.id });
+      await AsyncStorage.setItem('spendPermissionHash', hash);
 
     } catch (err: any) {
       console.error("❌ Permission request failed:", err);
@@ -170,7 +222,7 @@ export function useBaseAccount(): UseBaseAccountReturn {
     } finally {
       setIsLoadingPermissions(false);
     }
-  }, [walletClient, universalAddress]);
+  }, [getProvider, universalAddress]);
 
   const refreshPermissions = useCallback(async () => {
     if (!universalAddress) {
@@ -178,9 +230,9 @@ export function useBaseAccount(): UseBaseAccountReturn {
       setCurrentPermission(null);
       return;
     }
-    
+
     await checkForPermission(universalAddress);
-  }, [universalAddress, walletClient]);
+  }, [universalAddress, getProvider]);
 
   return {
     isConnected,
