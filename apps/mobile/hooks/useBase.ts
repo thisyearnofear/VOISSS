@@ -1,7 +1,8 @@
 import { useBaseAccount } from './useBaseAccount';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createBaseRecordingService, Recording } from '@voisss/shared';
+import { createBaseRecordingService, createMultiChainRecordingService, Recording } from '@voisss/shared';
 import { queryKeys, handleQueryError } from '../lib/query-client';
+import { useSettingsStore } from '../store/settingsStore';
 
 // Hook to get wallet connection status and basic actions
 export function useBase() {
@@ -40,6 +41,7 @@ export function useStarknetStatus() {
 export function useStoreRecording() {
   const { universalAddress } = useBaseAccount();
   const queryClient = useQueryClient();
+  const { selectedChain } = useSettingsStore();
 
   return useMutation({
     mutationFn: async ({
@@ -53,15 +55,10 @@ export function useStoreRecording() {
         throw new Error('Wallet not connected');
       }
 
-      const baseService = createBaseRecordingService(universalAddress, {
-        permissionRetriever: async () => {
-          // TODO: Implement proper permission retrieval for mobile
-          // For now, this will fail and we handle it gracefully
-          return null;
-        }
-      });
+      // Create multi-chain recording service based on user selection
+      const multiChainService = createMultiChainRecordingService(selectedChain);
 
-      return await baseService.saveRecording(ipfsHash, metadata);
+      return await multiChainService.saveRecording(ipfsHash, metadata);
     },
     onSuccess: () => {
       // Invalidate recordings queries

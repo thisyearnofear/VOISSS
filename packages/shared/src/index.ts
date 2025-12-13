@@ -7,6 +7,9 @@ export * from './types/audio';
 export * from './services/audio/ai/elevenlabs-service';
 export * from './blockchain/index';
 export * from './starknet/index'; // Legacy export for backward compatibility
+
+// Export blockchain chains for UI components
+export { ALL_CHAINS } from './blockchain/index';
 export * from './utils/session';
 export * from './utils';
 export * from './utils/formatters';
@@ -14,6 +17,7 @@ export * from './theme';
 
 // Services with explicit exports to avoid conflicts
 export * from './services/baseRecordingService';
+export * from './services/multi-chain-recording-service';
 export * from './services/ipfs-service';
 export * from './services/audio-converter';
 export * from './services/recording-service';

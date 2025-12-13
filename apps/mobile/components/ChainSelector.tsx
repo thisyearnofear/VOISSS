@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { blockchain, type SupportedChains, type BaseChainConfig } from '../utils/starknet';
 import { ALL_CHAINS } from '@voisss/shared';
 import { Ionicons } from '@expo/vector-icons';
+import { useSettingsStore } from '../store/settingsStore';
 
 interface ChainSelectorProps {
   onChainSelected?: (chain: SupportedChains, network: string) => void;
@@ -15,20 +16,20 @@ export const ChainSelector: React.FC<ChainSelectorProps> = ({
   showNetworks = true,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedChain, setSelectedChain] = useState<SupportedChains>('starknet');
-  const [selectedNetwork, setSelectedNetwork] = useState<string>('TESTNET');
+  const { selectedChain, setSelectedChain } = useSettingsStore();
+  const [selectedNetwork, setSelectedNetwork] = useState<string>('MAINNET');
   const [currentChainConfig, setCurrentChainConfig] = useState<BaseChainConfig | null>(null);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
     const loadCurrentChain = async () => {
       try {
-        const chain = await blockchain.getStoredChain();
-        const network = await blockchain.getStoredNetwork();
-        setSelectedChain(chain);
+        // Get the current chain config based on selectedChain from settings
+        const chain = selectedChain;
+        const network = 'MAINNET'; // Default to MAINNET for now
         setSelectedNetwork(network);
 
-        const config = await blockchain.getCurrentChainConfig();
+        const config = ALL_CHAINS[chain][network as keyof typeof ALL_CHAINS[SupportedChains]];
         setCurrentChainConfig(config);
       } catch (error) {
         console.error('Failed to load current chain:', error);
@@ -36,16 +37,19 @@ export const ChainSelector: React.FC<ChainSelectorProps> = ({
     };
 
     loadCurrentChain();
-  }, []);
+  }, [selectedChain]);
 
   const handleChainSelect = async (chain: SupportedChains, network: string) => {
     try {
-      await blockchain.switchChain(chain, network);
-      setSelectedChain(chain);
+      // Update the selected chain in settings store
+      // Ensure chain is one of the supported types
+      if (chain === 'base' || chain === 'scroll' || chain === 'starknet') {
+        setSelectedChain(chain);
+      }
       setSelectedNetwork(network);
       setModalVisible(false);
 
-      const config = await blockchain.getCurrentChainConfig();
+      const config = ALL_CHAINS[chain][network as keyof typeof ALL_CHAINS[SupportedChains]];
       setCurrentChainConfig(config);
 
       onChainSelected?.(chain, network);
@@ -54,7 +58,7 @@ export const ChainSelector: React.FC<ChainSelectorProps> = ({
     }
   };
 
-  const availableChains = Object.entries(ALL_CHAINS) as [SupportedChains, any][];
+  const availableChains = Object.entries(ALL_CHAINS) as [SupportedChains, Record<string, BaseChainConfig>][];
 
   return (
     <View style={styles.container}>
@@ -66,7 +70,7 @@ export const ChainSelector: React.FC<ChainSelectorProps> = ({
           <>
             <View style={styles.chainInfo}>
               <Ionicons
-                name={selectedChain === 'starknet' ? 'diamond' : 'layers'}
+                name={selectedChain === 'starknet' ? 'diamond' : selectedChain === 'base' ? 'rocket' : 'layers'}
                 size={20}
                 color="white"
                 style={styles.chainIcon}
@@ -101,13 +105,13 @@ export const ChainSelector: React.FC<ChainSelectorProps> = ({
                   const config = networkConfig as BaseChainConfig;
                   return (
                     <TouchableOpacity
-                      key={`${chain}-${networkKey}`}
+                      key={`${String(chain)}-${networkKey}`}
                       style={styles.networkButton}
                       onPress={() => handleChainSelect(chain, networkKey)}
                     >
                       <View style={styles.networkInfo}>
                         <Ionicons
-                          name={chain === 'starknet' ? 'diamond' : 'layers'}
+                          name={chain === 'starknet' ? 'diamond' : chain === 'base' ? 'rocket' : 'layers'}
                           size={18}
                           color={config.isTestnet ? '#FFA500' : '#4CAF50'}
                         />

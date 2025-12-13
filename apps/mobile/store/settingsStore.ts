@@ -9,6 +9,7 @@ interface SettingsState {
   cloudProvider: "none" | "firebase" | "aws";
   autoTagging: boolean;
   transcription: boolean;
+  selectedChain: "base" | "scroll" | "starknet";
 
   // Actions
   setTheme: (theme: "dark" | "light" | "system") => void;
@@ -17,6 +18,7 @@ interface SettingsState {
   setCloudProvider: (provider: "none" | "firebase" | "aws") => void;
   setAutoTagging: (autoTagging: boolean) => void;
   setTranscription: (transcription: boolean) => void;
+  setSelectedChain: (chain: "base" | "scroll" | "starknet") => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -28,6 +30,7 @@ export const useSettingsStore = create<SettingsState>()(
       cloudProvider: "none",
       autoTagging: false,
       transcription: false,
+      selectedChain: "base",
 
       setTheme: (theme) => set({ theme }),
       setAutoImport: (autoImport) => set({ autoImport }),
@@ -35,9 +38,11 @@ export const useSettingsStore = create<SettingsState>()(
       setCloudProvider: (cloudProvider) => set({ cloudProvider }),
       setAutoTagging: (autoTagging) => set({ autoTagging }),
       setTranscription: (transcription) => set({ transcription }),
+      setSelectedChain: (selectedChain) => set({ selectedChain }),
     }),
     {
       name: "voisss-settings-storage",
+      // @ts-ignore - Known type compatibility issue with Zustand and AsyncStorage
       storage: createJSONStorage(() => AsyncStorage),
     }
   )

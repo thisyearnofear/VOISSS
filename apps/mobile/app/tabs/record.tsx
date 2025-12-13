@@ -548,9 +548,13 @@ export default function RecordScreen() {
     // Upload to IPFS first using mobile-specific service
     const { createMobileIPFSService } = await import("../services/ipfsService");
     const ipfsService = createMobileIPFSService();
-      mimeType: audioBlob.type || 'audio/mpeg',
-      duration: duration,
-    });
+    const ipfsResult = await ipfsService.uploadAudio(
+      new Uint8Array(await audioBlob.arrayBuffer()),
+      {
+        mimeType: audioBlob.type || 'audio/mpeg',
+        duration: duration,
+      }
+    );
 
     // Save to Base blockchain
     const { createBaseRecordingService } = await import('@voisss/shared');
