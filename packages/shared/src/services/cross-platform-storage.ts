@@ -84,7 +84,13 @@ export class CrossPlatformStorage implements DatabaseService {
   public async getItem(key: string): Promise<string | null> {
     try {
       const item = await this.innerService.get('storage', key);
-      return item?.value || null;
+      // Handle both direct string storage and object storage
+      if (typeof item === 'string') {
+        return item;
+      } else if (item && typeof item === 'object' && 'value' in item && typeof (item as any).value === 'string') {
+        return (item as any).value;
+      }
+      return null;
     } catch (error) {
       console.warn(`Failed to get storage item ${key}:`, error);
       return null;
@@ -92,14 +98,18 @@ export class CrossPlatformStorage implements DatabaseService {
   }
 
   public async setItem(key: string, value: string): Promise<void> {
-    await this.innerService.set('storage', key, { value, updatedAt: new Date() });
+    // Store as simple string for compatibility
+    await this.innerService.set('storage', key, value);
   }
 
   public async removeItem(key: string): Promise<void> {
     await this.innerService.delete('storage', key);
   }
 
-  public async clear(): Promise<void> {
+  /**
+   * Clear the default storage collection (convenience method)
+   */
+  public async clearDefaultStorage(): Promise<void> {
     await this.innerService.clear('storage');
   }
 

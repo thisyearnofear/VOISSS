@@ -5,7 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useBaseAccount } from "../hooks/useBaseAccount";
 import { useWebAudioRecording } from "../hooks/useWebAudioRecording";
 import { useFreemiumStore } from "../store/freemiumStore";
-import { createIPFSService, createBaseRecordingService } from "@voisss/shared";
+import { createIPFSService, createBaseRecordingService, crossPlatformStorage } from "@voisss/shared";
 import { SocialShare } from "@voisss/ui";
 import DubbingPanel from "./dubbing/DubbingPanel";
 import { VoiceRecordsABI } from "../contracts/VoiceRecordsABI";
@@ -126,11 +126,8 @@ export default function RecordingStudio({
     try {
       return createBaseRecordingService(universalAddress, {
         contractAddress: contractAddress,
-        permissionRetriever: () => {
-          if (typeof window !== 'undefined') {
-            return window.localStorage.getItem('spendPermissionHash');
-          }
-          return null;
+        permissionRetriever: async () => {
+          return await crossPlatformStorage.getItem('spendPermissionHash');
         }
       });
     } catch (error) {

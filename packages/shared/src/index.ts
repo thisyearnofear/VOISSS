@@ -38,6 +38,7 @@ export { createElevenLabsProvider, ElevenLabsTransformProvider } from './service
 
 // Hooks
 export * from './hooks/useMemoryContext';
+export * from './hooks/useCrossPlatformStorage';
 
 // Feature flags
 export * from './utils/featureFlags';

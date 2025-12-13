@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useBaseAccount } from '../useBaseAccount';
 import { Recording } from '@voisss/shared/types';
+import { crossPlatformStorage } from '@voisss/shared';
 import { queryKeys, handleQueryError } from '../../lib/query-client';
 import { createPublicClient, http } from 'viem';
 import { base } from 'viem/chains';
@@ -42,11 +43,11 @@ export function useRecordings(showHidden: boolean = false) {
   });
 }
 
-// Helper: Fetch local recordings from localStorage
+// Helper: Fetch local recordings from cross-platform storage
 async function fetchLocalRecordings(address: string, showHidden: boolean): Promise<Recording[]> {
   try {
     const storageKey = `voisss_recordings_${address}`;
-    const stored = localStorage.getItem(storageKey);
+    const stored = await await crossPlatformStorage.getItem(storageKey);
     
     if (!stored) return [];
     
@@ -154,7 +155,7 @@ export function useRecording(recordingId: string): ReturnType<typeof useQuery<Re
       
       try {
         const storageKey = `voisss_recordings_${address}`;
-        const stored = localStorage.getItem(storageKey);
+        const stored = await await crossPlatformStorage.getItem(storageKey);
         
         if (!stored) return null;
         
@@ -182,7 +183,7 @@ export function useSaveRecording() {
       
       try {
         const storageKey = `voisss_recordings_${address}`;
-        const stored = localStorage.getItem(storageKey);
+        const stored = await crossPlatformStorage.getItem(storageKey);
         const existingRecordings: Recording[] = stored ? JSON.parse(stored) : [];
         
         const newRecording: Recording = {
@@ -192,7 +193,7 @@ export function useSaveRecording() {
         };
         
         const updatedRecordings = [newRecording, ...existingRecordings];
-        localStorage.setItem(storageKey, JSON.stringify(updatedRecordings));
+        await crossPlatformStorage.setItem(storageKey, JSON.stringify(updatedRecordings));
         
         return newRecording;
       } catch (error) {
@@ -227,7 +228,7 @@ export function useUpdateRecording() {
       
       try {
         const storageKey = `voisss_recordings_${address}`;
-        const stored = localStorage.getItem(storageKey);
+        const stored = await crossPlatformStorage.getItem(storageKey);
         
         if (!stored) {
           throw new Error('No recordings found');
@@ -245,7 +246,7 @@ export function useUpdateRecording() {
           ...updates,
         };
         
-        localStorage.setItem(storageKey, JSON.stringify(recordings));
+        await crossPlatformStorage.setItem(storageKey, JSON.stringify(recordings));
         
         return recordings[recordingIndex];
       } catch (error) {
@@ -278,7 +279,7 @@ export function useDeleteRecording() {
       
       try {
         const storageKey = `voisss_recordings_${address}`;
-        const stored = localStorage.getItem(storageKey);
+        const stored = await crossPlatformStorage.getItem(storageKey);
         
         if (!stored) {
           throw new Error('No recordings found');
@@ -287,7 +288,7 @@ export function useDeleteRecording() {
         const recordings: Recording[] = JSON.parse(stored);
         const filteredRecordings = recordings.filter(r => r.id !== recordingId);
         
-        localStorage.setItem(storageKey, JSON.stringify(filteredRecordings));
+        await crossPlatformStorage.setItem(storageKey, JSON.stringify(filteredRecordings));
         
         return recordingId;
       } catch (error) {
@@ -315,7 +316,7 @@ export function useRecordingStats() {
       
       try {
         const storageKey = `voisss_recordings_${address}`;
-        const stored = localStorage.getItem(storageKey);
+        const stored = await crossPlatformStorage.getItem(storageKey);
         
         if (!stored) {
           return {
@@ -366,7 +367,7 @@ export function useBulkRecordingOperations() {
       
       try {
         const storageKey = `voisss_recordings_${address}`;
-        const stored = localStorage.getItem(storageKey);
+        const stored = await crossPlatformStorage.getItem(storageKey);
         
         if (!stored) {
           throw new Error('No recordings found');
@@ -400,7 +401,7 @@ export function useBulkRecordingOperations() {
             break;
         }
         
-        localStorage.setItem(storageKey, JSON.stringify(recordings));
+        await crossPlatformStorage.setItem(storageKey, JSON.stringify(recordings));
         
         return { operation, recordingIds, affectedCount: recordingIds.length };
       } catch (error) {

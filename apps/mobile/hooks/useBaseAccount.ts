@@ -16,7 +16,7 @@ import {
   getPermissionStatus,
   getHash
 } from "../utils/baseSpendPermission";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { crossPlatformStorage } from '@voisss/shared';
 
 // Define the SpendPermission interface locally since it's not easily exported
 interface SpendPermission {
@@ -149,7 +149,7 @@ export function useBaseAccount(): UseBaseAccountReturn {
 
           // Get hash using the helper
           const hash = await getHash({ permission: permission as any, chainId: base.id });
-          await AsyncStorage.setItem('spendPermissionHash', hash);
+          await crossPlatformStorage.setItem('spendPermissionHash', hash);
         } else {
           console.log('⚠️ Permission exists but is not active');
           setPermissionActive(false);
@@ -177,7 +177,7 @@ export function useBaseAccount(): UseBaseAccountReturn {
 
   const handleDisconnect = useCallback(async () => {
     disconnect();
-    await AsyncStorage.removeItem('spendPermissionHash');
+    await crossPlatformStorage.removeItem('spendPermissionHash');
   }, [disconnect]);
 
   const requestPermission = useCallback(async () => {

@@ -9,6 +9,7 @@ import {
   fetchPermissions,
   getPermissionStatus,
 } from "@base-org/account/spend-permission/browser";
+import { crossPlatformStorage } from "@voisss/shared";
 
 // Type for the spend permission returned by the Base Account API  
 type SpendPermission = any;
@@ -112,8 +113,8 @@ export function useBaseAccount(): UseBaseAccountReturn {
           setPermissionActive(true);
           setStatus("Connected with spend permission");
 
-          // Store permission hash in localStorage for API calls
-          localStorage.setItem('spendPermissionHash', (permission as any).hash);
+          // Store permission hash using cross-platform storage
+          await crossPlatformStorage.setItem('spendPermissionHash', (permission as any).hash);
         } else {
           console.log('⚠️ Permission exists but is not active');
           setPermissionActive(false);
@@ -169,7 +170,7 @@ export function useBaseAccount(): UseBaseAccountReturn {
     setPermissionActive(false);
     setStatus("Disconnected");
     setError(null);
-    localStorage.removeItem('spendPermissionHash');
+    await crossPlatformStorage.removeItem('spendPermissionHash');
   }, []);
 
   const requestPermission = useCallback(async () => {
@@ -201,8 +202,8 @@ export function useBaseAccount(): UseBaseAccountReturn {
       setPermissionActive(true);
       setStatus("Spend permission granted!");
 
-      // Store permission hash for API calls
-      localStorage.setItem('spendPermissionHash', (permission as any).hash);
+      // Store permission hash using cross-platform storage
+      await crossPlatformStorage.setItem('spendPermissionHash', (permission as any).hash);
 
     } catch (err: any) {
       console.error("❌ Permission request failed:", err);
