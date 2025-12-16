@@ -2,7 +2,87 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { blockchain, type SupportedChains, type BaseChainConfig } from '../utils/starknet';
-import { ALL_CHAINS } from '@voisss/shared';
+
+const TEMP_ALL_CHAINS = {
+  base: {
+    MAINNET: {
+      chainId: '8453',
+      chainName: 'Base Mainnet',
+      rpcUrl: 'https://mainnet.base.org',
+      nativeCurrency: {
+        name: 'Ethereum',
+        symbol: 'ETH',
+        decimals: 18,
+      },
+      explorerUrl: 'https://basescan.org/',
+      isTestnet: false,
+    },
+    SEPOLIA: {
+      chainId: '84532',
+      chainName: 'Base Sepolia Testnet',
+      rpcUrl: 'https://sepolia.base.org',
+      nativeCurrency: {
+        name: 'Ethereum',
+        symbol: 'ETH',
+        decimals: 18,
+      },
+      explorerUrl: 'https://sepolia.basescan.org/',
+      isTestnet: true,
+    },
+  },
+  starknet: {
+    MAINNET: {
+      chainId: 'SN_MAIN',
+      chainName: 'Starknet Mainnet',
+      rpcUrl: 'https://starknet-mainnet.infura.io/v3/',
+      nativeCurrency: {
+        name: 'Ethereum',
+        symbol: 'ETH',
+        decimals: 18,
+      },
+      explorerUrl: 'https://starkscan.co/',
+      isTestnet: false,
+    },
+    TESTNET: {
+      chainId: 'SN_GOERLI',
+      chainName: 'Starknet Goerli Testnet',
+      rpcUrl: 'https://starknet-goerli.infura.io/v3/',
+      nativeCurrency: {
+        name: 'Ethereum',
+        symbol: 'ETH',
+        decimals: 18,
+      },
+      explorerUrl: 'https://testnet.starkscan.co/',
+      isTestnet: true,
+    },
+  },
+  scroll: {
+    MAINNET: {
+      chainId: '534352',
+      chainName: 'Scroll Mainnet',
+      rpcUrl: 'https://rpc.scroll.io/',
+      nativeCurrency: {
+        name: 'Ethereum',
+        symbol: 'ETH',
+        decimals: 18,
+      },
+      explorerUrl: 'https://scrollscan.com/',
+      isTestnet: false,
+    },
+    SEPOLIA: {
+      chainId: '534351',
+      chainName: 'Scroll Sepolia Testnet',
+      rpcUrl: 'https://sepolia-rpc.scroll.io/',
+      nativeCurrency: {
+        name: 'Ethereum',
+        symbol: 'ETH',
+        decimals: 18,
+      },
+      explorerUrl: 'https://sepolia.scrollscan.com/',
+      isTestnet: true,
+    },
+  },
+};
 import { Ionicons } from '@expo/vector-icons';
 import { useSettingsStore } from '../store/settingsStore';
 
@@ -49,7 +129,7 @@ export const ChainSelector: React.FC<ChainSelectorProps> = ({
       setSelectedNetwork(network);
       setModalVisible(false);
 
-      const config = ALL_CHAINS[chain][network as keyof typeof ALL_CHAINS[SupportedChains]];
+      const config = TEMP_ALL_CHAINS[chain as keyof typeof TEMP_ALL_CHAINS][network as keyof (typeof TEMP_ALL_CHAINS)[keyof typeof TEMP_ALL_CHAINS]];
       setCurrentChainConfig(config);
 
       onChainSelected?.(chain, network);
@@ -58,7 +138,7 @@ export const ChainSelector: React.FC<ChainSelectorProps> = ({
     }
   };
 
-  const availableChains = Object.entries(ALL_CHAINS) as [SupportedChains, Record<string, BaseChainConfig>][];
+  const availableChains = Object.entries(TEMP_ALL_CHAINS) as [string, Record<string, BaseChainConfig>][];
 
   return (
     <View style={styles.container}>

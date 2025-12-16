@@ -62,6 +62,7 @@ export class MultiChainRecordingService {
             )),
             scroll: new ScrollChainRecordingService(),
             starknet: new StarknetChainRecordingService(),
+            ethereum: new StarknetChainRecordingService(), // Fallback for ethereum
         };
     }
 

@@ -8,6 +8,11 @@ export * from './services/audio/ai/elevenlabs-service';
 export * from './blockchain/index';
 export * from './starknet/index'; // Legacy export for backward compatibility
 
+// AI Services
+export * from './services/routeway-service';
+export * from './utils/routeway-utils';
+export * from './utils/safe-routeway-input';
+
 // Export blockchain chains for UI components
 export { ALL_CHAINS } from './blockchain/index';
 export * from './utils/session';

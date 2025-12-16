@@ -43,6 +43,11 @@ export * from './services/audio/ai/client-ai-service';
 export { createAIServiceClient } from './services/audio/ai/client-ai-service';
 export { createElevenLabsProvider, ElevenLabsTransformProvider } from './services/audio/ai/elevenlabs-service';
 
+// AI Services - Routeway (React Native compatible version)
+export * from './services/routeway-service.native';
+export * from './utils/routeway-utils';
+export * from './utils/safe-routeway-input';
+
 // Hooks (safe)
 export * from './hooks/useMemoryContext';
 
