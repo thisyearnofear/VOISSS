@@ -22,7 +22,6 @@ import {
 import { colors } from "@voisss/ui";
 import { theme } from "@voisss/ui";
 import { Button } from "../ui/Button";
-import type { VoiceInfo } from "@voisss/shared/types/audio";
 import { AIVoiceSelector } from "./AIVoiceSelector";
 import { AudioPreviewPlayer } from "./AudioPreviewPlayer";
 import { mobileAIService, type AIVoiceStyle } from "../services/ai-service";

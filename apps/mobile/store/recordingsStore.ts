@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Recording, RecordingFilter, Tag } from "@voisss/shared";
+import { Recording, RecordingFilter, Tag } from "../types";
 import { mockRecordings, mockTags } from "../mocks/recordings";
 import { createMobileIPFSService, MobileIPFSService } from "../services/ipfsService";
 

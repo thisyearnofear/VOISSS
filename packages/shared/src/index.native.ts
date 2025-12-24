@@ -35,7 +35,6 @@ export * from './services/mission-service';
 export * from './services/database-service';
 export * from './services/localStorage-database';
 export * from './services/persistent-mission-service';
-export * from './services/onboarding-service';
 
 // Audio services (safe - client-side only)
 export * from './services/audio/ai/elevenlabs-service';
@@ -48,46 +47,16 @@ export * from './services/routeway-service.native';
 export * from './utils/routeway-utils';
 export * from './utils/safe-routeway-input';
 
-// Hooks (safe)
-export * from './hooks/useMemoryContext';
+// Hooks - NOT exported for React Native (useMemoryContext imports Node.js services)
+// import { useMemoryContext } from './hooks/useMemoryContext'; // ← Server-side only
 
-// Blockchain - only export types and safe chain configurations
+// Blockchain - only export types and safe chain configurations (no wallet/adapter logic)
 export * from './blockchain/chains/base';
 export * from './blockchain/chains/starknet';
 export * from './blockchain/chains/scroll';
 
-// Re-export ALL_CHAINS without the adapters that use Node.js modules
-import { STARKNET_CHAINS, StarknetChain } from './blockchain/chains/starknet';
-import { SCROLL_CHAINS, ScrollChain } from './blockchain/chains/scroll';
-import type { BaseChainConfig, TipTransaction, ChainAdapter } from './blockchain/chains/base';
-
-// Mobile-supported chains (excludes ethereum which is not configured)
-export type MobileSupportedChains = 'starknet' | 'scroll';
-
-export const ALL_CHAINS: Record<MobileSupportedChains, Record<string, BaseChainConfig>> = {
-    starknet: STARKNET_CHAINS,
-    scroll: SCROLL_CHAINS,
-} as const;
-
-export type AllChains = {
-    starknet: StarknetChain;
-    scroll: ScrollChain;
-};
-
-// Re-export specific types that are commonly used
-export type {
-    BaseChainConfig,
-    TipTransaction,
-    ChainAdapter,
-    StarknetChain,
-    ScrollChain,
-};
-
-// For backward compatibility, also export SupportedChains as MobileSupportedChains
-export type SupportedChains = MobileSupportedChains;
-
-// Legacy Starknet exports - only types and config (no SDK)
-export * from './starknet/index';
+// Legacy Starknet exports - NOT exported for React Native to avoid SDK dependencies
+// export * from './starknet/index';
 
 /**
  * Note: The following are NOT exported for React Native:

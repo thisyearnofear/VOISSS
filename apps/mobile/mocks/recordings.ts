@@ -1,4 +1,4 @@
-import { VoiceRecording, Tag } from "@voisss/shared";
+import { VoiceRecording, Tag } from "../types";
 
 // Mock tags
 export const mockTags: Tag[] = [

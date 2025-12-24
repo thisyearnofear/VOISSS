@@ -7,9 +7,7 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { createElevenLabsProvider } from "@voisss/shared/src/services/audio/ai/elevenlabs-service";
-import { SUPPORTED_DUBBING_LANGUAGES } from "@voisss/shared";
-import type { LanguageInfo } from "@voisss/shared/src/constants/languages";
+import { SUPPORTED_DUBBING_LANGUAGES } from "../types";
 import LanguageSelector from "./LanguageSelector";
 import { colors } from "@voisss/ui";
 

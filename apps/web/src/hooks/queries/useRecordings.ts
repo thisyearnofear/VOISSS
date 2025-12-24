@@ -111,7 +111,8 @@ async function fetchOnChainRecordings(address: string): Promise<Recording[]> {
           ipfsHash,
           onChain: true,
           owner,
-        });
+          tags: [], // Add required tags field
+        } as any);
       } catch (error) {
         console.warn(`Failed to fetch recording ${id}:`, error);
       }

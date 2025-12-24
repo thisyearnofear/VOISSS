@@ -2,7 +2,6 @@ import { useCallback } from 'react';
 import { useRecordingsStore } from '../store/recordingsStore';
 // TODO: createStarknetRecordingService uses starknet SDK which has node:crypto dependency
 // For React Native, we need to implement a mobile-specific Starknet service
-// import { createStarknetRecordingService } from '@voisss/shared';
 
 interface SyncResult {
   success: boolean;

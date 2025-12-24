@@ -12,7 +12,7 @@ import {
   RecordingState,
 } from "../../hooks/useAudioRecording";
 import { useBaseAccount } from "../../hooks/useBaseAccount";
-import { createBaseRecordingService } from "@voisss/shared";
+import { createBaseRecordingService } from "../types";
 import { colors } from "@voisss/ui";
 import RecordingWaveform from "../../components/RecordingWaveform";
 import {

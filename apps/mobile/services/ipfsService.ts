@@ -4,7 +4,6 @@
  */
 
 import * as FileSystem from 'expo-file-system';
-import { IPFSService, IPFSUploadResult, AudioMetadata } from '@voisss/shared';
 
 // Extend the shared IPFS service to add React Native specific functionality
 export class MobileIPFSService extends IPFSService {

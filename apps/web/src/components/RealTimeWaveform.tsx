@@ -14,7 +14,7 @@ export default function RealTimeWaveform({
   className = "" 
 }: RealTimeWaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | null>(null);
   const [waveData, setWaveData] = useState<number[]>(new Array(50).fill(0));
 
   useEffect(() => {

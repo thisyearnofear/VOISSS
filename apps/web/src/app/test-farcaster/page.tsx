@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { getFarcasterSocialService } from '@voisss/shared';
+// import { getFarcasterSocialService } from '@voisss/shared';
 
 export default function TestFarcaster() {
   const [status, setStatus] = useState<string>('Ready to test Farcaster integration');
@@ -12,7 +12,7 @@ export default function TestFarcaster() {
       setStatus('Testing Farcaster service...');
       
       // Test the FarcasterSocialService
-      const service = getFarcasterSocialService();
+      // const service = getFarcasterSocialService();
       
       // Test basic functionality
       setResult({

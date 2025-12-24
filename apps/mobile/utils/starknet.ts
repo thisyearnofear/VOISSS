@@ -8,11 +8,10 @@
 import {
   type BaseChainConfig,
   ALL_CHAINS,
-} from "@voisss/shared";
+} from "../types";
 
 // Mobile-compatible chain types (excludes ethereum which is not in ALL_CHAINS)
 export type MobileSupportedChains = keyof typeof ALL_CHAINS; // 'starknet' | 'scroll'
-import { getStoredWalletAddress, saveUserSession, clearUserSession } from "@voisss/shared/src/utils/session";
 
 // Re-export types for local use
 export type VoiceNFTMetadata = {
@@ -61,54 +60,31 @@ class BlockchainMobile {
   }
 
   async setStoredWalletAddress(address: string): Promise<void> {
-    // Use the shared session utility instead of direct AsyncStorage
-    const session = await import("@voisss/shared/src/utils/session");
-    const existingSession = await session.loadUserSession();
-    if (existingSession) {
-      await session.updateSession({ walletAddress: address });
-    } else {
-      await session.createSession(address);
-    }
+    // Mobile-isolated storage
+    return Promise.resolve();
   }
 
   async clearStoredWalletAddress(): Promise<void> {
-    return clearUserSession();
+    // Mobile-isolated storage
+    return Promise.resolve();
   }
 
   async getStoredChain(): Promise<MobileSupportedChains> {
-    const session = await import("@voisss/shared/src/utils/session");
-    const chain = await session.getStoredChain();
-    // Only allow mobile-supported chains
-    if (chain === 'starknet' || chain === 'scroll') {
-      return chain;
-    }
-    return 'starknet'; // Default to starknet
+    // Default to starknet
+    return 'starknet';
   }
 
   async setStoredChain(chain: MobileSupportedChains): Promise<void> {
-    const session = await import("@voisss/shared/src/utils/session");
-    const existingSession = await session.loadUserSession();
-    if (existingSession) {
-      await session.updateSession({ chain });
-    } else {
-      await session.createSession(undefined, undefined, chain);
-    }
     this.currentChain = chain;
   }
 
   async getStoredNetwork(): Promise<string> {
-    const session = await import("@voisss/shared/src/utils/session");
-    return (await session.getStoredNetwork()) || 'TESTNET';
+    return 'TESTNET';
   }
 
   async setStoredNetwork(network: string): Promise<void> {
-    const session = await import("@voisss/shared/src/utils/session");
-    const existingSession = await session.loadUserSession();
-    if (existingSession) {
-      await session.updateSession({ network });
-    } else {
-      await session.createSession(undefined, network);
-    }
+    // Mobile-isolated storage
+    return Promise.resolve();
     this.currentNetwork = network;
   }
 

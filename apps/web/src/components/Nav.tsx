@@ -105,6 +105,12 @@ export default function Nav() {
               >
                 Help
               </Link>
+              <Link
+                href="/studio?mode=transcript"
+                className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
+              >
+                Transcript
+              </Link>
             </div>
             
             {/* Show loading state while checking session */}
@@ -116,6 +122,12 @@ export default function Nav() {
             
             {!isAuthenticated && !isCheckingSession && (
               <div className="flex items-center gap-3">
+                <Link
+                  href="/studio?mode=transcript"
+                  className="px-3 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium"
+                >
+                  Transcript
+                </Link>
                 <Link 
                   href="/studio" 
                   className="px-3 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium"

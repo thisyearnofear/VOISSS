@@ -13,8 +13,7 @@ import { ChevronDown, Star, Search } from "lucide-react-native";
 import {
   SUPPORTED_DUBBING_LANGUAGES,
   getPopularLanguages,
-} from "@voisss/shared";
-import type { LanguageInfo } from "@voisss/shared/src/constants/languages";
+} from "../types";
 import { colors } from "@voisss/ui";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");

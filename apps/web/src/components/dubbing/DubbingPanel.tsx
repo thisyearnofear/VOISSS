@@ -4,6 +4,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import LanguageSelector from './LanguageSelector';
 import ProgressVisualizer from './ProgressVisualizer';
 import AudioComparison from './AudioComparison';
+import ToastNotification from '../RecordingStudio/ToastNotification';
 import { isDubbingEnabled } from '@voisss/shared';
 import type { LanguageInfo } from '@voisss/shared/src/constants/languages';
 import type { DubbingLanguage } from '@voisss/shared/src/types/audio';
@@ -554,24 +555,11 @@ export default function DubbingPanel({
               </div>
             )}
 
-            {/* Lightweight Toast */}
-            {toastMessage && (
-              <div className="fixed bottom-4 right-4 z-50">
-                <div className={`min-w-[240px] px-4 py-3 rounded-xl shadow-lg border ${
-                  toastType === 'error'
-                    ? 'bg-red-900/30 border-red-500/30 text-red-200'
-                    : 'bg-green-900/30 border-green-500/30 text-green-200'
-                }`}>
-                  <div className="flex items-center gap-2">
-                    <svg className={`w-4 h-4 ${toastType === 'error' ? 'text-red-400' : 'text-green-400'}`} fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                    </svg>
-                    <p className="text-sm font-medium">{toastType === 'error' ? 'Dubbing Error' : 'Success'}</p>
-                  </div>
-                  <p className="text-xs mt-1 opacity-90">{toastMessage}</p>
-                </div>
-              </div>
-            )}
+            <ToastNotification
+              message={toastMessage}
+              type={toastType}
+              onTimeout={() => setToastMessage(null)}
+            />
 
             {dubbedBlob && (
               <div className="mt-3 space-y-4">

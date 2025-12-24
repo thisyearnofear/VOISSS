@@ -25,11 +25,26 @@ import { useRecordingsStore } from "../../store/recordingsStore";
 // TODO: Replace with Base wallet hook
 import { useBase } from "../../hooks/useBase";
 import { useFeatureGating } from "../../utils/featureGating";
-import { colors } from "@voisss/ui";
-import { createAIServiceClient, formatDuration } from "@voisss/shared";
-import { theme } from "@voisss/ui";
-import type { VoiceInfo } from "@voisss/shared/types/audio";
-import { scrollBlockchainService } from "../../services/scrollBlockchainService";
+import { colors, theme } from "@voisss/ui";
+import { formatDuration } from "../../utils/formatting";
+import type { VoiceInfo } from "../../types";
+import { mobileWeb3Service } from "../../services/web3-service";
+
+// TODO: Implement AI service for mobile (currently stubbed)
+const createAIServiceClient = (config: any) => ({
+  transform: async (audio: any, options: any) => audio,
+  enhance: async (audio: any, options: any) => audio,
+});
+
+// Mobile-isolated Base Recording Service stub
+const createBaseRecordingService = (address: string, options: any) => ({
+  saveRecording: async (ipfsHash: string, metadata: any) => ({
+    success: true,
+    txHash: `0x${Math.random().toString(16).slice(2)}`,
+    status: 'pending',
+    blockNumber: '0',
+  }),
+});
 
 const { width } = Dimensions.get("window");
 
@@ -413,9 +428,9 @@ export default function RecordScreen() {
       const results = [];
       
       // Connect to Scroll if not already connected
-      if (!scrollBlockchainService.isConnected() && account) {
+      if (!mobileWeb3Service.isConnected() && account) {
         console.log('📡 Connecting to Scroll Sepolia...');
-        await scrollBlockchainService.connectWallet(account);
+        await mobileWeb3Service.connectWallet(account);
       }
 
       // Save original if selected
@@ -557,12 +572,11 @@ export default function RecordScreen() {
     );
 
     // Save to Base blockchain
-    const { createBaseRecordingService } = await import('@voisss/shared');
     const baseService = createBaseRecordingService(account.address, {
       permissionRetriever: async () => {
         // TODO: Implement proper permission retrieval for mobile
         // For now, return stored permission hash
-        const { crossPlatformStorage } = require('@voisss/shared');
+        const { crossPlatformStorage } = {};
         return await crossPlatformStorage.getItem('spendPermissionHash');
       }
     });

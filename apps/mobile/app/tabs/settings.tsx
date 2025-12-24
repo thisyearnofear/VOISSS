@@ -8,7 +8,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Plus } from "lucide-react-native";
-import { VoiceRecording } from "@voisss/shared";
+import { VoiceRecording } from "../types";
 import {
   useFilteredRecordings,
   useRecordingsStore,

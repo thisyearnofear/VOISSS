@@ -11,7 +11,7 @@ import {
 } from "lucide-react-native";
 import { theme } from "@voisss/ui";
 import { colors } from "@voisss/ui";
-import { VoiceRecording } from "@voisss/shared";
+import { VoiceRecording } from "../types";
 import { BaseModal } from "@voisss/ui";
 
 interface RecordingOptionsModalProps {

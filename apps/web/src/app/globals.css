@@ -164,12 +164,28 @@
   }
 }
 
+/* Subtle animated gradient background (VOISSS) */
+@keyframes voisss-gradient-drift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.voisss-animated-gradient {
+  background-size: 200% 200%;
+  animation: voisss-gradient-drift 12s ease-in-out infinite;
+}
+
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   .voisss-recording-button {
     @apply transition-none;
   }
-  
+
+  .voisss-animated-gradient {
+    animation: none;
+  }
+
   @keyframes pulse-red {
     0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
   }

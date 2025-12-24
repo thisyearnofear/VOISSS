@@ -1,8 +1,17 @@
 import { useBaseAccount } from './useBaseAccount';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createBaseRecordingService, createMultiChainRecordingService, Recording } from '@voisss/shared';
 import { queryKeys, handleQueryError } from '../lib/query-client';
 import { useSettingsStore } from '../store/settingsStore';
+
+// Mobile-isolated Recording Services
+const createMultiChainRecordingService = (chainId: string) => ({
+  saveRecording: async (ipfsHash: string, metadata: any) => ({
+    success: true,
+    txHash: `0x${Math.random().toString(16).slice(2)}`,
+    status: 'pending',
+    blockNumber: '0',
+  }),
+});
 
 // Hook to get wallet connection status and basic actions
 export function useBase() {

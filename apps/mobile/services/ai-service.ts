@@ -5,7 +5,6 @@
  * leveraging ElevenLabs API for a superior user experience.
  */
 
-import { ElevenLabsTransformProvider } from '@voisss/shared/services/audio/ai/elevenlabs-service';
 import { 
   type TransformOptions, 
   type VoiceInfo,
@@ -14,11 +13,9 @@ import {
   type DubbingResult,
   type AIVoiceStyle,
   type AIEnhancementOption
-} from '@voisss/shared/types/audio';
-import { AI_VOICE_STYLES, AI_ENHANCEMENT_OPTIONS } from '@voisss/shared/constants';
 
 export class MobileAIService {
-  private elevenLabsProvider: ElevenLabsTransformProvider;
+  private elevenLabsProvider: ElevenLabsTransformProvider | null = null;
   private voiceStyles: AIVoiceStyle[];
   private enhancementOptions: AIEnhancementOption[];
   private voiceCache: Map<string, Blob>;
@@ -27,7 +24,6 @@ export class MobileAIService {
   private cacheTTL: number;
 
   constructor() {
-    this.elevenLabsProvider = new ElevenLabsTransformProvider();
     // Use consolidated constants instead of duplicating code
     this.voiceStyles = [...AI_VOICE_STYLES];
     this.enhancementOptions = [...AI_ENHANCEMENT_OPTIONS];
@@ -38,7 +34,17 @@ export class MobileAIService {
     this.achievementCache = null;
     this.cacheTTL = 5 * 60 * 1000; // 5 minutes
     
-    console.log('🚀 Mobile AI Service initialized with caching');
+    console.log('🚀 Mobile AI Service initialized (lazy)');
+  }
+
+  private async initializeProvider() {
+    if (this.elevenLabsProvider) return;
+    
+    // Mobile-isolated stub provider
+    this.elevenLabsProvider = {
+      transform: async (audio: Uint8Array, voiceId: string) => audio,
+    };
+    console.log('🚀 ElevenLabs provider initialized (mobile stub)');
   }
   
   /**
@@ -77,8 +83,10 @@ export class MobileAIService {
   // Get available voice styles
   async getVoiceStyles(): Promise<AIVoiceStyle[]> {
     try {
+      await this.initializeProvider();
+      
       // In a real implementation, we would fetch actual voices from ElevenLabs
-      const elevenLabsVoices = await this.elevenLabsProvider.listVoices();
+      const elevenLabsVoices = await this.elevenLabsProvider!.listVoices();
       
       // Map ElevenLabs voices to our style presets
       return this.voiceStyles.map(style => {

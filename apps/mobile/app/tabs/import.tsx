@@ -37,12 +37,12 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { globalStyles, theme, colors } from "@voisss/ui";
 import { useRecordingsStore } from "@/store/recordingsStore";
-import { VoiceRecording, Tag } from "@voisss/shared";
+import { VoiceRecording, Tag } from "@/types";
 import {
   formatDuration,
-  formatFileSize,
   formatRelativeTime,
-} from "@voisss/shared";
+  formatFileSize,
+} from "@/utils/formatting";
 import TagBadge from "@/components/TagBadge";
 import BottomSheet from "@/components/BottomSheet";
 import AnimatedGradientBackground from "@/components/AnimatedGradientBackground";

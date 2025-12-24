@@ -3,81 +3,106 @@ const path = require("path");
 
 const config = getDefaultConfig(__dirname);
 
-// Monorepo support
+// Optimized monorepo support - only watch what we need
 const projectRoot = __dirname;
 const workspaceRoot = path.resolve(projectRoot, "../..");
 
-// ox package ESM fix
-const oxRoot = path.resolve(workspaceRoot, "node_modules/.pnpm/ox@0.9.6_typescript@5.9.3_zod@4.1.12/node_modules/ox");
+// Add workspace folders to watchFolders (keep default expo folders)
+// NOTE: @voisss/shared is NOT watched to avoid CJS/ESM resolution issues in Metro
+// Mobile apps import local types/utils instead
+config.watchFolders = [
+  ...config.watchFolders,
+  path.resolve(workspaceRoot, "packages/ui"),
+  // path.resolve(workspaceRoot, "packages/shared"), // DISABLED - causes module ESM issues
+];
 
-// Watch all files within the monorepo
-config.watchFolders = [workspaceRoot];
-
-// Node module paths
+// Add workspace node_modules to resolver paths (keep default expo paths)
 config.resolver.nodeModulesPaths = [
-  path.resolve(projectRoot, "node_modules"),
+  ...config.resolver.nodeModulesPaths,
   path.resolve(workspaceRoot, "node_modules"),
 ];
 
-// Enable symlinks and package exports
-config.resolver.unstable_enableSymlinks = true;
-config.resolver.unstable_enablePackageExports = true;
-config.resolver.disableHierarchicalLookup = false;
+// Exclude all packages that cause CJS/ESM issues
+config.resolver.extraNodeModules = {
+  '@voisss/shared': null,
+  '@voisss/ui': null,
+  // Exclude web3/blockchain packages that aren't compatible with React Native
+  'wagmi': null,
+  '@wagmi/connectors': null,
+  '@wagmi/core': null,
+  'viem': null,
+  'ox': null,
+  'porto': null,
+};
 
-// Consolidated aliases (node polyfills + custom paths)
+// Only essential polyfills - remove duplicates and unused ones
 config.resolver.alias = {
   "@": path.resolve(__dirname),
-  // Node built-in polyfills
-  "node:crypto": "react-native-crypto",
-  "node:stream": "stream-browserify",
-  "node:buffer": "buffer",
-  "node:http": "stream-http",
-  "node:https": "https-browserify",
-  "node:url": "url",
-  "node:zlib": "browserify-zlib",
-  "node:vm": "vm-browserify",
-  "node:util": "util",
-  "node:events": "events",
+  // Only the polyfills we actually use
   crypto: "react-native-crypto",
   stream: "stream-browserify",
   buffer: "buffer",
-  http: "stream-http",
-  https: "https-browserify",
   url: "url",
-  zlib: "browserify-zlib",
-  vm: "vm-browserify",
-  // ox ESM build fix
-  "ox": path.join(oxRoot, "_esm"),
+  // Stub out web-only packages to prevent bundling
+  wagmi: path.resolve(__dirname, "stubs/wagmi.js"),
+  "@wagmi/connectors": path.resolve(__dirname, "stubs/wagmi.js"),
+  "@wagmi/core": path.resolve(__dirname, "stubs/wagmi.js"),
+  ox: path.resolve(__dirname, "stubs/ox.js"),
+  viem: path.resolve(__dirname, "stubs/viem.js"),
+  porto: path.resolve(__dirname, "stubs/porto.js"),
 };
 
-// Resolver configuration
-config.resolver.resolverMainFields = ["_esm", "module", "main"];
-config.resolver.platforms = ["ios", "android", "native", "web"];
-config.resolver.assetExts.push("bin");
+// Use default resolver settings (remove experimental features)
+// config.resolver.unstable_enableSymlinks = false;
+// config.resolver.unstable_enablePackageExports = false;
 
-// Block ox TypeScript source files
-config.resolver.blockList = [
-  ...(config.resolver.blockList || []),
-  /ox\/.*\.ts$/,
-  /ox\/core\/.*\.ts$/,
-  /ox\/internal\/.*\.ts$/,
-];
+// Simplified resolver configuration
+// Priority: react-native > module > main (needed for @voisss/shared to use .native.js)
+config.resolver.resolverMainFields = ["react-native", "module", "main"];
+config.resolver.platforms = ["ios", "android", "native"];
 
-// Transformer configuration with performance optimizations
+// Add debug logging to catch problematic requires
+const origOnProgressComplete = config.onProgressComplete;
+config.onProgressComplete = () => {
+  if (origOnProgressComplete) origOnProgressComplete();
+  // Logging moved to transformer
+};
+
+// Try to catch problematic module resolutions in transformer
+const origTransform = config.transformer.transform;
+if (typeof origTransform === 'function') {
+  config.transformer.transform = function(args) {
+    const filename = args.filename || '';
+    // Skip internal Metro files
+    if (!filename.includes('node_modules') && !filename.includes('.expo')) {
+      // Log local files being transformed
+      if (filename.includes('packages/shared') || filename.includes('apps/mobile')) {
+        console.log(`[TRANSFORM] ${filename}`);
+      }
+    }
+    return origTransform(args);
+  };
+}
+
+// Don't add TypeScript extensions - let Metro handle it with default config
+// This prevents trying to resolve .ts files from incompatible packages
+
+// Reduce worker count to prevent memory spikes
+config.maxWorkers = 2;
+
+// Optimized transformer - disable memory-intensive features
 config.transformer = {
   ...config.transformer,
   unstable_allowRequireContext: true,
   experimental_importSupport: false,
-  unstable_transformImportMeta: true,
-  // Enable minification in production
-  minifierConfig: {
-    compress: {
-      drop_console: false,
+  unstable_transformImportMeta: false,
+  // Minification settings for production only
+  getTransformOptions: async () => ({
+    transform: {
+      experimentalImportSupport: false,
+      inlineRequires: true,
     },
-  },
+  }),
 };
-
-// Enable persistent caching for faster rebuilds
-config.resetCache = false;
 
 module.exports = config;

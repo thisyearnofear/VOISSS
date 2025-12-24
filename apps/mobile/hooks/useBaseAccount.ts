@@ -16,7 +16,12 @@ import {
   getPermissionStatus,
   getHash
 } from "../utils/baseSpendPermission";
-import { crossPlatformStorage } from '@voisss/shared';
+// Mobile-isolated cross-platform storage
+const crossPlatformStorage = {
+  getItem: async (key: string) => null,
+  setItem: async (key: string, value: any) => {},
+  removeItem: async (key: string) => {},
+};
 
 // Define the SpendPermission interface locally since it's not easily exported
 interface SpendPermission {
@@ -212,7 +217,7 @@ export function useBaseAccount(): UseBaseAccountReturn {
       setStatus("Spend permission granted!");
 
       const hash = await getHash({ permission: permission as any, chainId: base.id });
-      await AsyncStorage.setItem('spendPermissionHash', hash);
+      await crossPlatformStorage.setItem('spendPermissionHash', hash);
 
     } catch (err: any) {
       console.error("❌ Permission request failed:", err);

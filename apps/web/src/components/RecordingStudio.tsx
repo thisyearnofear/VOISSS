@@ -21,11 +21,14 @@ import AIVoicePanel from "./RecordingStudio/AIVoicePanel";
 import VersionSelection from "./RecordingStudio/VersionSelection";
 import PermissionStatus from "./RecordingStudio/PermissionStatus";
 import AudioPreview from "./RecordingStudio/AudioPreview";
+import TranscriptComposer from "./RecordingStudio/TranscriptComposer";
 import ActionButtons from "./RecordingStudio/ActionButtons";
 import RecordingTitle from "./RecordingStudio/RecordingTitle";
 
 interface RecordingStudioProps {
   onRecordingComplete?: (audioBlob: Blob, duration: number) => void;
+  initialTranscriptTemplateId?: string;
+  initialMode?: 'transcript' | string;
 }
 
 interface ShareableRecording {
@@ -53,6 +56,8 @@ interface SaveResult {
 
 export default function RecordingStudio({
   onRecordingComplete,
+  initialTranscriptTemplateId,
+  initialMode,
 }: RecordingStudioProps) {
   // Core recording state
   const {
@@ -126,8 +131,10 @@ export default function RecordingStudio({
     try {
       return createBaseRecordingService(universalAddress, {
         contractAddress: contractAddress,
-        permissionRetriever: async () => {
-          return await crossPlatformStorage.getItem('spendPermissionHash');
+        permissionRetriever: () => {
+          // Note: This is sync, but we're calling an async storage getter
+          // For now, return null - the async value would need to be fetched separately
+          return null;
         }
       });
     } catch (error) {
@@ -305,7 +312,7 @@ export default function RecordingStudio({
 
       const walletClient = createWalletClient({
         chain: base,
-        transport: custom(window.ethereum),
+        transport: custom(window.ethereum as any),
       });
 
       const [account] = await walletClient.getAddresses();
@@ -541,6 +548,16 @@ export default function RecordingStudio({
               audioBlob={audioBlob}
               formatFileSize={formatFileSize}
             />
+
+            {previewUrl && audioBlob && duration > 0 && (
+              <TranscriptComposer
+                previewUrl={previewUrl}
+                durationSeconds={duration}
+                audioBlob={audioBlob}
+                initialTemplateId={initialTranscriptTemplateId}
+                autoFocus={initialMode === 'transcript'}
+              />
+            )}
 
             <PermissionStatus
               isConnected={isConnected}

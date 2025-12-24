@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import RecordingStudio from "../../components/RecordingStudio";
 import { RecordingCard } from "@voisss/ui";
 import { formatDuration } from "@voisss/shared";
@@ -10,7 +11,10 @@ import { SocialShare } from "@voisss/ui";
 
 export const dynamic = 'force-dynamic';
 
-export default function RecordPage() {
+function StudioPageInner() {
+  const searchParams = useSearchParams();
+  const templateId = useMemo(() => searchParams.get('templateId') || undefined, [searchParams]);
+  const mode = useMemo(() => searchParams.get('mode') || undefined, [searchParams]);
   // Legacy local recordings state (for backward compatibility)
   const [localRecordings, setLocalRecordings] = useState<
     Array<{
@@ -129,7 +133,7 @@ export default function RecordPage() {
       <div className="voisss-container py-8 sm:py-12">
         {/* Unified Recording Studio - Works for both connected and unconnected users */}
         <div id="recording-section" className="mb-12">
-          <RecordingStudio onRecordingComplete={handleRecordingComplete} />
+          <RecordingStudio onRecordingComplete={handleRecordingComplete} initialTranscriptTemplateId={templateId} initialMode={mode} />
         </div>
 
         {/* Enhanced Recordings List - Shows both local and on-chain recordings */}
@@ -241,7 +245,6 @@ export default function RecordPage() {
                     // Could add analytics tracking here
                   }}
                   className=""
-                  style={{}}
                 />
               </div>
             </div>
@@ -249,5 +252,13 @@ export default function RecordPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function RecordPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0A0A0A] text-white"><div className="voisss-container py-8 sm:py-12">Loadingstudio...</div></div>}>
+      <StudioPageInner />
+    </Suspense>
   );
 }

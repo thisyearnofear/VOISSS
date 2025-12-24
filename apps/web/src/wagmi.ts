@@ -1,17 +1,14 @@
 import { http, createConfig } from 'wagmi';
 import { base, baseSepolia } from 'wagmi/chains';
-import { walletConnectorService } from '@voisss/shared';
-
-// Initialize wallet connectors for web
-const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '';
-if (projectId) {
-  walletConnectorService.initializeWalletConnectors([base, baseSepolia], projectId);
-}
+import { injected, coinbaseWallet } from 'wagmi/connectors';
 
 export function getConfig() {
   return createConfig({
     chains: [base, baseSepolia],
-    connectors: walletConnectorService.getConnectors(http()),
+    connectors: [
+      injected(),
+      coinbaseWallet(),
+    ],
     ssr: true,
     transports: {
       [base.id]: http(),

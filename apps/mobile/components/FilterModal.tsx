@@ -13,7 +13,7 @@ import {
   Clock,
   Calendar,
 } from "lucide-react-native";
-import { RecordingFilter } from "@voisss/shared";
+import { RecordingFilter } from "../types";
 import { useRecordingsStore } from "../store/recordingsStore";
 import { theme } from "@voisss/ui";
 import { colors } from "@voisss/ui";

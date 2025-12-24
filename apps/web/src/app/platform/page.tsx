@@ -7,10 +7,10 @@ export default function PlatformPage() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
-            Our Platform Ecosystem
+            Platform
           </h1>
           <p className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto">
-            Transform how you capture, organize, and share audio content with our comprehensive three-app ecosystem on Base.
+            VOISSS is action-first. The web app is the fastest path from voice → shareable output.
           </p>
         </div>
 
@@ -68,57 +68,45 @@ export default function PlatformPage() {
           </div>
         </div>
 
-        {/* Cross-Platform Sync Placeholder */}
+        {/* Utility hub */}
         <div className="mb-8 sm:mb-10">
-          <div className="voisss-card max-w-2xl mx-auto">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-[#7C5DFA] to-[#9C88FF] rounded-full flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-white">
-                Cross-Platform Sync
-              </h3>
-            </div>
-            <p className="text-gray-400 text-sm mb-4 text-center">
-              Seamlessly sync your recordings between Web and mobile apps using the blockchain.
+          <div className="voisss-card max-w-3xl mx-auto">
+            <h2 className="text-2xl font-bold text-white mb-2 text-center">Utilities</h2>
+            <p className="text-gray-300 text-sm text-center mb-6">
+              Jump to the actions that produce shareable outputs.
             </p>
-            <div className="text-center text-gray-500 italic">Cross-platform sync coming soon.</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <a href="/studio" className="px-4 py-3 rounded-xl bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white font-semibold text-center">
+                Open Studio
+              </a>
+              <a href="/features" className="px-4 py-3 rounded-xl bg-[#2A2A2A] border border-[#3A3A3A] text-white font-semibold text-center hover:bg-[#3A3A3A]">
+                Choose transcript template
+              </a>
+              <a href="/missions" className="px-4 py-3 rounded-xl bg-[#2A2A2A] border border-[#3A3A3A] text-white font-semibold text-center hover:bg-[#3A3A3A]">
+                Explore missions
+              </a>
+              <a href="/farcaster-miniapp/player" className="px-4 py-3 rounded-xl bg-[#2A2A2A] border border-[#3A3A3A] text-white font-semibold text-center hover:bg-[#3A3A3A]">
+                Open player
+              </a>
+            </div>
           </div>
         </div>
 
-        {/* Technical Details */}
+        {/* Minimal technical details (kept concise to prevent bloat) */}
         <div className="voisss-card max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-white mb-6 text-center">Technical Architecture</h2>
+          <h2 className="text-2xl font-bold text-white mb-4 text-center">Under the hood</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h3 className="text-lg font-semibold text-[#7C5DFA] mb-3">Blockchain Layer</h3>
-              <ul className="space-y-2 text-gray-300 text-sm">
-                <li>• Base L2 for scalable storage</li>
-                <li>• IPFS for decentralized file hosting</li>
-                <li>• Smart contracts for metadata</li>
-                <li>• Cross-chain compatibility</li>
-              </ul>
+              <h3 className="text-lg font-semibold text-[#7C5DFA] mb-2">Storage</h3>
+              <p className="text-gray-300 text-sm">
+                Recordings are stored on IPFS with metadata anchored on Base.
+              </p>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-[#7C5DFA] mb-3">AI Integration</h3>
-              <ul className="space-y-2 text-gray-300 text-sm">
-                <li>• ElevenLabs voice transformation</li>
-                <li>• Real-time audio processing</li>
-                <li>• Multiple voice models</li>
-                <li>• Quality preservation</li>
-              </ul>
+              <h3 className="text-lg font-semibold text-[#7C5DFA] mb-2">AI</h3>
+              <p className="text-gray-300 text-sm">
+                Voice transformation and dubbing are powered by ElevenLabs; transcripts can be generated with word-level timestamps.
+              </p>
             </div>
           </div>
         </div>

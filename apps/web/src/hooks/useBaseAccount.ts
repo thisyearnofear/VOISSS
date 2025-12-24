@@ -163,7 +163,7 @@ export function useBaseAccount(): UseBaseAccountReturn {
     }
   }, [isConnecting, provider]);
 
-  const disconnect = useCallback(() => {
+  const disconnect = useCallback(async () => {
     setIsConnected(false);
     setUniversalAddress(null);
     setCurrentPermission(null);

@@ -47,7 +47,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { colors, theme, globalStyles } from "@voisss/ui";
 import { useOnboardingStore } from "../../store/onboardingStore";
 import { useFeatureGating, useUpgradePrompts } from "../../utils/featureGating";
-import { formatDuration, createPersistentMissionService, type Mission } from "@voisss/shared";
+import { formatDuration } from "../../utils/formatting";
+import type { Mission } from "../../types";
+
+// Mobile-isolated Mission Service stub
+const createPersistentMissionService = () => ({
+  getActiveMissions: async () => [],
+  getMissions: async () => [],
+  submitMissionRecording: async () => ({ success: true }),
+});
 
 // Top navigation items
 const topNavItems = [
