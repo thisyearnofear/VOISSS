@@ -11,7 +11,7 @@ if (!apiKey) {
 const genAI = new GoogleGenerativeAI(apiKey || "");
 
 export const model = genAI.getGenerativeModel({
-  model: "gemini-2.0-flash-exp", // Upgraded to Gemini 2.0 Flash for superior multimodal reasoning
+  model: "gemini-3-flash", // Upgraded to Gemini 3 Flash (released Dec 2025) for bleeding-edge speed and intelligence
 });
 
 export async function generateContentFromAudio(
@@ -33,39 +33,26 @@ export async function generateContentFromAudio(
     }
   `;
 
-  try {
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          mimeType: mimeType,
-          data: audioBase64,
-        },
+  const result = await model.generateContent([
+    prompt,
+    {
+      inlineData: {
+        mimeType: mimeType,
+        data: audioBase64,
       },
-    ]);
+    },
+  ]);
 
-    const response = await result.response;
-    const text = response.text();
+  const response = await result.response;
+  const text = response.text();
 
-    // Clean up the response if it includes markdown code blocks
-    const jsonString = text
-      .replace(/```json\n|\n```/g, "")
-      .replace(/```/g, "")
-      .trim();
+  // Clean up the response if it includes markdown code blocks
+  const jsonString = text.replace(/```json\n|\n```/g, "").trim();
 
-    try {
-      return JSON.parse(jsonString);
-    } catch (parseError) {
-      console.error(
-        "Failed to parse Gemini response. Raw text:",
-        text,
-        "Error:",
-        parseError
-      );
-      throw new Error("Failed to parse AI insights from Gemini response");
-    }
+  try {
+    return JSON.parse(jsonString);
   } catch (error) {
-    console.error("Gemini generation failed:", error);
-    throw error;
+    console.error("Failed to parse Gemini response:", text, error);
+    throw new Error("Failed to parse AI insights");
   }
 }
