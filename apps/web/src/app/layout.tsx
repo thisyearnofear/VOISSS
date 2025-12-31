@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { BaseProvider } from "./providers";
 import Nav from "../components/Nav";
-import VoiceAssistantWrapper from "../components/VoiceAssistantWrapper";
+import VoiceAssistant from "../components/VoiceAssistant";
 import "./globals.css";
-
-
 
 const inter = Inter({
   variable: "--font-inter",
@@ -25,7 +23,7 @@ export const metadata: Metadata = {
     "voice cloning",
     "ElevenLabs",
     "Web3",
-    "SocialFi"
+    "SocialFi",
   ],
   authors: [{ name: "VOISSS Team" }],
   creator: "VOISSS",
@@ -35,14 +33,16 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://voisss.vercel.app'),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_BASE_URL || "https://voisss.vercel.app"
+  ),
   alternates: {
-    canonical: '/',
+    canonical: "/",
   },
   openGraph: {
     title: "VOISSS | Morph Your Voice",
     description: "Transform your voice with AI, store securely onchain.",
-    url: process.env.NEXT_PUBLIC_BASE_URL || 'https://voisss.vercel.app',
+    url: process.env.NEXT_PUBLIC_BASE_URL || "https://voisss.vercel.app",
     siteName: "VOISSS",
     locale: "en_US",
     type: "website",
@@ -67,9 +67,9 @@ export const metadata: Metadata = {
     googleBot: {
       index: true,
       follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
     },
   },
   verification: {
@@ -94,7 +94,11 @@ export default function RootLayout({
       <head>
         {/* Preconnect to external domains */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin=""
+        />
 
         {/* Favicon */}
         <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -127,14 +131,16 @@ export default function RootLayout({
           </>
         )}
       </head>
-      <body className={`${inter.variable} antialiased`}>
+      <body
+        className={`${inter.variable} antialiased`}
+        suppressHydrationWarning={true}
+      >
         <BaseProvider>
           <Nav />
           {children}
-          <VoiceAssistantWrapper />
+          <VoiceAssistant />
         </BaseProvider>
       </body>
-
     </html>
   );
 }

@@ -3,7 +3,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
 if (!apiKey) {
-  console.warn("Neither GEMINI_API_KEY nor GOOGLE_API_KEY is set in environment variables");
+  console.warn(
+    "Neither GEMINI_API_KEY nor GOOGLE_API_KEY is set in environment variables"
+  );
 }
 
 const genAI = new GoogleGenerativeAI(apiKey || "");
@@ -12,7 +14,10 @@ export const model = genAI.getGenerativeModel({
   model: "gemini-3-flash", // Upgraded to Gemini 3 Flash (released Dec 2025) for bleeding-edge speed and intelligence
 });
 
-export async function generateContentFromAudio(audioBase64: string, mimeType: string) {
+export async function generateContentFromAudio(
+  audioBase64: string,
+  mimeType: string
+) {
   if (!apiKey) {
     throw new Error("Google API Key is missing");
   }
@@ -33,9 +38,9 @@ export async function generateContentFromAudio(audioBase64: string, mimeType: st
     {
       inlineData: {
         mimeType: mimeType,
-        data: audioBase64
-      }
-    }
+        data: audioBase64,
+      },
+    },
   ]);
 
   const response = await result.response;
@@ -47,7 +52,7 @@ export async function generateContentFromAudio(audioBase64: string, mimeType: st
   try {
     return JSON.parse(jsonString);
   } catch (error) {
-    console.error("Failed to parse Gemini response:", text);
+    console.error("Failed to parse Gemini response:", text, error);
     throw new Error("Failed to parse AI insights");
   }
 }

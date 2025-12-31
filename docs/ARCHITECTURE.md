@@ -41,7 +41,8 @@ voisss/
 - **Wallets**: Base Account integration with Sub Accounts for gasless transactions
 
 #### AI & Audio
-- **Voice AI**: ElevenLabs API for voice transformation
+- **Voice AI**: ElevenLabs API for voice transformation & Conversational AI (WebSocket)
+- **Intelligence**: Google Gemini 3.0 Flash (via ElevenLabs Agent or direct API)
 - **Audio Processing**: Web Audio API, React Native Audio
 - **Storage**: IPFS for decentralized content storage
 
@@ -50,6 +51,7 @@ voisss/
 ### ✅ Web App - PRODUCTION READY
 
 #### Complete Features
+- **Intelligent Voice Assistant**: Dual-mode (WebSocket/Manual) Conversational AI powered by Gemini 3.0
 - **AI Voice Transformation**: Full ElevenLabs integration with 29+ languages
 - **Base Chain Integration**: Complete wallet connection, smart contract interaction with gasless transactions
 - **IPFS Storage**: Decentralized recording storage and metadata

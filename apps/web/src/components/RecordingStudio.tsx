@@ -1,11 +1,18 @@
 "use client";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import React, { useState, useCallback, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useBaseAccount } from "../hooks/useBaseAccount";
 import { useWebAudioRecording } from "../hooks/useWebAudioRecording";
 import { useFreemiumStore } from "../store/freemiumStore";
-import { createIPFSService, createBaseRecordingService, crossPlatformStorage } from "@voisss/shared";
+import {
+  createIPFSService,
+  createBaseRecordingService,
+  crossPlatformStorage,
+} from "@voisss/shared";
 import { SocialShare } from "@voisss/ui";
 import DubbingPanel from "./dubbing/DubbingPanel";
 import { VoiceRecordsABI } from "../contracts/VoiceRecordsABI";
@@ -29,7 +36,7 @@ import GeminiInsightsPanel from "./RecordingStudio/GeminiInsightsPanel";
 interface RecordingStudioProps {
   onRecordingComplete?: (audioBlob: Blob, duration: number) => void;
   initialTranscriptTemplateId?: string;
-  initialMode?: 'transcript' | string;
+  initialMode?: "transcript" | string;
 }
 
 interface ShareableRecording {
@@ -84,7 +91,9 @@ export default function RecordingStudio({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // AI Voice state
-  const [voicesFree, setVoicesFree] = useState<{ voiceId: string; name?: string }[]>([]);
+  const [voicesFree, setVoicesFree] = useState<
+    { voiceId: string; name?: string }[]
+  >([]);
   const [selectedVoiceFree, setSelectedVoiceFree] = useState("");
   const [variantBlobFree, setVariantBlobFree] = useState<Blob | null>(null);
   const [isLoadingVoicesFree, setLoadingVoicesFree] = useState(false);
@@ -92,11 +101,12 @@ export default function RecordingStudio({
 
   // Toast state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [toastType, setToastType] = useState<'success' | 'error'>('error');
-  
+  const [toastType, setToastType] = useState<"success" | "error">("error");
+
   // Gas saving fallback
   const [isDirectSaving, setIsDirectSaving] = useState(false);
-  const contractAddress = process.env.NEXT_PUBLIC_VOICE_RECORDS_CONTRACT as `0x${string}`;
+  const contractAddress = process.env
+    .NEXT_PUBLIC_VOICE_RECORDS_CONTRACT as `0x${string}`;
 
   // Dubbing state
   const [dubbedBlob, setDubbedBlob] = useState<Blob | null>(null);
@@ -110,7 +120,9 @@ export default function RecordingStudio({
   });
 
   // Sharing state
-  const [savedRecordings, setSavedRecordings] = useState<ShareableRecording[]>([]);
+  const [savedRecordings, setSavedRecordings] = useState<ShareableRecording[]>(
+    []
+  );
   const [showSharing, setShowSharing] = useState(false);
 
   // Auth and wallet state
@@ -138,10 +150,10 @@ export default function RecordingStudio({
           // Note: This is sync, but we're calling an async storage getter
           // For now, return null - the async value would need to be fetched separately
           return null;
-        }
+        },
       });
     } catch (error) {
-      console.warn('Base recording service not available:', error);
+      console.warn("Base recording service not available:", error);
       return null;
     }
   }, [universalAddress, contractAddress]);
@@ -162,9 +174,9 @@ export default function RecordingStudio({
   // Effects
   useEffect(() => {
     if (isAuthenticated && address) {
-      setUserTier('free');
+      setUserTier("free");
     } else {
-      setUserTier('guest');
+      setUserTier("guest");
     }
   }, [isAuthenticated, address, setUserTier]);
 
@@ -240,13 +252,16 @@ export default function RecordingStudio({
     });
   };
 
-  const handleApplyInsights = useCallback((data: { title: string; summary: string; tags: string[] }) => {
-    setRecordingTitle(data.title);
-    setRecordingDescription(data.summary);
-    setRecordingTags(data.tags);
-    setToastType('success');
-    setToastMessage('AI Insights applied!');
-  }, []);
+  const handleApplyInsights = useCallback(
+    (data: { title: string; summary: string; tags: string[] }) => {
+      setRecordingTitle(data.title);
+      setRecordingDescription(data.summary);
+      setRecordingTags(data.tags);
+      setToastType("success");
+      setToastMessage("AI Insights applied!");
+    },
+    []
+  );
 
   // Utilities
   const formatFileSize = useCallback((bytes: number): string => {
@@ -262,7 +277,8 @@ export default function RecordingStudio({
       const url = URL.createObjectURL(audioBlob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = recordingTitle || `recording-${new Date().toISOString()}.webm`;
+      a.download =
+        recordingTitle || `recording-${new Date().toISOString()}.webm`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -271,145 +287,179 @@ export default function RecordingStudio({
   }, [audioBlob, recordingTitle]);
 
   // Core save functions
-  const saveRecordingToBase = useCallback(async (audioBlob: Blob, metadata: any) => {
-    if (!baseRecordingService) {
-      throw new Error('Base recording contract not configured. Please deploy the contract first.');
-    }
+  const saveRecordingToBase = useCallback(
+    async (audioBlob: Blob, metadata: any) => {
+      if (!baseRecordingService) {
+        throw new Error(
+          "Base recording contract not configured. Please deploy the contract first."
+        );
+      }
 
-    if (!isConnected || !permissionActive) {
-      throw new Error('Base Account not connected or permission not granted.');
-    }
+      if (!isConnected || !permissionActive) {
+        throw new Error(
+          "Base Account not connected or permission not granted."
+        );
+      }
 
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `${metadata.title.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.mp3`;
-
-    const ipfsResult = await ipfsService.uploadAudio(audioBlob, {
-      filename,
-      mimeType: audioBlob.type || 'audio/mpeg',
-      duration: duration,
-    });
-
-    const txId = await baseRecordingService.saveRecording(ipfsResult.hash, {
-      title: metadata.title,
-      description: metadata.description,
-      isPublic: metadata.isPublic,
-      tags: metadata.tags,
-    });
-
-    return { ipfsHash: ipfsResult.hash, txId };
-  }, [baseRecordingService, isConnected, permissionActive, ipfsService, duration]);
-
-  const saveRecordingWithGas = useCallback(async (
-    audioBlob: Blob, 
-    metadata: { title: string; description: string; isPublic: boolean; tags: string[] }
-  ) => {
-    if (!window.ethereum) {
-      throw new Error('No wallet detected. Please install a wallet like MetaMask.');
-    }
-
-    if (!contractAddress) {
-      throw new Error('Contract not deployed. Please contact support.');
-    }
-
-    setIsDirectSaving(true);
-
-    try {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const filename = `${metadata.title.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.mp3`;
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const filename = `${metadata.title.replace(
+        /[^a-zA-Z0-9]/g,
+        "_"
+      )}_${timestamp}.mp3`;
 
       const ipfsResult = await ipfsService.uploadAudio(audioBlob, {
         filename,
-        mimeType: audioBlob.type || 'audio/mpeg',
+        mimeType: audioBlob.type || "audio/mpeg",
         duration: duration,
       });
 
-      const walletClient = createWalletClient({
-        chain: base,
-        transport: custom(window.ethereum as any),
+      const txId = await baseRecordingService.saveRecording(ipfsResult.hash, {
+        title: metadata.title,
+        description: metadata.description,
+        isPublic: metadata.isPublic,
+        tags: metadata.tags,
       });
 
-      const [account] = await walletClient.getAddresses();
+      return { ipfsHash: ipfsResult.hash, txId };
+    },
+    [baseRecordingService, isConnected, permissionActive, ipfsService, duration]
+  );
 
-      const data = encodeFunctionData({
-        abi: VoiceRecordsABI,
-        functionName: 'saveRecording',
-        args: [ipfsResult.hash, metadata.title, metadata.isPublic],
-      });
+  const saveRecordingWithGas = useCallback(
+    async (
+      audioBlob: Blob,
+      metadata: {
+        title: string;
+        description: string;
+        isPublic: boolean;
+        tags: string[];
+      }
+    ) => {
+      if (!window.ethereum) {
+        throw new Error(
+          "No wallet detected. Please install a wallet like MetaMask."
+        );
+      }
 
-      const txHash = await walletClient.sendTransaction({
-        account,
-        to: contractAddress,
-        data,
-      });
+      if (!contractAddress) {
+        throw new Error("Contract not deployed. Please contact support.");
+      }
 
-      setToastType('success');
-      setToastMessage(`Recording saved to blockchain! Tx: ${txHash.slice(0, 10)}...`);
+      setIsDirectSaving(true);
 
-      return { ipfsHash: ipfsResult.hash, txHash };
-    } finally {
-      setIsDirectSaving(false);
-    }
-  }, [contractAddress, ipfsService, duration, setToastType, setToastMessage]);
+      try {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const filename = `${metadata.title.replace(
+          /[^a-zA-Z0-9]/g,
+          "_"
+        )}_${timestamp}.mp3`;
+
+        const ipfsResult = await ipfsService.uploadAudio(audioBlob, {
+          filename,
+          mimeType: audioBlob.type || "audio/mpeg",
+          duration: duration,
+        });
+
+        const walletClient = createWalletClient({
+          chain: base,
+          transport: custom(window.ethereum as any),
+        });
+
+        const [account] = await walletClient.getAddresses();
+
+        const data = encodeFunctionData({
+          abi: VoiceRecordsABI,
+          functionName: "saveRecording",
+          args: [ipfsResult.hash, metadata.title, metadata.isPublic],
+        });
+
+        const txHash = await walletClient.sendTransaction({
+          account,
+          to: contractAddress,
+          data,
+        });
+
+        setToastType("success");
+        setToastMessage(
+          `Recording saved to blockchain! Tx: ${txHash.slice(0, 10)}...`
+        );
+
+        return { ipfsHash: ipfsResult.hash, txHash };
+      } finally {
+        setIsDirectSaving(false);
+      }
+    },
+    [contractAddress, ipfsService, duration, setToastType, setToastMessage]
+  );
 
   // Main save handler
   const handleSaveSelectedVersions = useCallback(async () => {
     if (!audioBlob) return;
 
-    const versionsToSave = Object.values(selectedVersions).filter(Boolean).length;
+    const versionsToSave =
+      Object.values(selectedVersions).filter(Boolean).length;
     if (versionsToSave === 0) {
-      setToastType('error');
-      setToastMessage('Please select at least one version to save');
+      setToastType("error");
+      setToastMessage("Please select at least one version to save");
       return;
     }
 
     // Validation checks
     if (!canSaveRecording()) {
-      if (userTier === 'guest') {
+      if (userTier === "guest") {
         try {
           await signIn();
         } catch (error) {
-          setToastType('error');
-          setToastMessage('Sign-in failed. Please try again.');
+          setToastType("error");
+          setToastMessage("Sign-in failed. Please try again.");
           return;
         }
       } else {
-        setToastType('error');
-        setToastMessage('Weekly save limit reached. Upgrade for unlimited saves!');
+        setToastType("error");
+        setToastMessage(
+          "Weekly save limit reached. Upgrade for unlimited saves!"
+        );
         return;
       }
     }
 
     if (!isConnected) {
-      setToastType('error');
-      setToastMessage('Please connect your Base Account first.');
+      setToastType("error");
+      setToastMessage("Please connect your Base Account first.");
       return;
     }
 
     if (!permissionActive) {
-      setToastType('error');
-      setToastMessage('Please grant spend permission first for gasless saves.');
+      setToastType("error");
+      setToastMessage("Please grant spend permission first for gasless saves.");
       return;
     }
 
-    if (userTier === 'free' && versionsToSave > remainingQuota.saves) {
-      setToastType('error');
-      setToastMessage(`Not enough saves remaining. You have ${remainingQuota.saves} saves left but selected ${versionsToSave} versions.`);
+    if (userTier === "free" && versionsToSave > remainingQuota.saves) {
+      setToastType("error");
+      setToastMessage(
+        `Not enough saves remaining. You have ${remainingQuota.saves} saves left but selected ${versionsToSave} versions.`
+      );
       return;
     }
 
     try {
-      const baseTitle = recordingTitle || `Recording ${new Date().toLocaleString()}`;
+      const baseTitle =
+        recordingTitle || `Recording ${new Date().toLocaleString()}`;
       const results: SaveResult[] = [];
 
       if (selectedVersions.original && audioBlob) {
         const result = await saveRecordingToBase(audioBlob, {
           title: baseTitle,
-          description: recordingDescription || 'Original recording',
+          description: recordingDescription || "Original recording",
           isPublic: true,
-          tags: recordingTags.length > 0 ? [...recordingTags, 'original'] : ['original'],
+          tags:
+            recordingTags.length > 0
+              ? [...recordingTags, "original"]
+              : ["original"],
         });
         results.push({
-          type: 'original',
+          type: "original",
           success: true,
           error: null,
           ipfsHash: result.ipfsHash,
@@ -430,10 +480,10 @@ export default function RecordingStudio({
           title: `${baseTitle} (AI Voice)`,
           description: `AI voice transformation using ${selectedVoiceFree}\n${recordingDescription}`,
           isPublic: true,
-          tags: ['ai-voice', selectedVoiceFree, ...recordingTags],
+          tags: ["ai-voice", selectedVoiceFree, ...recordingTags],
         });
         results.push({
-          type: 'ai-voice',
+          type: "ai-voice",
           success: true,
           error: null,
           ipfsHash: result.ipfsHash,
@@ -454,10 +504,10 @@ export default function RecordingStudio({
           title: `${baseTitle} (${dubbedLanguage})`,
           description: `Dubbed to ${dubbedLanguage}\n${recordingDescription}`,
           isPublic: true,
-          tags: ['dubbed', dubbedLanguage, ...recordingTags],
+          tags: ["dubbed", dubbedLanguage, ...recordingTags],
         });
         results.push({
-          type: 'dubbed',
+          type: "dubbed",
           success: true,
           error: null,
           ipfsHash: result.ipfsHash,
@@ -473,16 +523,20 @@ export default function RecordingStudio({
         incrementSaveUsage();
       }
 
-      const successCount = results.filter(r => r.success).length;
-      const failCount = results.filter(r => !r.success).length;
+      const successCount = results.filter((r) => r.success).length;
+      const failCount = results.filter((r) => !r.success).length;
 
       if (successCount > 0) {
-        setToastType('success');
-        setToastMessage(`${successCount} version${successCount > 1 ? 's' : ''} saved successfully!`);
+        setToastType("success");
+        setToastMessage(
+          `${successCount} version${
+            successCount > 1 ? "s" : ""
+          } saved successfully!`
+        );
 
         const newSavedRecordings = results
-          .filter(r => r.success)
-          .map(r => r.recording);
+          .filter((r) => r.success)
+          .map((r) => r.recording);
         setSavedRecordings(newSavedRecordings);
         setShowSharing(true);
 
@@ -492,8 +546,10 @@ export default function RecordingStudio({
       }
 
       if (failCount > 0) {
-        setToastType('error');
-        setToastMessage(`${failCount} version${failCount > 1 ? 's' : ''} failed to save`);
+        setToastType("error");
+        setToastMessage(
+          `${failCount} version${failCount > 1 ? "s" : ""} failed to save`
+        );
       }
 
       if (successCount === versionsToSave) {
@@ -503,15 +559,32 @@ export default function RecordingStudio({
         setRecordingTags([]);
       }
     } catch (error) {
-      console.error('Error saving recordings:', error);
-      setToastType('error');
-      setToastMessage('Error saving recordings');
+      console.error("Error saving recordings:", error);
+      setToastType("error");
+      setToastMessage("Error saving recordings");
     }
   }, [
-    audioBlob, variantBlobFree, dubbedBlob, selectedVersions, recordingTitle, duration,
-    selectedVoiceFree, dubbedLanguage, canSaveRecording, userTier, remainingQuota.saves,
-    incrementSaveUsage, onRecordingComplete, saveRecordingToBase, recordingDescription, recordingTags,
-    setToastType, setToastMessage, isConnected, permissionActive, signIn
+    audioBlob,
+    variantBlobFree,
+    dubbedBlob,
+    selectedVersions,
+    recordingTitle,
+    duration,
+    selectedVoiceFree,
+    dubbedLanguage,
+    canSaveRecording,
+    userTier,
+    remainingQuota.saves,
+    incrementSaveUsage,
+    onRecordingComplete,
+    saveRecordingToBase,
+    recordingDescription,
+    recordingTags,
+    setToastType,
+    setToastMessage,
+    isConnected,
+    permissionActive,
+    signIn,
   ]);
 
   return (
@@ -534,9 +607,9 @@ export default function RecordingStudio({
 
       {/* Core Components */}
       <DurationDisplay duration={duration} />
-      <WaveformVisualization 
-        waveformData={waveformData} 
-        isRecording={isRecording} 
+      <WaveformVisualization
+        waveformData={waveformData}
+        isRecording={isRecording}
       />
       <RecordingControls
         isRecording={isRecording}
@@ -565,7 +638,7 @@ export default function RecordingStudio({
               Save Recording
             </h3>
 
-            <AudioPreview 
+            <AudioPreview
               previewUrl={previewUrl}
               audioBlob={audioBlob}
               formatFileSize={formatFileSize}
@@ -577,7 +650,7 @@ export default function RecordingStudio({
                 durationSeconds={duration}
                 audioBlob={audioBlob}
                 initialTemplateId={initialTranscriptTemplateId}
-                autoFocus={initialMode === 'transcript'}
+                autoFocus={initialMode === "transcript"}
               />
             )}
 
@@ -622,7 +695,9 @@ export default function RecordingStudio({
             audioBlob={audioBlob}
             userTier={userTier}
             remainingQuota={remainingQuota}
-            WEEKLY_AI_VOICE_LIMIT={useFreemiumStore.getState().WEEKLY_AI_VOICE_LIMIT}
+            WEEKLY_AI_VOICE_LIMIT={
+              useFreemiumStore.getState().WEEKLY_AI_VOICE_LIMIT
+            }
             onVoicesFreeChange={setVoicesFree}
             onSelectedVoiceFreeChange={setSelectedVoiceFree}
             onVariantBlobFreeChange={setVariantBlobFree}
@@ -639,7 +714,7 @@ export default function RecordingStudio({
             onDubbingComplete={(dubbedBlob, language) => {
               setDubbedBlob(dubbedBlob);
               setDubbedLanguage(language);
-              setSelectedVersions(prev => ({ ...prev, dubbed: true }));
+              setSelectedVersions((prev) => ({ ...prev, dubbed: true }));
             }}
           />
 

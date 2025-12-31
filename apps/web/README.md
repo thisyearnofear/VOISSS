@@ -7,6 +7,7 @@ VOISSS is a cutting-edge platform for transforming, securing, and insights-drive
 ## ✅ **CURRENT STATUS: PRODUCTION READY**
 
 - ✅ **Gemini 3.0 Integration**: Frontier intelligence for insights and agentic commands.
+- ✅ **ElevenLabs Conversational AI**: Official WebSocket SDK integration for low-latency voice chat.
 - ✅ **ElevenLabs Synthesis**: High-fidelity voice morphing and multi-lang dubbing.
 - ✅ **Base Blockchain**: Secure, on-chain indexing of vocal artifacts.
 - ✅ **Gasless Experience**: Zero-friction saves via smart account infrastructure.
@@ -31,7 +32,10 @@ VOISSS is a cutting-edge platform for transforming, securing, and insights-drive
    cd apps/web
    cp env.example .env.local
    ```
-   Edit `.env.local` with your `GEMINI_API_KEY` and `ELEVENLABS_API_KEY`.
+   Edit `.env.local`:
+   - `GEMINI_API_KEY`: For insights.
+   - `ELEVENLABS_API_KEY`: For voice transformation.
+   - `NEXT_PUBLIC_ELEVENLABS_AGENT_ID`: (Optional) For official low-latency Conversational AI.
 
 3. **Start development server**:
    ```bash
@@ -43,7 +47,7 @@ VOISSS is a cutting-edge platform for transforming, securing, and insights-drive
 
 - **Framework**: Next.js 14 (App Router)
 - **AI Brain**: Google Gemini 3.0 Flash
-- **Voice Engine**: ElevenLabs (Mulitlingual v2)
+- **Voice Engine**: ElevenLabs (Mulitlingual v2 + Conversational AI WebSocket)
 - **Blockchain**: Base (L2)
 - **Styling**: Tailwind CSS
 - **State**: React Context + Zustand
@@ -52,7 +56,11 @@ VOISSS is a cutting-edge platform for transforming, securing, and insights-drive
 ## ✨ Key Features
 
 ### 🎙️ Intelligent Voice Assistant
-Talk to VOISSS using your voice. Powered by **Gemini 3.0 Flash**, our assistant understands context and can even control the app through agentic commands like "[ACTION:studio]".
+Talk to VOISSS using your voice. Uses a dual-mode architecture:
+1.  **Official Mode**: Low-latency WebSocket connection via ElevenLabs Conversational AI (requires Agent ID).
+2.  **Manual Mode**: Robust fallback using browser speech recognition + Gemini + TTS.
+
+Powered by **Gemini 3.0 Flash** (via ElevenLabs Agent), it understands context and performs agentic commands like "[ACTION:studio]".
 
 ### 🎭 AI Voice Transformation
 Morph your recordings into professional AI personas. Preservation of emotion and intonation, perfect for content creators.

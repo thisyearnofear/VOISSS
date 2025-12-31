@@ -24,6 +24,7 @@ NEXT_PUBLIC_PINATA_API_SECRET=your_pinata_secret
 
 # Required for AI features (existing)
 NEXT_PUBLIC_ELEVENLABS_API_KEY=your_elevenlabs_key
+NEXT_PUBLIC_ELEVENLABS_AGENT_ID=your_agent_id # Optional: For official conversational AI
 ```
 
 ### 3. Deploy Contract (One-time)
