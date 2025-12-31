@@ -16,8 +16,8 @@
     "update:contract": "node scripts/update-contract-address.js"
   },
   "dependencies": {
-    "@11labs/react": "0.2.0",
     "@base-org/account": "^2.4.0",
+    "@elevenlabs/react": "0.12.3",
     "@farcaster/miniapp-sdk": "0.2.1",
     "@google/generative-ai": "0.24.1",
     "@neynar/nodejs-sdk": "^1.0.0",

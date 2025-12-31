@@ -187,12 +187,12 @@ importers:
 
   apps/web:
     dependencies:
-      '@11labs/react':
-        specifier: 0.2.0
-        version: 0.2.0(@types/dom-mediacapture-record@1.0.22)(react@18.2.0)
       '@base-org/account':
         specifier: ^2.4.0
         version: 2.4.0(@types/react@18.3.27)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.2.0)(typescript@5.8.3)(ws@8.18.3)
+      '@elevenlabs/react':
+        specifier: 0.12.3
+        version: 0.12.3(@types/dom-mediacapture-record@1.0.22)(react@18.2.0)
       '@farcaster/miniapp-sdk':
         specifier: 0.2.1
         version: 0.2.1(typescript@5.8.3)
@@ -381,27 +381,6 @@ packages:
     peerDependenciesMeta:
       graphql:
         optional: true
-    dev: false
-
-  /@11labs/client@0.2.0(@types/dom-mediacapture-record@1.0.22):
-    resolution: {integrity: sha512-GBplAV4WDbcoThsIzdSDPN3xbcitK0ZZ4iJfJZKfltqvgvS6Uw8GZxHwVgiPwnQoA3uosYyY3L9TuPwmel18xQ==}
-    deprecated: This package is no longer maintained. Please use @elevenlabs/client for the latest version
-    dependencies:
-      livekit-client: 2.16.1(@types/dom-mediacapture-record@1.0.22)
-    transitivePeerDependencies:
-      - '@types/dom-mediacapture-record'
-    dev: false
-
-  /@11labs/react@0.2.0(@types/dom-mediacapture-record@1.0.22)(react@18.2.0):
-    resolution: {integrity: sha512-YxUwMvW4Gjd+WixS3VrKFUv0pkqI6dk/BCvRgkpR8uBr3BwnMMpZv+7Qrp1EeHixv8gEv5TeAuWEfh2lf2Pf1w==}
-    deprecated: This package is no longer maintained. Please use @elevenlabs/react for the latest version
-    peerDependencies:
-      react: 18.2.0
-    dependencies:
-      '@11labs/client': 0.2.0(@types/dom-mediacapture-record@1.0.22)
-      react: 18.2.0
-    transitivePeerDependencies:
-      - '@types/dom-mediacapture-record'
     dev: false
 
   /@adraffy/ens-normalize@1.10.1:
@@ -1787,6 +1766,30 @@ packages:
     engines: {node: '>=0.8.0'}
     dependencies:
       '@types/hammerjs': 2.0.46
+    dev: false
+
+  /@elevenlabs/client@0.12.2(@types/dom-mediacapture-record@1.0.22):
+    resolution: {integrity: sha512-QWllhDndFfKmftlktNoa35+AF3gOCbSHowYhR42ZHb5u32lFbMPbh2BALCrpFa3edqCHSXtzG6zzLSAGjkhvHQ==}
+    dependencies:
+      '@elevenlabs/types': 0.4.0
+      livekit-client: 2.16.1(@types/dom-mediacapture-record@1.0.22)
+    transitivePeerDependencies:
+      - '@types/dom-mediacapture-record'
+    dev: false
+
+  /@elevenlabs/react@0.12.3(@types/dom-mediacapture-record@1.0.22)(react@18.2.0):
+    resolution: {integrity: sha512-fQJlabwuvQziBCCNcxlXZt5GVxcPHjwb46NtSEbLJY0zaOUtWJynRX4kPfbz7ChqnMe7FAHYnrq2XsaSzpQXLQ==}
+    peerDependencies:
+      react: 18.2.0
+    dependencies:
+      '@elevenlabs/client': 0.12.2(@types/dom-mediacapture-record@1.0.22)
+      react: 18.2.0
+    transitivePeerDependencies:
+      - '@types/dom-mediacapture-record'
+    dev: false
+
+  /@elevenlabs/types@0.4.0:
+    resolution: {integrity: sha512-6CQb4r9DjepILhLybDxW0h8rvbsR8jPAp74HvFGYuvYdXcQRTkYTD9BQ4PV6VcuC1iqx0UljzJj8js3ADQ8EXw==}
     dev: false
 
   /@emnapi/core@1.5.0:

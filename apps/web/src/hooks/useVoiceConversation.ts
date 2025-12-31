@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useConversation } from "@11labs/react";
+import { useConversation } from "@elevenlabs/react";
 
 // --- Types ---
 
