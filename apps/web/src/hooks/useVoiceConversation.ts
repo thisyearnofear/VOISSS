@@ -261,7 +261,10 @@ export function useVoiceConversation({
       connect: async () => {
         try {
           await navigator.mediaDevices.getUserMedia({ audio: true });
-          await officialConversation.startSession({ agentId: agentId! });
+          await officialConversation.startSession({
+            agentId: agentId!,
+            connectionType: "websocket",
+          });
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
           setOfficialError(e.message || "Failed to connect");
