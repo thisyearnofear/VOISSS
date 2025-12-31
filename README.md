@@ -61,17 +61,39 @@
 - **Mobile Flutter**: iOS native exploration ⏸️ **ON HOLD**
 - **Sync**: Cross-platform data synchronization (Web ready, mobile in development)
 
-### 🤖 AI Partner Catalyst Hackathon Features (ElevenLabs Challenge)
+### 🏆 AI Partner Catalyst Hackathon Submission
 
-**Voice-Powered AI Assistant** - Combining Google Cloud Gemini with ElevenLabs Conversational AI:
+### ## Inspiration
+VOISSS was born from a pivotal question: In an era where AI can synthesize any voice in seconds, who truly owns your acoustic identity? As we move toward an AI-agent economy, our voices are becoming our most valuable digital signatures. We were inspired to build a platform that doesn't just "process" voice, but empowers it—giving creators and global citizens a way to transform their vocal expression while maintaining sovereign ownership through decentralized infrastructure.
 
-- **🎙️ Voice Assistant**: Talk to VOISSS using your voice - ask questions, get help, interact through speech
-- **🧠 Gemini Intelligence**: Google Gemini 1.5 Flash powers the AI brain - understanding context and generating intelligent responses  
-- **🔊 ElevenLabs Voice**: Natural, human-like voice responses using ElevenLabs text-to-speech
-- **💬 Conversational AI**: Full chat history, context awareness, and natural conversation flow
-- **✨ AI Insights**: Analyze recordings to generate summaries, tags, and action items
+### ## What it does
+VOISSS is a decentralized AI voice protocol that allows users to record, transform, and secure their voices on-chain. It features:
+*   **🎭 AI Voice Transformation**: Morph your voice into high-fidelity AI personas using the ElevenLabs frontier model.
+*   **🎙️ Intelligent Assistant**: A premium, context-aware AI companion powered by **Gemini 3.0 Flash** that provides insights and manages recordings through agentic voice commands.
+*   **⛓️ Decentralized Storage**: Every recording is stored as a secure, on-chain artifact on IPFS and indexed via the Base blockchain.
+*   **🧠 AI Insights**: Multi-modal analysis of recordings to generate transcripts, summaries, and tags automatically.
+*   **📝 Transcript Composer**: A tool to create shareable video transcripts directly from your AI-transformed audio.
 
-**Try it**: Visit [/help](https://voisss.netlify.app/help) and click "Talk to VOISSS Assistant"
+### ## How we built it
+The stack is a cutting-edge fusion of frontier AI and Web3 infrastructure:
+*   **Frontier Intelligence**: Integrated **Google Gemini 3.0 Flash** (released Dec 2025) for lightning-fast reasoning, context-aware assistance, and multimodal insights.
+*   **Vocal Synthesis**: Leveraged **ElevenLabs** for professional-grade TTS and voice cloning to ensure emotional resonance and native accents.
+*   **Web3 Backbone**: Built on **Base** (Coinbase's L2) for gasless, high-speed on-chain recording provenance. Used Wagmi/Viem for blockchain interactions and Sub Accounts for zero-friction user onboarding.
+*   **Frontend**: Developed with **Next.js 14**, utilizing a unified Design System and a shared component architecture across web and mobile.
+
+### ## Challenges we ran into
+Integrating real-time voice interaction with decentralized protocols presented significant latency hurdles. Ensuring the AI Assistant could respond naturally while simultaneously handling blockchain state and IPFS uploads required a robust, asynchronous architecture. Coordinating the "Agentic" capabilities of Gemini—allowing it to trigger UI actions across the app—required a deep dive into state synchronization and global context management.
+
+### ## Accomplishments that we're proud of
+We are incredibly proud of achieving **Gemini 3.0 "Agentic" integration**, where the assistant doesn't just talk, but can actually control the application's navigation and workflow based on spoken intent. Successfully implementing a **gasless on-chain storage flow** that feels as smooth as a standard web app is another major win, bridging the gap between Web2 UX and Web3 security. Finally, achieving **production readiness** for our web platform within the hackathon timeframe was a significant milestone.
+
+### ## What we learned
+We learned that the true power of AI agents lies in **Context Awareness**. By feeding the assistant real-time page data and recording metadata, it transformed from a simple chatbot into a genuine productivity partner. We also deepened our understanding of the **L2 ecosystem**, particularly how to optimize metadata for on-chain permanence while maintaining the speed users expect from modern voice applications.
+
+### ## What's next for VOISSS
+The roadmap includes **Autonomous Dubbing Pipelines** where the AI can translate and dub entire video content in one click. We are also pursuing deep **Farcaster Integration** to allow "Voice Moments" to be shared directly across the decentralized social graph. Lastly, we plan to release the **VOISSS Creator SDK**, allowing other developers to build voice-powered, decentralized applications on top of our protocol.
+
+**Try it**: Visit [/help](https://voisss.vercel.app/help) and click "Talk to VOISSS Assistant"
 
 ## 🛠 Tech Stack
 

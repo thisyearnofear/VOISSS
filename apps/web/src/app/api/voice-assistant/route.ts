@@ -67,11 +67,12 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Check if Gemini is configured
-        if (!process.env.GOOGLE_API_KEY) {
+        // Check if Gemini is configured (checking both potential keys)
+        const hasGeminiKey = !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
+        if (!hasGeminiKey) {
             return NextResponse.json(
                 {
-                    response: "I'd love to help, but I'm not fully configured yet. Please check that the Google API key is set up correctly."
+                    response: "I'd love to help, but I'm not fully configured yet. Please check that the Gemini API key is set up correctly as GEMINI_API_KEY."
                 },
                 { status: 200 }
             );
@@ -122,14 +123,18 @@ Respond naturally and helpfully. Keep your response concise (2-3 sentences) unle
 
 // GET handler for health check
 export async function GET() {
-    const hasGoogleKey = !!process.env.GOOGLE_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+
+    if (!apiKey) {
+        console.warn("Neither GEMINI_API_KEY nor GOOGLE_API_KEY is set in environment variables");
+    }
     const hasElevenLabsKey = !!process.env.ELEVENLABS_API_KEY;
 
     return NextResponse.json({
         status: 'ok',
         service: 'voice-assistant',
         integrations: {
-            gemini: hasGoogleKey ? 'configured' : 'missing GOOGLE_API_KEY',
+            gemini: apiKey ? 'configured' : 'missing GEMINI_API_KEY',
             elevenlabs: hasElevenLabsKey ? 'configured' : 'missing ELEVENLABS_API_KEY'
         }
     });
