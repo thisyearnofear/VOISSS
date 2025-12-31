@@ -105,6 +105,7 @@ The web app provides a comprehensive interface for discovering, managing, and sh
 - **Recording Discovery**: Browse and search public recordings
 - **Creator Dashboard**: Manage your recordings and earnings
 - **Cross-platform Sync**: Sync with mobile app via Starknet
+- **Intelligent Voice Insights**: AI-powered summaries, tags, and action items using Google Gemini 1.5 Flash 🧠
 
 ## 🧪 Testing & Building
 

@@ -61,6 +61,18 @@
 - **Mobile Flutter**: iOS native exploration ⏸️ **ON HOLD**
 - **Sync**: Cross-platform data synchronization (Web ready, mobile in development)
 
+### 🤖 AI Partner Catalyst Hackathon Features (ElevenLabs Challenge)
+
+**Voice-Powered AI Assistant** - Combining Google Cloud Gemini with ElevenLabs Conversational AI:
+
+- **🎙️ Voice Assistant**: Talk to VOISSS using your voice - ask questions, get help, interact through speech
+- **🧠 Gemini Intelligence**: Google Gemini 1.5 Flash powers the AI brain - understanding context and generating intelligent responses  
+- **🔊 ElevenLabs Voice**: Natural, human-like voice responses using ElevenLabs text-to-speech
+- **💬 Conversational AI**: Full chat history, context awareness, and natural conversation flow
+- **✨ AI Insights**: Analyze recordings to generate summaries, tags, and action items
+
+**Try it**: Visit [/help](https://voisss.netlify.app/help) and click "Talk to VOISSS Assistant"
+
 ## 🛠 Tech Stack
 
 ```

@@ -5,10 +5,14 @@ import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useBasename } from "../hooks/useBasename";
 import { useBaseAccount } from "../hooks/useBaseAccount";
+import { useAssistant } from "../contexts/AssistantContext";
+import { Sparkles } from "lucide-react";
 
 
 export default function Nav() {
   const { address, isAuthenticated, isAuthenticating, isCheckingSession, signIn, signOut } = useAuth();
+  const { isExpanded, toggleAssistant } = useAssistant();
+
   const { displayName, hasBasename, isLoading: isResolvingBasename } = useBasename(address as `0x${string}` | null);
   const {
     isConnected,
@@ -70,7 +74,7 @@ export default function Nav() {
     name: 'Base',
     isTestnet: false
   };
-  
+
   return (
     <nav className="border-b border-[#2A2A2A] bg-[#0A0A0A]/95 backdrop-blur-sm sticky top-0 z-50">
       <div className="voisss-container">
@@ -78,29 +82,29 @@ export default function Nav() {
           <Link href="/" className="font-bold text-2xl voisss-gradient-text hover:opacity-80 transition-opacity">
             VOISSS
           </Link>
-          
+
           <div className="flex items-center gap-6">
             <div className="hidden sm:flex items-center gap-6">
-              <Link 
-                href="/platform" 
+              <Link
+                href="/platform"
                 className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
               >
                 Platform
               </Link>
-              <Link 
-                href="/features" 
+              <Link
+                href="/features"
                 className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
               >
                 Features
               </Link>
-              <Link 
-                href="/missions" 
+              <Link
+                href="/missions"
                 className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
               >
                 Missions
               </Link>
-              <Link 
-                href="/help" 
+              <Link
+                href="/help"
                 className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
               >
                 Help
@@ -112,14 +116,28 @@ export default function Nav() {
                 Transcript
               </Link>
             </div>
-            
+
+            {/* AI Assistant Toggle */}
+            <button
+              onClick={toggleAssistant}
+              className={`p-2 rounded-xl border transition-all duration-300 flex items-center gap-2 group ${isExpanded
+                ? 'bg-purple-500/20 border-purple-500/50 text-purple-400'
+                : 'bg-white/5 border-white/10 text-gray-400 hover:border-purple-500/30 hover:text-purple-400'
+                }`}
+              title="Toggle AI Assistant"
+            >
+              <Sparkles className={`w-5 h-5 transition-transform duration-500 ${isExpanded ? 'rotate-180 scale-110' : 'group-hover:rotate-12'}`} />
+              <span className="hidden lg:inline text-xs font-bold uppercase tracking-widest">Assistant</span>
+            </button>
+
             {/* Show loading state while checking session */}
+
             {isCheckingSession && (
               <div className="flex items-center gap-3">
                 <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
               </div>
             )}
-            
+
             {!isAuthenticated && !isCheckingSession && (
               <div className="flex items-center gap-3">
                 <Link
@@ -128,8 +146,8 @@ export default function Nav() {
                 >
                   Transcript
                 </Link>
-                <Link 
-                  href="/studio" 
+                <Link
+                  href="/studio"
                   className="px-3 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium"
                 >
                   Studio
@@ -155,7 +173,7 @@ export default function Nav() {
                 </button>
               </div>
             )}
-            
+
             {isAuthenticated && address && (
               <div className="relative" ref={menuRef}>
                 <button
@@ -198,20 +216,17 @@ export default function Nav() {
                           <p className="text-white font-semibold text-sm mt-0.5">Base Account</p>
                         </div>
                       </div>
-                      
+
                       {/* Network Badge */}
-                      <div className={`mb-3 px-3 py-2 rounded-lg border ${
-                        networkInfo.isTestnet
-                          ? 'bg-yellow-500/10 border-yellow-500/30'
-                          : 'bg-green-500/10 border-green-500/30'
-                      }`}>
+                      <div className={`mb-3 px-3 py-2 rounded-lg border ${networkInfo.isTestnet
+                        ? 'bg-yellow-500/10 border-yellow-500/30'
+                        : 'bg-green-500/10 border-green-500/30'
+                        }`}>
                         <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${
-                            networkInfo.isTestnet ? 'bg-yellow-400' : 'bg-green-400'
-                          } animate-pulse`}></div>
-                          <span className={`text-xs font-medium ${
-                            networkInfo.isTestnet ? 'text-yellow-400' : 'text-green-400'
-                          }`}>
+                          <div className={`w-2 h-2 rounded-full ${networkInfo.isTestnet ? 'bg-yellow-400' : 'bg-green-400'
+                            } animate-pulse`}></div>
+                          <span className={`text-xs font-medium ${networkInfo.isTestnet ? 'text-yellow-400' : 'text-green-400'
+                            }`}>
                             {networkInfo.name}
                           </span>
                         </div>
@@ -222,21 +237,21 @@ export default function Nav() {
                         )}
                       </div>
                       <div className="p-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg">
-                      <p className="text-gray-400 text-xs mb-1">Identity</p>
-                      <div className="text-white font-mono text-xs break-all leading-relaxed">
-                      {isResolvingBasename ? (
-                        <span className="text-gray-400">Resolving...</span>
-                      ) : (
-                        displayName || address
+                        <p className="text-gray-400 text-xs mb-1">Identity</p>
+                        <div className="text-white font-mono text-xs break-all leading-relaxed">
+                          {isResolvingBasename ? (
+                            <span className="text-gray-400">Resolving...</span>
+                          ) : (
+                            displayName || address
                           )}
                         </div>
-                      {!hasBasename && !isResolvingBasename && (
+                        {!hasBasename && !isResolvingBasename && (
                           <p className="text-gray-400 text-xs mt-2">
                             💡 Get a Basename for human-readable identity
                           </p>
                         )}
                       </div>
-                      
+
                       {/* Base Account Status */}
                       {isConnected && universalAddress && (
                         <div className="p-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg mt-3">
@@ -277,7 +292,7 @@ export default function Nav() {
                           <p className="text-xs text-gray-400">Copy to clipboard</p>
                         </div>
                       </button>
-                      
+
                       <a
                         href={`https://basescan.org/address/${address}`}
                         target="_blank"

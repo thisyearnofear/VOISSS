@@ -8,7 +8,6 @@ import { formatDuration } from "@voisss/shared";
 import { useRecordings } from "../../hooks/queries/useRecordings";
 import { useAuth } from "../../contexts/AuthContext";
 import { SocialShare } from "@voisss/ui";
-
 export const dynamic = 'force-dynamic';
 
 function StudioPageInner() {
@@ -29,7 +28,7 @@ function StudioPageInner() {
   // Enhanced recordings from hook (local + on-chain)
   const { isAuthenticated, isCheckingSession } = useAuth();
   const { data: allRecordings = [], isLoading: isLoadingRecordings } = useRecordings();
-  
+
   // Audio playback state
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
   const [audioElements, setAudioElements] = useState<Map<string, HTMLAudioElement>>(new Map());
@@ -60,11 +59,11 @@ function StudioPageInner() {
 
       const onChainRecording = allRecordings.find(r => r.id === recordingId);
       const localRecording = localRecordings.find(r => r.id === recordingId);
-      
+
       if (!onChainRecording && !localRecording) return;
 
       let audioUrl: string;
-      
+
       if (localRecording?.blob) {
         // Local recording with blob
         audioUrl = URL.createObjectURL(localRecording.blob);
@@ -150,7 +149,7 @@ function StudioPageInner() {
                 </div>
               )}
             </div>
-            
+
             {allRecordings.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {allRecordings.map((recording) => (
@@ -160,8 +159,8 @@ function StudioPageInner() {
                       id: recording.id,
                       title: recording.title,
                       duration: recording.duration,
-                      createdAt: typeof recording.createdAt === 'string' 
-                        ? recording.createdAt 
+                      createdAt: typeof recording.createdAt === 'string'
+                        ? recording.createdAt
                         : (recording.createdAt instanceof Date ? recording.createdAt.toISOString() : new Date().toISOString()),
                       tags: recording.onChain ? ['on-chain'] : ['local'],
                       isPlaying: currentlyPlaying === recording.id,
@@ -171,7 +170,7 @@ function StudioPageInner() {
                     onPause={handlePauseRecording}
                     onDelete={recording.onChain ? undefined : handleDeleteRecording}
                     onShare={handleShareRecording}
-                     className=""
+                    className=""
                   />
                 ))}
               </div>
@@ -179,7 +178,7 @@ function StudioPageInner() {
               <div className="text-center py-12">
                 <div className="w-16 h-16 mx-auto mb-4 bg-gray-800 rounded-full flex items-center justify-center">
                   <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+                    <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z" />
                   </svg>
                 </div>
                 <h3 className="text-lg font-medium text-white mb-2">No recordings yet</h3>
@@ -224,8 +223,8 @@ function StudioPageInner() {
           </div>
         )}
 
-            {/* Sharing Modal */}
-              {sharingRecording && (
+        {/* Sharing Modal */}
+        {sharingRecording && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-[#0A0A0A] rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between p-4 border-b border-gray-700">

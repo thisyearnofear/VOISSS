@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { BaseProvider } from "./providers";
 import Nav from "../components/Nav";
+import VoiceAssistantWrapper from "../components/VoiceAssistantWrapper";
 import "./globals.css";
+
+
 
 const inter = Inter({
   variable: "--font-inter",
@@ -92,15 +95,15 @@ export default function RootLayout({
         {/* Preconnect to external domains */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        
+
         {/* Favicon */}
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        
+
         {/* Manifest */}
         <link rel="manifest" href="/manifest.json" />
-        
+
         {/* Analytics - Google Analytics */}
         {process.env.NEXT_PUBLIC_GA_ID && (
           <>
@@ -128,8 +131,10 @@ export default function RootLayout({
         <BaseProvider>
           <Nav />
           {children}
+          <VoiceAssistantWrapper />
         </BaseProvider>
       </body>
+
     </html>
   );
 }

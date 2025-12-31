@@ -24,6 +24,7 @@ import AudioPreview from "./RecordingStudio/AudioPreview";
 import TranscriptComposer from "./RecordingStudio/TranscriptComposer";
 import ActionButtons from "./RecordingStudio/ActionButtons";
 import RecordingTitle from "./RecordingStudio/RecordingTitle";
+import GeminiInsightsPanel from "./RecordingStudio/GeminiInsightsPanel";
 
 interface RecordingStudioProps {
   onRecordingComplete?: (audioBlob: Blob, duration: number) => void;
@@ -77,6 +78,8 @@ export default function RecordingStudio({
   // Basic UI state
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTitle, setRecordingTitle] = useState("");
+  const [recordingDescription, setRecordingDescription] = useState("");
+  const [recordingTags, setRecordingTags] = useState<string[]>([]);
   const [showSaveOptions, setShowSaveOptions] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -216,6 +219,8 @@ export default function RecordingStudio({
     cancelRecording();
     setShowSaveOptions(false);
     setRecordingTitle("");
+    setRecordingDescription("");
+    setRecordingTags([]);
     setIsPaused(false);
     resetRecordingStates();
   }, [cancelRecording]);
@@ -234,6 +239,14 @@ export default function RecordingStudio({
       dubbed: false,
     });
   };
+
+  const handleApplyInsights = useCallback((data: { title: string; summary: string; tags: string[] }) => {
+    setRecordingTitle(data.title);
+    setRecordingDescription(data.summary);
+    setRecordingTags(data.tags);
+    setToastType('success');
+    setToastMessage('AI Insights applied!');
+  }, []);
 
   // Utilities
   const formatFileSize = useCallback((bytes: number): string => {
@@ -391,9 +404,9 @@ export default function RecordingStudio({
       if (selectedVersions.original && audioBlob) {
         const result = await saveRecordingToBase(audioBlob, {
           title: baseTitle,
-          description: 'Original recording',
+          description: recordingDescription || 'Original recording',
           isPublic: true,
-          tags: ['original'],
+          tags: recordingTags.length > 0 ? [...recordingTags, 'original'] : ['original'],
         });
         results.push({
           type: 'original',
@@ -415,9 +428,9 @@ export default function RecordingStudio({
       if (selectedVersions.aiVoice && variantBlobFree) {
         const result = await saveRecordingToBase(variantBlobFree, {
           title: `${baseTitle} (AI Voice)`,
-          description: `AI voice transformation using ${selectedVoiceFree}`,
+          description: `AI voice transformation using ${selectedVoiceFree}\n${recordingDescription}`,
           isPublic: true,
-          tags: ['ai-voice', selectedVoiceFree],
+          tags: ['ai-voice', selectedVoiceFree, ...recordingTags],
         });
         results.push({
           type: 'ai-voice',
@@ -439,9 +452,9 @@ export default function RecordingStudio({
       if (selectedVersions.dubbed && dubbedBlob) {
         const result = await saveRecordingToBase(dubbedBlob, {
           title: `${baseTitle} (${dubbedLanguage})`,
-          description: `Dubbed to ${dubbedLanguage}`,
+          description: `Dubbed to ${dubbedLanguage}\n${recordingDescription}`,
           isPublic: true,
-          tags: ['dubbed', dubbedLanguage],
+          tags: ['dubbed', dubbedLanguage, ...recordingTags],
         });
         results.push({
           type: 'dubbed',
@@ -486,6 +499,8 @@ export default function RecordingStudio({
       if (successCount === versionsToSave) {
         setShowSaveOptions(false);
         setRecordingTitle("");
+        setRecordingDescription("");
+        setRecordingTags([]);
       }
     } catch (error) {
       console.error('Error saving recordings:', error);
@@ -495,7 +510,7 @@ export default function RecordingStudio({
   }, [
     audioBlob, variantBlobFree, dubbedBlob, selectedVersions, recordingTitle, duration,
     selectedVoiceFree, dubbedLanguage, canSaveRecording, userTier, remainingQuota.saves,
-    incrementSaveUsage, onRecordingComplete, saveRecordingToBase,
+    incrementSaveUsage, onRecordingComplete, saveRecordingToBase, recordingDescription, recordingTags,
     setToastType, setToastMessage, isConnected, permissionActive, signIn
   ]);
 
@@ -537,6 +552,13 @@ export default function RecordingStudio({
       {/* Save Options */}
       {showSaveOptions && (
         <>
+          {/* Gemini Insights Panel */}
+          <GeminiInsightsPanel
+            audioBlob={audioBlob}
+            onApplyInsights={handleApplyInsights}
+            isVisible={true}
+          />
+
           {/* Main Save Section */}
           <div className="bg-gray-800 rounded-lg p-6">
             <h3 className="text-xl font-semibold text-white mb-4 text-center">

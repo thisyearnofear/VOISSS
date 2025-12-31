@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { base } from "viem/chains";
 import { AuthProvider } from "../contexts/AuthContext";
+import { AssistantProvider } from "../contexts/AssistantContext";
+
 
 // Create query client
 const queryClient = new QueryClient({
@@ -42,10 +44,10 @@ export function BaseProvider({ children }: { children: React.ReactNode }) {
       try {
         // Ensure we're in browser environment
         if (typeof window === 'undefined') return;
-        
+
         // Get current domain for proper configuration
         const currentDomain = window.location.origin;
-        
+
         const sdkInstance = createBaseAccountSDK({
           appName: 'VOISSS - Morph Your Voice',
           appLogoUrl: `${currentDomain}/logo.png`,
@@ -56,7 +58,7 @@ export function BaseProvider({ children }: { children: React.ReactNode }) {
 
         // Get the provider with error handling
         const providerInstance = sdkInstance.getProvider();
-        
+
         // Verify provider is working
         if (providerInstance) {
           setSdk(sdkInstance);
@@ -77,13 +79,15 @@ export function BaseProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-  <QueryClientProvider client={queryClient}>
-  <BaseContext.Provider value={sdk && provider ? { sdk, provider } : null}>
-  <AuthProvider>
-  {children}
-  </AuthProvider>
-  <ReactQueryDevtools initialIsOpen={false} />
-  </BaseContext.Provider>
-  </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <BaseContext.Provider value={sdk && provider ? { sdk, provider } : null}>
+        <AssistantProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </AssistantProvider>
+        <ReactQueryDevtools initialIsOpen={false} />
+      </BaseContext.Provider>
+    </QueryClientProvider>
   );
 }
