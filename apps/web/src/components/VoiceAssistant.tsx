@@ -111,6 +111,8 @@ export default function VoiceAssistant({
                 recognitionRef.current.onend = () => {
                     setIsListening(false);
                 };
+            } else {
+                console.warn('Speech recognition not supported in this browser environment');
             }
         }
 
@@ -294,12 +296,12 @@ export default function VoiceAssistant({
         <div className="fixed inset-0 z-[100] flex justify-end pointer-events-none">
             {/* Backdrop */}
             <div
-                className="absolute inset-0 bg-black/60 backdrop-blur-md pointer-events-auto animate-in fade-in duration-500"
+                className={`absolute inset-0 bg-black/60 backdrop-blur-md pointer-events-auto transition-opacity duration-500 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}
                 onClick={() => setIsExpanded(false)}
             />
 
             {/* Drawer Content */}
-            <div className={`relative w-full max-w-lg bg-[#0A0A0A] border-l border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)] pointer-events-auto flex flex-col animate-in slide-in-from-right-full duration-500 ease-out ${className}`}>
+            <div className={`relative w-full max-w-lg bg-[#0A0A0A] border-l border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)] pointer-events-auto flex flex-col transition-transform duration-500 ease-out transform ${isExpanded ? 'translate-x-0' : 'translate-x-full'} ${className}`}>
                 {/* Visual Accent */}
                 <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-600 via-blue-600 to-purple-600 opacity-50" />
 

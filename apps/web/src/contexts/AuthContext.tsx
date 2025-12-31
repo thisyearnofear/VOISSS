@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           method: 'GET',
           credentials: 'include',
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           if (data.authenticated) {
@@ -71,6 +71,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     checkExistingSession();
+
+    // Safety timeout - don't leave isCheckingSession as true forever
+    const timeout = setTimeout(() => {
+      setIsCheckingSession(false);
+    }, 5000);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   // Sync authentication state with Base Account connection
@@ -186,7 +193,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (disconnect) {
         await disconnect();
       }
-      
+
       setIsAuthenticated(false);
       setSessionAddress(null);
       setError(null);
