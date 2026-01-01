@@ -3,12 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "./dist/index.mjs",
-  "module": "./dist/index.mjs",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "react-native": "./dist/index.native.mjs",
+  "react-native": "./dist/index.native.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --external zod --external react --external @neynar/nodejs-sdk --external starknet --external @react-native-async-storage/async-storage --external wagmi/connectors --external viem --external wagmi && npm run build:native",
+    "build": "tsup src/index.ts --format cjs,esm --dts --external zod --external react --external @neynar/nodejs-sdk --external starknet --external @react-native-async-storage/async-storage --external wagmi/connectors --external viem --external wagmi && npm run build:native",
     "build:native": "tsup src/index.native.ts --format cjs,esm --external zod --external react --external @neynar/nodejs-sdk --external starknet --external @react-native-async-storage/async-storage --external wagmi/connectors --external viem --external wagmi",
     "dev": "tsup src/index.ts --format cjs,esm --watch --dts",
     "lint": "eslint src/",
