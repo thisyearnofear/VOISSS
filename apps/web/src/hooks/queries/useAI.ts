@@ -1,11 +1,11 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createElevenLabsProvider } from '@voisss/shared';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 import {
   SUPPORTED_DUBBING_LANGUAGES,
   getSortedLanguages,
   type LanguageInfo,
-} from '@voisss/shared/src/constants/languages';
-import { queryKeys, handleQueryError } from '../../lib/query-client';
+} from "@voisss/shared";
+import { queryKeys, handleQueryError } from "../../lib/query-client";
 
 // AI Voice interface
 interface AIVoice {
@@ -87,87 +87,152 @@ function audioBufferToWav(buffer: AudioBuffer): Blob {
     }
   };
 
-  writeString('RIFF');
-  view.setUint32(offset, 36 + dataSize, true); offset += 4; // file size minus 8
-  writeString('WAVE');
-  writeString('fmt ');
-  view.setUint32(offset, 16, true); offset += 4; // PCM header size
-  view.setUint16(offset, 1, true); offset += 2; // audio format = PCM
-  view.setUint16(offset, numChannels, true); offset += 2;
-  view.setUint32(offset, sampleRate, true); offset += 4;
-  view.setUint32(offset, byteRate, true); offset += 4;
-  view.setUint16(offset, blockAlign, true); offset += 2;
-  view.setUint16(offset, 16, true); offset += 2; // bits per sample
-  writeString('data');
-  view.setUint32(offset, dataSize, true); offset += 4;
+  writeString("RIFF");
+  view.setUint32(offset, 36 + dataSize, true);
+  offset += 4; // file size minus 8
+  writeString("WAVE");
+  writeString("fmt ");
+  view.setUint32(offset, 16, true);
+  offset += 4; // PCM header size
+  view.setUint16(offset, 1, true);
+  offset += 2; // audio format = PCM
+  view.setUint16(offset, numChannels, true);
+  offset += 2;
+  view.setUint32(offset, sampleRate, true);
+  offset += 4;
+  view.setUint32(offset, byteRate, true);
+  offset += 4;
+  view.setUint16(offset, blockAlign, true);
+  offset += 2;
+  view.setUint16(offset, 16, true);
+  offset += 2; // bits per sample
+  writeString("data");
+  view.setUint32(offset, dataSize, true);
+  offset += 4;
 
   // Write PCM samples
   const clampSample = (s: number) => Math.max(-1, Math.min(1, s));
   for (let i = 0; i < interleaved.length; i++, offset += 2) {
     const s = clampSample(interleaved[i]);
-    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
   }
 
-  return new Blob([arrayBuffer], { type: 'audio/wav' });
+  return new Blob([arrayBuffer], { type: "audio/wav" });
 }
 
 // Normalize webm/ogg input to WAV for upstream API compatibility
-async function normalizeAudioForDubbing(input: Blob): Promise<{ blob: Blob; filename: string }> {
+async function normalizeAudioForDubbing(
+  input: Blob
+): Promise<{ blob: Blob; filename: string }> {
   try {
-    const type = (input.type || '').toLowerCase();
-    const baseType = type.split(';')[0];
+    const type = (input.type || "").toLowerCase();
+    const baseType = type.split(";")[0];
 
-    console.log('normalizeAudioForDubbing: Input type:', type, 'baseType:', baseType);
+    console.log(
+      "normalizeAudioForDubbing: Input type:",
+      type,
+      "baseType:",
+      baseType
+    );
 
     // If already a commonly supported type, pass through
-    if (baseType && (baseType.includes('mpeg') || baseType.includes('mp3') || baseType.includes('wav') || baseType.includes('mp4') || baseType.includes('aac') || baseType.includes('m4a'))) {
-      const filename = baseType.includes('wav') ? 'input.wav' : baseType.includes('mp3') || baseType.includes('mpeg') ? 'input.mp3' : 'input.m4a';
-      console.log('normalizeAudioForDubbing: Already supported format, passing through');
+    if (
+      baseType &&
+      (baseType.includes("mpeg") ||
+        baseType.includes("mp3") ||
+        baseType.includes("wav") ||
+        baseType.includes("mp4") ||
+        baseType.includes("aac") ||
+        baseType.includes("m4a"))
+    ) {
+      const filename = baseType.includes("wav")
+        ? "input.wav"
+        : baseType.includes("mp3") || baseType.includes("mpeg")
+        ? "input.mp3"
+        : "input.m4a";
+      console.log(
+        "normalizeAudioForDubbing: Already supported format, passing through"
+      );
       return { blob: input, filename };
     }
 
     // Convert webm/ogg/unknown to WAV using Web Audio on client
-    if (typeof window !== 'undefined' && (baseType?.includes('webm') || baseType?.includes('ogg') || baseType === '' || baseType?.includes('opus'))) {
-      console.log('normalizeAudioForDubbing: Converting WebM/Ogg/Opus to WAV');
+    if (
+      typeof window !== "undefined" &&
+      (baseType?.includes("webm") ||
+        baseType?.includes("ogg") ||
+        baseType === "" ||
+        baseType?.includes("opus"))
+    ) {
+      console.log("normalizeAudioForDubbing: Converting WebM/Ogg/Opus to WAV");
       const arrayBuffer = await input.arrayBuffer();
-      console.log('normalizeAudioForDubbing: ArrayBuffer size:', arrayBuffer.byteLength);
-      
-      const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+      console.log(
+        "normalizeAudioForDubbing: ArrayBuffer size:",
+        arrayBuffer.byteLength
+      );
+
+      const win = window as unknown as Window & {
+        AudioContext?: typeof AudioContext;
+        webkitAudioContext?: typeof AudioContext;
+      };
+      const AudioCtx = win.AudioContext || win.webkitAudioContext;
       if (!AudioCtx) {
-        console.error('normalizeAudioForDubbing: Web Audio API not supported in this browser');
-        return { blob: input, filename: 'input' };
+        console.error(
+          "normalizeAudioForDubbing: Web Audio API not supported in this browser"
+        );
+        return { blob: input, filename: "input" };
       }
-      
+
       const audioCtx = new AudioCtx();
-      console.log('normalizeAudioForDubbing: Created AudioContext');
-      
+      console.log("normalizeAudioForDubbing: Created AudioContext");
+
       const decoded = await audioCtx.decodeAudioData(arrayBuffer);
-      console.log('normalizeAudioForDubbing: Successfully decoded audio data. Duration:', decoded.duration, 'Channels:', decoded.numberOfChannels, 'Sample rate:', decoded.sampleRate);
-      
+      console.log(
+        "normalizeAudioForDubbing: Successfully decoded audio data. Duration:",
+        decoded.duration,
+        "Channels:",
+        decoded.numberOfChannels,
+        "Sample rate:",
+        decoded.sampleRate
+      );
+
       const wavBlob = audioBufferToWav(decoded);
-      console.log('normalizeAudioForDubbing: Successfully converted to WAV. Size:', wavBlob.size, 'Type:', wavBlob.type);
-      
+      console.log(
+        "normalizeAudioForDubbing: Successfully converted to WAV. Size:",
+        wavBlob.size,
+        "Type:",
+        wavBlob.type
+      );
+
       await audioCtx.close();
-      console.log('normalizeAudioForDubbing: AudioContext closed');
-      return { blob: wavBlob, filename: 'input.wav' };
+      console.log("normalizeAudioForDubbing: AudioContext closed");
+      return { blob: wavBlob, filename: "input.wav" };
     }
 
-    console.log('normalizeAudioForDubbing: No conversion needed, returning original');
+    console.log(
+      "normalizeAudioForDubbing: No conversion needed, returning original"
+    );
     // Fallback: pass through
-    return { blob: input, filename: 'input' };
+    return { blob: input, filename: "input" };
   } catch (err) {
-    console.error('normalizeAudioForDubbing: Conversion failed', err);
+    console.error("normalizeAudioForDubbing: Conversion failed", err);
     // If conversion fails, return original blob so server can produce a meaningful error
-    return { blob: input, filename: 'input' };
+    return { blob: input, filename: "input" };
   }
 }
 
 // Browser-native base64 -> Blob via data URL fetch (robust across environments)
-async function base64ToBlobAsync(base64: string, mimeType = 'application/octet-stream'): Promise<Blob> {
-  if (!base64 || typeof base64 !== 'string') {
-    throw new Error('Invalid base64 string for audio');
+async function base64ToBlobAsync(
+  base64: string,
+  mimeType = "application/octet-stream"
+): Promise<Blob> {
+  if (!base64 || typeof base64 !== "string") {
+    throw new Error("Invalid base64 string for audio");
   }
-  const normalized = base64.replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/');
+  const normalized = base64
+    .replace(/\s/g, "")
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
   const res = await fetch(`data:${mimeType};base64,${normalized}`);
   if (!res.ok) {
     throw new Error(`Failed to convert base64 to Blob: ${res.status}`);
@@ -181,23 +246,23 @@ export function useAIVoices() {
     queryKey: queryKeys.ai.voices(),
     queryFn: async (): Promise<AIVoice[]> => {
       try {
-        const response = await fetch('/api/elevenlabs/list-voices', {
-          method: 'POST',
+        const response = await fetch("/api/elevenlabs/list-voices", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         });
-        
+
         if (!response.ok) {
           throw new Error(`Failed to fetch voices: ${response.status}`);
         }
-        
+
         const data = await response.json();
-        
+
         if (data.error) {
           throw new Error(data.error);
         }
-        
+
         return data.voices || [];
       } catch (error) {
         throw handleQueryError(error);
@@ -215,18 +280,18 @@ export function useAIModels() {
     queryKey: queryKeys.ai.models(),
     queryFn: async (): Promise<AIModel[]> => {
       try {
-        const response = await fetch('/api/elevenlabs/test-models');
-        
+        const response = await fetch("/api/elevenlabs/test-models");
+
         if (!response.ok) {
           throw new Error(`Failed to fetch models: ${response.status}`);
         }
-        
+
         const data = await response.json();
-        
+
         if (data.error) {
           throw new Error(data.error);
         }
-        
+
         return data.recommendedForSpeechToSpeech || [];
       } catch (error) {
         throw handleQueryError(error);
@@ -252,54 +317,57 @@ export function useDubbingLanguages() {
 
 // Hook to transform voice
 export function useVoiceTransform() {
-  const queryClient = useQueryClient();
-  
   return useMutation({
     mutationFn: async (options: VoiceTransformOptions): Promise<Blob> => {
       try {
         const formData = new FormData();
         // Provide a filename for consistency across platforms
-        const originalType = (options.audioBlob.type || '').toLowerCase();
-        const normalizedType = originalType.split(';')[0] || 'audio/webm';
-        const filename = normalizedType.includes('webm')
-          ? 'input.webm'
-          : normalizedType.includes('ogg')
-          ? 'input.ogg'
-          : normalizedType.includes('mpeg') || normalizedType.includes('mp3')
-          ? 'input.mp3'
-          : 'input';
-        formData.append('audio', options.audioBlob, filename);
-        formData.append('voiceId', options.voiceId);
-        
+        const originalType = (options.audioBlob.type || "").toLowerCase();
+        const normalizedType = originalType.split(";")[0] || "audio/webm";
+        const filename = normalizedType.includes("webm")
+          ? "input.webm"
+          : normalizedType.includes("ogg")
+          ? "input.ogg"
+          : normalizedType.includes("mpeg") || normalizedType.includes("mp3")
+          ? "input.mp3"
+          : "input";
+        formData.append("audio", options.audioBlob, filename);
+        formData.append("voiceId", options.voiceId);
+
         if (options.modelId) {
-          formData.append('modelId', options.modelId);
+          formData.append("modelId", options.modelId);
         }
-        
+
         if (options.stability !== undefined) {
-          formData.append('stability', options.stability.toString());
+          formData.append("stability", options.stability.toString());
         }
-        
+
         if (options.similarityBoost !== undefined) {
-          formData.append('similarityBoost', options.similarityBoost.toString());
+          formData.append(
+            "similarityBoost",
+            options.similarityBoost.toString()
+          );
         }
-        
+
         // Use the existing transform-voice API route
-        const response = await fetch('/api/elevenlabs/transform-voice', {
-          method: 'POST',
+        const response = await fetch("/api/elevenlabs/transform-voice", {
+          method: "POST",
           body: formData,
         });
-        
+
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `Voice transformation failed: ${response.status}`);
+          throw new Error(
+            errorData.error || `Voice transformation failed: ${response.status}`
+          );
         }
-        
+
         const blob = await response.blob();
-        
+
         if (blob.size === 0) {
-          throw new Error('Received empty audio response');
+          throw new Error("Received empty audio response");
         }
-        
+
         return blob;
       } catch (error) {
         throw handleQueryError(error);
@@ -312,28 +380,29 @@ export function useVoiceTransform() {
 
 // Hook to dub audio (enhanced to use backend service with status polling)
 export function useAudioDubbing() {
-  const queryClient = useQueryClient();
-  
   return useMutation({
     mutationFn: async (options: DubbingOptions): Promise<DubbingResult> => {
       try {
         const formData = new FormData();
         // Normalize audio to a supported format (WAV) when needed
         const normalized = await normalizeAudioForDubbing(options.audioBlob);
-        formData.append('audio', normalized.blob, normalized.filename);
-        formData.append('targetLanguage', options.targetLanguage);
-        
+        formData.append("audio", normalized.blob, normalized.filename);
+        formData.append("targetLanguage", options.targetLanguage);
+
         if (options.sourceLanguage) {
-          formData.append('sourceLanguage', options.sourceLanguage);
-        }
-        
-        if (options.preserveBackgroundAudio !== undefined) {
-          formData.append('preserveBackgroundAudio', options.preserveBackgroundAudio.toString());
+          formData.append("sourceLanguage", options.sourceLanguage);
         }
 
-        console.log('Starting dubbing via enhanced endpoint...');
-        const response = await fetch('/api/elevenlabs/dub-audio', {
-          method: 'POST',
+        if (options.preserveBackgroundAudio !== undefined) {
+          formData.append(
+            "preserveBackgroundAudio",
+            options.preserveBackgroundAudio.toString()
+          );
+        }
+
+        console.log("Starting dubbing via enhanced endpoint...");
+        const response = await fetch("/api/elevenlabs/dub-audio", {
+          method: "POST",
           body: formData,
         });
 
@@ -342,73 +411,95 @@ export function useAudioDubbing() {
           const data = await response.json();
           const dubbingId = data.dubbingId;
           const targetLanguage = data.targetLanguage;
-          console.log('Dubbing still processing, polling status...', { dubbingId, targetLanguage });
-          
+          console.log("Dubbing still processing, polling status...", {
+            dubbingId,
+            targetLanguage,
+          });
+
           // Get backend URL
-          const backendUrl = process.env.NEXT_PUBLIC_VOISSS_API || 'https://voisss.famile.xyz';
-          
+          const backendUrl =
+            process.env.NEXT_PUBLIC_VOISSS_API || "https://voisss.famile.xyz";
+
           // Poll for completion (client-side)
           const maxAttempts = 30; // 30 attempts * 2s = 60s max
           for (let attempt = 0; attempt < maxAttempts; attempt++) {
-            await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
-            
-            console.log(`Polling dubbing status (attempt ${attempt + 1}/${maxAttempts})...`);
-            const statusResponse = await fetch(`${backendUrl}/api/dubbing/${dubbingId}/status`);
-            
+            await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 second delay
+
+            console.log(
+              `Polling dubbing status (attempt ${
+                attempt + 1
+              }/${maxAttempts})...`
+            );
+            const statusResponse = await fetch(
+              `${backendUrl}/api/dubbing/${dubbingId}/status`
+            );
+
             if (!statusResponse.ok) {
-              console.error('Status check failed:', statusResponse.status);
+              console.error("Status check failed:", statusResponse.status);
               continue;
             }
-            
+
             const statusData = await statusResponse.json();
-            console.log('Status:', statusData.status);
-            
-            if (statusData.status === 'dubbed') {
+            console.log("Status:", statusData.status);
+
+            if (statusData.status === "dubbed") {
               // Get the final audio
-              console.log('Dubbing complete, fetching audio...');
-              const audioResponse = await fetch(`${backendUrl}/api/dubbing/${dubbingId}/audio/${targetLanguage}`);
-              
+              console.log("Dubbing complete, fetching audio...");
+              const audioResponse = await fetch(
+                `${backendUrl}/api/dubbing/${dubbingId}/audio/${targetLanguage}`
+              );
+
               if (!audioResponse.ok) {
-                throw new Error(`Failed to fetch audio: ${audioResponse.status}`);
+                throw new Error(
+                  `Failed to fetch audio: ${audioResponse.status}`
+                );
               }
-              
+
               const audioBlob = await audioResponse.blob();
-              console.log('Audio fetched successfully:', { size: audioBlob.size });
-              
+              console.log("Audio fetched successfully:", {
+                size: audioBlob.size,
+              });
+
               return {
                 blob: audioBlob,
                 transcript: undefined,
                 translatedTranscript: undefined,
               };
             }
-            
-            if (statusData.status === 'failed') {
-              throw new Error(`Dubbing job failed: ${statusData.error || 'Unknown error'}`);
+
+            if (statusData.status === "failed") {
+              throw new Error(
+                `Dubbing job failed: ${statusData.error || "Unknown error"}`
+              );
             }
           }
-          
-          throw new Error('Dubbing timeout: took longer than expected');
+
+          throw new Error("Dubbing timeout: took longer than expected");
         }
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `Audio dubbing failed: ${response.status}`);
+          throw new Error(
+            errorData.error || `Audio dubbing failed: ${response.status}`
+          );
         }
 
         const data = await response.json();
-        console.log('Dubbing completed:', { audioSize: data.audio_base64?.length });
-        
+        console.log("Dubbing completed:", {
+          audioSize: data.audio_base64?.length,
+        });
+
         if (!data.audio_base64) {
-          throw new Error('Invalid response: missing audio_base64');
+          throw new Error("Invalid response: missing audio_base64");
         }
 
         const dubbedBlob = await base64ToBlobAsync(
           data.audio_base64,
-          data.content_type || 'audio/mpeg'
+          data.content_type || "audio/mpeg"
         );
-        
+
         if (dubbedBlob.size === 0) {
-          throw new Error('Received empty dubbed audio response');
+          throw new Error("Received empty dubbed audio response");
         }
 
         return {
@@ -428,12 +519,12 @@ export function useAudioDubbing() {
 // Hook to get AI service status
 export function useAIServiceStatus() {
   return useQuery({
-    queryKey: [...queryKeys.ai.all, 'status'],
+    queryKey: [...queryKeys.ai.all, "status"],
     queryFn: async () => {
       try {
         // Test if the AI service is available by fetching a small amount of data
-        const response = await fetch('/api/elevenlabs/test-models');
-        
+        const response = await fetch("/api/elevenlabs/test-models");
+
         if (!response.ok) {
           return {
             isAvailable: false,
@@ -441,9 +532,9 @@ export function useAIServiceStatus() {
             lastChecked: new Date(),
           };
         }
-        
+
         const data = await response.json();
-        
+
         return {
           isAvailable: !data.error,
           error: data.error || null,
@@ -453,7 +544,7 @@ export function useAIServiceStatus() {
       } catch (error) {
         return {
           isAvailable: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: error instanceof Error ? error.message : "Unknown error",
           lastChecked: new Date(),
         };
       }
@@ -467,14 +558,14 @@ export function useAIServiceStatus() {
 // Hook to prefetch AI data (useful for preloading)
 export function usePrefetchAIData() {
   const queryClient = useQueryClient();
-  
+
   const prefetchVoices = () => {
     queryClient.prefetchQuery({
       queryKey: queryKeys.ai.voices(),
       queryFn: async () => {
-        const response = await fetch('/api/elevenlabs/list-voices', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/elevenlabs/list-voices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
         });
         const data = await response.json();
         return data.voices || [];
@@ -482,19 +573,19 @@ export function usePrefetchAIData() {
       staleTime: 10 * 60 * 1000,
     });
   };
-  
+
   const prefetchModels = () => {
     queryClient.prefetchQuery({
       queryKey: queryKeys.ai.models(),
       queryFn: async () => {
-        const response = await fetch('/api/elevenlabs/test-models');
+        const response = await fetch("/api/elevenlabs/test-models");
         const data = await response.json();
         return data.recommendedForSpeechToSpeech || [];
       },
       staleTime: 15 * 60 * 1000,
     });
   };
-  
+
   const prefetchLanguages = () => {
     queryClient.prefetchQuery({
       queryKey: queryKeys.ai.languages(),
@@ -502,7 +593,7 @@ export function usePrefetchAIData() {
       staleTime: 60 * 60 * 1000,
     });
   };
-  
+
   return {
     prefetchVoices,
     prefetchModels,

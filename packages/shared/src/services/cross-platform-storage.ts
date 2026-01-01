@@ -1,12 +1,12 @@
 /**
  * Cross-Platform Storage Service
- * 
+ *
  * Unified storage API that works across web (localStorage) and mobile (AsyncStorage)
  * Follows DRY principle by providing single source of truth for storage operations
  * Enhances existing database service pattern with platform awareness
  */
 
-import { DatabaseService } from './database-service';
+import { DatabaseService } from "./database-service";
 
 /**
  * Cross-platform storage adapter that automatically selects the appropriate
@@ -16,10 +16,10 @@ export class CrossPlatformStorage implements DatabaseService {
   private innerService: DatabaseService;
   private isMobile: boolean;
 
-  constructor(namespace: string = 'default') {
+  constructor(namespace: string = "default") {
     // Detect mobile environment
     this.isMobile = this.detectMobileEnvironment();
-    
+
     // Initialize appropriate storage backend
     this.innerService = this.createStorageService(namespace);
   }
@@ -30,23 +30,26 @@ export class CrossPlatformStorage implements DatabaseService {
    */
   private detectMobileEnvironment(): boolean {
     // Check for React Native global object
-    if (typeof global !== 'undefined' && 
-        (global.__DEV__ !== undefined || 
-         global.nativeRequire !== undefined)) {
+    if (
+      typeof global !== "undefined" &&
+      ((global as any).__DEV__ !== undefined ||
+        (global as any).nativeRequire !== undefined)
+    ) {
       return true;
     }
-    
+
     // Check for Node.js environment (used in React Native)
-    if (typeof process !== 'undefined' && 
-        process.versions !== undefined && 
-        process.versions.node !== undefined) {
+    if (
+      typeof process !== "undefined" &&
+      process.versions !== undefined &&
+      process.versions.node !== undefined
+    ) {
       // But exclude browser environments that have process shim
-      if (typeof window === 'undefined' || 
-          typeof document === 'undefined') {
+      if (typeof window === "undefined" || typeof document === "undefined") {
         return true;
       }
     }
-    
+
     return false;
   }
 
@@ -65,7 +68,7 @@ export class CrossPlatformStorage implements DatabaseService {
    * Create web storage service (localStorage-based)
    */
   private createWebStorage(namespace: string): DatabaseService {
-    const { createLocalStorageDatabase } = require('./localStorage-database');
+    const { createLocalStorageDatabase } = require("./localStorage-database");
     return createLocalStorageDatabase(namespace);
   }
 
@@ -73,7 +76,7 @@ export class CrossPlatformStorage implements DatabaseService {
    * Create mobile storage service (AsyncStorage-based)
    */
   private createMobileStorage(namespace: string): DatabaseService {
-    const { createAsyncStorageDatabase } = require('./asyncStorage-database');
+    const { createAsyncStorageDatabase } = require("./asyncStorage-database");
     return createAsyncStorageDatabase(namespace);
   }
 
@@ -83,11 +86,16 @@ export class CrossPlatformStorage implements DatabaseService {
    */
   public async getItem(key: string): Promise<string | null> {
     try {
-      const item = await this.innerService.get('storage', key);
+      const item = await this.innerService.get("storage", key);
       // Handle both direct string storage and object storage
-      if (typeof item === 'string') {
+      if (typeof item === "string") {
         return item;
-      } else if (item && typeof item === 'object' && 'value' in item && typeof (item as any).value === 'string') {
+      } else if (
+        item &&
+        typeof item === "object" &&
+        "value" in item &&
+        typeof (item as any).value === "string"
+      ) {
         return (item as any).value;
       }
       return null;
@@ -99,18 +107,18 @@ export class CrossPlatformStorage implements DatabaseService {
 
   public async setItem(key: string, value: string): Promise<void> {
     // Store as simple string for compatibility
-    await this.innerService.set('storage', key, value);
+    await this.innerService.set("storage", key, value);
   }
 
   public async removeItem(key: string): Promise<void> {
-    await this.innerService.delete('storage', key);
+    await this.innerService.delete("storage", key);
   }
 
   /**
    * Clear the default storage collection (convenience method)
    */
   public async clearDefaultStorage(): Promise<void> {
-    await this.innerService.clear('storage');
+    await this.innerService.clear("storage");
   }
 
   // Delegate all DatabaseService methods to the inner service
@@ -134,7 +142,10 @@ export class CrossPlatformStorage implements DatabaseService {
     return this.innerService.getAll<T>(collection);
   }
 
-  public async getWhere<T>(collection: string, predicate: (item: T) => boolean): Promise<T[]> {
+  public async getWhere<T>(
+    collection: string,
+    predicate: (item: T) => boolean
+  ): Promise<T[]> {
     return this.innerService.getWhere<T>(collection, predicate);
   }
 
@@ -142,7 +153,11 @@ export class CrossPlatformStorage implements DatabaseService {
     await this.innerService.set<T>(collection, id, data);
   }
 
-  public async update<T>(collection: string, id: string, updates: Partial<T>): Promise<T> {
+  public async update<T>(
+    collection: string,
+    id: string,
+    updates: Partial<T>
+  ): Promise<T> {
     return this.innerService.update<T>(collection, id, updates);
   }
 
@@ -154,7 +169,10 @@ export class CrossPlatformStorage implements DatabaseService {
     return this.innerService.exists(collection, id);
   }
 
-  public async setBatch<T>(collection: string, items: Array<{ id: string; data: T }>): Promise<void> {
+  public async setBatch<T>(
+    collection: string,
+    items: Array<{ id: string; data: T }>
+  ): Promise<void> {
     await this.innerService.setBatch<T>(collection, items);
   }
 
@@ -171,7 +189,7 @@ export class CrossPlatformStorage implements DatabaseService {
   }
 
   public async getStorageInfo(): Promise<any> {
-    if ('getStorageInfo' in this.innerService) {
+    if ("getStorageInfo" in this.innerService) {
       return (this.innerService as any).getStorageInfo();
     }
     return null;
@@ -179,7 +197,12 @@ export class CrossPlatformStorage implements DatabaseService {
 
   public async clearAllData(): Promise<void> {
     // Clear all collections
-    const collections = ['storage', 'missions', 'mission_responses', 'user_missions'];
+    const collections = [
+      "storage",
+      "missions",
+      "mission_responses",
+      "user_missions",
+    ];
     for (const collection of collections) {
       try {
         await this.clear(collection);
@@ -195,7 +218,7 @@ export class CrossPlatformStorage implements DatabaseService {
   public getEnvironmentInfo(): { isMobile: boolean; platform: string } {
     return {
       isMobile: this.isMobile,
-      platform: this.isMobile ? 'react-native' : 'web'
+      platform: this.isMobile ? "react-native" : "web",
     };
   }
 }
@@ -203,11 +226,13 @@ export class CrossPlatformStorage implements DatabaseService {
 /**
  * Factory function to create a cross-platform storage service
  */
-export function createCrossPlatformStorage(namespace: string = 'default'): DatabaseService {
+export function createCrossPlatformStorage(
+  namespace: string = "default"
+): DatabaseService {
   return new CrossPlatformStorage(namespace);
 }
 
 /**
  * Singleton instance for convenience
  */
-export const crossPlatformStorage = new CrossPlatformStorage('default');
+export const crossPlatformStorage = new CrossPlatformStorage("default");

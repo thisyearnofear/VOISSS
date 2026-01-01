@@ -3,9 +3,18 @@
  * Recording → Conversion → IPFS Upload → Starknet Storage
  */
 
-import { IPFSService, AudioMetadata, IPFSUploadResult } from './ipfs-service';
-import { AudioConverter, AudioConversionOptions, ConversionResult } from './audio-converter';
-import { StarknetRecordingService, StarknetRecordingMetadata, TransactionStatus, AccountType } from './starknet-recording';
+import { IPFSService, AudioMetadata, IPFSUploadResult } from "./ipfs-service";
+import {
+  AudioConverter,
+  AudioConversionOptions,
+  ConversionResult,
+} from "./audio-converter";
+import {
+  StarknetRecordingService,
+  StarknetRecordingMetadata,
+  TransactionStatus,
+  AccountType,
+} from "./starknet-recording-service";
 
 /**
  * Store IPFS hash directly as felt252 by truncating if necessary
@@ -17,26 +26,36 @@ function hashIpfsForContract(ipfsHash: string): string {
   if (ipfsHash.length <= 31) {
     // Use shortString encoding for proper felt252 conversion
     try {
-      const { shortString } = require('starknet');
+      const { shortString } = require("starknet");
       return shortString.encodeShortString(ipfsHash);
     } catch (error) {
       // Fallback: convert to hex if shortString is not available
       const encoder = new TextEncoder();
       const data = encoder.encode(ipfsHash);
-      return '0x' + Array.from(data).map(b => b.toString(16).padStart(2, '0')).join('');
+      return (
+        "0x" +
+        Array.from(data)
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("")
+      );
     }
   } else {
     // For longer IPFS hashes, we need a different approach
     // Store a truncated version that can still be used to identify the hash
     const truncated = ipfsHash.substring(0, 31);
     try {
-      const { shortString } = require('starknet');
+      const { shortString } = require("starknet");
       return shortString.encodeShortString(truncated);
     } catch (error) {
       // Fallback: convert to hex
       const encoder = new TextEncoder();
       const data = encoder.encode(truncated);
-      return '0x' + Array.from(data).map(b => b.toString(16).padStart(2, '0')).join('');
+      return (
+        "0x" +
+        Array.from(data)
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("")
+      );
     }
   }
 }
@@ -46,7 +65,7 @@ export interface RecordingPipelineOptions {
   description?: string;
   isPublic?: boolean;
   tags?: string[];
-  quality?: 'low' | 'medium' | 'high' | 'lossless';
+  quality?: "low" | "medium" | "high" | "lossless";
   convertAudio?: boolean;
 }
 
@@ -60,7 +79,7 @@ export interface RecordingPipelineResult {
 }
 
 export interface PipelineProgress {
-  stage: 'converting' | 'uploading' | 'storing' | 'complete' | 'error';
+  stage: "converting" | "uploading" | "storing" | "complete" | "error";
   progress: number; // 0-100
   message: string;
   error?: string;
@@ -91,9 +110,9 @@ export class RecordingService {
   ): Promise<RecordingPipelineResult> {
     try {
       onProgress?.({
-        stage: 'converting',
+        stage: "converting",
         progress: 10,
-        message: 'Converting audio format...',
+        message: "Converting audio format...",
       });
 
       // Step 1: Convert audio if needed
@@ -102,30 +121,36 @@ export class RecordingService {
       if (options.convertAudio !== false) {
         const conversionOptions = options.quality
           ? AudioConverter.getQualitySettings(options.quality)
-          : { targetFormat: 'mp3' as const, bitRate: 128, sampleRate: 44100 };
+          : { targetFormat: "mp3" as const, bitRate: 128, sampleRate: 44100 };
 
-        processedAudio = await this.audioConverter.convertForStorage(audioBlob, conversionOptions);
+        processedAudio = await this.audioConverter.convertForStorage(
+          audioBlob,
+          conversionOptions
+        );
       } else {
         // Use original audio
         const duration = await this.getAudioDuration(audioBlob);
         processedAudio = {
           blob: audioBlob,
-          mimeType: audioBlob.type || 'audio/mpeg',
+          mimeType: audioBlob.type || "audio/mpeg",
           size: audioBlob.size,
           duration,
-          format: this.getFormatFromMimeType(audioBlob.type) || 'mp3',
+          format: this.getFormatFromMimeType(audioBlob.type) || "mp3",
         };
       }
 
       onProgress?.({
-        stage: 'uploading',
+        stage: "uploading",
         progress: 30,
-        message: 'Uploading to IPFS...',
+        message: "Uploading to IPFS...",
       });
 
       // Step 2: Upload to IPFS
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const filename = `${options.title.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.${processedAudio.format}`;
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const filename = `${options.title.replace(
+        /[^a-zA-Z0-9]/g,
+        "_"
+      )}_${timestamp}.${processedAudio.format}`;
 
       const audioMetadata: AudioMetadata = {
         filename,
@@ -141,16 +166,16 @@ export class RecordingService {
       );
 
       onProgress?.({
-        stage: 'uploading',
+        stage: "uploading",
         progress: 60,
-        message: 'Upload complete, preparing metadata...',
+        message: "Upload complete, preparing metadata...",
       });
 
       // Step 3: Prepare metadata for Starknet
       // Store hashed version on-chain (fits felt252), keep full hash for retrieval
       const recordingMetadata: StarknetRecordingMetadata = {
         title: options.title,
-        description: options.description || '',
+        description: options.description || "",
         ipfsHash: hashIpfsForContract(ipfsResult.hash), // ✅ Deterministic hash for contract
         duration: Math.round(processedAudio.duration),
         fileSize: processedAudio.size,
@@ -163,20 +188,20 @@ export class RecordingService {
 
       if (account) {
         onProgress?.({
-          stage: 'storing',
+          stage: "storing",
           progress: 80,
-          message: 'Storing metadata on Starknet...',
+          message: "Storing metadata on Starknet...",
         });
 
         transactionHash = await this.starknetService.storeRecording(
           account,
           recordingMetadata,
           (status: TransactionStatus) => {
-            if (status.status === 'pending') {
+            if (status.status === "pending") {
               onProgress?.({
-                stage: 'storing',
+                stage: "storing",
                 progress: 90,
-                message: 'Transaction pending...',
+                message: "Transaction pending...",
               });
             }
           }
@@ -184,9 +209,9 @@ export class RecordingService {
       }
 
       onProgress?.({
-        stage: 'complete',
+        stage: "complete",
         progress: 100,
-        message: 'Recording saved successfully!',
+        message: "Recording saved successfully!",
       });
 
       return {
@@ -199,14 +224,14 @@ export class RecordingService {
           fullIpfsHash: ipfsResult.hash, // ✅ Include full hash in metadata
         },
       };
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
 
       onProgress?.({
-        stage: 'error',
+        stage: "error",
         progress: 0,
-        message: 'Failed to process recording',
+        message: "Failed to process recording",
         error: errorMessage,
       });
 
@@ -226,11 +251,16 @@ export class RecordingService {
     options: Partial<AudioConversionOptions> = {}
   ): Promise<IPFSUploadResult> {
     // Convert audio if needed
-    const processedAudio = await this.audioConverter.convertForStorage(audioBlob, options);
+    const processedAudio = await this.audioConverter.convertForStorage(
+      audioBlob,
+      options
+    );
 
     // Prepare metadata
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.${processedAudio.format}`;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const filename = `${title.replace(/[^a-zA-Z0-9]/g, "_")}_${timestamp}.${
+      processedAudio.format
+    }`;
 
     const audioMetadata: AudioMetadata = {
       filename,
@@ -238,7 +268,10 @@ export class RecordingService {
       duration: processedAudio.duration,
     };
 
-    return await this.ipfsService.uploadAudio(processedAudio.blob, audioMetadata);
+    return await this.ipfsService.uploadAudio(
+      processedAudio.blob,
+      audioMetadata
+    );
   }
 
   /**
@@ -265,7 +298,9 @@ export class RecordingService {
   /**
    * Get file info from IPFS
    */
-  async getFileInfo(ipfsHash: string): Promise<{ size: number; type: string } | null> {
+  async getFileInfo(
+    ipfsHash: string
+  ): Promise<{ size: number; type: string } | null> {
     return await this.ipfsService.getFileInfo(ipfsHash);
   }
 
@@ -288,32 +323,36 @@ export class RecordingService {
    */
   public async syncUserRecordings(userAddress: string): Promise<any[]> {
     try {
-      console.log('Syncing recordings for user:', userAddress);
-      
+      console.log("Syncing recordings for user:", userAddress);
+
       // Get recordings from Starknet
-      const onChainRecordings = await this.starknetService.getUserRecordings(userAddress);
-      console.log('Found on-chain recordings:', onChainRecordings);
-      
+      const onChainRecordings = await this.starknetService.getUserRecordings(
+        userAddress
+      );
+      console.log("Found on-chain recordings:", onChainRecordings);
+
       // Enhance recordings with IPFS data
       const enhancedRecordings = await Promise.all(
         onChainRecordings.map(async (recording: any) => {
           try {
             // Get playback URL for the recording
             const ipfsUrl = this.ipfsService.getAudioUrl(recording.ipfsHash);
-            
+
             // Try to get file info
-            const fileInfo = await this.ipfsService.getFileInfo(recording.ipfsHash);
-            
+            const fileInfo = await this.ipfsService.getFileInfo(
+              recording.ipfsHash
+            );
+
             return {
               ...recording,
               ipfsUrl,
               fileSize: fileInfo?.size || recording.fileSize,
-              mimeType: fileInfo?.type || 'audio/mpeg',
+              mimeType: fileInfo?.type || "audio/mpeg",
               // Add a flag to indicate this is from blockchain
               onChain: true,
             };
           } catch (error) {
-            console.warn('Failed to enhance recording with IPFS data:', error);
+            console.warn("Failed to enhance recording with IPFS data:", error);
             return {
               ...recording,
               ipfsUrl: this.ipfsService.getAudioUrl(recording.ipfsHash),
@@ -322,10 +361,10 @@ export class RecordingService {
           }
         })
       );
-      
+
       return enhancedRecordings;
     } catch (error) {
-      console.error('Failed to sync user recordings:', error);
+      console.error("Failed to sync user recordings:", error);
       throw error;
     }
   }
@@ -350,11 +389,11 @@ export class RecordingService {
    * Get format from MIME type
    */
   private getFormatFromMimeType(mimeType: string): string | null {
-    if (mimeType.includes('mp3') || mimeType.includes('mpeg')) return 'mp3';
-    if (mimeType.includes('wav')) return 'wav';
-    if (mimeType.includes('ogg')) return 'ogg';
-    if (mimeType.includes('webm')) return 'webm';
-    if (mimeType.includes('mp4') || mimeType.includes('m4a')) return 'm4a';
+    if (mimeType.includes("mp3") || mimeType.includes("mpeg")) return "mp3";
+    if (mimeType.includes("wav")) return "wav";
+    if (mimeType.includes("ogg")) return "ogg";
+    if (mimeType.includes("webm")) return "webm";
+    if (mimeType.includes("mp4") || mimeType.includes("m4a")) return "m4a";
     return null;
   }
 
@@ -384,4 +423,3 @@ export function estimateUploadTime(fileSizeBytes: number): number {
   const mbSize = fileSizeBytes / (1024 * 1024);
   return Math.max(5, Math.round(mbSize * 10)); // Minimum 5 seconds
 }
-

@@ -3,10 +3,13 @@
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import RecordingStudio from "../../components/RecordingStudio";
-import { RecordingCard } from "@voisss/ui";
+import {
+  RecordingCard,
+  SocialShare,
+  type ShareableRecording,
+} from "@voisss/ui";
 import { useRecordings } from "../../hooks/queries/useRecordings";
 import { useAuth } from "../../contexts/AuthContext";
-import { SocialShare } from "@voisss/ui";
 export const dynamic = "force-dynamic";
 
 function StudioPageInner() {
@@ -42,10 +45,8 @@ function StudioPageInner() {
   >(new Map());
 
   // Sharing state
-  const [sharingRecording, setSharingRecording] = useState<Record<
-    string,
-    unknown
-  > | null>(null);
+  const [sharingRecording, setSharingRecording] =
+    useState<ShareableRecording | null>(null);
 
   const handleRecordingComplete = (audioBlob: Blob, duration: number) => {
     const newRecording = {
@@ -134,7 +135,7 @@ function StudioPageInner() {
     }
   };
 
-  const handleShareRecording = (recording: Record<string, unknown>) => {
+  const handleShareRecording = (recording: ShareableRecording) => {
     setSharingRecording(recording);
   };
 
