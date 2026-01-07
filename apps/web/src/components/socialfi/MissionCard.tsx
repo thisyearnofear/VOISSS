@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Mission } from "@voisss/shared/types/socialfi";
+import { getTokenDisplaySymbol } from "@voisss/shared/config/platform";
 
 interface MissionCardProps {
   mission: Mission;
@@ -92,7 +93,7 @@ export default function MissionCard({
         </div>
         <div className="text-right">
           <div className="text-lg font-bold text-[#7C5DFA]">
-            {mission.reward} STRK
+            {mission.reward} {getTokenDisplaySymbol()}
           </div>
           <div className="text-xs text-gray-400">
             {formatTimeRemaining(mission.expiresAt)}

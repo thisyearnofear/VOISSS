@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useBaseAccount } from '../hooks/useBaseAccount';
 import { useBase } from '../app/providers';
+import { PLATFORM_CONFIG, meetsCreatorRequirements } from '@voisss/shared/config/platform';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -13,6 +14,13 @@ interface AuthContextType {
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
   error: string | null;
+  
+  // Creator Eligibility
+  creatorBalance: bigint | null;
+  isCreatorEligible: boolean;
+  isCheckingEligibility: boolean;
+  eligibilityError: string | null;
+  refreshCreatorStatus: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -45,6 +53,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [sessionAddress, setSessionAddress] = useState<string | null>(null);
+
+  // Creator eligibility state
+  const [creatorBalance, setCreatorBalance] = useState<bigint | null>(null);
+  const [isCheckingEligibility, setIsCheckingEligibility] = useState(false);
+  const [eligibilityError, setEligibilityError] = useState<string | null>(null);
 
   // Check for existing session on app load
   useEffect(() => {
@@ -94,6 +107,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
   }, [isConnected, isCheckingSession, isAuthenticated, isAuthenticating, sessionAddress]);
+
+  // Fetch creator eligibility when address changes
+  const refreshCreatorStatus = useCallback(async () => {
+    const addressToCheck = universalAddress || sessionAddress;
+    if (!addressToCheck) {
+      setCreatorBalance(null);
+      return;
+    }
+
+    setIsCheckingEligibility(true);
+    setEligibilityError(null);
+
+    try {
+      const response = await fetch('/api/user/token-balance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          address: addressToCheck,
+          tokenAddress: PLATFORM_CONFIG.token.address,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch token balance');
+      }
+
+      const data = await response.json();
+      setCreatorBalance(BigInt(data.balance || 0));
+    } catch (err) {
+      console.error('Error fetching creator balance:', err);
+      setEligibilityError(err instanceof Error ? err.message : 'Unknown error');
+      setCreatorBalance(BigInt(0));
+    } finally {
+      setIsCheckingEligibility(false);
+    }
+  }, [universalAddress, sessionAddress]);
+
+  // Check eligibility when authenticated address changes
+  useEffect(() => {
+    const addressToCheck = universalAddress || sessionAddress;
+    if (addressToCheck && isAuthenticated) {
+      refreshCreatorStatus();
+    }
+  }, [universalAddress, sessionAddress, isAuthenticated, refreshCreatorStatus]);
 
   const signIn = useCallback(async () => {
     setIsAuthenticating(true);
@@ -207,10 +264,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticating,
     isCheckingSession,
     address: universalAddress || sessionAddress || null,
-    subAccount: universalAddress || sessionAddress || null, // Use universalAddress directly since we don't have a subAccount object
+    subAccount: universalAddress || sessionAddress || null,
     signIn,
     signOut,
     error,
+    creatorBalance,
+    isCreatorEligible: creatorBalance !== null ? meetsCreatorRequirements(creatorBalance) : false,
+    isCheckingEligibility,
+    eligibilityError,
+    refreshCreatorStatus,
   };
 
   return (

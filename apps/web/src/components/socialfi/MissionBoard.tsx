@@ -2,10 +2,12 @@
 
 import React, { useState } from "react";
 import { Mission } from "@voisss/shared/types/socialfi";
+import { getTokenDisplaySymbol } from "@voisss/shared/config/platform";
 import { useBaseAccount } from "../../hooks/useBaseAccount";
 import { useMissions, useAcceptMission, useMissionStats } from "../../hooks/queries/useMissions";
 import MissionCard from "./MissionCard";
 import MissionFilters from "./MissionFilters";
+import MissionCreationForm from "./MissionCreationForm";
 
 interface MissionBoardProps {
   onMissionSelect?: (mission: Mission) => void;
@@ -16,6 +18,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
   const [selectedTopic, setSelectedTopic] = useState<string>("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"newest" | "reward" | "participants">("newest");
+  const [showCreationForm, setShowCreationForm] = useState(false);
 
   // Use React Query hooks instead of useState
   const { 
@@ -88,6 +91,26 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
     }
   };
 
+  if (showCreationForm) {
+    return (
+      <div className="max-w-6xl mx-auto voisss-section-spacing">
+        <button
+          onClick={() => setShowCreationForm(false)}
+          className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Missions
+        </button>
+        <MissionCreationForm
+          onSuccess={() => setShowCreationForm(false)}
+          onCancel={() => setShowCreationForm(false)}
+        />
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto voisss-section-spacing">
@@ -137,7 +160,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
           Mission Board
         </h1>
         <p className="text-lg text-gray-300 mb-2">
-          Discover conversation missions and earn STRK tokens
+          Discover conversation missions and earn {getTokenDisplaySymbol()}
         </p>
         <p className="text-sm text-gray-400">
           Record candid conversations on trending topics and get rewarded for authentic perspectives
@@ -166,7 +189,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
           <div className="text-2xl font-bold text-[#7C5DFA] mb-1">
             {missions.reduce((sum: number, m: Mission) => sum + m.reward, 0)}
           </div>
-          <div className="text-sm text-gray-400">Total STRK Rewards</div>
+          <div className="text-sm text-gray-400">Total {getTokenDisplaySymbol()} Rewards</div>
         </div>
         <div className="voisss-card text-center">
           <div className="text-2xl font-bold text-green-400 mb-1">
@@ -236,7 +259,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
           Ready to Start Earning?
         </h3>
         <p className="text-gray-400 mb-6">
-          Accept a mission, record authentic conversations, and earn STRK tokens for sharing real-world perspectives.
+          Accept a mission, record authentic conversations, and earn {getTokenDisplaySymbol()} for sharing real-world perspectives.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <button
@@ -246,10 +269,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
             Browse Missions
           </button>
           <button
-            onClick={() => {
-              // TODO: Link to mission creation when implemented
-              alert("Mission creation coming soon!");
-            }}
+            onClick={() => setShowCreationForm(true)}
             className="px-6 py-3 bg-[#2A2A2A] border border-[#3A3A3A] text-white font-semibold rounded-xl hover:bg-[#3A3A3A] transition-colors"
           >
             Create Mission

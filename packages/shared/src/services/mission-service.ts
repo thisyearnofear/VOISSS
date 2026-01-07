@@ -1,4 +1,14 @@
-import { Mission, MissionResponse, MISSION_TEMPLATES, MissionDifficulty } from '../types/socialfi';
+import { 
+  Mission, 
+  MissionResponse, 
+  MISSION_TEMPLATES, 
+  MissionDifficulty,
+  RewardRecord,
+  MilestoneProgress,
+  Milestone,
+  RewardClaim 
+} from '../types/socialfi';
+import { PLATFORM_CONFIG, getRewardForMilestone } from '../config/platform';
 
 export interface MissionService {
   // Mission Management
@@ -19,8 +29,16 @@ export interface MissionService {
   getRecommendedMissions(userId: string): Promise<Mission[]>;
   
   // Mission Templates
-  getMissionTemplates(): any; // Flexible return type for templates
+  getMissionTemplates(): any;
   createMissionFromTemplate(templateKey: string, templateIndex: number, customizations?: Partial<Mission>): Promise<Mission>;
+  
+  // Reward Management
+  createRewardForMilestone(userId: string, missionId: string, responseId: string, milestone: Milestone): Promise<RewardRecord>;
+  getMilestoneProgress(userId: string, missionId: string, responseId: string): Promise<MilestoneProgress>;
+  completeMilestone(userId: string, missionId: string, responseId: string, milestone: Milestone, qualityScore?: number): Promise<MilestoneProgress>;
+  getUnclaimedRewards(userId: string): Promise<RewardRecord[]>;
+  claimRewards(userId: string, rewardIds: string[]): Promise<RewardClaim>;
+  getCreatorEarnings(userId: string): Promise<{ totalEarned: number; totalClaimed: number; pendingRewards: number; unclaimedCount: number }>;
   
   // Analytics
   getMissionStats(missionId: string): Promise<{
@@ -35,6 +53,9 @@ export class DefaultMissionService implements MissionService {
   private missions: Map<string, Mission> = new Map();
   private responses: Map<string, MissionResponse> = new Map();
   private userMissions: Map<string, string[]> = new Map(); // userId -> missionIds
+  private rewards: Map<string, RewardRecord> = new Map();
+  private progress: Map<string, MilestoneProgress> = new Map();
+  private claims: Map<string, RewardClaim> = new Map();
 
   constructor() {
     this.initializeDefaultMissions();
@@ -330,6 +351,161 @@ export class DefaultMissionService implements MissionService {
       averageQuality,
       geographicDistribution,
       completionRate,
+    };
+  }
+
+  // ===== REWARD MANAGEMENT =====
+
+  private generateId(): string {
+    return `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  private getProgressKey(userId: string, missionId: string, responseId: string): string {
+    return `${userId}:${missionId}:${responseId}`;
+  }
+
+  async createRewardForMilestone(
+    userId: string,
+    missionId: string,
+    responseId: string,
+    milestone: Milestone
+  ): Promise<RewardRecord> {
+    const amountInTokens = getRewardForMilestone(milestone);
+
+    const reward: RewardRecord = {
+      id: `reward_${this.generateId()}`,
+      userId,
+      missionId,
+      responseId,
+      milestone,
+      amountInTokens,
+      earnedAt: new Date(),
+      status: 'pending',
+    };
+
+    this.rewards.set(reward.id, reward);
+    return reward;
+  }
+
+  async getMilestoneProgress(
+    userId: string,
+    missionId: string,
+    responseId: string
+  ): Promise<MilestoneProgress> {
+    const key = this.getProgressKey(userId, missionId, responseId);
+
+    if (this.progress.has(key)) {
+      return this.progress.get(key)!;
+    }
+
+    const newProgress: MilestoneProgress = {
+      userId,
+      missionId,
+      responseId,
+      completedMilestones: [],
+      nextMilestone: 'submission' as const,
+      totalEarned: 0,
+      lastUpdated: new Date(),
+    };
+
+    this.progress.set(key, newProgress);
+    return newProgress;
+  }
+
+  async completeMilestone(
+    userId: string,
+    missionId: string,
+    responseId: string,
+    milestone: Milestone,
+    qualityScore?: number
+  ): Promise<MilestoneProgress> {
+    const key = this.getProgressKey(userId, missionId, responseId);
+    const progress = await this.getMilestoneProgress(userId, missionId, responseId);
+
+    if (progress.completedMilestones.includes(milestone)) {
+      return progress;
+    }
+
+    const reward = await this.createRewardForMilestone(userId, missionId, responseId, milestone);
+
+    const milestoneSequence: Milestone[] = ['submission', 'quality_approved', 'featured'];
+    const nextIndex = milestoneSequence.findIndex(m => !progress.completedMilestones.includes(m));
+
+    const updated: MilestoneProgress = {
+      ...progress,
+      completedMilestones: [...progress.completedMilestones, milestone],
+      totalEarned: progress.totalEarned + reward.amountInTokens,
+      qualityScore,
+      isFeatured: milestone === 'featured',
+      nextMilestone: nextIndex >= 0 ? milestoneSequence[nextIndex] : undefined,
+      lastUpdated: new Date(),
+    };
+
+    this.progress.set(key, updated);
+    return updated;
+  }
+
+  async getUnclaimedRewards(userId: string): Promise<RewardRecord[]> {
+    return Array.from(this.rewards.values()).filter(
+      r => r.userId === userId && r.status === 'pending'
+    );
+  }
+
+  async claimRewards(userId: string, rewardIds: string[]): Promise<RewardClaim> {
+    const recordsToClaimArray = rewardIds
+      .map(id => this.rewards.get(id))
+      .filter((r): r is RewardRecord => r !== undefined && r.userId === userId);
+
+    if (recordsToClaimArray.length === 0) {
+      throw new Error('No valid rewards to claim');
+    }
+
+    const totalAmount = recordsToClaimArray.reduce((sum, r) => sum + r.amountInTokens, 0);
+
+    const claim: RewardClaim = {
+      id: `claim_${this.generateId()}`,
+      userId,
+      totalAmount,
+      rewardIds,
+      claimedAt: new Date(),
+      status: 'pending',
+      retryCount: 0,
+    };
+
+    for (const record of recordsToClaimArray) {
+      this.rewards.set(record.id, {
+        ...record,
+        status: 'claimed',
+        claimedAt: new Date(),
+      });
+    }
+
+    this.claims.set(claim.id, claim);
+    return claim;
+  }
+
+  async getCreatorEarnings(userId: string): Promise<{
+    totalEarned: number;
+    totalClaimed: number;
+    pendingRewards: number;
+    unclaimedCount: number;
+  }> {
+    const userRewards = Array.from(this.rewards.values()).filter(r => r.userId === userId);
+
+    const totalEarned = userRewards.reduce((sum, r) => sum + r.amountInTokens, 0);
+    const totalClaimed = userRewards
+      .filter(r => r.status === 'claimed')
+      .reduce((sum, r) => sum + r.amountInTokens, 0);
+    const pendingRewards = userRewards
+      .filter(r => r.status === 'pending')
+      .reduce((sum, r) => sum + r.amountInTokens, 0);
+    const unclaimedCount = userRewards.filter(r => r.status === 'pending').length;
+
+    return {
+      totalEarned,
+      totalClaimed,
+      pendingRewards,
+      unclaimedCount,
     };
   }
 }

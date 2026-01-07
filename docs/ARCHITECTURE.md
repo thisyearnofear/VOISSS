@@ -55,10 +55,14 @@ voisss/
 - **AI Voice Transformation**: Full ElevenLabs integration with 29+ languages
 - **Base Chain Integration**: Complete wallet connection, smart contract interaction with gasless transactions
 - **IPFS Storage**: Decentralized recording storage and metadata
-- **Mission System**: SocialFi features for community engagement
+- **Mission System**: SocialFi features with creator gating, token-based rewards, and milestone distribution
+  - Mission creation gated by minimum token balance (1M $papajams)
+  - Auto-publishing and auto-expiration for missions
+  - Milestone-based reward distribution (submission, quality approved, featured)
+  - Centralized platform configuration for easy token/reward updates
 - **User Experience**: Mobile-responsive, progressive disclosure
 - **Security**: Server-side API management, secure wallet integration
-- **Codebase**: ~2,000+ lines, comprehensive implementation
+- **Codebase**: ~2,500+ lines, comprehensive implementation
 
 ### ⚠️ React Native App - FUNCTIONAL BUT INCOMPLETE
 
@@ -97,7 +101,16 @@ voisss/
 
 ## 🎯 Current Focus & Roadmap
 
-### ✅ **Immediate Focus: Web & React Native Unification**
+### ✅ **Current: Mission System & Creator Economy**
+- **Completed**: Centralized platform configuration (`packages/shared/config/platform.ts`)
+- **Completed**: Reward service with milestone-based distribution
+- **Completed**: Mission creation form with token eligibility checks
+- **Completed**: Wallet state management improvements (localStorage persistence)
+- **In Progress**: Backend mission persistence (Supabase integration)
+- **In Progress**: Token balance verification on Base chain
+- **Upcoming**: Auto-expiration cron job and reward claim mechanisms
+
+### ✅ **Short-term: Web & React Native Unification**
 - Consolidate all shared logic (types, services, utils) into `packages/shared`.
 - Unify reusable UI components into `packages/ui`.
 - Achieve feature parity between Web and React Native.

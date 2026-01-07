@@ -16,6 +16,7 @@ type SpendPermission = any;
 
 const NATIVE_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 const SPENDER_ADDRESS = process.env.NEXT_PUBLIC_SPENDER_ADDRESS as `0x${string}`;
+const STORAGE_KEY = 'voisss_base_account_address';
 
 if (!SPENDER_ADDRESS) {
   console.warn('⚠️ NEXT_PUBLIC_SPENDER_ADDRESS not configured. Gasless transactions will not work.');
@@ -26,6 +27,7 @@ interface UseBaseAccountReturn {
   isConnected: boolean;
   isConnecting: boolean;
   universalAddress: string | null;
+  connectionState: 'idle' | 'checking' | 'connected' | 'disconnected';
 
   // Actions
   connect: () => Promise<void>;
@@ -50,10 +52,10 @@ export function useBaseAccount(): UseBaseAccountReturn {
   const context = useBase();
   const provider = context?.provider ?? null;
 
-  const [isConnected, setIsConnected] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionState, setConnectionState] = useState<'idle' | 'checking' | 'connected' | 'disconnected'>('checking');
   const [universalAddress, setUniversalAddress] = useState<string | null>(null);
-  const [status, setStatus] = useState("Ready to connect");
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [status, setStatus] = useState("Checking connection...");
   const [error, setError] = useState<string | null>(null);
 
   // Permission state
@@ -65,11 +67,14 @@ export function useBaseAccount(): UseBaseAccountReturn {
   // Check for existing connection on mount
   useEffect(() => {
     checkExistingConnection();
-  }, []);
+  }, [provider]);
 
-  const checkExistingConnection = async () => {
+  const checkExistingConnection = useCallback(async () => {
     if (!provider) return;
+    
     try {
+      setConnectionState('checking');
+      
       const accounts = await provider.request({
         method: "eth_accounts",
         params: [],
@@ -78,16 +83,38 @@ export function useBaseAccount(): UseBaseAccountReturn {
       if (accounts.length > 0) {
         const universalAddr = accounts[0];
         setUniversalAddress(universalAddr);
-        setIsConnected(true);
+        setConnectionState('connected');
         setStatus("Connected");
+        
+        // Persist to localStorage
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_KEY, universalAddr);
+        }
 
         // Check for existing spend permission
         await checkForPermission(universalAddr);
+      } else {
+        // Check localStorage as fallback
+        if (typeof window !== 'undefined') {
+          const storedAddress = localStorage.getItem(STORAGE_KEY);
+          if (storedAddress) {
+            setUniversalAddress(storedAddress);
+            setConnectionState('connected');
+            setStatus("Connected");
+            await checkForPermission(storedAddress);
+            return;
+          }
+        }
+        
+        setConnectionState('disconnected');
+        setStatus("Not connected");
       }
     } catch (err) {
-      console.warn("No existing connection found");
+      console.warn("Error checking connection:", err);
+      setConnectionState('disconnected');
+      setStatus("Not connected");
     }
-  };
+  }, [provider]);
 
   const checkForPermission = async (userAddress: string) => {
     if (!provider || !SPENDER_ADDRESS) return;
@@ -148,8 +175,13 @@ export function useBaseAccount(): UseBaseAccountReturn {
 
       const universalAddr = accounts[0];
       setUniversalAddress(universalAddr);
-      setIsConnected(true);
+      setConnectionState('connected');
       setStatus("Connected");
+
+      // Persist to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY, universalAddr);
+      }
 
       // Check for existing permission
       await checkForPermission(universalAddr);
@@ -158,18 +190,25 @@ export function useBaseAccount(): UseBaseAccountReturn {
       console.error("Connection failed:", err);
       setError(err.message || "Connection failed");
       setStatus("Connection failed");
+      setConnectionState('disconnected');
     } finally {
       setIsConnecting(false);
     }
   }, [isConnecting, provider]);
 
   const disconnect = useCallback(async () => {
-    setIsConnected(false);
+    setConnectionState('disconnected');
     setUniversalAddress(null);
     setCurrentPermission(null);
     setPermissionActive(false);
     setStatus("Disconnected");
     setError(null);
+    
+    // Clear localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+    
     await crossPlatformStorage.removeItem('spendPermissionHash');
   }, []);
 
@@ -226,9 +265,10 @@ export function useBaseAccount(): UseBaseAccountReturn {
   }, [universalAddress, provider]);
 
   return {
-    isConnected,
+    isConnected: connectionState === 'connected',
     isConnecting,
     universalAddress,
+    connectionState,
     connect,
     disconnect,
     permissionActive,

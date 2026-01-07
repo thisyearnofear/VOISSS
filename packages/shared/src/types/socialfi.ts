@@ -7,12 +7,12 @@ export const MissionSchema = z.object({
   description: z.string(),
   topic: z.string(), // "crypto", "gender-roles", "marriage", etc.
   difficulty: z.enum(['easy', 'medium', 'hard']),
-  reward: z.number(), // STRK tokens
+  reward: z.number(), // tokens (base unit, not formatted)
   expiresAt: z.date(),
   maxParticipants: z.number().optional(),
   currentParticipants: z.number(),
   isActive: z.boolean(),
-  createdBy: z.string(), // curator address
+  createdBy: z.string(), // curator/creator address
   tags: z.array(z.string()),
   locationBased: z.boolean(), // true for taxi/local missions
   targetDuration: z.number(), // suggested clip length in seconds
@@ -20,6 +20,8 @@ export const MissionSchema = z.object({
   contextSuggestions: z.array(z.string()), // "taxi", "coffee shop", "street", etc.
   createdAt: z.date(),
   updatedAt: z.date(),
+  autoExpire: z.boolean().default(true), // auto-expire when expiresAt reached
+  publishedAt: z.date().optional(), // when mission was published
 });
 
 export type Mission = z.infer<typeof MissionSchema>;
@@ -229,8 +231,65 @@ export const MISSION_TEMPLATES = {
   ],
 } as const;
 
+// Reward Milestones for Mission Completion
+export const MilestoneSchema = z.enum([
+  'submission',        // Submitted recording to mission
+  'quality_approved',  // Passed quality review threshold
+  'featured',         // Featured in a highlight reel
+]);
+
+export type Milestone = z.infer<typeof MilestoneSchema>;
+
+// Reward Record - tracks earned rewards per user
+export const RewardRecordSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  missionId: z.string(),
+  responseId: z.string(), // MissionResponse ID
+  milestone: MilestoneSchema,
+  amountInTokens: z.number(),
+  earnedAt: z.date(),
+  claimedAt: z.date().optional(),
+  transactionHash: z.string().optional(),
+  status: z.enum(['pending', 'claimed', 'failed']),
+});
+
+export type RewardRecord = z.infer<typeof RewardRecordSchema>;
+
+// Milestone Progress - tracks user's progress through reward milestones
+export const MilestoneProgressSchema = z.object({
+  userId: z.string(),
+  missionId: z.string(),
+  responseId: z.string(),
+  completedMilestones: z.array(MilestoneSchema),
+  nextMilestone: MilestoneSchema.optional(),
+  totalEarned: z.number(),
+  qualityScore: z.number().optional(),
+  isFeatured: z.boolean().default(false),
+  lastUpdated: z.date(),
+});
+
+export type MilestoneProgress = z.infer<typeof MilestoneProgressSchema>;
+
+// Reward Claim - when user claims their earned rewards
+export const RewardClaimSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  totalAmount: z.number(),
+  rewardIds: z.array(z.string()),
+  claimedAt: z.date(),
+  transactionHash: z.string().optional(),
+  status: z.enum(['pending', 'success', 'failed']),
+  retryCount: z.number().default(0),
+  lastRetryAt: z.date().optional(),
+  error: z.string().optional(),
+});
+
+export type RewardClaim = z.infer<typeof RewardClaimSchema>;
+
 // Utility types for the mission system
 export type MissionDifficulty = Mission['difficulty'];
 export type MissionStatus = MissionResponse['status'];
 export type ConsentType = ConsentRecord['consentType'];
 export type PrivacyLevel = ConsentRecord['privacyLevel'];
+export type MilestoneType = Milestone;
