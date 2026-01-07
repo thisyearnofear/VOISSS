@@ -7,6 +7,7 @@ import { PLATFORM_CONFIG, meetsCreatorRequirements } from '@voisss/shared/config
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  isConnected: boolean;
   isAuthenticating: boolean;
   isCheckingSession: boolean;
   address: string | null;
@@ -261,6 +262,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value: AuthContextType = {
     isAuthenticated,
+    isConnected,
     isAuthenticating,
     isCheckingSession,
     address: universalAddress || sessionAddress || null,

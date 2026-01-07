@@ -76,6 +76,7 @@ export class DefaultMissionService implements MissionService {
         createdBy: "platform",
         tags: ["crypto", "web3", "street-interview", "public-opinion"],
         locationBased: true,
+        autoExpire: true,
         targetDuration: 60,
         examples: [
           "Have you heard of Web3?",
@@ -97,6 +98,7 @@ export class DefaultMissionService implements MissionService {
         createdBy: "platform",
         tags: ["remote-work", "lifestyle", "productivity", "work-life-balance"],
         locationBased: false,
+        autoExpire: true,
         targetDuration: 120,
         examples: [
           "How has remote work affected your daily routine?",
@@ -118,6 +120,7 @@ export class DefaultMissionService implements MissionService {
         createdBy: "platform",
         tags: ["marriage", "relationships", "commitment", "modern-love"],
         locationBased: false,
+        autoExpire: true,
         targetDuration: 300,
         examples: [
           "What makes a good marriage in today's world?",
@@ -139,6 +142,7 @@ export class DefaultMissionService implements MissionService {
         createdBy: "platform",
         tags: ["ai", "technology", "future", "jobs", "automation"],
         locationBased: true,
+        autoExpire: true,
         targetDuration: 180,
         examples: [
           "How do you feel about AI taking over jobs?",
@@ -308,6 +312,7 @@ export class DefaultMissionService implements MissionService {
       createdBy: "platform",
       tags: [templateKey, template.difficulty],
       locationBased: (template.contextSuggestions as unknown as string[]).includes("taxi") || (template.contextSuggestions as unknown as string[]).includes("street"),
+      autoExpire: true,
       targetDuration: template.targetDuration,
       examples: [...template.examples],
       contextSuggestions: [...template.contextSuggestions],
@@ -356,10 +361,6 @@ export class DefaultMissionService implements MissionService {
 
   // ===== REWARD MANAGEMENT =====
 
-  private generateId(): string {
-    return `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
   private getProgressKey(userId: string, missionId: string, responseId: string): string {
     return `${userId}:${missionId}:${responseId}`;
   }
@@ -404,6 +405,7 @@ export class DefaultMissionService implements MissionService {
       responseId,
       completedMilestones: [],
       nextMilestone: 'submission' as const,
+      isFeatured: false,
       totalEarned: 0,
       lastUpdated: new Date(),
     };

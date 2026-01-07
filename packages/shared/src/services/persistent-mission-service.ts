@@ -5,7 +5,17 @@
  * Uses the DatabaseService interface for storage, ensuring data survives page refreshes.
  */
 
-import { Mission, MissionResponse, MISSION_TEMPLATES, MissionDifficulty } from '../types/socialfi';
+import { 
+  Mission, 
+  MissionResponse, 
+  MISSION_TEMPLATES, 
+  MissionDifficulty,
+  RewardRecord,
+  MilestoneProgress,
+  Milestone,
+  RewardClaim
+} from '../types/socialfi';
+import { getRewardForMilestone } from '../config/platform';
 import { MissionService } from './mission-service';
 import { DatabaseService, COLLECTIONS, DatabaseOperationError } from './database-service';
 import { createLocalStorageDatabase } from './localStorage-database';
@@ -56,6 +66,7 @@ export class PersistentMissionService implements MissionService {
         createdBy: "platform",
         tags: ["crypto", "web3", "street-interview", "public-opinion"],
         locationBased: true,
+        autoExpire: true,
         targetDuration: 60,
         examples: [
           "Have you heard of Web3?",
@@ -77,6 +88,7 @@ export class PersistentMissionService implements MissionService {
         createdBy: "platform",
         tags: ["remote-work", "lifestyle", "productivity", "work-life-balance"],
         locationBased: false,
+        autoExpire: true,
         targetDuration: 120,
         examples: [
           "How has remote work affected your daily routine?",
@@ -98,6 +110,7 @@ export class PersistentMissionService implements MissionService {
         createdBy: "platform",
         tags: ["marriage", "relationships", "commitment", "modern-love"],
         locationBased: false,
+        autoExpire: true,
         targetDuration: 300,
         examples: [
           "What makes a good marriage in today's world?",
@@ -119,6 +132,7 @@ export class PersistentMissionService implements MissionService {
         createdBy: "platform",
         tags: ["ai", "technology", "future", "jobs", "automation"],
         locationBased: true,
+        autoExpire: true,
         targetDuration: 180,
         examples: [
           "How do you feel about AI taking over jobs?",
@@ -420,6 +434,7 @@ export class PersistentMissionService implements MissionService {
       tags: [templateKey, template.difficulty],
       locationBased: (template.contextSuggestions as unknown as string[]).includes("taxi") || 
                     (template.contextSuggestions as unknown as string[]).includes("street"),
+      autoExpire: true,
       targetDuration: template.targetDuration,
       examples: [...template.examples],
       contextSuggestions: [...template.contextSuggestions],
@@ -483,6 +498,259 @@ export class PersistentMissionService implements MissionService {
         `Failed to get stats for mission ${missionId}`,
         COLLECTIONS.MISSIONS,
         'getMissionStats'
+      );
+    }
+  }
+
+  // ===== REWARD MANAGEMENT =====
+
+  private getProgressKey(userId: string, missionId: string, responseId: string): string {
+    return `${userId}:${missionId}:${responseId}`;
+  }
+
+  async createRewardForMilestone(
+    userId: string,
+    missionId: string,
+    responseId: string,
+    milestone: Milestone
+  ): Promise<RewardRecord> {
+    await this.ensureInitialized();
+
+    const amountInTokens = getRewardForMilestone(milestone);
+
+    const reward: RewardRecord = {
+      id: `reward_${this.generateId()}`,
+      userId,
+      missionId,
+      responseId,
+      milestone,
+      amountInTokens,
+      earnedAt: new Date(),
+      status: 'pending',
+    };
+
+    try {
+      await this.db.set('rewards', reward.id, reward);
+      return reward;
+    } catch (error) {
+      throw new DatabaseOperationError(
+        'Failed to create reward',
+        'rewards',
+        'createRewardForMilestone'
+      );
+    }
+  }
+
+  async getMilestoneProgress(
+    userId: string,
+    missionId: string,
+    responseId: string
+  ): Promise<MilestoneProgress> {
+    await this.ensureInitialized();
+    const key = this.getProgressKey(userId, missionId, responseId);
+
+    try {
+      // We use the key as ID for progress to ensure uniqueness per user-mission-response
+      // The ID might need to be sanitized if used as a filename in some DBs, 
+      // but for localStorage/IndexedDB usually fine. 
+      // Safe option: hash it or just use it if allowed.
+      // Let's assume we can use it or generate a specific ID and query by fields.
+      // For simplicity with key-value store, we'll try to use a composite key or query.
+      
+      // Better approach for general DB: Query by fields
+      const progressList = await this.db.getWhere<MilestoneProgress>('milestone_progress', 
+        p => p.userId === userId && p.missionId === missionId && p.responseId === responseId
+      );
+
+      if (progressList.length > 0) {
+        return progressList[0];
+      }
+
+      const newProgress: MilestoneProgress = {
+        userId,
+        missionId,
+        responseId,
+        completedMilestones: [],
+        nextMilestone: 'submission' as const,
+        isFeatured: false,
+        totalEarned: 0,
+        lastUpdated: new Date(),
+      };
+
+      // Store with a unique ID
+      const id = `progress_${this.generateId()}`;
+      await this.db.set('milestone_progress', id, newProgress);
+      return newProgress;
+    } catch (error) {
+      throw new DatabaseOperationError(
+        'Failed to get milestone progress',
+        'milestone_progress',
+        'getMilestoneProgress'
+      );
+    }
+  }
+
+  async completeMilestone(
+    userId: string,
+    missionId: string,
+    responseId: string,
+    milestone: Milestone,
+    qualityScore?: number
+  ): Promise<MilestoneProgress> {
+    await this.ensureInitialized();
+    
+    try {
+      const progress = await this.getMilestoneProgress(userId, missionId, responseId);
+
+      if (progress.completedMilestones.includes(milestone)) {
+        return progress;
+      }
+
+      // Create reward
+      const reward = await this.createRewardForMilestone(userId, missionId, responseId, milestone);
+
+      // Update progress
+      const milestoneSequence: Milestone[] = ['submission', 'quality_approved', 'featured'];
+      const nextIndex = milestoneSequence.findIndex(m => !progress.completedMilestones.includes(m));
+      
+      // Find the ID of the progress record to update
+      const progressList = await this.db.getWhere<MilestoneProgress & { id?: string }>('milestone_progress', 
+        p => p.userId === userId && p.missionId === missionId && p.responseId === responseId
+      );
+      
+      // If we found it via getMilestoneProgress, it should exist. 
+      // If getMilestoneProgress created a new one, we need to find its ID or we should have returned ID from there.
+      // getMilestoneProgress implementation above creates one if not found.
+      // However, we didn't return the ID in the interface (it's not in MilestoneProgress type usually?).
+      // Let's assume we can find it again.
+      
+      // Ideally getMilestoneProgress should return the object which might have an internal ID if it came from DB.
+      // But adhering to interface.
+      
+      // Let's simplify: fetch all, find match, get its ID (if stored in DB wrapper) or we need to manage IDs better.
+      // Our DB `getWhere` returns T[]. If T doesn't have ID, we can't update by ID easily unless we know it.
+      // `DatabaseService` methods `set` and `update` take an ID. 
+      // `getWhere` returns the data `T`.
+      
+      // Hack/Fix: In `getMilestoneProgress`, I created it with `id = progress_${this.generateId()}`.
+      // I should store that ID in the object if I can, or use a consistent ID generation strategy.
+      // Consistent ID: `progress_${userId}_${missionId}_${responseId}` (sanitized).
+      
+      const consistentId = `prog_${userId}_${missionId}_${responseId}`.replace(/[^a-zA-Z0-9_]/g, '');
+
+      // Re-implementing getMilestoneProgress logic briefly to ensure we use consistent ID for updates
+      const updatedProgress: MilestoneProgress = {
+        ...progress,
+        completedMilestones: [...progress.completedMilestones, milestone],
+        totalEarned: progress.totalEarned + reward.amountInTokens,
+        qualityScore: qualityScore ?? progress.qualityScore,
+        isFeatured: milestone === 'featured',
+        nextMilestone: nextIndex >= 0 ? milestoneSequence[nextIndex] : undefined,
+        lastUpdated: new Date(),
+      };
+
+      await this.db.set('milestone_progress', consistentId, updatedProgress);
+      return updatedProgress;
+    } catch (error) {
+       throw new DatabaseOperationError(
+        'Failed to complete milestone',
+        'milestone_progress',
+        'completeMilestone'
+      );
+    }
+  }
+
+  async getUnclaimedRewards(userId: string): Promise<RewardRecord[]> {
+    await this.ensureInitialized();
+    
+    try {
+      return await this.db.getWhere<RewardRecord>('rewards', 
+        r => r.userId === userId && r.status === 'pending'
+      );
+    } catch (error) {
+      throw new DatabaseOperationError(
+        'Failed to get unclaimed rewards',
+        'rewards',
+        'getUnclaimedRewards'
+      );
+    }
+  }
+
+  async claimRewards(userId: string, rewardIds: string[]): Promise<RewardClaim> {
+    await this.ensureInitialized();
+
+    try {
+      const allRewards = await this.db.getWhere<RewardRecord>('rewards',
+        r => rewardIds.includes(r.id) && r.userId === userId
+      );
+
+      if (allRewards.length === 0) {
+        throw new Error('No valid rewards to claim');
+      }
+
+      const totalAmount = allRewards.reduce((sum, r) => sum + r.amountInTokens, 0);
+
+      const claim: RewardClaim = {
+        id: `claim_${this.generateId()}`,
+        userId,
+        totalAmount,
+        rewardIds,
+        claimedAt: new Date(),
+        status: 'pending',
+        retryCount: 0,
+      };
+
+      // Update rewards status
+      for (const reward of allRewards) {
+        await this.db.update('rewards', reward.id, {
+          status: 'claimed',
+          claimedAt: new Date(),
+        });
+      }
+
+      await this.db.set('reward_claims', claim.id, claim);
+      return claim;
+    } catch (error) {
+       if (error instanceof DatabaseOperationError) throw error;
+       throw new DatabaseOperationError(
+        'Failed to claim rewards',
+        'reward_claims',
+        'claimRewards'
+      );
+    }
+  }
+
+  async getCreatorEarnings(userId: string): Promise<{
+    totalEarned: number;
+    totalClaimed: number;
+    pendingRewards: number;
+    unclaimedCount: number;
+  }> {
+    await this.ensureInitialized();
+
+    try {
+      const userRewards = await this.db.getWhere<RewardRecord>('rewards', r => r.userId === userId);
+
+      const totalEarned = userRewards.reduce((sum, r) => sum + r.amountInTokens, 0);
+      const totalClaimed = userRewards
+        .filter(r => r.status === 'claimed')
+        .reduce((sum, r) => sum + r.amountInTokens, 0);
+      const pendingRewards = userRewards
+        .filter(r => r.status === 'pending')
+        .reduce((sum, r) => sum + r.amountInTokens, 0);
+      const unclaimedCount = userRewards.filter(r => r.status === 'pending').length;
+
+      return {
+        totalEarned,
+        totalClaimed,
+        pendingRewards,
+        unclaimedCount,
+      };
+    } catch (error) {
+      throw new DatabaseOperationError(
+        'Failed to get creator earnings',
+        'rewards',
+        'getCreatorEarnings'
       );
     }
   }
