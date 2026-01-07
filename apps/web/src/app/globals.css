@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom Font Utilities */
+.font-anton { font-family: var(--font-anton), Impact, sans-serif; }
+.font-syne { font-family: var(--font-syne), sans-serif; }
+.font-courier { font-family: var(--font-courier-prime), monospace; }
+
 /* VOISSS Design System */
 :root {
   /* Brand Colors */

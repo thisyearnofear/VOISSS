@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Anton, Syne, Courier_Prime } from "next/font/google";
 import { BaseProvider } from "./providers";
 import Nav from "../components/Nav";
 import VoiceAssistant from "../components/VoiceAssistant";
@@ -8,6 +8,27 @@ import "./globals.css";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  display: 'swap',
+});
+
+const anton = Anton({
+  weight: '400',
+  variable: "--font-anton",
+  subsets: ["latin"],
+  display: 'swap',
+});
+
+const syne = Syne({
+  variable: "--font-syne",
+  subsets: ["latin"],
+  display: 'swap',
+});
+
+const courierPrime = Courier_Prime({
+  weight: ['400', '700'],
+  variable: "--font-courier-prime",
+  subsets: ["latin"],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -132,7 +153,7 @@ export default function RootLayout({
         )}
       </head>
       <body
-        className={`${inter.variable} antialiased`}
+        className={`${inter.variable} ${anton.variable} ${syne.variable} ${courierPrime.variable} antialiased font-sans`}
         suppressHydrationWarning={true}
       >
         <BaseProvider>

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { VoisssKaraokeLine } from './voisss-karaoke';
+import { TranscriptStyleControls, TranscriptStyle, TRANSCRIPT_THEMES, TRANSCRIPT_FONTS } from './TranscriptStyleControls';
 import { buildTranscriptPages, findActiveWord, stableTranscriptId } from '@voisss/shared/utils/timed-transcript';
 import {
   DEFAULT_VOISSS_TEMPLATES,
@@ -95,6 +96,14 @@ export default function TranscriptComposer(props: {
       ? initialTemplateId
       : (DEFAULT_VOISSS_TEMPLATES[0]?.id ?? 'voisss-pulse-portrait')
   );
+
+  // Initialize style with defaults
+  const [style, setStyle] = useState<TranscriptStyle>({
+    fontFamily: 'Inter',
+    theme: TRANSCRIPT_THEMES[0], // Default Voisss theme
+    animation: 'cut',
+  });
+
   const template = useMemo(() => {
     return DEFAULT_VOISSS_TEMPLATES.find((t: TranscriptTemplate) => t.id === templateId) ?? DEFAULT_VOISSS_TEMPLATES[0];
   }, [templateId]);
@@ -129,6 +138,9 @@ export default function TranscriptComposer(props: {
         const tt = TimedTranscriptSchema.safeParse(data.timedTranscript);
         if (tt.success) setTimedTranscript(tt.data);
       }
+      if (data?.style) {
+        setStyle(data.style);
+      }
     } catch {
       // ignore
     }
@@ -145,6 +157,7 @@ export default function TranscriptComposer(props: {
           rawText,
           importJson,
           timedTranscript,
+          style,
         })
       );
     } catch {
@@ -226,11 +239,10 @@ export default function TranscriptComposer(props: {
         padding: template.layout.paddingPx,
         borderRadius: 16,
         minHeight: 340,
-        background:
-          template.background.type === 'gradient'
-            ? `linear-gradient(135deg, ${template.background.colors.join(', ')})`
-            : template.background.colors[0] ?? '#0A0A0A',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: style.theme.background,
+        border: style.theme.id === 'blue-white' || style.theme.id === 'paper' 
+          ? '1px solid rgba(0,0,0,0.1)' 
+          : '1px solid rgba(255,255,255,0.06)',
       }
     : {};
 
@@ -282,11 +294,11 @@ export default function TranscriptComposer(props: {
             ) : (
               <div
                 style={{
-                  fontFamily: template.typography.fontFamily,
+                  fontFamily: style.fontFamily === 'Anton' ? 'Impact, sans-serif' : style.fontFamily,
                   fontSize: template.typography.fontSizePx,
                   fontWeight: template.typography.fontWeight as any,
                   lineHeight: template.typography.lineHeight,
-                  color: template.typography.textColor,
+                  color: style.theme.textInactive,
                   textAlign: 'center',
                   display: 'flex',
                   alignItems: 'center',
@@ -304,8 +316,7 @@ export default function TranscriptComposer(props: {
                     segmentWords={activeSegment.words}
                     activeWordIndex={active?.wordIndex ?? -1}
                     currentTimeMs={currentTimeMs}
-                    highlightColor={template.typography.highlightColor}
-                    mutedColor={template.typography.mutedColor}
+                    style={style}
                     fontSizePx={template.typography.fontSizePx}
                   />
                 ) : (
@@ -318,6 +329,12 @@ export default function TranscriptComposer(props: {
 
           <div className="p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl">
             <audio ref={audioRef} controls src={previewUrl} className="w-full h-9" />
+          </div>
+
+          {/* Style Controls */}
+          <div className="p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl">
+            <h4 className="text-sm font-semibold text-white mb-2">Customize Style</h4>
+            <TranscriptStyleControls style={style} onChange={setStyle} />
           </div>
 
           {error && (
@@ -433,7 +450,7 @@ export default function TranscriptComposer(props: {
                   const res = await fetch('/api/transcript/share-link', {
                     method: 'POST',
                     headers: { 'content-type': 'application/json' },
-                    body: JSON.stringify({ transcript: timedTranscript, templateId: template.id }),
+                    body: JSON.stringify({ transcript: timedTranscript, templateId: template.id, style }),
                   });
                   const data = await res.json();
                   if (!res.ok) {
@@ -478,7 +495,7 @@ export default function TranscriptComposer(props: {
                   const res = await fetch('/api/transcript/export', {
                     method: 'POST',
                     headers: { 'content-type': 'application/json' },
-                    body: JSON.stringify({ kind: 'mp4', templateId: template.id, transcript: timedTranscript }),
+                    body: JSON.stringify({ kind: 'mp4', templateId: template.id, transcript: timedTranscript, style }),
                   });
                   const data = await res.json();
                   if (!res.ok) {
@@ -499,7 +516,7 @@ export default function TranscriptComposer(props: {
                   const res = await fetch('/api/transcript/export', {
                     method: 'POST',
                     headers: { 'content-type': 'application/json' },
-                    body: JSON.stringify({ kind: 'carousel', templateId: template.id, transcript: timedTranscript }),
+                    body: JSON.stringify({ kind: 'carousel', templateId: template.id, transcript: timedTranscript, style }),
                   });
                   const data = await res.json();
                   if (!res.ok) {
@@ -552,11 +569,10 @@ function VoisssKaraokePreview(props: {
   segmentWords: Array<{ word: string; startMs: number; endMs: number }>;
   activeWordIndex: number;
   currentTimeMs: number;
-  highlightColor: string;
-  mutedColor: string;
+  style: TranscriptStyle;
   fontSizePx: number;
 }) {
-  const { lines, segmentWords, activeWordIndex, currentTimeMs, highlightColor, mutedColor, fontSizePx } = props;
+  const { lines, segmentWords, activeWordIndex, currentTimeMs, style, fontSizePx } = props;
 
   // Simple deterministic split: map line words from the segment words.
   // This keeps preview line breaks stable (from shared layout) while using timing from `segmentWords`.
@@ -581,8 +597,10 @@ function VoisssKaraokePreview(props: {
               words={lineWords as any}
               activeWordIndex={localActive}
               activeFill={activeFill}
-              highlightColor={highlightColor}
-              mutedColor={mutedColor}
+              highlightColor={style.theme.textActive}
+              mutedColor={style.theme.textInactive}
+              pastColor={style.theme.textPast}
+              animation={style.animation}
             />
           </div>
         );
