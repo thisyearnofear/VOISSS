@@ -1,9 +1,55 @@
 "use client";
 
 import { DEFAULT_VOISSS_TEMPLATES, type TranscriptTemplate } from '@voisss/shared/types/transcript';
+import { VoisssKaraokeLine } from '../../components/RecordingStudio/voisss-karaoke';
 
 function aspectLabel(aspect: TranscriptTemplate['aspect']) {
   return aspect === 'portrait' ? '9:16' : aspect === 'square' ? '1:1' : '16:9';
+}
+
+function TemplatePreview({ template }: { template: TranscriptTemplate }) {
+  // 6 words for a concise preview
+  const words = ["Transform", "your", "voice", "with", "AI", "Pulse"].map((w, i) => ({
+    word: w,
+    startMs: i * 400,
+    endMs: (i + 1) * 400,
+  }));
+
+  return (
+    <div
+      className="h-full w-full flex items-center justify-center p-4 overflow-hidden relative select-none pointer-events-none"
+      style={{
+        background: template.background.type === 'gradient'
+          ? `linear-gradient(135deg, ${template.background.colors.join(', ')})`
+          : (template.background.colors[0] || '#0A0A0A'),
+      }}
+    >
+      <div
+        style={{
+          fontFamily: template.typography.fontFamily,
+          fontSize: template.typography.fontSizePx * 0.45, // Scaled down for card
+          fontWeight: template.typography.fontWeight,
+          lineHeight: template.typography.lineHeight,
+          textAlign: 'center',
+          maxWidth: '90%'
+        }}
+      >
+        <VoisssKaraokeLine
+          words={words}
+          activeWordIndex={2} // "voice"
+          activeFill={0.7}
+          highlightColor={template.typography.highlightColor}
+          mutedColor={template.typography.mutedColor}
+        />
+      </div>
+
+      {/* Subtle overlay to make it look like a video frame */}
+      <div className="absolute inset-x-4 bottom-3 flex items-center justify-between opacity-40">
+        <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+        <div className="text-[8px] font-mono text-white/60">00:04</div>
+      </div>
+    </div>
+  );
 }
 
 export default function FeaturesPage() {
@@ -59,14 +105,10 @@ export default function FeaturesPage() {
               >
                 <div
                   className="rounded-xl border border-white/5 overflow-hidden mb-3"
-                  style={{
-                    height: 140,
-                    background:
-                      t.background.type === 'gradient'
-                        ? `linear-gradient(135deg, ${t.background.colors.join(', ')})`
-                        : (t.background.colors[0] || '#0A0A0A'),
-                  }}
-                />
+                  style={{ height: 140 }}
+                >
+                  <TemplatePreview template={t} />
+                </div>
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-white font-semibold">{t.name}</div>

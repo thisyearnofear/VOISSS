@@ -1,70 +1,99 @@
 export const VoiceRecordsABI = [
-{
-"anonymous": false,
-"inputs": [
-{
-"indexed": true,
-"internalType": "uint256",
-"name": "recordingId",
-"type": "uint256"
-},
-{
-"indexed": true,
-"internalType": "address",
-"name": "owner",
-"type": "address"
-},
-{
-"indexed": false,
-"internalType": "string",
-"name": "ipfsHash",
-"type": "string"
-},
-{
-"indexed": false,
-"internalType": "string",
-"name": "title",
-"type": "string"
-},
-{
-"indexed": false,
-"internalType": "bool",
-"name": "isPublic",
-"type": "bool"
-}
-],
-"name": "RecordingSaved",
-"type": "event"
-},
-{
-"inputs": [
-{
-"internalType": "string",
-"name": "ipfsHash",
-"type": "string"
-},
-{
-"internalType": "string",
-"name": "title",
-"type": "string"
-},
-{
-"internalType": "bool",
-"name": "isPublic",
-"type": "bool"
-}
-],
-"name": "saveRecording",
-"outputs": [
-{
-"internalType": "uint256",
-"name": "recordingId",
-"type": "uint256"
-}
-],
-"stateMutability": "nonpayable",
-"type": "function"
-},
+  {
+    "inputs": [],
+    "name": "EmptyInput",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NotOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "RecordingNotFound",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "Unauthorized",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "recordingId",
+        "type": "uint256"
+      }
+    ],
+    "name": "MetadataUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "recordingId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "ipfsHash",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "title",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "isPublic",
+        "type": "bool"
+      }
+    ],
+    "name": "RecordingSaved",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "recordingId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "title",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "isPublic",
+        "type": "bool"
+      }
+    ],
+    "name": "RecordingUpdated",
+    "type": "event"
+  },
   {
     "inputs": [
       {
@@ -75,11 +104,6 @@ export const VoiceRecordsABI = [
     ],
     "name": "getRecording",
     "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "id",
-        "type": "uint256"
-      },
       {
         "internalType": "address",
         "name": "owner",
@@ -96,6 +120,11 @@ export const VoiceRecordsABI = [
         "type": "string"
       },
       {
+        "internalType": "string",
+        "name": "metadata",
+        "type": "string"
+      },
+      {
         "internalType": "bool",
         "name": "isPublic",
         "type": "bool"
@@ -103,6 +132,19 @@ export const VoiceRecordsABI = [
       {
         "internalType": "uint256",
         "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getTotalRecordings",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
     ],
@@ -129,13 +171,29 @@ export const VoiceRecordsABI = [
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "getTotalRecordings",
-    "outputs": [
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "offset",
         "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "limit",
+        "type": "uint256"
+      }
+    ],
+    "name": "getUserRecordingsPaged",
+    "outputs": [
+      {
+        "internalType": "uint256[]",
+        "name": "",
+        "type": "uint256[]"
       }
     ],
     "stateMutability": "view",
@@ -152,11 +210,6 @@ export const VoiceRecordsABI = [
     "name": "recordings",
     "outputs": [
       {
-        "internalType": "uint256",
-        "name": "id",
-        "type": "uint256"
-      },
-      {
         "internalType": "address",
         "name": "owner",
         "type": "address"
@@ -169,6 +222,11 @@ export const VoiceRecordsABI = [
       {
         "internalType": "string",
         "name": "title",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "metadata",
         "type": "string"
       },
       {
@@ -188,25 +246,35 @@ export const VoiceRecordsABI = [
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
+        "internalType": "string",
+        "name": "ipfsHash",
+        "type": "string"
       },
       {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
+        "internalType": "string",
+        "name": "title",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "metadata",
+        "type": "string"
+      },
+      {
+        "internalType": "bool",
+        "name": "isPublic",
+        "type": "bool"
       }
     ],
-    "name": "userRecordings",
+    "name": "saveRecording",
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "recordingId",
         "type": "uint256"
       }
     ],
-    "stateMutability": "view",
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -220,6 +288,47 @@ export const VoiceRecordsABI = [
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "recordingId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "metadata",
+        "type": "string"
+      }
+    ],
+    "name": "updateMetadata",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "recordingId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "title",
+        "type": "string"
+      },
+      {
+        "internalType": "bool",
+        "name": "isPublic",
+        "type": "bool"
+      }
+    ],
+    "name": "updateRecording",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   }
 ];

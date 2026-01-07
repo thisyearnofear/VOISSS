@@ -32,13 +32,14 @@ interface SaveRecordingRequest {
   permissionHash: string;
   ipfsHash: string;
   title: string;
+  metadata?: string; // Optinally provided extra data
   isPublic: boolean;
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: SaveRecordingRequest = await request.json();
-    const { userAddress, permissionHash, ipfsHash, title, isPublic } = body;
+    const { userAddress, permissionHash, ipfsHash, title, metadata, isPublic } = body;
 
     // Validate inputs
     if (!userAddress || !permissionHash || !ipfsHash || !title) {
@@ -50,18 +51,12 @@ export async function POST(request: NextRequest) {
 
     console.log('📝 Processing gasless save for user:', userAddress);
 
-    // Note: Permission verification happens on-chain
-    // The Spend Permission Manager contract will revert if:
-    // - Permission doesn't exist
-    // - Permission is expired
-    // - Allowance is insufficient
-    // - Spender is not authorized
-
     // Prepare the contract call data
+    // New signature includes metadata field
     const contractCallData = encodeFunctionData({
       abi: VoiceRecordsABI,
       functionName: 'saveRecording',
-      args: [ipfsHash, title, isPublic],
+      args: [ipfsHash, title, metadata || '', isPublic],
     });
 
     console.log('🔨 Executing transaction with spender wallet...');
@@ -106,7 +101,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { 
+      {
         error: errorMessage,
         details: error.message,
       },
@@ -131,7 +126,7 @@ export async function GET() {
     });
   } catch (error: any) {
     return NextResponse.json(
-      { 
+      {
         status: 'unhealthy',
         error: error.message,
       },

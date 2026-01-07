@@ -52,10 +52,10 @@ export default function EnhancedLandingHero() {
               Launch Studio
             </a>
             <a
-              href="https://voisss.netlify.app/platform"
+              href="/features"
               className="px-8 py-4 border border-gray-600 rounded-xl text-white text-lg font-semibold hover:border-gray-400 transition-all duration-300 hover:bg-white/5"
             >
-              View Demo
+              Explore Features
             </a>
           </div>
         </div>

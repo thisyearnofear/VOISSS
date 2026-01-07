@@ -10,25 +10,25 @@ import { VoiceRecordsABI } from '../../contracts/VoiceRecordsABI';
 // Enhanced hook to fetch user's recordings (local + on-chain)
 export function useRecordings(showHidden: boolean = false) {
   const { universalAddress: address } = useBaseAccount();
-  
+
   return useQuery({
     queryKey: queryKeys.recordings.list(address || '', { showHidden }),
     queryFn: async (): Promise<Recording[]> => {
       if (!address) return [];
-      
+
       try {
         // Fetch local recordings
         const localRecordings = await fetchLocalRecordings(address, showHidden);
-        
+
         // Fetch on-chain recordings
         const onChainRecordings = await fetchOnChainRecordings(address);
-        
+
         // Merge and deduplicate (prioritize on-chain data)
         const allRecordings = [...onChainRecordings, ...localRecordings];
         const uniqueRecordings = deduplicateRecordings(allRecordings);
-        
+
         // Sort by creation date (newest first)
-        return uniqueRecordings.sort((a, b) => 
+        return uniqueRecordings.sort((a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
       } catch (error) {
@@ -48,16 +48,16 @@ async function fetchLocalRecordings(address: string, showHidden: boolean): Promi
   try {
     const storageKey = `voisss_recordings_${address}`;
     const stored = await await crossPlatformStorage.getItem(storageKey);
-    
+
     if (!stored) return [];
-    
+
     const recordings: Recording[] = JSON.parse(stored);
-    
+
     // Filter hidden recordings if needed
-    const filteredRecordings = showHidden 
-      ? recordings 
+    const filteredRecordings = showHidden
+      ? recordings
       : recordings.filter(r => !r.isHidden);
-    
+
     return filteredRecordings.map(r => ({ ...r, onChain: false }));
   } catch (error) {
     console.error('Failed to load local recordings:', error);
@@ -68,18 +68,18 @@ async function fetchLocalRecordings(address: string, showHidden: boolean): Promi
 // Helper: Fetch on-chain recordings from Base contract
 async function fetchOnChainRecordings(address: string): Promise<Recording[]> {
   const contractAddress = process.env.NEXT_PUBLIC_VOICE_RECORDS_CONTRACT as `0x${string}`;
-  
+
   if (!contractAddress) {
     console.warn('Contract address not configured');
     return [];
   }
-  
+
   try {
     const publicClient = createPublicClient({
       chain: base,
       transport: http(),
     });
-    
+
     // Get user's recording IDs
     const recordingIds = await publicClient.readContract({
       address: contractAddress,
@@ -87,10 +87,10 @@ async function fetchOnChainRecordings(address: string): Promise<Recording[]> {
       functionName: 'getUserRecordings',
       args: [address as `0x${string}`],
     }) as bigint[];
-    
+
     // Fetch details for each recording
     const recordings: Recording[] = [];
-    
+
     for (const id of recordingIds) {
       try {
         const recordingData = await publicClient.readContract({
@@ -98,26 +98,27 @@ async function fetchOnChainRecordings(address: string): Promise<Recording[]> {
           abi: VoiceRecordsABI,
           functionName: 'getRecording',
           args: [id],
-        }) as [bigint, string, string, string, boolean, bigint];
-        
-        const [recordingId, owner, ipfsHash, title, isPublic, timestamp] = recordingData;
-        
+        }) as [string, string, string, string, boolean, bigint];
+
+        const [owner, ipfsHash, title, metadata, isPublic, timestamp] = recordingData;
+
         recordings.push({
-          id: `onchain_${recordingId.toString()}`,
-          title: title || `Recording #${recordingId.toString()}`,
-          duration: 0, // Duration not stored on-chain, could be fetched from IPFS metadata
+          id: `onchain_${id.toString()}`,
+          title: title || `Recording #${id.toString()}`,
+          duration: 0, // Duration not stored on-chain
           isPublic,
           createdAt: new Date(Number(timestamp) * 1000),
           ipfsHash,
           onChain: true,
-          owner,
-          tags: [], // Add required tags field
+          owner: owner as `0x${string}`,
+          tags: metadata ? metadata.split(',').map(t => t.trim()) : [], // Rudimentary tag parsing
+          metadata, // Store raw metadata as well
         } as any);
       } catch (error) {
         console.warn(`Failed to fetch recording ${id}:`, error);
       }
     }
-    
+
     return recordings;
   } catch (error) {
     console.error('Failed to fetch on-chain recordings:', error);
@@ -129,11 +130,11 @@ async function fetchOnChainRecordings(address: string): Promise<Recording[]> {
 function deduplicateRecordings(recordings: Recording[]): Recording[] {
   const seen = new Set<string>();
   const unique: Recording[] = [];
-  
+
   // Process on-chain recordings first (higher priority)
   const onChain = recordings.filter(r => r.onChain);
   const local = recordings.filter(r => !r.onChain);
-  
+
   for (const recording of [...onChain, ...local]) {
     const key = recording.ipfsHash || recording.id;
     if (!seen.has(key)) {
@@ -141,7 +142,7 @@ function deduplicateRecordings(recordings: Recording[]): Recording[] {
       unique.push(recording);
     }
   }
-  
+
   return unique;
 }
 
@@ -153,13 +154,13 @@ export function useRecording(recordingId: string): ReturnType<typeof useQuery<Re
     queryKey: queryKeys.recordings.detail(recordingId),
     queryFn: async (): Promise<Recording | null> => {
       if (!address || !recordingId) return null;
-      
+
       try {
         const storageKey = `voisss_recordings_${address}`;
         const stored = await await crossPlatformStorage.getItem(storageKey);
-        
+
         if (!stored) return null;
-        
+
         const recordings: Recording[] = JSON.parse(stored);
         return recordings.find(r => r.id === recordingId) || null;
       } catch (error) {
@@ -175,27 +176,27 @@ export function useRecording(recordingId: string): ReturnType<typeof useQuery<Re
 export function useSaveRecording() {
   const queryClient = useQueryClient();
   const { universalAddress: address } = useBaseAccount();
-  
+
   return useMutation({
     mutationFn: async (recording: Omit<Recording, 'id' | 'createdAt'>) => {
       if (!address) {
         throw new Error('Wallet not connected');
       }
-      
+
       try {
         const storageKey = `voisss_recordings_${address}`;
         const stored = await crossPlatformStorage.getItem(storageKey);
         const existingRecordings: Recording[] = stored ? JSON.parse(stored) : [];
-        
+
         const newRecording: Recording = {
           ...recording,
           id: `recording_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           createdAt: new Date(),
         };
-        
+
         const updatedRecordings = [newRecording, ...existingRecordings];
         await crossPlatformStorage.setItem(storageKey, JSON.stringify(updatedRecordings));
-        
+
         return newRecording;
       } catch (error) {
         throw handleQueryError(error);
@@ -214,41 +215,41 @@ export function useSaveRecording() {
 export function useUpdateRecording() {
   const queryClient = useQueryClient();
   const { universalAddress: address } = useBaseAccount();
-  
+
   return useMutation({
-    mutationFn: async ({ 
-      recordingId, 
-      updates 
-    }: { 
-      recordingId: string; 
-      updates: Partial<Omit<Recording, 'id' | 'createdAt'>>; 
+    mutationFn: async ({
+      recordingId,
+      updates
+    }: {
+      recordingId: string;
+      updates: Partial<Omit<Recording, 'id' | 'createdAt'>>;
     }) => {
       if (!address) {
         throw new Error('Wallet not connected');
       }
-      
+
       try {
         const storageKey = `voisss_recordings_${address}`;
         const stored = await crossPlatformStorage.getItem(storageKey);
-        
+
         if (!stored) {
           throw new Error('No recordings found');
         }
-        
+
         const recordings: Recording[] = JSON.parse(stored);
         const recordingIndex = recordings.findIndex(r => r.id === recordingId);
-        
+
         if (recordingIndex === -1) {
           throw new Error('Recording not found');
         }
-        
+
         recordings[recordingIndex] = {
           ...recordings[recordingIndex],
           ...updates,
         };
-        
+
         await crossPlatformStorage.setItem(storageKey, JSON.stringify(recordings));
-        
+
         return recordings[recordingIndex];
       } catch (error) {
         throw handleQueryError(error);
@@ -271,26 +272,26 @@ export function useUpdateRecording() {
 export function useDeleteRecording() {
   const queryClient = useQueryClient();
   const { universalAddress: address } = useBaseAccount();
-  
+
   return useMutation({
     mutationFn: async (recordingId: string) => {
       if (!address) {
         throw new Error('Wallet not connected');
       }
-      
+
       try {
         const storageKey = `voisss_recordings_${address}`;
         const stored = await crossPlatformStorage.getItem(storageKey);
-        
+
         if (!stored) {
           throw new Error('No recordings found');
         }
-        
+
         const recordings: Recording[] = JSON.parse(stored);
         const filteredRecordings = recordings.filter(r => r.id !== recordingId);
-        
+
         await crossPlatformStorage.setItem(storageKey, JSON.stringify(filteredRecordings));
-        
+
         return recordingId;
       } catch (error) {
         throw handleQueryError(error);
@@ -309,16 +310,16 @@ export function useDeleteRecording() {
 // Hook to get recording statistics
 export function useRecordingStats() {
   const { universalAddress: address } = useBaseAccount();
-  
+
   return useQuery({
     queryKey: [...queryKeys.recordings.all, 'stats', address],
     queryFn: async () => {
       if (!address) return null;
-      
+
       try {
         const storageKey = `voisss_recordings_${address}`;
         const stored = await crossPlatformStorage.getItem(storageKey);
-        
+
         if (!stored) {
           return {
             total: 0,
@@ -329,9 +330,9 @@ export function useRecordingStats() {
             withIPFS: 0,
           };
         }
-        
+
         const recordings: Recording[] = JSON.parse(stored);
-        
+
         return {
           total: recordings.length,
           public: recordings.filter(r => r.isPublic).length,
@@ -353,57 +354,57 @@ export function useRecordingStats() {
 export function useBulkRecordingOperations() {
   const queryClient = useQueryClient();
   const { universalAddress: address } = useBaseAccount();
-  
+
   return useMutation({
-    mutationFn: async ({ 
-      operation, 
-      recordingIds 
-    }: { 
-      operation: 'delete' | 'hide' | 'show' | 'makePublic' | 'makePrivate'; 
-      recordingIds: string[]; 
+    mutationFn: async ({
+      operation,
+      recordingIds
+    }: {
+      operation: 'delete' | 'hide' | 'show' | 'makePublic' | 'makePrivate';
+      recordingIds: string[];
     }) => {
       if (!address) {
         throw new Error('Wallet not connected');
       }
-      
+
       try {
         const storageKey = `voisss_recordings_${address}`;
         const stored = await crossPlatformStorage.getItem(storageKey);
-        
+
         if (!stored) {
           throw new Error('No recordings found');
         }
-        
+
         let recordings: Recording[] = JSON.parse(stored);
-        
+
         switch (operation) {
           case 'delete':
             recordings = recordings.filter(r => !recordingIds.includes(r.id));
             break;
           case 'hide':
-            recordings = recordings.map(r => 
+            recordings = recordings.map(r =>
               recordingIds.includes(r.id) ? { ...r, isHidden: true } : r
             );
             break;
           case 'show':
-            recordings = recordings.map(r => 
+            recordings = recordings.map(r =>
               recordingIds.includes(r.id) ? { ...r, isHidden: false } : r
             );
             break;
           case 'makePublic':
-            recordings = recordings.map(r => 
+            recordings = recordings.map(r =>
               recordingIds.includes(r.id) ? { ...r, isPublic: true } : r
             );
             break;
           case 'makePrivate':
-            recordings = recordings.map(r => 
+            recordings = recordings.map(r =>
               recordingIds.includes(r.id) ? { ...r, isPublic: false } : r
             );
             break;
         }
-        
+
         await crossPlatformStorage.setItem(storageKey, JSON.stringify(recordings));
-        
+
         return { operation, recordingIds, affectedCount: recordingIds.length };
       } catch (error) {
         throw handleQueryError(error);

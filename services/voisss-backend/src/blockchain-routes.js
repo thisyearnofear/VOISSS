@@ -1,4 +1,4 @@
-// Blockchain API Routes for VOISSS
+const { encodeFunctionData } = require('viem');
 const { spenderWallet, getSpenderAddress } = require('./spender-wallet');
 const { VoiceRecordsABI } = require('./contracts');
 
@@ -11,7 +11,7 @@ function setupBlockchainRoutes(app) {
   // Gasless Recording Save API
   app.post('/api/base/save-recording', async (req, res) => {
     try {
-      const { userAddress, permissionHash, ipfsHash, title, isPublic } = req.body;
+      const { userAddress, permissionHash, ipfsHash, title, metadata, isPublic } = req.body;
 
       // Validate inputs
       if (!userAddress || !permissionHash || !ipfsHash || !title) {
@@ -21,11 +21,11 @@ function setupBlockchainRoutes(app) {
       console.log('📝 Processing gasless save for user:', userAddress);
 
       // Prepare the contract call data
-      const contractCallData = {
+      const contractCallData = encodeFunctionData({
         abi: VoiceRecordsABI,
         functionName: 'saveRecording',
-        args: [ipfsHash, title, isPublic],
-      };
+        args: [ipfsHash, title, metadata || '', isPublic],
+      });
 
       console.log('🔨 Executing transaction with spender wallet...');
 
