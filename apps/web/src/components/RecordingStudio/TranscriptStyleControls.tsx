@@ -132,18 +132,18 @@ export function TranscriptStyleControls({ style, onChange }: TranscriptStyleCont
       {/* 3. Motion */}
       <div className="space-y-2">
         <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Motion</label>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {TRANSCRIPT_ANIMATIONS.map((anim) => (
             <button
               key={anim.value}
               onClick={() => onChange({ ...style, animation: anim.value })}
-              className={`flex-1 px-2 py-1.5 rounded-lg text-xs border transition-all flex items-center justify-center gap-1.5 ${
+              className={`px-3 py-2 rounded-lg text-xs border transition-all flex items-center justify-center gap-2 ${
                 style.animation === anim.value
                   ? 'bg-[#2A2A2A] text-white border-[#7C5DFA]'
                   : 'bg-[#1A1A1A] text-gray-400 border-[#333] hover:border-gray-500'
               }`}
             >
-              <span>{anim.icon}</span>
+              <span className="text-base">{anim.icon}</span>
               <span>{anim.label}</span>
             </button>
           ))}

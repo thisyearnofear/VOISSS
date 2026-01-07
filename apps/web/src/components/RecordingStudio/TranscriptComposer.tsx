@@ -103,6 +103,14 @@ export default function TranscriptComposer(props: {
     theme: TRANSCRIPT_THEMES[0], // Default Voisss theme
     animation: 'cut',
   });
+  
+  const [playbackRate, setPlaybackRate] = useState(1);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.playbackRate = playbackRate;
+    }
+  }, [playbackRate]);
 
   const template = useMemo(() => {
     return DEFAULT_VOISSS_TEMPLATES.find((t: TranscriptTemplate) => t.id === templateId) ?? DEFAULT_VOISSS_TEMPLATES[0];
@@ -169,9 +177,38 @@ export default function TranscriptComposer(props: {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const onTime = () => setCurrentTimeMs(ms(audio.currentTime));
-    audio.addEventListener('timeupdate', onTime);
-    return () => audio.removeEventListener('timeupdate', onTime);
+    let rafId: number;
+    const updateTime = () => {
+      setCurrentTimeMs(ms(audio.currentTime));
+      if (!audio.paused) {
+        rafId = requestAnimationFrame(updateTime);
+      }
+    };
+
+    const onPlay = () => {
+      rafId = requestAnimationFrame(updateTime);
+    };
+
+    const onPause = () => {
+      cancelAnimationFrame(rafId);
+      updateTime(); // One last update to ensure sync
+    };
+
+    // Keep timeupdate as a fallback and for seeking
+    const onTimeUpdate = () => setCurrentTimeMs(ms(audio.currentTime));
+
+    audio.addEventListener('play', onPlay);
+    audio.addEventListener('pause', onPause);
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('seeking', onTimeUpdate);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      audio.removeEventListener('play', onPlay);
+      audio.removeEventListener('pause', onPause);
+      audio.removeEventListener('timeupdate', onTimeUpdate);
+      audio.removeEventListener('seeking', onTimeUpdate);
+    };
   }, []);
 
   const pages = useMemo(() => {
@@ -304,9 +341,9 @@ export default function TranscriptComposer(props: {
                   alignItems: 'center',
                   justifyContent: 'center',
                   minHeight: 240,
-                  transition: 'opacity 180ms ease, transform 180ms ease',
+                  transition: 'opacity 200ms ease, transform 200ms ease',
                   opacity: isTransitioning ? 0 : 1,
-                  transform: isTransitioning ? 'translateY(8px)' : 'translateY(0px)',
+                  transform: isTransitioning ? 'scale(0.98)' : 'scale(1)',
                 }}
               >
                 <div key={transitionKey} className="w-full">
@@ -327,8 +364,19 @@ export default function TranscriptComposer(props: {
             )}
           </div>
 
-          <div className="p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl">
-            <audio ref={audioRef} controls src={previewUrl} className="w-full h-9" />
+          <div className="flex items-center gap-3 p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl">
+            <audio ref={audioRef} controls src={previewUrl} className="flex-1 h-9" />
+            <button
+              onClick={() => {
+                const rates = [0.75, 1, 1.25, 1.5, 2];
+                const next = rates[(rates.indexOf(playbackRate) + 1) % rates.length];
+                setPlaybackRate(next);
+              }}
+              className="h-9 px-3 rounded-lg bg-[#1A1A1A] border border-[#333] text-xs font-mono text-gray-300 hover:bg-[#2A2A2A] hover:border-gray-500 hover:text-white transition-colors min-w-[50px]"
+              title="Playback Speed"
+            >
+              {playbackRate}x
+            </button>
           </div>
 
           {/* Style Controls */}
