@@ -40,6 +40,7 @@ function TemplatePreview({ template }: { template: TranscriptTemplate }) {
           activeFill={0.7}
           highlightColor={template.typography.highlightColor}
           mutedColor={template.typography.mutedColor}
+          pastColor={template.typography.mutedColor}
         />
       </div>
 
