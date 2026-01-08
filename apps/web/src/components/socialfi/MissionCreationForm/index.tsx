@@ -16,15 +16,10 @@ interface MissionCreationFormProps {
 const INITIAL_FORM_DATA: FormData = {
   title: "",
   description: "",
-  topic: "crypto",
   difficulty: "medium",
   targetDuration: 120,
-  maxParticipants: 50,
-  examples: ["", "", ""],
-  contextSuggestions: [""],
-  tags: [""],
-  locationBased: false,
   expirationDays: PLATFORM_CONFIG.missions.defaultExpirationDays,
+  locationBased: false,
 };
 
 export default function MissionCreationForm({
@@ -34,6 +29,7 @@ export default function MissionCreationForm({
   const { address } = useAuth();
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const queryClient = useQueryClient();
 
   const createMissionMutation = useMutation({
@@ -48,12 +44,7 @@ export default function MissionCreationForm({
           "Content-Type": "application/json",
           Authorization: `Bearer ${address}`,
         },
-        body: JSON.stringify({
-          ...data,
-          examples: data.examples.filter(e => e.trim()),
-          contextSuggestions: data.contextSuggestions.filter(e => e.trim()),
-          tags: data.tags.filter(e => e.trim()),
-        }),
+        body: JSON.stringify(data),
       });
 
       if (!response.ok) {
@@ -67,6 +58,7 @@ export default function MissionCreationForm({
       queryClient.invalidateQueries({ queryKey: ["missions"] });
       setFormData(INITIAL_FORM_DATA);
       setErrors({});
+      setShowAdvanced(false);
       onSuccess?.();
     },
   });
@@ -82,10 +74,6 @@ export default function MissionCreationForm({
     if (formData.targetDuration > PLATFORM_CONFIG.missions.maxDuration) {
       newErrors.targetDuration = `Maximum duration is ${PLATFORM_CONFIG.missions.maxDuration}s`;
     }
-    if (formData.maxParticipants < 1) newErrors.maxParticipants = "At least 1 participant required";
-
-    const validExamples = formData.examples.filter(e => e.trim());
-    if (validExamples.length === 0) newErrors.examples = "At least one example question required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -109,31 +97,6 @@ export default function MissionCreationForm({
     }
   };
 
-  const handleArrayFieldChange = (
-    field: "examples" | "contextSuggestions" | "tags",
-    index: number,
-    value: string
-  ) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: prev[field].map((item, i) => (i === index ? value : item)),
-    }));
-  };
-
-  const addArrayField = (field: "examples" | "contextSuggestions" | "tags") => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: [...prev[field], ""],
-    }));
-  };
-
-  const removeArrayField = (field: "examples" | "contextSuggestions" | "tags", index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: prev[field].filter((_, i) => i !== index),
-    }));
-  };
-
   // Check eligibility first
   const eligibilityStatus = <EligibilityCheck />;
   if (eligibilityStatus?.props === null || !address) {
@@ -152,9 +115,8 @@ export default function MissionCreationForm({
         formData={formData}
         errors={errors}
         onChange={handleFieldChange}
-        onArrayChange={handleArrayFieldChange}
-        onArrayAdd={addArrayField}
-        onArrayRemove={removeArrayField}
+        showAdvanced={showAdvanced}
+        onToggleAdvanced={() => setShowAdvanced(!showAdvanced)}
       />
 
       <MissionFormActions

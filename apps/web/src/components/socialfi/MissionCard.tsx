@@ -8,16 +8,26 @@ interface MissionCardProps {
   mission: Mission;
   onAccept: () => void;
   isConnected: boolean;
-  getTopicIcon: (topic: string) => string;
-  getDifficultyColor: (difficulty: string) => string;
 }
+
+// Difficulty color helper
+const getDifficultyColor = (difficulty: string): string => {
+  switch (difficulty) {
+    case 'easy':
+      return 'border-green-500/30 bg-green-500/10 text-green-300';
+    case 'medium':
+      return 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300';
+    case 'hard':
+      return 'border-red-500/30 bg-red-500/10 text-red-300';
+    default:
+      return 'border-gray-500/30 bg-gray-500/10 text-gray-300';
+  }
+};
 
 export default function MissionCard({ 
   mission, 
   onAccept, 
-  isConnected, 
-  getTopicIcon, 
-  getDifficultyColor 
+  isConnected 
 }: MissionCardProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);

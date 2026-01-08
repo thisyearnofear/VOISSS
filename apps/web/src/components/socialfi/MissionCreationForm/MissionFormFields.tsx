@@ -1,240 +1,273 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { PLATFORM_CONFIG, getTokenDisplaySymbol } from "@voisss/shared/config/platform";
 
 export interface FormData {
+  // Core fields
   title: string;
   description: string;
-  topic: string;
   difficulty: "easy" | "medium" | "hard";
   targetDuration: number;
-  maxParticipants: number;
-  examples: string[];
-  contextSuggestions: string[];
-  tags: string[];
-  locationBased: boolean;
   expirationDays: number;
+  
+  // Advanced fields (optional, behind toggle)
+  locationBased: boolean;
+  qualityCriteria?: {
+    audioMinScore?: number;
+    transcriptionRequired?: boolean;
+  };
+  rewardModel?: "flat_rate" | "pool" | "performance";
+  budgetAllocation?: number;
+  creatorStake?: number;
+  language?: string;
 }
 
 interface MissionFormFieldsProps {
   formData: FormData;
   errors: Record<string, string>;
   onChange: (field: keyof FormData, value: any) => void;
-  onArrayChange: (
-    field: "examples" | "contextSuggestions" | "tags",
-    index: number,
-    value: string
-  ) => void;
-  onArrayAdd: (field: "examples" | "contextSuggestions" | "tags") => void;
-  onArrayRemove: (field: "examples" | "contextSuggestions" | "tags", index: number) => void;
+  showAdvanced: boolean;
+  onToggleAdvanced: () => void;
 }
+
+const REWARD_BY_DIFFICULTY = {
+  easy: 10,
+  medium: 25,
+  hard: 50,
+};
 
 export default function MissionFormFields({
   formData,
   errors,
   onChange,
-  onArrayChange,
-  onArrayAdd,
-  onArrayRemove,
+  showAdvanced,
+  onToggleAdvanced,
 }: MissionFormFieldsProps) {
+  const baseReward = REWARD_BY_DIFFICULTY[formData.difficulty];
+
   return (
     <>
-      {/* Basic Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* CORE FIELDS SECTION */}
+      <div className="space-y-6 pb-6 border-b border-[#3A3A3A]">
+        {/* Title */}
         <div>
-          <label className="block text-sm font-medium text-white mb-2">Title</label>
+          <label className="block text-sm font-medium text-white mb-2">Mission Title</label>
           <input
             type="text"
             value={formData.title}
             onChange={(e) => onChange("title", e.target.value)}
             className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
-            placeholder="e.g., Web3 Street Wisdom"
+            placeholder="e.g., Taxi Conversations, Street Interviews on AI"
           />
           {errors.title && <p className="text-red-400 text-sm mt-1">{errors.title}</p>}
         </div>
 
+        {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-white mb-2">Topic</label>
-          <select
-            value={formData.topic}
-            onChange={(e) => onChange("topic", e.target.value)}
+          <label className="block text-sm font-medium text-white mb-2">What are you looking for?</label>
+          <textarea
+            value={formData.description}
+            onChange={(e) => onChange("description", e.target.value)}
+            rows={3}
             className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
-          >
-            <option value="crypto">💰 Crypto & Web3</option>
-            <option value="work">💼 Work & Career</option>
-            <option value="relationships">💑 Relationships</option>
-            <option value="technology">🤖 Technology</option>
-            <option value="social">👥 Social Issues</option>
-            <option value="local">🏘️ Local Insights</option>
-            <option value="politics">🏛️ Politics</option>
-            <option value="culture">🎭 Culture</option>
-          </select>
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-white mb-2">Description</label>
-        <textarea
-          value={formData.description}
-          onChange={(e) => onChange("description", e.target.value)}
-          rows={4}
-          className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
-          placeholder="Describe the mission and what you're looking for..."
-        />
-        {errors.description && <p className="text-red-400 text-sm mt-1">{errors.description}</p>}
-      </div>
-
-      {/* Mission Config */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-white mb-2">Difficulty</label>
-          <select
-            value={formData.difficulty}
-            onChange={(e) => onChange("difficulty", e.target.value)}
-            className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
-          >
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-white mb-2">Target Duration (seconds)</label>
-          <input
-            type="number"
-            value={formData.targetDuration}
-            onChange={(e) => onChange("targetDuration", parseInt(e.target.value))}
-            className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
+            placeholder="Describe what you want to learn or explore. Include any context (location, audience, conversation starters) here."
           />
-          {errors.targetDuration && (
-            <p className="text-red-400 text-sm mt-1">{errors.targetDuration}</p>
-          )}
+          {errors.description && <p className="text-red-400 text-sm mt-1">{errors.description}</p>}
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-white mb-2">Max Participants</label>
-          <input
-            type="number"
-            value={formData.maxParticipants}
-            onChange={(e) => onChange("maxParticipants", parseInt(e.target.value))}
-            className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
-          />
-          {errors.maxParticipants && (
-            <p className="text-red-400 text-sm mt-1">{errors.maxParticipants}</p>
-          )}
-        </div>
-      </div>
+        {/* Difficulty, Duration, Expiration */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">Difficulty</label>
+            <select
+              value={formData.difficulty}
+              onChange={(e) => onChange("difficulty", e.target.value as any)}
+              className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
+            >
+              <option value="easy">Easy (30-60s)</option>
+              <option value="medium">Medium (1-3 min)</option>
+              <option value="hard">Hard (5+ min)</option>
+            </select>
+          </div>
 
-      {/* Location & Duration */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">Target Length (seconds)</label>
+            <input
+              type="number"
+              value={formData.targetDuration}
+              onChange={(e) => onChange("targetDuration", parseInt(e.target.value) || 120)}
+              min="30"
+              max="600"
+              className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
+            />
+            {errors.targetDuration && (
+              <p className="text-red-400 text-sm mt-1">{errors.targetDuration}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">Expires in (days)</label>
+            <input
+              type="number"
+              value={formData.expirationDays}
+              onChange={(e) => onChange("expirationDays", parseInt(e.target.value) || 7)}
+              min="1"
+              max="90"
+              className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Location Based */}
         <div className="flex items-center gap-3">
           <input
             type="checkbox"
             id="locationBased"
             checked={formData.locationBased}
             onChange={(e) => onChange("locationBased", e.target.checked)}
-            className="w-4 h-4 rounded"
+            className="w-4 h-4 rounded cursor-pointer"
           />
-          <label htmlFor="locationBased" className="text-sm font-medium text-white">
-            Location-based mission
+          <label htmlFor="locationBased" className="text-sm font-medium text-white cursor-pointer">
+            Location-specific (taxi, street interview, local venues)
           </label>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-white mb-2">Expiration (days)</label>
-          <input
-            type="number"
-            value={formData.expirationDays}
-            onChange={(e) => onChange("expirationDays", parseInt(e.target.value))}
-            className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
-          />
+        {/* Estimated Reward Display */}
+        <div className="p-3 bg-[#1A1A1A] border border-[#3A3A3A] rounded-lg">
+          <p className="text-sm text-gray-300">
+            Base reward per participant: <span className="font-semibold text-[#7C5DFA]">{baseReward} {getTokenDisplaySymbol()}</span>
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            Splits equally across all submissions. Bonus tokens for quality & featured content.
+          </p>
         </div>
       </div>
 
-      {/* ArrayFields Component */}
-      <ArrayField
-        label="Example Questions"
-        items={formData.examples}
-        error={errors.examples}
-        onChange={(index, value) => onArrayChange("examples", index, value)}
-        onAdd={() => onArrayAdd("examples")}
-        onRemove={(index) => onArrayRemove("examples", index)}
-        placeholder="Example question..."
-      />
-
-      <ArrayField
-        label="Context Suggestions"
-        items={formData.contextSuggestions}
-        onChange={(index, value) => onArrayChange("contextSuggestions", index, value)}
-        onAdd={() => onArrayAdd("contextSuggestions")}
-        onRemove={(index) => onArrayRemove("contextSuggestions", index)}
-        placeholder="e.g., taxi, coffee shop, street"
-      />
-
-      <ArrayField
-        label="Tags"
-        items={formData.tags}
-        onChange={(index, value) => onArrayChange("tags", index, value)}
-        onAdd={() => onArrayAdd("tags")}
-        onRemove={(index) => onArrayRemove("tags", index)}
-        placeholder="e.g., web3, interview"
-      />
-    </>
-  );
-}
-
-// Reusable array field component
-function ArrayField({
-  label,
-  items,
-  error,
-  onChange,
-  onAdd,
-  onRemove,
-  placeholder,
-}: {
-  label: string;
-  items: string[];
-  error?: string;
-  onChange: (index: number, value: string) => void;
-  onAdd: () => void;
-  onRemove: (index: number) => void;
-  placeholder: string;
-}) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-white mb-2">{label}</label>
-      <div className="space-y-2">
-        {items.map((item, index) => (
-          <div key={index} className="flex gap-2">
-            <input
-              type="text"
-              value={item}
-              onChange={(e) => onChange(index, e.target.value)}
-              className="flex-1 px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
-              placeholder={placeholder}
-            />
-            {items.length > 1 && (
-              <button
-                type="button"
-                onClick={() => onRemove(index)}
-                className="px-3 py-2 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 hover:bg-red-500/30"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-        ))}
-        {error && <p className="text-red-400 text-sm">{error}</p>}
-      </div>
+      {/* ADVANCED OPTIONS */}
       <button
         type="button"
-        onClick={onAdd}
-        className="mt-2 text-sm text-[#7C5DFA] hover:text-[#9C88FF]"
+        onClick={onToggleAdvanced}
+        className="w-full py-3 text-left flex items-center justify-between text-sm font-medium text-[#7C5DFA] hover:text-[#9C88FF] transition-colors"
       >
-        + Add {label.toLowerCase()}
+        <span>{showAdvanced ? "Hide" : "Show"} Advanced Options</span>
+        <span className={`transform transition-transform ${showAdvanced ? "rotate-180" : ""}`}>▼</span>
       </button>
-    </div>
+
+      {showAdvanced && (
+        <div className="space-y-6 pt-6 border-t border-[#3A3A3A]">
+          {/* Language */}
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">Language</label>
+            <select
+              value={formData.language || "en"}
+              onChange={(e) => onChange("language", e.target.value)}
+              className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
+            >
+              <option value="en">English</option>
+              <option value="es">Spanish (Español)</option>
+              <option value="fr">French (Français)</option>
+              <option value="de">German (Deutsch)</option>
+              <option value="pt">Portuguese (Português)</option>
+              <option value="ja">Japanese (日本語)</option>
+              <option value="zh">Chinese (中文)</option>
+            </select>
+          </div>
+
+          {/* Reward Model */}
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">Reward Distribution</label>
+            <select
+              value={formData.rewardModel || "pool"}
+              onChange={(e) => onChange("rewardModel", e.target.value as any)}
+              className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
+            >
+              <option value="pool">Pool (split equally)</option>
+              <option value="flat_rate">Flat Rate (same per submission)</option>
+              <option value="performance">Performance (quality-based bonus)</option>
+            </select>
+          </div>
+
+          {/* Budget Allocation */}
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">Total Budget Allocation (optional)</label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={formData.budgetAllocation || ""}
+                onChange={(e) => onChange("budgetAllocation", e.target.value ? parseInt(e.target.value) : undefined)}
+                min="0"
+                className="flex-1 px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
+                placeholder="Leave empty for unlimited"
+              />
+              <div className="px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-gray-400 flex items-center">
+                {getTokenDisplaySymbol()}
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Set a maximum budget for this mission. Leave empty for unlimited rewards.</p>
+          </div>
+
+          {/* Creator Stake */}
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">Creator Stake (optional)</label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={formData.creatorStake || ""}
+                onChange={(e) => onChange("creatorStake", e.target.value ? parseInt(e.target.value) : undefined)}
+                min="0"
+                className="flex-1 px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
+                placeholder="0"
+              />
+              <div className="px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-gray-400 flex items-center">
+                {getTokenDisplaySymbol()}
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Stake tokens to signal confidence. Unlocks 1.5x reward multiplier & priority placement.</p>
+          </div>
+
+          {/* Quality Criteria */}
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-white">Quality Requirements</label>
+            
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="transcriptionRequired"
+                checked={formData.qualityCriteria?.transcriptionRequired || false}
+                onChange={(e) =>
+                  onChange("qualityCriteria", {
+                    ...formData.qualityCriteria,
+                    transcriptionRequired: e.target.checked,
+                  })
+                }
+                className="w-4 h-4 rounded cursor-pointer"
+              />
+              <label htmlFor="transcriptionRequired" className="text-sm text-white cursor-pointer">
+                Require transcription
+              </label>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-2">Minimum audio quality score (optional)</label>
+              <input
+                type="number"
+                value={formData.qualityCriteria?.audioMinScore || ""}
+                onChange={(e) =>
+                  onChange("qualityCriteria", {
+                    ...formData.qualityCriteria,
+                    audioMinScore: e.target.value ? parseInt(e.target.value) : undefined,
+                  })
+                }
+                min="0"
+                max="100"
+                className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
+                placeholder="70 (0-100)"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

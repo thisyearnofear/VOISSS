@@ -6,7 +6,8 @@ import {
   RewardRecord,
   MilestoneProgress,
   Milestone,
-  RewardClaim 
+  RewardClaim,
+  QualityCriteria,
 } from '../types/socialfi';
 import { PLATFORM_CONFIG, getRewardForMilestone } from '../config/platform';
 
@@ -33,12 +34,16 @@ export interface MissionService {
   createMissionFromTemplate(templateKey: string, templateIndex: number, customizations?: Partial<Mission>): Promise<Mission>;
   
   // Reward Management
-  createRewardForMilestone(userId: string, missionId: string, responseId: string, milestone: Milestone): Promise<RewardRecord>;
+  createRewardForMilestone(userId: string, missionId: string, responseId: string, milestone: Milestone, qualityScore?: number): Promise<RewardRecord>;
   getMilestoneProgress(userId: string, missionId: string, responseId: string): Promise<MilestoneProgress>;
   completeMilestone(userId: string, missionId: string, responseId: string, milestone: Milestone, qualityScore?: number): Promise<MilestoneProgress>;
   getUnclaimedRewards(userId: string): Promise<RewardRecord[]>;
   claimRewards(userId: string, rewardIds: string[]): Promise<RewardClaim>;
   getCreatorEarnings(userId: string): Promise<{ totalEarned: number; totalClaimed: number; pendingRewards: number; unclaimedCount: number }>;
+  
+  // Moderation & Quality
+  validateQualityCriteria(response: MissionResponse, criteria?: QualityCriteria): Promise<{ passed: boolean; reasons: string[] }>;
+  calculateRewardAmount(mission: Mission, milestone: Milestone, qualityScore?: number, participantCount?: number): Promise<number>;
   
   // Analytics
   getMissionStats(missionId: string): Promise<{
@@ -63,94 +68,78 @@ export class DefaultMissionService implements MissionService {
 
   private initializeDefaultMissions() {
     // Create some default missions for demo purposes
-    const defaultMissions: Omit<Mission, 'id' | 'createdAt' | 'updatedAt' | 'currentParticipants'>[] = [
+    const defaultMissions: Omit<Mission, 'id' | 'createdAt' | 'updatedAt'>[] = [
       {
         title: "Web3 Street Wisdom",
-        description: "Ask people in your city what they really think about Web3 and cryptocurrency",
-        topic: "crypto",
+        description: "Ask people in your city what they really think about Web3 and cryptocurrency. Interview format: taxi, coffee shop, or street corner conversations.",
         difficulty: "easy",
-        reward: 10,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        maxParticipants: 100,
+        baseReward: 10,
+        rewardModel: "pool",
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        locationBased: true,
         isActive: true,
         createdBy: "platform",
-        tags: ["crypto", "web3", "street-interview", "public-opinion"],
-        locationBased: true,
-        autoExpire: true,
+        currentParticipants: 0,
         targetDuration: 60,
-        examples: [
-          "Have you heard of Web3?",
-          "What do you think about Bitcoin?",
-          "Would you use cryptocurrency for daily purchases?",
-          "Do you think blockchain will change the world?"
-        ],
-        contextSuggestions: ["taxi", "coffee shop", "street", "waiting area"]
+        language: "en",
+        qualityCriteria: {
+          audioMinScore: 60,
+          transcriptionRequired: true,
+        },
       },
       {
         title: "Remote Work Reality Check",
-        description: "Capture honest perspectives on how remote work has changed people's lives",
-        topic: "work",
+        description: "Share your honest perspective on how remote work has changed your life. Any location, any setting where you can speak freely.",
         difficulty: "medium",
-        reward: 20,
-        expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days
-        maxParticipants: 50,
+        baseReward: 25,
+        rewardModel: "pool",
+        expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        locationBased: false,
         isActive: true,
         createdBy: "platform",
-        tags: ["remote-work", "lifestyle", "productivity", "work-life-balance"],
-        locationBased: false,
-        autoExpire: true,
+        currentParticipants: 0,
         targetDuration: 120,
-        examples: [
-          "How has remote work affected your daily routine?",
-          "Do you prefer working from home or the office?",
-          "What's the biggest challenge of remote work?",
-          "Has remote work made you more or less productive?"
-        ],
-        contextSuggestions: ["coffee shop", "coworking space", "home office", "video call"]
+        language: "en",
+        qualityCriteria: {
+          audioMinScore: 65,
+          transcriptionRequired: true,
+        },
       },
       {
         title: "Marriage in 2024",
-        description: "Explore contemporary views on marriage, commitment, and relationships",
-        topic: "relationships",
+        description: "Explore contemporary views on marriage and commitment. Deep, thoughtful conversation. Record in a comfortable, private setting.",
         difficulty: "hard",
-        reward: 50,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-        maxParticipants: 25,
+        baseReward: 50,
+        rewardModel: "pool",
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        locationBased: false,
         isActive: true,
         createdBy: "platform",
-        tags: ["marriage", "relationships", "commitment", "modern-love"],
-        locationBased: false,
-        autoExpire: true,
+        currentParticipants: 0,
         targetDuration: 300,
-        examples: [
-          "What makes a good marriage in today's world?",
-          "Is marriage still relevant?",
-          "How do you know when you've found 'the one'?",
-          "What's the biggest challenge facing couples today?"
-        ],
-        contextSuggestions: ["dinner conversation", "wedding", "anniversary", "intimate setting"]
+        language: "en",
+        qualityCriteria: {
+          audioMinScore: 70,
+          transcriptionRequired: true,
+        },
       },
       {
-        title: "AI Anxiety or Excitement?",
-        description: "Document real people's feelings about AI's impact on their lives and work",
-        topic: "technology",
+        title: "AI: Excitement or Anxiety?",
+        description: "How does AI make you feel? Document your genuine reactions and thoughts about AI's impact on work, creativity, and society.",
         difficulty: "medium",
-        reward: 25,
-        expiresAt: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000), // 21 days
-        maxParticipants: 75,
+        baseReward: 25,
+        rewardModel: "pool",
+        expiresAt: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000),
+        locationBased: true,
         isActive: true,
         createdBy: "platform",
-        tags: ["ai", "technology", "future", "jobs", "automation"],
-        locationBased: true,
-        autoExpire: true,
+        currentParticipants: 0,
         targetDuration: 180,
-        examples: [
-          "How do you feel about AI taking over jobs?",
-          "Have you used ChatGPT or other AI tools?",
-          "What excites or worries you most about AI?",
-          "Do you think AI will make life better or worse?"
-        ],
-        contextSuggestions: ["workplace", "university", "tech meetup", "casual conversation"]
+        language: "en",
+        qualityCriteria: {
+          audioMinScore: 65,
+          transcriptionRequired: true,
+        },
       }
     ];
 
@@ -168,6 +157,69 @@ export class DefaultMissionService implements MissionService {
 
   private generateId(): string {
     return `mission_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  // Reward Calculation
+  async calculateRewardAmount(
+    mission: Mission, 
+    milestone: Milestone, 
+    qualityScore?: number,
+    participantCount?: number
+  ): Promise<number> {
+    const baseReward = mission.baseReward || 25;
+    
+    // Base amount for submission milestone
+    if (milestone === 'submission') {
+      return baseReward;
+    }
+
+    // Quality approved: +20% bonus
+    if (milestone === 'quality_approved') {
+      return Math.floor(baseReward * 1.2);
+    }
+
+    // Featured: +50% bonus + curator reward consideration
+    if (milestone === 'featured') {
+      const featuredBonus = Math.floor(baseReward * 1.5);
+      // If creator staked tokens, apply 1.5x multiplier
+      if (mission.creatorStake && mission.creatorStake > 0) {
+        return Math.floor(featuredBonus * 1.5);
+      }
+      return featuredBonus;
+    }
+
+    return baseReward;
+  }
+
+  // Quality Validation (AI moderation)
+  async validateQualityCriteria(
+    response: MissionResponse,
+    criteria?: QualityCriteria
+  ): Promise<{ passed: boolean; reasons: string[] }> {
+    const failures: string[] = [];
+
+    if (!criteria) {
+      return { passed: true, reasons: [] };
+    }
+
+    // Check transcription requirement
+    if (criteria.transcriptionRequired && !response.transcription) {
+      failures.push('Transcription required but not provided');
+    }
+
+    // Check audio quality score
+    if (criteria.audioMinScore !== undefined && (response.qualityScore || 0) < criteria.audioMinScore) {
+      failures.push(`Audio quality score ${response.qualityScore || 0} below minimum ${criteria.audioMinScore}`);
+    }
+
+    // Check duration bounds (if we had duration in response)
+    // This would require parsing the recording metadata
+    // For now, we'll assume these are validated at submission
+
+    return {
+      passed: failures.length === 0,
+      reasons: failures,
+    };
   }
 
   async getActiveMissions(): Promise<Mission[]> {
@@ -369,9 +421,15 @@ export class DefaultMissionService implements MissionService {
     userId: string,
     missionId: string,
     responseId: string,
-    milestone: Milestone
+    milestone: Milestone,
+    qualityScore?: number
   ): Promise<RewardRecord> {
-    const amountInTokens = getRewardForMilestone(milestone);
+    const mission = this.missions.get(missionId);
+    if (!mission) {
+      throw new Error(`Mission ${missionId} not found`);
+    }
+
+    const amountInTokens = await this.calculateRewardAmount(mission, milestone, qualityScore);
 
     const reward: RewardRecord = {
       id: `reward_${this.generateId()}`,

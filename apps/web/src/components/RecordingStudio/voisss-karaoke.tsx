@@ -20,11 +20,11 @@ export function VoisssKaraokeLine(props: {
   pastColor: string;
   animation?: TranscriptAnimation;
 }) {
-  const { 
-    words, 
-    activeWordIndex, 
-    activeFill = null, 
-    highlightColor, 
+  const {
+    words,
+    activeWordIndex,
+    activeFill = null,
+    highlightColor,
     mutedColor,
     pastColor,
     animation = 'cut'
@@ -40,8 +40,8 @@ export function VoisssKaraokeLine(props: {
         const color = isPast ? pastColor : mutedColor;
 
         // Calculate fill percentage
-        const fillPct = isActive && typeof activeFill === 'number' 
-          ? Math.max(0, Math.min(100, Math.round(activeFill * 100))) 
+        const fillPct = isActive && typeof activeFill === 'number'
+          ? Math.max(0, Math.min(100, Math.round(activeFill * 100)))
           : 100;
 
         // Base styles for all animations
@@ -54,7 +54,7 @@ export function VoisssKaraokeLine(props: {
           switch (animation) {
             case 'pop':
               activeStyle = {
-                backgroundImage: `linear-gradient(90deg, ${highlightColor} 0%, ${highlightColor} ${fillPct}%, ${pastColor} ${fillPct}%, ${pastColor} 100%)`,
+                backgroundImage: `linear-gradient(90deg, ${highlightColor} 0%, ${highlightColor} ${fillPct}%, ${mutedColor} ${fillPct}%, ${mutedColor} 100%)`,
                 WebkitBackgroundClip: 'text',
                 backgroundClip: 'text',
                 color: 'transparent',
@@ -76,12 +76,13 @@ export function VoisssKaraokeLine(props: {
               break;
 
             case 'highlight':
-              // Highlight pen style - background color behind text
+              // Highlight pen style - background color behind text with progressive fill
               activeStyle = {
-                color: '#fff', // Text usually white on highlight
-                backgroundColor: highlightColor,
+                color: highlightColor === '#000000' ? '#fff' : pastColor,
+                backgroundImage: `linear-gradient(90deg, ${highlightColor} 0%, ${highlightColor} ${fillPct}%, transparent ${fillPct}%, transparent 100%)`,
+                backgroundColor: 'rgba(128,128,128,0.1)', // Subtle "track" for the highlight
                 borderRadius: '4px',
-                padding: '0 2px',
+                padding: '0 4px',
                 margin: '0 -2px',
                 boxDecorationBreak: 'clone',
                 WebkitBoxDecorationBreak: 'clone',
@@ -92,11 +93,11 @@ export function VoisssKaraokeLine(props: {
             default:
               // Standard sharp cut (default)
               activeStyle = {
-                backgroundImage: `linear-gradient(90deg, ${highlightColor} 0%, ${highlightColor} ${fillPct}%, ${pastColor} ${fillPct}%, ${pastColor} 100%)`,
+                backgroundImage: `linear-gradient(90deg, ${highlightColor} 0%, ${highlightColor} ${fillPct}%, ${mutedColor} ${fillPct}%, ${mutedColor} 100%)`,
                 WebkitBackgroundClip: 'text',
                 backgroundClip: 'text',
                 color: 'transparent',
-                // No scale transform for cleaner 'cut' look
+                transition: 'none', // Sharp movement
               };
               break;
           }

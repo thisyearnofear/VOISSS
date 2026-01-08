@@ -1,16 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useBaseAccount } from '../useBaseAccount';
-import { createPersistentMissionService } from '@voisss/shared';
+import { createPersistentMissionService, createModerationService } from '@voisss/shared';
 import { Mission, MissionResponse } from '@voisss/shared/types/socialfi';
 import { queryKeys, handleQueryError } from '../../lib/query-client';
 
-// Create mission service instance
+// Create service instances
 const missionService = createPersistentMissionService();
+const moderationService = createModerationService();
 
 // Mission filters interface
 interface MissionFilters {
-  topic?: string;
   difficulty?: string;
+  language?: string;
+  rewardModel?: string;
   sortBy?: 'newest' | 'reward' | 'participants';
   status?: 'active' | 'completed' | 'expired';
 }
@@ -24,15 +26,19 @@ export function useMissions(filters: MissionFilters = {}) {
         const missions = await missionService.getActiveMissions();
         
         // Apply filters
-        let filteredMissions = missions;
-        
-        if (filters.topic && filters.topic !== 'all') {
-          filteredMissions = filteredMissions.filter((m: Mission) => m.topic === filters.topic);
-        }
-        
-        if (filters.difficulty && filters.difficulty !== 'all') {
-          filteredMissions = filteredMissions.filter((m: Mission) => m.difficulty === filters.difficulty);
-        }
+         let filteredMissions = missions;
+         
+         if (filters.difficulty && filters.difficulty !== 'all') {
+           filteredMissions = filteredMissions.filter((m: Mission) => m.difficulty === filters.difficulty);
+         }
+
+         if (filters.language && filters.language !== 'all') {
+           filteredMissions = filteredMissions.filter((m: Mission) => m.language === filters.language);
+         }
+
+         if (filters.rewardModel && filters.rewardModel !== 'all') {
+           filteredMissions = filteredMissions.filter((m: Mission) => m.rewardModel === filters.rewardModel);
+         }
         
         if (filters.status) {
           const now = new Date();
@@ -51,20 +57,20 @@ export function useMissions(filters: MissionFilters = {}) {
         }
         
         // Apply sorting
-        switch (filters.sortBy) {
-          case 'reward':
-            filteredMissions.sort((a: Mission, b: Mission) => b.reward - a.reward);
-            break;
-          case 'participants':
-            filteredMissions.sort((a: Mission, b: Mission) => b.currentParticipants - a.currentParticipants);
-            break;
-          case 'newest':
-          default:
-            filteredMissions.sort((a: Mission, b: Mission) =>
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-            );
-            break;
-        }
+         switch (filters.sortBy) {
+           case 'reward':
+             filteredMissions.sort((a: Mission, b: Mission) => b.baseReward - a.baseReward);
+             break;
+           case 'participants':
+             filteredMissions.sort((a: Mission, b: Mission) => b.currentParticipants - a.currentParticipants);
+             break;
+           case 'newest':
+           default:
+             filteredMissions.sort((a: Mission, b: Mission) =>
+               new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+             );
+             break;
+         }
         
         return filteredMissions;
       } catch (error) {
@@ -144,7 +150,7 @@ export function useAcceptMission() {
   });
 }
 
-// Hook to complete a mission
+// Hook to complete a mission with moderation
 export const useCompleteMission = () => {
   const queryClient = useQueryClient();
   const { universalAddress: address } = useBaseAccount();
@@ -154,15 +160,24 @@ export const useCompleteMission = () => {
       missionId, 
       recordingId, 
       location, 
-      context 
+      context,
+      qualityScore,
+      transcription,
     }: { 
       missionId: string; 
       recordingId: string; 
       location: { city: string; country: string; coordinates?: { lat: number; lng: number } };
       context: string;
+      qualityScore?: number;
+      transcription?: string;
     }) => {
       if (!address) throw new Error('Wallet not connected');
 
+      // Get mission to access quality criteria
+      const mission = await missionService.getMissionById(missionId);
+      if (!mission) throw new Error('Mission not found');
+
+      // Build response
       const response: Omit<MissionResponse, 'id' | 'submittedAt'> = {
         missionId,
         userId: address,
@@ -173,8 +188,24 @@ export const useCompleteMission = () => {
         isAnonymized: false,
         voiceObfuscated: false,
         status: 'pending' as const,
-        qualityScore: 85,
+        qualityScore: qualityScore || 75,
+        transcription,
       };
+
+      // Run moderation check
+      const modResult = await moderationService.evaluateQuality(
+        response as MissionResponse,
+        mission.qualityCriteria
+      );
+
+      // Set status based on moderation result
+      if (modResult.suggestion === 'reject') {
+        response.status = 'rejected';
+      } else if (modResult.suggestion === 'review') {
+        response.status = 'pending'; // Will require human review
+      } else {
+        response.status = 'approved'; // Auto-approved
+      }
 
       return await missionService.submitMissionResponse(response);
     },
@@ -197,19 +228,19 @@ export const useMissionStats = () => {
       const missions = await missionService.getActiveMissions();
       
       return {
-        totalMissions: missions.length,
-        activeMissions: missions.filter((m: Mission) => m.isActive).length,
-        completedMissions: missions.filter((m: Mission) => !m.isActive).length,
-        totalRewards: missions.reduce((sum: number, m: Mission) => sum + m.reward, 0),
-        averageReward: missions.length > 0 
-          ? missions.reduce((sum: number, m: Mission) => sum + m.reward, 0) / missions.length 
-          : 0,
-        topTopics: missions
-           .reduce((acc: Record<string, number>, m: Mission) => {
-             acc[m.topic] = (acc[m.topic] || 0) + 1;
-             return acc;
-           }, {} as Record<string, number>),
-      };
+         totalMissions: missions.length,
+         activeMissions: missions.filter((m: Mission) => m.isActive).length,
+         completedMissions: missions.filter((m: Mission) => !m.isActive).length,
+         totalRewards: missions.reduce((sum: number, m: Mission) => sum + m.baseReward, 0),
+         averageReward: missions.length > 0 
+           ? missions.reduce((sum: number, m: Mission) => sum + m.baseReward, 0) / missions.length 
+           : 0,
+         languageDistribution: missions
+            .reduce((acc: Record<string, number>, m: Mission) => {
+              acc[m.language] = (acc[m.language] || 0) + 1;
+              return acc;
+            }, {} as Record<string, number>),
+       };
     },
     enabled: !!address,
   });

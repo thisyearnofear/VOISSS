@@ -1,30 +1,46 @@
 import { z } from 'zod';
 
 // Mission System Types
+export const QualityCriteriaSchema = z.object({
+  audioMinScore: z.number().min(0).max(100).optional(), // 0-100 quality score
+  transcriptionRequired: z.boolean().default(false),
+  minimumDuration: z.number().optional(), // seconds
+  maximumDuration: z.number().optional(), // seconds
+});
+
 export const MissionSchema = z.object({
+  // Core fields
   id: z.string(),
   title: z.string(),
   description: z.string(),
-  topic: z.string(), // "crypto", "gender-roles", "marriage", etc.
   difficulty: z.enum(['easy', 'medium', 'hard']),
-  reward: z.number(), // tokens (base unit, not formatted)
+  targetDuration: z.number(), // suggested clip length in seconds (30-600)
   expiresAt: z.date(),
-  maxParticipants: z.number().optional(),
-  currentParticipants: z.number(),
-  isActive: z.boolean(),
-  createdBy: z.string(), // curator/creator address
-  tags: z.array(z.string()),
-  locationBased: z.boolean(), // true for taxi/local missions
-  targetDuration: z.number(), // suggested clip length in seconds
-  examples: z.array(z.string()), // example questions or conversation starters
-  contextSuggestions: z.array(z.string()), // "taxi", "coffee shop", "street", etc.
+  locationBased: z.boolean().default(false), // true for taxi/local missions
+  
+  // Reward configuration
+  baseReward: z.number().min(1), // per submission, calculated from difficulty
+  rewardModel: z.enum(['pool', 'flat_rate', 'performance']).default('pool'),
+  budgetAllocation: z.number().min(0).optional(), // total tokens allocated to mission
+  creatorStake: z.number().min(0).optional(), // tokens staked by creator for confidence
+  curatorReward: z.number().min(0).max(100).default(5), // % of featured rewards to creator
+  
+  // Quality & content
+  qualityCriteria: QualityCriteriaSchema.optional(),
+  language: z.string().default('en'), // ISO 639-1 code: en, es, fr, etc.
+  
+  // Metadata
+  createdBy: z.string(), // creator address
+  currentParticipants: z.number().default(0),
+  isActive: z.boolean().default(true),
   createdAt: z.date(),
   updatedAt: z.date(),
-  autoExpire: z.boolean().default(true), // auto-expire when expiresAt reached
-  publishedAt: z.date().optional(), // when mission was published
+  publishedAt: z.date().optional(),
+  autoExpire: z.boolean().default(true),
 });
 
 export type Mission = z.infer<typeof MissionSchema>;
+export type QualityCriteria = z.infer<typeof QualityCriteriaSchema>;
 
 export const MissionResponseSchema = z.object({
   id: z.string(),

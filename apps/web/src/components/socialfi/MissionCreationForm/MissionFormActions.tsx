@@ -20,15 +20,7 @@ export default function MissionFormActions({
 }: MissionFormActionsProps) {
   return (
     <>
-      {/* Reward Info */}
-      <div className="p-4 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg">
-        <p className="text-sm text-gray-400">
-          <strong>Fixed Reward:</strong> {PLATFORM_CONFIG.rewards.fixedPerMission} {getTokenDisplaySymbol()}
-        </p>
-        <p className="text-xs text-gray-500 mt-2">
-          Split between participants based on milestone completion
-        </p>
-      </div>
+
 
       {/* Submit Actions */}
       <div className="flex gap-3">

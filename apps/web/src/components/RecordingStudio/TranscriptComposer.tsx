@@ -24,9 +24,9 @@ function createRoughTimedTranscript(params: {
   const cleaned = text.trim();
   const sentences = cleaned.length
     ? cleaned
-        .split(/(?<=[.!?])\s+/)
-        .map(s => s.trim())
-        .filter(Boolean)
+      .split(/(?<=[.!?])\s+/)
+      .map(s => s.trim())
+      .filter(Boolean)
     : [];
 
   const segCount = Math.max(1, sentences.length);
@@ -103,7 +103,7 @@ export default function TranscriptComposer(props: {
     theme: TRANSCRIPT_THEMES[0], // Default Voisss theme
     animation: 'cut',
   });
-  
+
   const [playbackRate, setPlaybackRate] = useState(1);
 
   useEffect(() => {
@@ -171,7 +171,26 @@ export default function TranscriptComposer(props: {
     } catch {
       // ignore
     }
-  }, [templateId, rawText, importJson, timedTranscript]);
+  }, [templateId, rawText, importJson, timedTranscript, style]);
+
+  // Auto-generate rough timing when text changes and no transcript exists (or it's rough)
+  useEffect(() => {
+    const trimmed = rawText.trim();
+    if (!trimmed || durationSeconds <= 0) return;
+
+    // Only auto-generate if we have NO transcript, OR it's a rough one and the text is different.
+    // This avoids overwriting accurate transcriptions while typing.
+    const isRough = !timedTranscript || timedTranscript.provider === 'rough';
+    const textDifferent = timedTranscript?.text !== trimmed;
+
+    if (isRough && textDifferent) {
+      const timeoutId = setTimeout(() => {
+        applyRoughTiming();
+      }, 1000);
+      return () => clearTimeout(timeoutId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawText, durationSeconds]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -233,14 +252,16 @@ export default function TranscriptComposer(props: {
   const [transitionKey, setTransitionKey] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // When segment changes, trigger a short fade/slide transition.
+  // When segment changes, trigger a short transition hint.
   useEffect(() => {
-    if (!activeSegment) return;
+    if (!activeSegment?.id) return;
+
+    // Use a very short transition to keep it responsive
     setIsTransitioning(true);
     const t1 = window.setTimeout(() => {
       setTransitionKey((k) => k + 1);
       setIsTransitioning(false);
-    }, 120);
+    }, 60); // Half the previous duration for snappier feel
     return () => window.clearTimeout(t1);
   }, [activeSegment?.id]);
 
@@ -273,14 +294,14 @@ export default function TranscriptComposer(props: {
 
   const previewStyle: React.CSSProperties = template
     ? {
-        padding: template.layout.paddingPx,
-        borderRadius: 16,
-        minHeight: 340,
-        background: style.theme.background,
-        border: style.theme.id === 'blue-white' || style.theme.id === 'paper' 
-          ? '1px solid rgba(0,0,0,0.1)' 
-          : '1px solid rgba(255,255,255,0.06)',
-      }
+      padding: template.layout.paddingPx,
+      borderRadius: 16,
+      minHeight: 340,
+      background: style.theme.background,
+      border: style.theme.id === 'blue-white' || style.theme.id === 'paper'
+        ? '1px solid rgba(0,0,0,0.1)'
+        : '1px solid rgba(255,255,255,0.06)',
+    }
     : {};
 
   return (
@@ -347,18 +368,18 @@ export default function TranscriptComposer(props: {
                 }}
               >
                 <div key={transitionKey} className="w-full">
-                {activeSegment?.words && activeSegment.words.length > 0 ? (
-                  <VoisssKaraokePreview
-                    lines={activePage?.lines?.map((l) => l.text) ?? []}
-                    segmentWords={activeSegment.words}
-                    activeWordIndex={active?.wordIndex ?? -1}
-                    currentTimeMs={currentTimeMs}
-                    style={style}
-                    fontSizePx={template.typography.fontSizePx}
-                  />
-                ) : (
-                  <div className="whitespace-pre-wrap">{activeSegment?.text}</div>
-                )}
+                  {activeSegment?.words && activeSegment.words.length > 0 ? (
+                    <VoisssKaraokePreview
+                      lines={activePage?.lines?.map((l) => l.text) ?? []}
+                      segmentWords={activeSegment.words}
+                      activeWordIndex={active?.wordIndex ?? -1}
+                      currentTimeMs={currentTimeMs}
+                      style={style}
+                      fontSizePx={template.typography.fontSizePx}
+                    />
+                  ) : (
+                    <div className="whitespace-pre-wrap">{activeSegment?.text}</div>
+                  )}
                 </div>
               </div>
             )}
@@ -425,11 +446,10 @@ export default function TranscriptComposer(props: {
                     setError(e?.message || 'Transcription failed');
                   }
                 }}
-                className={`px-4 py-2 rounded-lg border text-white text-sm hover:bg-[#3A3A3A] ${
-                  autoFocus
+                className={`px-4 py-2 rounded-lg border text-white text-sm hover:bg-[#3A3A3A] ${autoFocus
                     ? 'bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] border-transparent'
                     : 'bg-[#2A2A2A] border-[#3A3A3A]'
-                }`}
+                  }`}
               >
                 Transcribe audio (accurate)
               </button>
