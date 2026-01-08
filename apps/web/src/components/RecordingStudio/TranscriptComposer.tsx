@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { VoisssKaraokeLine } from './voisss-karaoke';
 import { TranscriptStyleControls, TranscriptStyle, TRANSCRIPT_THEMES, TRANSCRIPT_FONTS } from './TranscriptStyleControls';
+import ErrorBoundary from '../ErrorBoundary';
 import { buildTranscriptPages, findActiveWord, stableTranscriptId } from '@voisss/shared/utils/timed-transcript';
 import {
   DEFAULT_VOISSS_TEMPLATES,
@@ -91,11 +92,21 @@ export default function TranscriptComposer(props: {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
 
-  const [templateId, setTemplateId] = useState(
-    initialTemplateId && DEFAULT_VOISSS_TEMPLATES.some((t) => t.id === initialTemplateId)
-      ? initialTemplateId
-      : (DEFAULT_VOISSS_TEMPLATES[0]?.id ?? 'voisss-pulse-portrait')
-  );
+  // Validate template ID with fallback chain
+  const getDefaultTemplateId = (): string => {
+    // First try explicitly passed template
+    if (initialTemplateId && DEFAULT_VOISSS_TEMPLATES.some((t) => t.id === initialTemplateId)) {
+      return initialTemplateId;
+    }
+    // Then try first template in list
+    if (DEFAULT_VOISSS_TEMPLATES.length > 0 && DEFAULT_VOISSS_TEMPLATES[0]) {
+      return DEFAULT_VOISSS_TEMPLATES[0].id;
+    }
+    // Last resort: hardcoded fallback (should never reach this)
+    return 'voisss-pulse-portrait';
+  };
+
+  const [templateId, setTemplateId] = useState(getDefaultTemplateId());
 
   // Initialize style with defaults
   const [style, setStyle] = useState<TranscriptStyle>({
@@ -105,6 +116,10 @@ export default function TranscriptComposer(props: {
   });
 
   const [playbackRate, setPlaybackRate] = useState(1);
+  
+  // Sync offset in milliseconds: allows user to shift all word timings ±2000ms
+  // Useful if transcription is consistently off (e.g., all words 100ms late)
+  const [syncOffsetMs, setSyncOffsetMs] = useState(0);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -124,17 +139,50 @@ export default function TranscriptComposer(props: {
   const [error, setError] = useState<string | null>(null);
 
   const [shareLink, setShareLink] = useState<string | null>(null);
-  const [carouselSlides, setCarouselSlides] = useState<Array<{ filename: string; svg: string }> | null>(null);
+  const [carouselSlides, setCarouselSlides] = useState<Array<{ filename: string; url: string }> | null>(null);
 
-  // Restore persisted state (best-effort)
+  // Cleanup Blob URLs for carousel slides to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (carouselSlides) {
+        carouselSlides.forEach(s => URL.revokeObjectURL(s.url));
+      }
+    };
+  }, [carouselSlides]);
+
+  // Track if current transcript came from accurate source (not rough auto-generation)
+  const [isAccurateTranscript, setIsAccurateTranscript] = useState(false);
+
+  // Restore persisted state with validation
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
-      const data = JSON.parse(raw);
 
-      if (typeof data?.templateId === 'string' && DEFAULT_VOISSS_TEMPLATES.some((t) => t.id === data.templateId)) {
-        setTemplateId(data.templateId);
+      let data: any;
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        // Corrupted JSON, clear and start fresh
+        window.localStorage.removeItem(STORAGE_KEY);
+        return;
+      }
+
+      // Version check: only restore if schema is compatible
+      const version = data?.__version ?? 1;
+      if (version !== 1) {
+        // Schema mismatch, clear to avoid stale data
+        window.localStorage.removeItem(STORAGE_KEY);
+        return;
+      }
+
+      // Validate stored template ID exists in current template list
+      if (typeof data?.templateId === 'string') {
+        const templateExists = DEFAULT_VOISSS_TEMPLATES.some((t) => t.id === data.templateId);
+        if (templateExists) {
+          setTemplateId(data.templateId);
+        }
+        // If stored template doesn't exist in current list, use default (already set in useState)
       }
       if (typeof data?.rawText === 'string') {
         setRawText(data.rawText);
@@ -142,91 +190,126 @@ export default function TranscriptComposer(props: {
       if (typeof data?.importJson === 'string') {
         setImportJson(data.importJson);
       }
+
+      // Validate transcript schema before restoring
       if (data?.timedTranscript) {
         const tt = TimedTranscriptSchema.safeParse(data.timedTranscript);
-        if (tt.success) setTimedTranscript(tt.data);
+        if (tt.success) {
+          setTimedTranscript(tt.data);
+          // Mark as accurate if provider indicates it's not rough
+          setIsAccurateTranscript(tt.data.provider !== 'rough');
+        }
       }
-      if (data?.style) {
+
+      // Validate style shape (has required theme, fontFamily, animation)
+      if (data?.style && data.style.theme && data.style.fontFamily && data.style.animation) {
         setStyle(data.style);
       }
+      
+      // Restore sync offset (optional, default to 0)
+      if (typeof data?.syncOffsetMs === 'number') {
+        setSyncOffsetMs(Math.max(-2000, Math.min(2000, data.syncOffsetMs)));
+      }
     } catch {
-      // ignore
+      // Silently ignore any other errors
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Persist state (best-effort)
+  // Persist state with version (best-effort)
   useEffect(() => {
     try {
       window.localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({
+          __version: 1,
           templateId,
           rawText,
           importJson,
           timedTranscript,
           style,
+          syncOffsetMs,
         })
       );
-    } catch {
-      // ignore
+    } catch (err) {
+      // localStorage full or disabled; silently ignore
     }
-  }, [templateId, rawText, importJson, timedTranscript, style]);
+  }, [templateId, rawText, importJson, timedTranscript, style, syncOffsetMs]);
 
-  // Auto-generate rough timing when text changes and no transcript exists (or it's rough)
+  // Auto-generate rough timing when text changes and no accurate transcript exists
   useEffect(() => {
     const trimmed = rawText.trim();
     if (!trimmed || durationSeconds <= 0) return;
 
-    // Only auto-generate if we have NO transcript, OR it's a rough one and the text is different.
-    // This avoids overwriting accurate transcriptions while typing.
-    const isRough = !timedTranscript || timedTranscript.provider === 'rough';
-    const textDifferent = timedTranscript?.text !== trimmed;
-
-    if (isRough && textDifferent) {
-      const timeoutId = setTimeout(() => {
-        applyRoughTiming();
-      }, 1000);
-      return () => clearTimeout(timeoutId);
+    // CRITICAL: Only auto-generate if we DON'T have an accurate transcript.
+    // If user imported accurate JSON, never overwrite it with rough timing.
+    // Even if rawText changes, preserve the accurate transcript.
+    if (isAccurateTranscript) {
+      return; // Don't auto-generate over accurate transcripts
     }
+
+    // For rough transcripts: only regenerate if text meaningfully changed
+    const textDifferent = timedTranscript?.text !== trimmed;
+    if (!textDifferent) {
+      return; // Text hasn't changed, no need to regenerate
+    }
+
+    // Debounce rough timing generation
+    const timeoutId = setTimeout(() => {
+      applyRoughTiming();
+    }, 1000);
+
+    return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rawText, durationSeconds]);
+  }, [rawText, durationSeconds, isAccurateTranscript]);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     let rafId: number;
+    let lastUpdateMs = 0;
+    const UPDATE_THROTTLE_MS = 16; // ~60fps cap to prevent spam
+
     const updateTime = () => {
-      setCurrentTimeMs(ms(audio.currentTime));
+      const now = Date.now();
+      // Throttle: only update state if 16ms has passed (60fps cap)
+      if (now - lastUpdateMs >= UPDATE_THROTTLE_MS) {
+        setCurrentTimeMs(ms(audio.currentTime));
+        lastUpdateMs = now;
+      }
       if (!audio.paused) {
         rafId = requestAnimationFrame(updateTime);
       }
     };
 
     const onPlay = () => {
+      lastUpdateMs = Date.now();
       rafId = requestAnimationFrame(updateTime);
     };
 
     const onPause = () => {
       cancelAnimationFrame(rafId);
-      updateTime(); // One last update to ensure sync
+      // Final update on pause to ensure precise sync
+      setCurrentTimeMs(ms(audio.currentTime));
     };
 
-    // Keep timeupdate as a fallback and for seeking
-    const onTimeUpdate = () => setCurrentTimeMs(ms(audio.currentTime));
+    // Seeking: update immediately (not throttled) for responsive scrubbing
+    const onSeeking = () => {
+      lastUpdateMs = Date.now();
+      setCurrentTimeMs(ms(audio.currentTime));
+    };
 
     audio.addEventListener('play', onPlay);
     audio.addEventListener('pause', onPause);
-    audio.addEventListener('timeupdate', onTimeUpdate);
-    audio.addEventListener('seeking', onTimeUpdate);
+    audio.addEventListener('seeking', onSeeking);
+    // timeupdate removed: RAF handles continuous updates, seeking handles jumps
 
     return () => {
       cancelAnimationFrame(rafId);
       audio.removeEventListener('play', onPlay);
       audio.removeEventListener('pause', onPause);
-      audio.removeEventListener('timeupdate', onTimeUpdate);
-      audio.removeEventListener('seeking', onTimeUpdate);
+      audio.removeEventListener('seeking', onSeeking);
     };
   }, []);
 
@@ -241,8 +324,10 @@ export default function TranscriptComposer(props: {
 
   const active = useMemo(() => {
     if (!timedTranscript) return null;
-    return findActiveWord(timedTranscript, currentTimeMs);
-  }, [timedTranscript, currentTimeMs]);
+    // Apply sync offset to time lookup: if user shifts by +100ms, find word at currentTimeMs - 100ms
+    const adjustedTimeMs = currentTimeMs - syncOffsetMs;
+    return findActiveWord(timedTranscript, adjustedTimeMs);
+  }, [timedTranscript, currentTimeMs, syncOffsetMs]);
 
   const activeSegment = useMemo(() => {
     if (!timedTranscript || !active) return null;
@@ -275,6 +360,7 @@ export default function TranscriptComposer(props: {
     try {
       const tt = createRoughTimedTranscript({ text: rawText, durationSeconds });
       setTimedTranscript(tt);
+      setIsAccurateTranscript(false); // Rough timing is not accurate
     } catch (e: any) {
       setError(e?.message || 'Failed to create timed transcript');
     }
@@ -284,11 +370,21 @@ export default function TranscriptComposer(props: {
     setError(null);
     try {
       const parsed = JSON.parse(importJson);
-      const tt = TimedTranscriptSchema.parse(parsed);
-      setTimedTranscript(tt);
-      setRawText(tt.text || tt.segments.map(s => s.text).join(' '));
+      const tt = TimedTranscriptSchema.safeParse(parsed);
+
+      if (!tt.success) {
+        // Create a user-friendly summary of Zod errors
+        const issues = tt.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ');
+        setError(`Invalid transcript format: ${issues}`);
+        return;
+      }
+
+      setTimedTranscript(tt.data);
+      setRawText(tt.data.text || tt.data.segments.map(s => s.text).join(' '));
+      // Mark as accurate ONLY if it came from an accurate provider (not rough or undefined)
+      setIsAccurateTranscript(!!tt.data.provider && tt.data.provider !== 'rough');
     } catch (e: any) {
-      setError(e?.message || 'Invalid transcript JSON');
+      setError(e instanceof SyntaxError ? 'Invalid JSON syntax' : (e?.message || 'Invalid transcript JSON'));
     }
   };
 
@@ -318,9 +414,12 @@ export default function TranscriptComposer(props: {
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h4 className="text-white font-semibold">Shareable Transcript (VOISSS)</h4>
+          <h4 className="text-white font-semibold">Shareable Transcript</h4>
           <p className="text-xs text-gray-400 max-w-xl">
-            Paste a transcript, then preview word-synced kinetic text. For best accuracy, import a word-timed JSON transcript.
+            <strong>Start here:</strong> Paste your transcript
+          </p>
+          <p className="text-xs text-gray-400 max-w-xl">
+            <strong>Better results:</strong> Import a word-timed JSON file for accurate karaoke sync
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -345,43 +444,54 @@ export default function TranscriptComposer(props: {
               <div className="text-gray-400 text-sm">
                 Add a transcript to preview.
               </div>
+            ) : !template ? (
+              <div className="text-gray-400 text-sm">
+                No template selected.
+              </div>
             ) : !activePage ? (
               <div className="text-gray-400 text-sm">
                 Press play to see karaoke highlighting.
               </div>
             ) : (
-              <div
-                style={{
-                  fontFamily: style.fontFamily === 'Anton' ? 'Impact, sans-serif' : style.fontFamily,
-                  fontSize: template.typography.fontSizePx,
-                  fontWeight: template.typography.fontWeight as any,
-                  lineHeight: template.typography.lineHeight,
-                  color: style.theme.textInactive,
-                  textAlign: 'center',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minHeight: 240,
-                  transition: 'opacity 200ms ease, transform 200ms ease',
-                  opacity: isTransitioning ? 0 : 1,
-                  transform: isTransitioning ? 'scale(0.98)' : 'scale(1)',
-                }}
-              >
-                <div key={transitionKey} className="w-full">
-                  {activeSegment?.words && activeSegment.words.length > 0 ? (
-                    <VoisssKaraokePreview
-                      lines={activePage?.lines?.map((l) => l.text) ?? []}
-                      segmentWords={activeSegment.words}
-                      activeWordIndex={active?.wordIndex ?? -1}
-                      currentTimeMs={currentTimeMs}
-                      style={style}
-                      fontSizePx={template.typography.fontSizePx}
-                    />
-                  ) : (
-                    <div className="whitespace-pre-wrap">{activeSegment?.text}</div>
-                  )}
+              <ErrorBoundary fallback={
+                <div className="text-center p-8 bg-red-900/20 border border-red-500/30 rounded-xl">
+                  <p className="text-red-200 text-sm mb-2">Rendering Error</p>
+                  <p className="text-red-400/70 text-xs">The transcript format might be incompatible with this template.</p>
                 </div>
-              </div>
+              }>
+                <div
+                  style={{
+                    fontFamily: style.fontFamily === 'Anton' ? 'Impact, sans-serif' : style.fontFamily,
+                    fontSize: template.typography.fontSizePx,
+                    fontWeight: template.typography.fontWeight as any,
+                    lineHeight: template.typography.lineHeight,
+                    color: style.theme.textInactive,
+                    textAlign: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minHeight: 240,
+                    transition: 'opacity 200ms ease, transform 200ms ease',
+                    opacity: isTransitioning ? 0 : 1,
+                    transform: isTransitioning ? 'scale(0.98)' : 'scale(1)',
+                  }}
+                >
+                  <div key={transitionKey} className="w-full">
+                    {activeSegment?.words && activeSegment.words.length > 0 ? (
+                      <VoisssKaraokePreview
+                        lines={activePage?.lines?.map((l) => l.text) ?? []}
+                        segmentWords={activeSegment.words}
+                        activeWordIndex={active?.wordIndex ?? -1}
+                        currentTimeMs={currentTimeMs}
+                        style={style}
+                        fontSizePx={template.typography.fontSizePx}
+                      />
+                    ) : (
+                      <div className="whitespace-pre-wrap">{activeSegment?.text}</div>
+                    )}
+                  </div>
+                </div>
+              </ErrorBoundary>
             )}
           </div>
 
@@ -406,6 +516,52 @@ export default function TranscriptComposer(props: {
             <TranscriptStyleControls style={style} onChange={setStyle} />
           </div>
 
+          {/* Sync & Confidence Controls */}
+          {timedTranscript && (
+            <div className="p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-semibold text-white">Sync Calibration</h4>
+                <span className={`text-xs px-2 py-1 rounded ${
+                  isAccurateTranscript 
+                    ? 'bg-green-500/20 text-green-300' 
+                    : 'bg-yellow-500/20 text-yellow-300'
+                }`}>
+                  {isAccurateTranscript ? '✓ Accurate' : '⚠ Rough Timing'}
+                </span>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-300 min-w-[60px]">
+                    Offset: {syncOffsetMs > 0 ? '+' : ''}{syncOffsetMs}ms
+                  </label>
+                  <input
+                    type="range"
+                    min="-2000"
+                    max="2000"
+                    step="50"
+                    value={syncOffsetMs}
+                    onChange={(e) => setSyncOffsetMs(Number(e.target.value))}
+                    className="flex-1 h-2 bg-[#1A1A1A] rounded-lg appearance-none cursor-pointer accent-[#7C5DFA]"
+                    title="Adjust if highlights are ahead or behind speech"
+                  />
+                  <button
+                    onClick={() => setSyncOffsetMs(0)}
+                    className="px-2 py-1 text-xs bg-[#2A2A2A] border border-[#3A3A3A] text-gray-300 rounded hover:bg-[#3A3A3A]"
+                  >
+                    Reset
+                  </button>
+                </div>
+                
+                <p className="text-xs text-gray-500">
+                  {!isAccurateTranscript && 'Rough timing estimates word positions. Adjust offset if highlights don\'t match speech.'}
+                  {isAccurateTranscript && syncOffsetMs !== 0 && `Shifted by ${syncOffsetMs}ms. ${syncOffsetMs > 0 ? 'Highlights appear later' : 'Highlights appear earlier'}.`}
+                  {isAccurateTranscript && syncOffsetMs === 0 && 'Accurate timing — highlights should sync perfectly.'}
+                </p>
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="p-3 rounded-xl border border-red-500/30 bg-red-900/20 text-red-200 text-sm">
               {error}
@@ -423,6 +579,9 @@ export default function TranscriptComposer(props: {
               placeholder="Paste transcript here..."
               className="voisss-form-textarea min-h-[140px]"
             />
+            <p className="text-xs text-gray-500 mb-2">
+              <strong>Accuracy note:</strong> Rough timing uses duration to estimate word timing. For precise karaoke, import word-level timestamps.
+            </p>
             <div className="flex flex-wrap gap-2 mt-2">
               <button onClick={applyRoughTiming} className="voisss-btn-primary">
                 Create timed transcript
@@ -431,6 +590,14 @@ export default function TranscriptComposer(props: {
                 onClick={async () => {
                   setError(null);
                   try {
+                    // Validate file size client-side (25 MB limit)
+                    const maxSizeMB = 25;
+                    const maxSizeBytes = maxSizeMB * 1024 * 1024;
+                    if (audioBlob.size > maxSizeBytes) {
+                      setError(`Audio file too large (${(audioBlob.size / 1024 / 1024).toFixed(1)}MB). Max 25MB.`);
+                      return;
+                    }
+
                     const form = new FormData();
                     form.append('audio', audioBlob, 'recording.webm');
                     const res = await fetch('/api/transcript/transcribe', { method: 'POST', body: form });
@@ -442,13 +609,15 @@ export default function TranscriptComposer(props: {
                     const tt = TimedTranscriptSchema.parse(data.transcript);
                     setTimedTranscript(tt);
                     setRawText(tt.text || tt.segments.map((s) => s.text).join(' '));
+                    // Mark as accurate since it came from OpenAI transcription
+                    setIsAccurateTranscript(true);
                   } catch (e: any) {
                     setError(e?.message || 'Transcription failed');
                   }
                 }}
                 className={`px-4 py-2 rounded-lg border text-white text-sm hover:bg-[#3A3A3A] ${autoFocus
-                    ? 'bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] border-transparent'
-                    : 'bg-[#2A2A2A] border-[#3A3A3A]'
+                  ? 'bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] border-transparent'
+                  : 'bg-[#2A2A2A] border-[#3A3A3A]'
                   }`}
               >
                 Transcribe audio (accurate)
@@ -464,15 +633,14 @@ export default function TranscriptComposer(props: {
                   setTimedTranscript(null);
                   setImportJson('');
                   setError(null);
+                  setIsAccurateTranscript(false);
+                  setSyncOffsetMs(0);
                 }}
                 className="px-4 py-2 rounded-lg bg-[#2A2A2A] border border-[#3A3A3A] text-white text-sm hover:bg-[#3A3A3A]"
               >
                 Reset
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Accuracy note: the “Create timed transcript” button generates rough timing from duration. For accuracy-first karaoke, import word-level timestamps.
-            </p>
           </div>
 
           <div>
@@ -480,7 +648,7 @@ export default function TranscriptComposer(props: {
             <textarea
               value={importJson}
               onChange={(e) => setImportJson(e.target.value)}
-              placeholder='{"id":"tt_...","language":"en","segments":[...]}'
+              placeholder='{"id":"tt_abc123","language":"en","segments":[{"start":0,"end":1.2,"text":"transform"},{"start":1.3,"end":2.1,"text":"your"},{"start":2.2,"end":3.0,"text":"voice"}]}'
               className="voisss-form-textarea min-h-[140px] font-mono text-xs"
             />
             <div className="flex gap-2 mt-2">
@@ -592,7 +760,14 @@ export default function TranscriptComposer(props: {
                     return;
                   }
                   if (data.slides && Array.isArray(data.slides)) {
-                    setCarouselSlides(data.slides);
+                    // Revoke old URLs before setting new ones
+                    if (carouselSlides) carouselSlides.forEach(s => URL.revokeObjectURL(s.url));
+
+                    const slidesWithUrls = data.slides.map((s: { filename: string; svg: string }) => ({
+                      filename: s.filename,
+                      url: URL.createObjectURL(new Blob([s.svg], { type: 'image/svg+xml' }))
+                    }));
+                    setCarouselSlides(slidesWithUrls);
                   }
                   setError(`Carousel export ${data.status || 'queued'}: ${data.jobId}`);
                 }}
@@ -611,7 +786,7 @@ export default function TranscriptComposer(props: {
                       <div className="text-xs text-gray-300 truncate">{s.filename}</div>
                       <a
                         className="px-3 py-2 rounded-lg bg-[#2A2A2A] border border-[#3A3A3A] text-white text-xs hover:bg-[#3A3A3A]"
-                        href={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(s.svg)}`}
+                        href={s.url}
                         download={s.filename}
                       >
                         Download
@@ -642,27 +817,32 @@ function VoisssKaraokePreview(props: {
 }) {
   const { lines, segmentWords, activeWordIndex, currentTimeMs, style, fontSizePx } = props;
 
-  // Simple deterministic split: map line words from the segment words.
-  // This keeps preview line breaks stable (from shared layout) while using timing from `segmentWords`.
-  let cursor = 0;
+  // Memoize the distribution of words into lines to avoid O(n) split/slice on every RAF frame.
+  const lineData = useMemo(() => {
+    let cursor = 0;
+    return lines.map((line) => {
+      const tokenCount = line.trim().length ? line.trim().split(/\s+/).length : 0;
+      const words = segmentWords.slice(cursor, cursor + tokenCount);
+      const startCursor = cursor;
+      cursor += tokenCount;
+      return { words, startCursor };
+    });
+  }, [lines, segmentWords]);
 
   return (
     <div className="space-y-4">
-      {lines.map((line, li) => {
-        const tokenCount = line.trim().length ? line.trim().split(/\s+/).length : 0;
-        const lineWords = segmentWords.slice(cursor, cursor + tokenCount);
-        const localActive = activeWordIndex - cursor;
+      {lineData.map((data, li) => {
+        const { words, startCursor } = data;
+        const localActive = activeWordIndex - startCursor;
 
-        const activeWord = localActive >= 0 ? lineWords[localActive] : undefined;
+        const activeWord = localActive >= 0 && localActive < words.length ? words[localActive] : undefined;
         const durationMs = activeWord ? Math.max(1, activeWord.endMs - activeWord.startMs) : 1;
         const activeFill = activeWord ? clamp01((currentTimeMs - activeWord.startMs) / durationMs) : null;
-
-        cursor += tokenCount;
 
         return (
           <div key={li} style={{ fontSize: Math.round(fontSizePx * 0.92) }}>
             <VoisssKaraokeLine
-              words={lineWords as any}
+              words={words as any}
               activeWordIndex={localActive}
               activeFill={activeFill}
               highlightColor={style.theme.textActive}

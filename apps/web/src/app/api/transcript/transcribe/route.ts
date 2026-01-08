@@ -3,12 +3,20 @@ import { TimedTranscriptSchema } from '@voisss/shared/types/transcript';
 
 export const runtime = 'nodejs';
 
+// Max 25 MB (OpenAI Whisper limit is 25 MB)
+const MAX_AUDIO_SIZE_MB = 25;
+const MAX_AUDIO_SIZE_BYTES = MAX_AUDIO_SIZE_MB * 1024 * 1024;
+
 /**
  * Accuracy-first transcription endpoint.
  *
  * Returns the canonical TimedTranscript (with word-level timings when available).
  *
  * Uses OpenAI Whisper-compatible API if `OPENAI_API_KEY` is configured.
+ * 
+ * Limits:
+ * - Max audio file size: 25 MB (OpenAI Whisper limit)
+ * - Supported formats: mp3, mp4, webm, wav, flac, etc.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -31,6 +39,16 @@ export async function POST(req: NextRequest) {
 
     if (!(file instanceof Blob)) {
       return NextResponse.json({ error: 'Missing audio file' }, { status: 400 });
+    }
+
+    // Validate file size
+    if (file.size > MAX_AUDIO_SIZE_BYTES) {
+      return NextResponse.json(
+        {
+          error: `Audio file too large. Max size is ${MAX_AUDIO_SIZE_MB}MB, got ${(file.size / 1024 / 1024).toFixed(1)}MB`,
+        },
+        { status: 413 }
+      );
     }
 
     // Forward to OpenAI transcription endpoint
@@ -77,6 +95,20 @@ function stableIdFromIndex(prefix: string, index: number) {
 }
 
 /**
+ * Generate a collision-resistant ID using timestamp + random component.
+ * Uses crypto.getRandomValues for better entropy than Math.random().
+ */
+function generateUniqueId(prefix: string): string {
+  const timestamp = Date.now();
+  const randomBytes = new Uint8Array(6);
+  crypto.getRandomValues(randomBytes);
+  const randomHex = Array.from(randomBytes)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  return `${prefix}_${timestamp}_${randomHex}`;
+}
+
+/**
  * Maps OpenAI Whisper `verbose_json` format into canonical TimedTranscript.
  *
  * Expected shape (subset):
@@ -108,7 +140,8 @@ function mapOpenAIVerboseJsonToTimedTranscript(payload: any) {
     };
   });
 
-  const id = `tt_openai_${Date.now()}`;
+  // Use crypto-secure random ID to prevent collisions
+  const id = generateUniqueId('tt_openai');
 
   return {
     id,

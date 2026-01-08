@@ -81,7 +81,7 @@ export interface TranscriptTemplate {
 export const DEFAULT_VOISSS_TEMPLATES: TranscriptTemplate[] = [
   {
     id: 'voisss-pulse-portrait',
-    name: 'VOISSS Pulse',
+    name: 'Mobile',
     aspect: 'portrait',
     highlightMode: 'word',
     background: {
@@ -105,7 +105,7 @@ export const DEFAULT_VOISSS_TEMPLATES: TranscriptTemplate[] = [
   },
   {
     id: 'voisss-pulse-square',
-    name: 'VOISSS Pulse',
+    name: 'Square',
     aspect: 'square',
     highlightMode: 'word',
     background: {
@@ -129,7 +129,7 @@ export const DEFAULT_VOISSS_TEMPLATES: TranscriptTemplate[] = [
   },
   {
     id: 'voisss-pulse-landscape',
-    name: 'VOISSS Pulse',
+    name: 'Desktop',
     aspect: 'landscape',
     highlightMode: 'word',
     background: {
