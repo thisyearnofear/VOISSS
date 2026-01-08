@@ -74,35 +74,57 @@ async function runMigrations() {
     return;
   }
 
-  // Ensure migrations table exists
-  await query(`
-    CREATE TABLE IF NOT EXISTS _migrations (
-      id SERIAL PRIMARY KEY,
-      name VARCHAR(255) UNIQUE NOT NULL,
-      executed_at TIMESTAMP DEFAULT NOW()
-    )
-  `);
+  // Ensure migrations table exists with timeout
+  try {
+    await Promise.race([
+      query(`
+        CREATE TABLE IF NOT EXISTS _migrations (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR(255) UNIQUE NOT NULL,
+          executed_at TIMESTAMP DEFAULT NOW()
+        )
+      `),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Migration setup timeout')), 5000))
+    ]);
+  } catch (e) {
+    console.error('Failed to setup migrations table:', e.message);
+    return;
+  }
 
   console.log(`Found ${files.length} migration files`);
 
   for (const file of files) {
     const migrationName = file.replace('.sql', '');
-    const result = await query(
-      'SELECT id FROM _migrations WHERE name = $1',
-      [migrationName]
-    );
+    let result;
+    
+    try {
+      result = await Promise.race([
+        query('SELECT id FROM _migrations WHERE name = $1', [migrationName]),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Migration check timeout')), 5000))
+      ]);
+    } catch (e) {
+      console.error(`Failed to check migration ${migrationName}:`, e.message);
+      continue;
+    }
 
     if (result.rows.length === 0) {
       const migrationPath = path.join(migrationsDir, file);
       const sql = fs.readFileSync(migrationPath, 'utf-8');
 
       console.log(`Running migration: ${migrationName}`);
-      await query(sql);
-      await query(
-        'INSERT INTO _migrations (name) VALUES ($1)',
-        [migrationName]
-      );
-      console.log(`✅ Migration complete: ${migrationName}`);
+      try {
+        await Promise.race([
+          query(sql),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Migration execution timeout')), 30000))
+        ]);
+        await query(
+          'INSERT INTO _migrations (name) VALUES ($1)',
+          [migrationName]
+        );
+        console.log(`✅ Migration complete: ${migrationName}`);
+      } catch (e) {
+        console.error(`❌ Migration failed: ${migrationName}`, e.message);
+      }
     } else {
       console.log(`⏭️  Migration already run: ${migrationName}`);
     }
