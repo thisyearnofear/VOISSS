@@ -5,6 +5,8 @@ const multer = require('multer');
 const FormData = require('form-data');
 const fetch = require('node-fetch');
 const cors = require('cors');
+const exportRoutes = require('./routes/export-routes');
+const { runMigrations, closePool } = require('./services/db-service');
 
 const app = express();
 const PORT = process.env.PORT || 5577;
@@ -24,8 +26,10 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 app.use(express.json());
-// Setup blockchain routes
+
+// Setup routes
 setupBlockchainRoutes(app);
+app.use('/api/export', exportRoutes);
 
 
 // Configure multer for memory storage
@@ -495,20 +499,42 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`VOISSS Processing Service running on port ${PORT}`);
-  console.log(`Health check: http://localhost:${PORT}/health`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+/**
+ * Initialize database and start server
+ */
+async function startServer() {
+  try {
+    // Run pending migrations
+    await runMigrations();
+    
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`\n${'='.repeat(60)}`);
+      console.log(`VOISSS Processing Service running on port ${PORT}`);
+      console.log(`Health check: http://localhost:${PORT}/health`);
+      console.log(`Export API: POST /api/export/request`);
+      console.log(`Export Status: GET /api/export/:jobId/status`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`${'='.repeat(60)}\n`);
+    });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully...');
-  process.exit(0);
-});
+    // Graceful shutdown
+    process.on('SIGTERM', async () => {
+      console.log('\nSIGTERM received, shutting down gracefully...');
+      server.close(() => console.log('Server closed'));
+      await closePool();
+      process.exit(0);
+    });
 
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully...');
-  process.exit(0);
-});
+    process.on('SIGINT', async () => {
+      console.log('\nSIGINT received, shutting down gracefully...');
+      server.close(() => console.log('Server closed'));
+      await closePool();
+      process.exit(0);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
