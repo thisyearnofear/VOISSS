@@ -79,33 +79,89 @@ pm2 restart voisss-processing
 ssh user@your-server
 mkdir -p /opt/voisss-processing
 cd /opt/voisss-processing
+git clone https://github.com/thisyearnofear/VOISSS.git .
+cd services/voisss-backend
 ```
 
-### 2. Configure Environment
+### 2. Setup Infrastructure (Docker)
 ```bash
-# Create .env file
+# Add Redis container for Bull queue
+docker run -d --name redis-export --restart unless-stopped \
+  -p 127.0.0.1:6379:6379 -v redis-export-data:/data \
+  redis:7-alpine redis-server --appendonly yes
+
+# Create output directory for exports
+sudo mkdir -p /var/www/voisss-exports
+sudo chown $(whoami) /var/www/voisss-exports
+chmod 755 /var/www/voisss-exports
+
+# Verify FFmpeg is installed
+ffmpeg -version
+```
+
+### 3. Configure Environment
+```bash
+# Create .env file (use .env.example as template)
 cat > .env << EOF
+# ElevenLabs API
 ELEVENLABS_API_KEY=your_api_key_here
+
+# Server
 PORT=5577
 NODE_ENV=production
+
+# Database (PostgreSQL)
+DATABASE_URL=postgresql://user:password@localhost:5433/voisss
+
+# Redis (for Bull queue)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# Export paths
+EXPORT_TEMP_DIR=/tmp/voisss-exports
+EXPORT_OUTPUT_DIR=/var/www/voisss-exports
+EXPORT_PUBLIC_URL=https://your-domain.com
+
+# Worker scaling
+WORKER_INSTANCES=2
+WORKER_CONCURRENCY=2
 EOF
 ```
 
-### 3. Install Dependencies
+### 4. Install Dependencies
 ```bash
 npm install --production
 ```
 
-### 4. Start Service
+### 5. Start Services
 ```bash
+# Both API and export worker processes
 pm2 start ecosystem.config.js
 pm2 save
 pm2 startup  # Enable auto-start on server reboot
+
+# Verify
+pm2 status  # Should show voisss-processing + voisss-export-worker x2
 ```
 
-### 5. Configure Nginx (Optional)
+### 6. Verify Setup
+```bash
+# Health check
+curl http://localhost:5577/health
+
+# Check logs
+pm2 logs voisss-processing --lines 20
+pm2 logs voisss-export-worker --lines 20
+```
+
+### 7. Configure Nginx (Optional)
 ```bash
 # Set up your nginx configuration
+# Add export file serving location (optional):
+# location /exports/ {
+#   alias /var/www/voisss-exports/;
+#   expires 24h;
+# }
 # Configure SSL with certbot
 # Reload nginx
 ```
@@ -113,17 +169,42 @@ pm2 startup  # Enable auto-start on server reboot
 ## Monitoring
 
 ```bash
-# View logs
-pm2 logs voisss-processing
+# View all logs (API + worker)
+pm2 logs
+
+# API logs only
+pm2 logs voisss-processing --lines 50
+
+# Worker logs only
+pm2 logs voisss-export-worker --lines 50
+
+# Real-time monitoring (CPU, memory)
+pm2 monit
 
 # Check status
 pm2 status
 
-# Monitor performance
-pm2 monit
+# Restart all services
+pm2 restart ecosystem.config.js
 
-# Restart if needed
+# Restart specific service
 pm2 restart voisss-processing
+pm2 restart voisss-export-worker
+```
+
+## Export Service Specific
+
+```bash
+# Check queue depth
+redis-cli LLEN bull:voisss-export:
+
+# Check job counts by status
+psql -h localhost -U postgres -d voisss \
+  -c "SELECT status, COUNT(*) FROM export_jobs GROUP BY status;"
+
+# View recent jobs
+psql -h localhost -U postgres -d voisss \
+  -c "SELECT id, kind, status, created_at FROM export_jobs ORDER BY created_at DESC LIMIT 10;"
 ```
 
 ## Troubleshooting
@@ -131,6 +212,30 @@ pm2 restart voisss-processing
 ### Service won't start
 ```bash
 pm2 logs voisss-processing --lines 50
+pm2 logs voisss-export-worker --lines 50
+```
+
+### Worker not processing jobs
+```bash
+# Check Redis is running
+redis-cli ping  # Should return PONG
+
+# Check worker process
+pm2 status | grep export
+
+# Check for errors
+pm2 logs voisss-export-worker --lines 100 --err
+```
+
+### Jobs stuck in processing
+```bash
+# Query stuck jobs (older than 1 hour)
+psql -h localhost -U postgres -d voisss \
+  -c "SELECT id, created_at, started_at FROM export_jobs WHERE status='processing' AND created_at < NOW() - INTERVAL '1 hour';"
+
+# Reset job to pending (if needed)
+psql -h localhost -U postgres -d voisss \
+  -c "UPDATE export_jobs SET status='pending' WHERE id='export_xxx';"
 ```
 
 ### Check if port is available
@@ -142,6 +247,44 @@ netstat -tuln | grep 5577
 ```bash
 cd /opt/voisss-processing
 cat .env
+
+# Verify each is set
+echo $DATABASE_URL
+echo $REDIS_HOST
+echo $REDIS_PORT
+```
+
+## Scaling Workers
+
+To increase export processing capacity:
+
+```bash
+# Edit ecosystem.config.js
+nano ecosystem.config.js
+
+# Change WORKER_INSTANCES (default is 2)
+WORKER_INSTANCES=4  # for 4 workers
+
+# Restart
+pm2 restart ecosystem.config.js
+
+# Verify
+pm2 status | grep export  # Should show 4 instances
+```
+
+**Performance**: Each FFmpeg worker uses ~200-300MB RAM
+- 2 workers: ~20 MP3/hr or ~7 MP4/hr
+- 4 workers: ~40 MP3/hr or ~14 MP4/hr
+
+## Cleanup & Maintenance
+
+```bash
+# Delete old completed jobs (older than 7 days)
+psql -h localhost -U postgres -d voisss \
+  -c "DELETE FROM export_jobs WHERE created_at < NOW() - INTERVAL '7 days' AND status IN ('completed', 'failed');"
+
+# Clear old temp files
+find /tmp/voisss-exports -type f -mtime +1 -delete
 ```
 
 ## Security Notes
@@ -151,3 +294,5 @@ cat .env
 - Use GitHub secrets for sensitive data
 - Rotate API keys periodically
 - Monitor access logs
+- Restrict Redis to localhost only (127.0.0.1)
+- Set file permissions on /var/www/voisss-exports
