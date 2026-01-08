@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { VoisssKaraokeLine } from './voisss-karaoke';
 import { TranscriptStyleControls, TranscriptStyle, TRANSCRIPT_THEMES, TRANSCRIPT_FONTS } from './TranscriptStyleControls';
 import ErrorBoundary from '../ErrorBoundary';
@@ -11,6 +11,7 @@ import {
   type TimedTranscript,
   type TranscriptTemplate,
 } from '@voisss/shared/types/transcript';
+import { useAudioPlaybackTime } from '../../hooks/useAudioPlaybackTime';
 
 function ms(seconds: number) {
   return Math.max(0, Math.round(seconds * 1000));
@@ -120,7 +121,7 @@ export default function TranscriptComposer(props: {
   // Sync offset in milliseconds: range scales with audio duration
   // Useful if transcription is consistently off (e.g., all words 100ms late)
   const [syncOffsetMs, setSyncOffsetMs] = useState(0);
-  
+
   // Compute dynamic slider range based on duration (±5% or ±2000ms, whichever is smaller)
   const maxOffsetMs = Math.min(2000, Math.floor(durationSeconds * 1000 * 0.05));
 
@@ -278,55 +279,12 @@ export default function TranscriptComposer(props: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawText, durationSeconds, isAccurateTranscript]);
 
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    let rafId: number;
-    let lastUpdateMs = 0;
-    const UPDATE_THROTTLE_MS = 16; // ~60fps cap to prevent spam
-
-    const updateTime = () => {
-      const now = Date.now();
-      // Throttle: only update state if 16ms has passed (60fps cap)
-      if (now - lastUpdateMs >= UPDATE_THROTTLE_MS) {
-        setCurrentTimeMs(ms(audio.currentTime));
-        lastUpdateMs = now;
-      }
-      if (!audio.paused) {
-        rafId = requestAnimationFrame(updateTime);
-      }
-    };
-
-    const onPlay = () => {
-      lastUpdateMs = Date.now();
-      rafId = requestAnimationFrame(updateTime);
-    };
-
-    const onPause = () => {
-      cancelAnimationFrame(rafId);
-      // Final update on pause to ensure precise sync
-      setCurrentTimeMs(ms(audio.currentTime));
-    };
-
-    // Seeking: update immediately (not throttled) for responsive scrubbing
-    const onSeeking = () => {
-      lastUpdateMs = Date.now();
-      setCurrentTimeMs(ms(audio.currentTime));
-    };
-
-    audio.addEventListener('play', onPlay);
-    audio.addEventListener('pause', onPause);
-    audio.addEventListener('seeking', onSeeking);
-    // timeupdate removed: RAF handles continuous updates, seeking handles jumps
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      audio.removeEventListener('play', onPlay);
-      audio.removeEventListener('pause', onPause);
-      audio.removeEventListener('seeking', onSeeking);
-    };
+  // Use robust audio playback time tracking (timeupdate + RAF interpolation)
+  const handleTimeChange = useCallback((timeMs: number) => {
+    setCurrentTimeMs(timeMs);
   }, []);
+
+  useAudioPlaybackTime(audioRef, handleTimeChange);
 
   // DERIVED: calibratedTranscript applies sync offset to base transcript
   // This is the source of truth for preview & export
@@ -456,7 +414,7 @@ export default function TranscriptComposer(props: {
       setRawText(tt.data.text || tt.data.segments.map(s => s.text).join(' '));
       // Mark as accurate ONLY if it came from an accurate provider (not rough or undefined)
       setIsAccurateTranscript(!!tt.data.provider && tt.data.provider !== 'rough');
-      
+
       // Try to detect if this JSON was pre-calibrated (offset already applied)
       // If we have a previous transcript, compare to detect offset
       if (timedTranscript && timedTranscript.segments.length > 0) {
@@ -598,7 +556,7 @@ export default function TranscriptComposer(props: {
 
           {/* Style Controls */}
           <div className="p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl">
-            <h4 className="text-sm font-semibold text-white mb-2">Customize Style</h4>
+
             <TranscriptStyleControls style={style} onChange={setStyle} />
           </div>
 
@@ -608,8 +566,8 @@ export default function TranscriptComposer(props: {
               <div className="flex items-center justify-between mb-2">
                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Sync Calibration</h4>
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${isAccurateTranscript
-                    ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                    : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+                  ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                  : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
                   }`}>
                   {isAccurateTranscript ? 'Accurate' : 'Rough Timing'}
                 </span>
@@ -956,7 +914,7 @@ function VoisssKaraokePreview(props: {
   return (
     <div className="space-y-4">
       {lineData.map((data, li) => {
-         const { words, startCursor } = data;
+        const { words, startCursor } = data;
         const localActive = activeWordIndex - startCursor;
 
         const activeWord = localActive >= 0 && localActive < words.length ? words[localActive] : undefined;
