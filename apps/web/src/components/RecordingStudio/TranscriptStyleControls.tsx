@@ -72,10 +72,7 @@ interface TranscriptStyleControlsProps {
 }
 
 export function TranscriptStyleControls({ style, onChange }: TranscriptStyleControlsProps) {
-  const updateTheme = (themeId: string) => {
-    const theme = TRANSCRIPT_THEMES.find(t => t.id === themeId) || TRANSCRIPT_THEMES[0];
-    onChange({ ...style, theme });
-  };
+
 
   return (
     <div className="space-y-4 pt-4 border-t border-[#2A2A2A]">
@@ -88,8 +85,8 @@ export function TranscriptStyleControls({ style, onChange }: TranscriptStyleCont
               key={font.value}
               onClick={() => onChange({ ...style, fontFamily: font.value })}
               className={`px-3 py-1.5 rounded-lg text-sm whitespace-nowrap border transition-all ${style.fontFamily === font.value
-                  ? 'bg-white text-black border-white'
-                  : 'bg-[#1A1A1A] text-gray-400 border-[#333] hover:border-gray-500'
+                ? 'bg-white text-black border-white'
+                : 'bg-[#1A1A1A] text-gray-400 border-[#333] hover:border-gray-500'
                 } ${font.className}`}
             >
               {font.label}
@@ -98,36 +95,12 @@ export function TranscriptStyleControls({ style, onChange }: TranscriptStyleCont
         </div>
       </div>
 
-      {/* 2. Color / Theme */}
+      {/* 2. Colors */}
       <div className="space-y-3">
-        <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Theme</label>
-        <div className="grid grid-cols-4 gap-2">
-          {TRANSCRIPT_THEMES.map((theme) => (
-            <button
-              key={theme.id}
-              onClick={() => updateTheme(theme.id)}
-              className={`group relative h-10 rounded-lg border transition-all overflow-hidden ${style.theme.id === theme.id
-                  ? 'ring-2 ring-white ring-offset-1 ring-offset-[#0A0A0A] border-transparent'
-                  : 'border-[#333] hover:border-gray-500'
-                }`}
-              title={theme.label}
-            >
-              <div
-                className="absolute inset-0 w-full h-full"
-                style={{ background: theme.background }}
-              />
-              <div
-                className="absolute inset-0 flex items-center justify-center font-bold text-xs"
-                style={{ color: theme.textActive }}
-              >
-                Aa
-              </div>
-            </button>
-          ))}
-        </div>
+        <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Colors</label>
 
         {/* Custom Color Overrides */}
-        <div className="grid grid-cols-3 gap-3 pt-2">
+        <div className="grid grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">Backdrop</label>
             <div className="relative group">
@@ -182,8 +155,8 @@ export function TranscriptStyleControls({ style, onChange }: TranscriptStyleCont
               key={anim.value}
               onClick={() => onChange({ ...style, animation: anim.value })}
               className={`px-3 py-2 rounded-lg text-xs border transition-all flex items-center justify-center gap-2 ${style.animation === anim.value
-                  ? 'bg-[#2A2A2A] text-white border-[#7C5DFA]'
-                  : 'bg-[#1A1A1A] text-gray-400 border-[#333] hover:border-gray-500'
+                ? 'bg-[#2A2A2A] text-white border-[#7C5DFA]'
+                : 'bg-[#1A1A1A] text-gray-400 border-[#333] hover:border-gray-500'
                 }`}
             >
               <span className="text-base">{anim.icon}</span>

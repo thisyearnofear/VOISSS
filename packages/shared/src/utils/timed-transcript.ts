@@ -104,7 +104,7 @@ export function layoutSegmentIntoLines(params: {
   }
 
   if (lines.length < maxLines) pushLine();
-  return lines.slice(0, maxLines);
+  return lines;
 }
 
 export function buildTranscriptPages(params: {

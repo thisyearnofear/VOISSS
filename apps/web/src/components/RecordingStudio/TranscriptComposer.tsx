@@ -893,13 +893,13 @@ function VoisssKaraokePreview(props: {
   segmentWords: Array<{ word: string; startMs: number; endMs: number }>;
   activeWordIndex: number;
   currentTimeMs: number;
-  syncOffsetMs: number;  // Deprecated: offset is baked into segmentWords timing now
+  syncOffsetMs: number;
   style: TranscriptStyle;
   fontSizePx: number;
+  containerHeight?: number; // Optional height override
 }) {
-  const { lines, segmentWords, activeWordIndex, currentTimeMs, style, fontSizePx } = props;
+  const { lines, segmentWords, activeWordIndex, currentTimeMs, style, fontSizePx, containerHeight = 240 } = props;
 
-  // Memoize the distribution of words into lines to avoid O(n) split/slice on every RAF frame.
   const lineData = useMemo(() => {
     let cursor = 0;
     return lines.map((line) => {
@@ -911,31 +911,71 @@ function VoisssKaraokePreview(props: {
     });
   }, [lines, segmentWords]);
 
+  const activeLineIndex = useMemo(() => {
+    return lineData.findIndex((data) => {
+      const { words, startCursor } = data;
+      const localActive = activeWordIndex - startCursor;
+      return localActive >= 0 && localActive < words.length;
+    });
+  }, [lineData, activeWordIndex]);
+
+  const estLineHeight = Math.round(fontSizePx * 1.3) + 16;
+  const totalContentHeight = lineData.length * estLineHeight;
+
+  // Smart centering logic:
+  // 1. If content fits entirely in view, center the whole block and don't scroll.
+  // 2. If it overflows, center the active line (the "treadmill" effect).
+  // 3. If idle (no active word), center the whole block.
+
+  const shouldScroll = totalContentHeight > containerHeight;
+
+  let translateY = (containerHeight - totalContentHeight) / 2;
+
+  if (shouldScroll && activeLineIndex >= 0) {
+    translateY = (containerHeight / 2) - (activeLineIndex * estLineHeight) - (estLineHeight / 2);
+  }
+
   return (
-    <div className="space-y-4">
-      {lineData.map((data, li) => {
-        const { words, startCursor } = data;
-        const localActive = activeWordIndex - startCursor;
+    <div className="w-full relative overflow-hidden" style={{ height: containerHeight }}>
+      <div
+        className="transition-transform duration-700 cubic-bezier(0.23, 1, 0.32, 1) flex flex-col items-center"
+        style={{ transform: `translateY(${translateY}px)` }}
+      >
+        {lineData.map((data, li) => {
+          const { words, startCursor } = data;
+          const localActive = activeWordIndex - startCursor;
+          const isActiveLine = li === activeLineIndex;
 
-        const activeWord = localActive >= 0 && localActive < words.length ? words[localActive] : undefined;
-        const durationMs = activeWord ? Math.max(1, activeWord.endMs - activeWord.startMs) : 1;
-        const adjustedTimeMs = currentTimeMs;  // Offset already baked into calibratedTranscript
-        const activeFill = activeWord ? clamp01((adjustedTimeMs - activeWord.startMs) / durationMs) : null;
+          const activeWord = localActive >= 0 && localActive < words.length ? words[localActive] : undefined;
+          const durationMs = activeWord ? Math.max(1, activeWord.endMs - activeWord.startMs) : 1;
+          const activeFill = activeWord ? clamp01((currentTimeMs - activeWord.startMs) / durationMs) : null;
 
-        return (
-          <div key={li} style={{ fontSize: Math.round(fontSizePx * 0.92) }}>
-            <VoisssKaraokeLine
-              words={words as any}
-              activeWordIndex={localActive}
-              activeFill={activeFill}
-              highlightColor={style.theme.textActive}
-              mutedColor={style.theme.textInactive}
-              pastColor={style.theme.textPast}
-              animation={style.animation}
-            />
-          </div>
-        );
-      })}
+          return (
+            <div
+              key={li}
+              style={{
+                height: estLineHeight,
+                fontSize: Math.round(fontSizePx * 0.92),
+                opacity: activeLineIndex === -1 || isActiveLine ? 1 : 0.4,
+                scale: isActiveLine ? '1.08' : '1',
+                filter: isActiveLine ? 'blur(0px)' : 'blur(0.5px)',
+                transition: 'opacity 0.6s ease, scale 0.6s ease, filter 0.6s ease',
+              }}
+              className="flex items-center justify-center w-full origin-center"
+            >
+              <VoisssKaraokeLine
+                words={words as any}
+                activeWordIndex={localActive}
+                activeFill={activeFill}
+                highlightColor={style.theme.textActive}
+                mutedColor={style.theme.textInactive}
+                pastColor={style.theme.textPast}
+                animation={style.animation}
+              />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
