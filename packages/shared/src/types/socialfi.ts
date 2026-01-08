@@ -17,18 +17,18 @@ export const MissionSchema = z.object({
   targetDuration: z.number(), // suggested clip length in seconds (30-600)
   expiresAt: z.date(),
   locationBased: z.boolean().default(false), // true for taxi/local missions
-  
+
   // Reward configuration
   baseReward: z.number().min(1), // per submission, calculated from difficulty
   rewardModel: z.enum(['pool', 'flat_rate', 'performance']).default('pool'),
   budgetAllocation: z.number().min(0).optional(), // total tokens allocated to mission
   creatorStake: z.number().min(0).optional(), // tokens staked by creator for confidence
   curatorReward: z.number().min(0).max(100).default(5), // % of featured rewards to creator
-  
+
   // Quality & content
   qualityCriteria: QualityCriteriaSchema.optional(),
   language: z.string().default('en'), // ISO 639-1 code: en, es, fr, etc.
-  
+
   // Metadata
   createdBy: z.string(), // creator address
   currentParticipants: z.number().default(0),
@@ -37,6 +37,14 @@ export const MissionSchema = z.object({
   updatedAt: z.date(),
   publishedAt: z.date().optional(),
   autoExpire: z.boolean().default(true),
+
+  // Additional fields for mission management
+  maxParticipants: z.number().min(1).optional(), // max number of participants
+  topic: z.string().optional(), // mission topic/category
+  tags: z.array(z.string()).optional(), // tags for categorization
+  reward: z.number().optional(), // alternative reward field
+  examples: z.array(z.string()).optional(), // example responses
+  contextSuggestions: z.array(z.string()).optional(), // suggested contexts for recording
 });
 
 export type Mission = z.infer<typeof MissionSchema>;

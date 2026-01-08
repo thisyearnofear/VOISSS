@@ -34,7 +34,7 @@ interface VoiceMemory {
 }
 
 export class FarcasterSocialService {
-  private neynar: NeynarAPIClient;
+  private neynar: typeof NeynarAPIClient;
   private memoryEndpoint: string;
   private memoryApiKey: string;
 

@@ -240,17 +240,15 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {missions.map((mission: Mission) => (
-            <MissionCard
-              key={mission.id}
-              mission={mission}
-              onAccept={() => handleMissionAccept(mission)}
-              isConnected={isConnected || false}
-              getTopicIcon={getTopicIcon}
-              getDifficultyColor={getDifficultyColor}
-            />
-          ))}
-        </div>
+           {missions.map((mission: Mission) => (
+             <MissionCard
+               key={mission.id}
+               mission={mission}
+               onAccept={() => handleMissionAccept(mission)}
+               isConnected={isConnected || false}
+             />
+           ))}
+         </div>
       )}
 
       {/* Call to Action */}

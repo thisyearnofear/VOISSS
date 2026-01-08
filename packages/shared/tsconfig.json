@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es2017",
+    "target": "es2020",
     "module": "esnext",
     "lib": ["dom", "dom.iterable", "esnext", "es2015.promise"],
     "jsx": "react",
@@ -20,5 +20,5 @@
     "isolatedModules": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "src/test-integration.ts", "src/test-utils/**/*"]
 }

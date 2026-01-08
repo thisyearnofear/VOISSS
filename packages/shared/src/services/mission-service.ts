@@ -1,7 +1,7 @@
-import { 
-  Mission, 
-  MissionResponse, 
-  MISSION_TEMPLATES, 
+import {
+  Mission,
+  MissionResponse,
+  MISSION_TEMPLATES,
   MissionDifficulty,
   RewardRecord,
   MilestoneProgress,
@@ -18,21 +18,20 @@ export interface MissionService {
   createMission(mission: Omit<Mission, 'id' | 'createdAt' | 'updatedAt' | 'currentParticipants'>): Promise<Mission>;
   updateMission(id: string, updates: Partial<Mission>): Promise<Mission>;
   deactivateMission(id: string): Promise<void>;
-  
+
   // Mission Participation
   acceptMission(missionId: string, userId: string): Promise<boolean>;
   submitMissionResponse(response: Omit<MissionResponse, 'id' | 'submittedAt'>): Promise<MissionResponse>;
   getUserMissions(userId: string): Promise<{ active: Mission[], completed: MissionResponse[] }>;
-  
+
   // Mission Discovery
-  getMissionsByTopic(topic: string): Promise<Mission[]>;
   getMissionsByLocation(city: string, country: string): Promise<Mission[]>;
   getRecommendedMissions(userId: string): Promise<Mission[]>;
-  
+
   // Mission Templates
   getMissionTemplates(): any;
   createMissionFromTemplate(templateKey: string, templateIndex: number, customizations?: Partial<Mission>): Promise<Mission>;
-  
+
   // Reward Management
   createRewardForMilestone(userId: string, missionId: string, responseId: string, milestone: Milestone, qualityScore?: number): Promise<RewardRecord>;
   getMilestoneProgress(userId: string, missionId: string, responseId: string): Promise<MilestoneProgress>;
@@ -40,11 +39,11 @@ export interface MissionService {
   getUnclaimedRewards(userId: string): Promise<RewardRecord[]>;
   claimRewards(userId: string, rewardIds: string[]): Promise<RewardClaim>;
   getCreatorEarnings(userId: string): Promise<{ totalEarned: number; totalClaimed: number; pendingRewards: number; unclaimedCount: number }>;
-  
+
   // Moderation & Quality
   validateQualityCriteria(response: MissionResponse, criteria?: QualityCriteria): Promise<{ passed: boolean; reasons: string[] }>;
   calculateRewardAmount(mission: Mission, milestone: Milestone, qualityScore?: number, participantCount?: number): Promise<number>;
-  
+
   // Analytics
   getMissionStats(missionId: string): Promise<{
     totalResponses: number;
@@ -68,7 +67,7 @@ export class DefaultMissionService implements MissionService {
 
   private initializeDefaultMissions() {
     // Create some default missions for demo purposes
-    const defaultMissions: Omit<Mission, 'id' | 'createdAt' | 'updatedAt'>[] = [
+    const defaultMissions: Omit<Mission, 'id' | 'createdAt' | 'updatedAt' | 'currentParticipants'>[] = [
       {
         title: "Web3 Street Wisdom",
         description: "Ask people in your city what they really think about Web3 and cryptocurrency. Interview format: taxi, coffee shop, or street corner conversations.",
@@ -79,9 +78,10 @@ export class DefaultMissionService implements MissionService {
         locationBased: true,
         isActive: true,
         createdBy: "platform",
-        currentParticipants: 0,
         targetDuration: 60,
         language: "en",
+        curatorReward: 5,
+        autoExpire: true,
         qualityCriteria: {
           audioMinScore: 60,
           transcriptionRequired: true,
@@ -97,9 +97,10 @@ export class DefaultMissionService implements MissionService {
         locationBased: false,
         isActive: true,
         createdBy: "platform",
-        currentParticipants: 0,
         targetDuration: 120,
         language: "en",
+        curatorReward: 5,
+        autoExpire: true,
         qualityCriteria: {
           audioMinScore: 65,
           transcriptionRequired: true,
@@ -115,9 +116,10 @@ export class DefaultMissionService implements MissionService {
         locationBased: false,
         isActive: true,
         createdBy: "platform",
-        currentParticipants: 0,
         targetDuration: 300,
         language: "en",
+        curatorReward: 5,
+        autoExpire: true,
         qualityCriteria: {
           audioMinScore: 70,
           transcriptionRequired: true,
@@ -133,9 +135,10 @@ export class DefaultMissionService implements MissionService {
         locationBased: true,
         isActive: true,
         createdBy: "platform",
-        currentParticipants: 0,
         targetDuration: 180,
         language: "en",
+        curatorReward: 5,
+        autoExpire: true,
         qualityCriteria: {
           audioMinScore: 65,
           transcriptionRequired: true,
@@ -161,13 +164,13 @@ export class DefaultMissionService implements MissionService {
 
   // Reward Calculation
   async calculateRewardAmount(
-    mission: Mission, 
-    milestone: Milestone, 
+    mission: Mission,
+    milestone: Milestone,
     qualityScore?: number,
     participantCount?: number
   ): Promise<number> {
     const baseReward = mission.baseReward || 25;
-    
+
     // Base amount for submission milestone
     if (milestone === 'submission') {
       return baseReward;
@@ -241,7 +244,7 @@ export class DefaultMissionService implements MissionService {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    
+
     this.missions.set(mission.id, mission);
     return mission;
   }
@@ -281,10 +284,10 @@ export class DefaultMissionService implements MissionService {
     if (!userMissions.includes(missionId)) {
       userMissions.push(missionId);
       this.userMissions.set(userId, userMissions);
-      
+
       // Increment participant count
-      await this.updateMission(missionId, { 
-        currentParticipants: mission.currentParticipants + 1 
+      await this.updateMission(missionId, {
+        currentParticipants: mission.currentParticipants + 1
       });
     }
 
@@ -314,11 +317,6 @@ export class DefaultMissionService implements MissionService {
     return { active, completed };
   }
 
-  async getMissionsByTopic(topic: string): Promise<Mission[]> {
-    const activeMissions = await this.getActiveMissions();
-    return activeMissions.filter(mission => mission.topic === topic);
-  }
-
   async getMissionsByLocation(city: string, country: string): Promise<Mission[]> {
     const activeMissions = await this.getActiveMissions();
     return activeMissions.filter(mission => mission.locationBased);
@@ -328,7 +326,7 @@ export class DefaultMissionService implements MissionService {
     // Simple recommendation: return active missions the user hasn't accepted yet
     const { active: userActiveMissions } = await this.getUserMissions(userId);
     const userMissionIds = new Set(userActiveMissions.map(m => m.id));
-    
+
     const allActive = await this.getActiveMissions();
     return allActive
       .filter(mission => !userMissionIds.has(mission.id))
@@ -340,35 +338,34 @@ export class DefaultMissionService implements MissionService {
   }
 
   async createMissionFromTemplate(
-    templateKey: string, 
-    templateIndex: number, 
+    templateKey: string,
+    templateIndex: number,
     customizations?: Partial<Mission>
   ): Promise<Mission> {
     const templates = MISSION_TEMPLATES[templateKey as keyof typeof MISSION_TEMPLATES];
-    if (!templates || !templates[templateIndex]) {
-      throw new Error(`Template not found: ${templateKey}[${templateIndex}]`);
-    }
-
     const template = templates[templateIndex];
     const baseReward = template.difficulty === 'easy' ? 10 : template.difficulty === 'medium' ? 25 : 50;
 
     const missionData: Omit<Mission, 'id' | 'createdAt' | 'updatedAt' | 'currentParticipants'> = {
-      title: template.title,
-      description: template.description,
-      topic: templateKey,
-      difficulty: template.difficulty,
-      reward: baseReward,
-      expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days default
-      maxParticipants: 100,
-      isActive: true,
-      createdBy: "platform",
-      tags: [templateKey, template.difficulty],
-      locationBased: (template.contextSuggestions as unknown as string[]).includes("taxi") || (template.contextSuggestions as unknown as string[]).includes("street"),
-      autoExpire: true,
-      targetDuration: template.targetDuration,
-      examples: [...template.examples],
-      contextSuggestions: [...template.contextSuggestions],
-      ...customizations,
+      title: customizations?.title || template.title,
+      description: customizations?.description || template.description,
+      topic: customizations?.topic || templateKey,
+      difficulty: customizations?.difficulty || template.difficulty,
+      baseReward: customizations?.baseReward || baseReward,
+      rewardModel: customizations?.rewardModel || 'pool',
+      expiresAt: customizations?.expiresAt || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      maxParticipants: customizations?.maxParticipants || 100,
+      isActive: customizations?.isActive ?? true,
+      createdBy: customizations?.createdBy || "platform",
+      tags: customizations?.tags || [templateKey, template.difficulty],
+      locationBased: customizations?.locationBased ?? ((template.contextSuggestions as unknown as string[]).includes("taxi") || (template.contextSuggestions as unknown as string[]).includes("street")),
+      autoExpire: customizations?.autoExpire ?? true,
+      targetDuration: customizations?.targetDuration || template.targetDuration,
+      language: customizations?.language || "en",
+      curatorReward: customizations?.curatorReward || 5,
+      examples: customizations?.examples || [...template.examples],
+      contextSuggestions: customizations?.contextSuggestions || [...template.contextSuggestions],
+      qualityCriteria: customizations?.qualityCriteria,
     };
 
     return this.createMission(missionData);
@@ -389,8 +386,8 @@ export class DefaultMissionService implements MissionService {
       .filter(response => response.missionId === missionId);
 
     const totalResponses = responses.length;
-    const averageQuality = responses.length > 0 
-      ? responses.reduce((sum, r) => sum + (r.qualityScore || 0), 0) / responses.length 
+    const averageQuality = responses.length > 0
+      ? responses.reduce((sum, r) => sum + (r.qualityScore || 0), 0) / responses.length
       : 0;
 
     const geographicDistribution: Record<string, number> = {};
@@ -399,8 +396,8 @@ export class DefaultMissionService implements MissionService {
       geographicDistribution[location] = (geographicDistribution[location] || 0) + 1;
     });
 
-    const completionRate = mission.currentParticipants > 0 
-      ? (totalResponses / mission.currentParticipants) * 100 
+    const completionRate = mission.currentParticipants > 0
+      ? (totalResponses / mission.currentParticipants) * 100
       : 0;
 
     return {

@@ -40,52 +40,52 @@ const MissionRecordingInterface: React.FC<MissionRecordingInterfaceProps> = ({
       </div>
       <div className="px-6 pb-6">
         <div className="space-y-4">
-          <div className="flex items-center space-x-3">
-            <Target className="w-6 h-6 text-green-400" />
-            <div>
-              <h4 className="font-semibold">Primary Goal</h4>
-              <p className="text-gray-300">
-                Capture an authentic conversation on "{mission.topic}".
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-3">
-            <Clock className="w-6 h-6 text-yellow-400" />
-            <div>
-              <h4 className="font-semibold">Target Duration</h4>
-              <p className="text-gray-300">
-                Aim for at least {mission.targetDuration} seconds.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-start space-x-3">
-            <HelpCircle className="w-6 h-6 text-blue-400 mt-1" />
-            <div>
-              <h4 className="font-semibold">Example Questions</h4>
-              <ul className="list-disc list-inside text-gray-300">
-                {mission.examples.map((example: string, index: number) => (
-                  <li key={index}>{example}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          <div className="flex items-start space-x-3">
-            <CheckCircle className="w-6 h-6 text-teal-400 mt-1" />
-            <div>
-              <h4 className="font-semibold">Context Suggestions</h4>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {mission.contextSuggestions.map((context: string, index: number) => (
-                  <span
-                    key={index}
-                    className="px-2 py-1 text-sm border border-gray-600 rounded text-gray-300"
-                  >
-                    {context}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+           <div className="flex items-center space-x-3">
+             <Target className="w-6 h-6 text-green-400" />
+             <div>
+               <h4 className="font-semibold">What to Capture</h4>
+               <p className="text-gray-300">
+                 {mission.description}
+               </p>
+             </div>
+           </div>
+           <div className="flex items-center space-x-3">
+             <Clock className="w-6 h-6 text-yellow-400" />
+             <div>
+               <h4 className="font-semibold">Target Duration</h4>
+               <p className="text-gray-300">
+                 Aim for approximately {mission.targetDuration} seconds.
+               </p>
+             </div>
+           </div>
+           {mission.qualityCriteria && (
+             <div className="flex items-start space-x-3">
+               <CheckCircle className="w-6 h-6 text-teal-400 mt-1" />
+               <div>
+                 <h4 className="font-semibold">Quality Requirements</h4>
+                 <ul className="list-disc list-inside text-gray-300">
+                   {mission.qualityCriteria.audioMinScore && (
+                     <li>Audio quality: minimum {mission.qualityCriteria.audioMinScore}</li>
+                   )}
+                   {mission.qualityCriteria.transcriptionRequired && (
+                     <li>Transcription required</li>
+                   )}
+                 </ul>
+               </div>
+             </div>
+           )}
+           {mission.locationBased && (
+             <div className="flex items-start space-x-3">
+               <HelpCircle className="w-6 h-6 text-blue-400 mt-1" />
+               <div>
+                 <h4 className="font-semibold">Location-Based</h4>
+                 <p className="text-gray-300">
+                   Record in the location described above (taxi, street, coffee shop, etc.)
+                 </p>
+               </div>
+             </div>
+           )}
+         </div>
       </div>
     </div>
   );

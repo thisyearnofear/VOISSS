@@ -1,4 +1,4 @@
-import { createStarknetRecordingService } from './services/starknet-recording';
+import { createStarknetRecordingService } from './services/starknet-recording-service';
 import { createIPFSService } from './services/ipfs-service';
 
 async function testFullIntegration() {

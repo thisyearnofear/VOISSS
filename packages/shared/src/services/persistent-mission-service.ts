@@ -5,10 +5,10 @@
  * Uses the DatabaseService interface for storage, ensuring data survives page refreshes.
  */
 
-import { 
-  Mission, 
-  MissionResponse, 
-  MISSION_TEMPLATES, 
+import {
+  Mission,
+  MissionResponse,
+  MISSION_TEMPLATES,
   MissionDifficulty,
   RewardRecord,
   MilestoneProgress,
@@ -56,91 +56,79 @@ export class PersistentMissionService implements MissionService {
     const defaultMissions: Omit<Mission, 'id' | 'createdAt' | 'updatedAt' | 'currentParticipants'>[] = [
       {
         title: "Web3 Street Wisdom",
-        description: "Ask people in your city what they really think about Web3 and cryptocurrency",
-        topic: "crypto",
+        description: "Ask people in your city what they really think about Web3 and cryptocurrency. Interview format: taxi, coffee shop, or street corner conversations.",
         difficulty: "easy",
-        reward: 10,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        maxParticipants: 100,
+        baseReward: 10,
+        rewardModel: "pool",
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        locationBased: true,
         isActive: true,
         createdBy: "platform",
-        tags: ["crypto", "web3", "street-interview", "public-opinion"],
-        locationBased: true,
-        autoExpire: true,
         targetDuration: 60,
-        examples: [
-          "Have you heard of Web3?",
-          "What do you think about Bitcoin?",
-          "Would you use cryptocurrency for daily purchases?",
-          "Do you think blockchain will change the world?"
-        ],
-        contextSuggestions: ["taxi", "coffee shop", "street", "waiting area"]
+        language: "en",
+        curatorReward: 5,
+        autoExpire: true,
+        qualityCriteria: {
+          audioMinScore: 60,
+          transcriptionRequired: true,
+        },
       },
       {
         title: "Remote Work Reality Check",
-        description: "Capture honest perspectives on how remote work has changed people's lives",
-        topic: "work",
+        description: "Share your honest perspective on how remote work has changed your life. Any location, any setting where you can speak freely.",
         difficulty: "medium",
-        reward: 20,
-        expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days
-        maxParticipants: 50,
+        baseReward: 25,
+        rewardModel: "pool",
+        expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        locationBased: false,
         isActive: true,
         createdBy: "platform",
-        tags: ["remote-work", "lifestyle", "productivity", "work-life-balance"],
-        locationBased: false,
-        autoExpire: true,
         targetDuration: 120,
-        examples: [
-          "How has remote work affected your daily routine?",
-          "Do you prefer working from home or the office?",
-          "What's the biggest challenge of remote work?",
-          "Has remote work made you more or less productive?"
-        ],
-        contextSuggestions: ["coffee shop", "coworking space", "home office", "video call"]
+        language: "en",
+        curatorReward: 5,
+        autoExpire: true,
+        qualityCriteria: {
+          audioMinScore: 65,
+          transcriptionRequired: true,
+        },
       },
       {
         title: "Marriage in 2024",
-        description: "Explore contemporary views on marriage, commitment, and relationships",
-        topic: "relationships",
+        description: "Explore contemporary views on marriage and commitment. Deep, thoughtful conversation. Record in a comfortable, private setting.",
         difficulty: "hard",
-        reward: 50,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-        maxParticipants: 25,
+        baseReward: 50,
+        rewardModel: "pool",
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        locationBased: false,
         isActive: true,
         createdBy: "platform",
-        tags: ["marriage", "relationships", "commitment", "modern-love"],
-        locationBased: false,
-        autoExpire: true,
         targetDuration: 300,
-        examples: [
-          "What makes a good marriage in today's world?",
-          "Is marriage still relevant?",
-          "How do you know when you've found 'the one'?",
-          "What's the biggest challenge facing couples today?"
-        ],
-        contextSuggestions: ["dinner conversation", "wedding", "anniversary", "intimate setting"]
+        language: "en",
+        curatorReward: 5,
+        autoExpire: true,
+        qualityCriteria: {
+          audioMinScore: 70,
+          transcriptionRequired: true,
+        },
       },
       {
-        title: "AI Anxiety or Excitement?",
-        description: "Document real people's feelings about AI's impact on their lives and work",
-        topic: "technology",
+        title: "AI: Excitement or Anxiety?",
+        description: "How does AI make you feel? Document your genuine reactions and thoughts about AI's impact on work, creativity, and society.",
         difficulty: "medium",
-        reward: 25,
-        expiresAt: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000), // 21 days
-        maxParticipants: 75,
+        baseReward: 25,
+        rewardModel: "pool",
+        expiresAt: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000),
+        locationBased: true,
         isActive: true,
         createdBy: "platform",
-        tags: ["ai", "technology", "future", "jobs", "automation"],
-        locationBased: true,
-        autoExpire: true,
         targetDuration: 180,
-        examples: [
-          "How do you feel about AI taking over jobs?",
-          "Have you used ChatGPT or other AI tools?",
-          "What excites or worries you most about AI?",
-          "Do you think AI will make life better or worse?"
-        ],
-        contextSuggestions: ["workplace", "university", "tech meetup", "casual conversation"]
+        language: "en",
+        curatorReward: 5,
+        autoExpire: true,
+        qualityCriteria: {
+          audioMinScore: 65,
+          transcriptionRequired: true,
+        },
       }
     ];
 
@@ -153,7 +141,7 @@ export class PersistentMissionService implements MissionService {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      
+
       await this.db.set(COLLECTIONS.MISSIONS, mission.id, mission);
     }
 
@@ -170,7 +158,7 @@ export class PersistentMissionService implements MissionService {
     try {
       const now = new Date();
       const allMissions = await this.db.getAll<Mission>(COLLECTIONS.MISSIONS);
-      
+
       return allMissions
         .filter(mission => mission.isActive && mission.expiresAt > now)
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -208,7 +196,7 @@ export class PersistentMissionService implements MissionService {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      
+
       await this.db.set(COLLECTIONS.MISSIONS, mission.id, mission);
       return mission;
     } catch (error) {
@@ -228,13 +216,13 @@ export class PersistentMissionService implements MissionService {
         ...updates,
         updatedAt: new Date(),
       });
-      
+
       return updatedMission;
     } catch (error) {
       if (error instanceof DatabaseOperationError) {
         throw error;
       }
-      
+
       throw new DatabaseOperationError(
         `Failed to update mission ${id}`,
         COLLECTIONS.MISSIONS,
@@ -263,7 +251,7 @@ export class PersistentMissionService implements MissionService {
       // Get user's active missions to check if already accepted
       const userMissions = await this.getUserMissions(userId);
       const alreadyAccepted = userMissions.active.some(m => m.id === missionId);
-      
+
       if (alreadyAccepted) {
         return false; // Already accepted
       }
@@ -278,8 +266,8 @@ export class PersistentMissionService implements MissionService {
       });
 
       // Increment participant count
-      await this.updateMission(missionId, { 
-        currentParticipants: mission.currentParticipants + 1 
+      await this.updateMission(missionId, {
+        currentParticipants: mission.currentParticipants + 1
       });
 
       return true;
@@ -318,7 +306,7 @@ export class PersistentMissionService implements MissionService {
 
     try {
       // Get user's accepted missions
-      const userMissionRelations = await this.db.getWhere<any>('user_missions', 
+      const userMissionRelations = await this.db.getWhere<any>('user_missions',
         (relation) => relation.userId === userId
       );
 
@@ -349,21 +337,6 @@ export class PersistentMissionService implements MissionService {
     }
   }
 
-  async getMissionsByTopic(topic: string): Promise<Mission[]> {
-    await this.ensureInitialized();
-
-    try {
-      const activeMissions = await this.getActiveMissions();
-      return activeMissions.filter(mission => mission.topic === topic);
-    } catch (error) {
-      throw new DatabaseOperationError(
-        `Failed to get missions for topic ${topic}`,
-        COLLECTIONS.MISSIONS,
-        'getMissionsByTopic'
-      );
-    }
-  }
-
   async getMissionsByLocation(city: string, country: string): Promise<Mission[]> {
     await this.ensureInitialized();
 
@@ -386,7 +359,7 @@ export class PersistentMissionService implements MissionService {
       // Simple recommendation: return active missions the user hasn't accepted yet
       const { active: userActiveMissions } = await this.getUserMissions(userId);
       const userMissionIds = new Set(userActiveMissions.map(m => m.id));
-      
+
       const allActive = await this.getActiveMissions();
       return allActive
         .filter(mission => !userMissionIds.has(mission.id))
@@ -405,8 +378,8 @@ export class PersistentMissionService implements MissionService {
   }
 
   async createMissionFromTemplate(
-    templateKey: string, 
-    templateIndex: number, 
+    templateKey: string,
+    templateIndex: number,
     customizations?: Partial<Mission>
   ): Promise<Mission> {
     const templates = MISSION_TEMPLATES[templateKey as keyof typeof MISSION_TEMPLATES];
@@ -422,23 +395,26 @@ export class PersistentMissionService implements MissionService {
     const baseReward = template.difficulty === 'easy' ? 10 : template.difficulty === 'medium' ? 25 : 50;
 
     const missionData: Omit<Mission, 'id' | 'createdAt' | 'updatedAt' | 'currentParticipants'> = {
-      title: template.title,
-      description: template.description,
-      topic: templateKey,
-      difficulty: template.difficulty,
-      reward: baseReward,
-      expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days default
-      maxParticipants: 100,
-      isActive: true,
-      createdBy: "platform",
-      tags: [templateKey, template.difficulty],
-      locationBased: (template.contextSuggestions as unknown as string[]).includes("taxi") || 
-                    (template.contextSuggestions as unknown as string[]).includes("street"),
-      autoExpire: true,
-      targetDuration: template.targetDuration,
-      examples: [...template.examples],
-      contextSuggestions: [...template.contextSuggestions],
-      ...customizations,
+      title: customizations?.title || template.title,
+      description: customizations?.description || template.description,
+      topic: customizations?.topic || templateKey,
+      difficulty: customizations?.difficulty || template.difficulty,
+      baseReward: customizations?.baseReward || baseReward,
+      rewardModel: customizations?.rewardModel || 'pool',
+      expiresAt: customizations?.expiresAt || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      maxParticipants: customizations?.maxParticipants || 100,
+      isActive: customizations?.isActive ?? true,
+      createdBy: customizations?.createdBy || "platform",
+      tags: customizations?.tags || [templateKey, template.difficulty],
+      locationBased: customizations?.locationBased ?? ((template.contextSuggestions as unknown as string[]).includes("taxi") ||
+        (template.contextSuggestions as unknown as string[]).includes("street")),
+      autoExpire: customizations?.autoExpire ?? true,
+      targetDuration: customizations?.targetDuration || template.targetDuration,
+      language: customizations?.language || "en",
+      curatorReward: customizations?.curatorReward || 5,
+      examples: customizations?.examples || [...template.examples],
+      contextSuggestions: customizations?.contextSuggestions || [...template.contextSuggestions],
+      qualityCriteria: customizations?.qualityCriteria,
     };
 
     return this.createMission(missionData);
@@ -467,8 +443,8 @@ export class PersistentMissionService implements MissionService {
       );
 
       const totalResponses = responses.length;
-      const averageQuality = responses.length > 0 
-        ? responses.reduce((sum, r) => sum + (r.qualityScore || 0), 0) / responses.length 
+      const averageQuality = responses.length > 0
+        ? responses.reduce((sum, r) => sum + (r.qualityScore || 0), 0) / responses.length
         : 0;
 
       const geographicDistribution: Record<string, number> = {};
@@ -479,8 +455,8 @@ export class PersistentMissionService implements MissionService {
         }
       });
 
-      const completionRate = mission.currentParticipants > 0 
-        ? (totalResponses / mission.currentParticipants) * 100 
+      const completionRate = mission.currentParticipants > 0
+        ? (totalResponses / mission.currentParticipants) * 100
         : 0;
 
       return {
@@ -493,7 +469,7 @@ export class PersistentMissionService implements MissionService {
       if (error instanceof DatabaseOperationError) {
         throw error;
       }
-      
+
       throw new DatabaseOperationError(
         `Failed to get stats for mission ${missionId}`,
         COLLECTIONS.MISSIONS,
@@ -556,9 +532,9 @@ export class PersistentMissionService implements MissionService {
       // Safe option: hash it or just use it if allowed.
       // Let's assume we can use it or generate a specific ID and query by fields.
       // For simplicity with key-value store, we'll try to use a composite key or query.
-      
+
       // Better approach for general DB: Query by fields
-      const progressList = await this.db.getWhere<MilestoneProgress>('milestone_progress', 
+      const progressList = await this.db.getWhere<MilestoneProgress>('milestone_progress',
         p => p.userId === userId && p.missionId === missionId && p.responseId === responseId
       );
 
@@ -598,7 +574,7 @@ export class PersistentMissionService implements MissionService {
     qualityScore?: number
   ): Promise<MilestoneProgress> {
     await this.ensureInitialized();
-    
+
     try {
       const progress = await this.getMilestoneProgress(userId, missionId, responseId);
 
@@ -612,30 +588,30 @@ export class PersistentMissionService implements MissionService {
       // Update progress
       const milestoneSequence: Milestone[] = ['submission', 'quality_approved', 'featured'];
       const nextIndex = milestoneSequence.findIndex(m => !progress.completedMilestones.includes(m));
-      
+
       // Find the ID of the progress record to update
-      const progressList = await this.db.getWhere<MilestoneProgress & { id?: string }>('milestone_progress', 
+      const progressList = await this.db.getWhere<MilestoneProgress & { id?: string }>('milestone_progress',
         p => p.userId === userId && p.missionId === missionId && p.responseId === responseId
       );
-      
+
       // If we found it via getMilestoneProgress, it should exist. 
       // If getMilestoneProgress created a new one, we need to find its ID or we should have returned ID from there.
       // getMilestoneProgress implementation above creates one if not found.
       // However, we didn't return the ID in the interface (it's not in MilestoneProgress type usually?).
       // Let's assume we can find it again.
-      
+
       // Ideally getMilestoneProgress should return the object which might have an internal ID if it came from DB.
       // But adhering to interface.
-      
+
       // Let's simplify: fetch all, find match, get its ID (if stored in DB wrapper) or we need to manage IDs better.
       // Our DB `getWhere` returns T[]. If T doesn't have ID, we can't update by ID easily unless we know it.
       // `DatabaseService` methods `set` and `update` take an ID. 
       // `getWhere` returns the data `T`.
-      
+
       // Hack/Fix: In `getMilestoneProgress`, I created it with `id = progress_${this.generateId()}`.
       // I should store that ID in the object if I can, or use a consistent ID generation strategy.
       // Consistent ID: `progress_${userId}_${missionId}_${responseId}` (sanitized).
-      
+
       const consistentId = `prog_${userId}_${missionId}_${responseId}`.replace(/[^a-zA-Z0-9_]/g, '');
 
       // Re-implementing getMilestoneProgress logic briefly to ensure we use consistent ID for updates
@@ -652,7 +628,7 @@ export class PersistentMissionService implements MissionService {
       await this.db.set('milestone_progress', consistentId, updatedProgress);
       return updatedProgress;
     } catch (error) {
-       throw new DatabaseOperationError(
+      throw new DatabaseOperationError(
         'Failed to complete milestone',
         'milestone_progress',
         'completeMilestone'
@@ -662,9 +638,9 @@ export class PersistentMissionService implements MissionService {
 
   async getUnclaimedRewards(userId: string): Promise<RewardRecord[]> {
     await this.ensureInitialized();
-    
+
     try {
-      return await this.db.getWhere<RewardRecord>('rewards', 
+      return await this.db.getWhere<RewardRecord>('rewards',
         r => r.userId === userId && r.status === 'pending'
       );
     } catch (error) {
@@ -711,8 +687,8 @@ export class PersistentMissionService implements MissionService {
       await this.db.set('reward_claims', claim.id, claim);
       return claim;
     } catch (error) {
-       if (error instanceof DatabaseOperationError) throw error;
-       throw new DatabaseOperationError(
+      if (error instanceof DatabaseOperationError) throw error;
+      throw new DatabaseOperationError(
         'Failed to claim rewards',
         'reward_claims',
         'claimRewards'
@@ -755,6 +731,65 @@ export class PersistentMissionService implements MissionService {
     }
   }
 
+  // Quality Validation (AI moderation)
+  async validateQualityCriteria(
+    response: MissionResponse,
+    criteria?: any
+  ): Promise<{ passed: boolean; reasons: string[] }> {
+    const failures: string[] = [];
+
+    if (!criteria) {
+      return { passed: true, reasons: [] };
+    }
+
+    // Check transcription requirement
+    if (criteria.transcriptionRequired && !response.transcription) {
+      failures.push('Transcription required but not provided');
+    }
+
+    // Check audio quality score
+    if (criteria.audioMinScore !== undefined && (response.qualityScore || 0) < criteria.audioMinScore) {
+      failures.push(`Audio quality score ${response.qualityScore || 0} below minimum ${criteria.audioMinScore}`);
+    }
+
+    return {
+      passed: failures.length === 0,
+      reasons: failures,
+    };
+  }
+
+  // Reward Calculation
+  async calculateRewardAmount(
+    mission: Mission,
+    milestone: Milestone,
+    qualityScore?: number,
+    participantCount?: number
+  ): Promise<number> {
+    const baseReward = mission.baseReward || 25;
+
+    // Base amount for submission milestone
+    if (milestone === 'submission') {
+      return baseReward;
+    }
+
+    // Quality approved: +20% bonus
+    if (milestone === 'quality_approved') {
+      return Math.floor(baseReward * 1.2);
+    }
+
+    // Featured: +50% bonus + curator reward consideration
+    if (milestone === 'featured') {
+      const featuredBonus = Math.floor(baseReward * 1.5);
+      // If creator staked tokens, apply 1.5x multiplier
+      if (mission.creatorStake && mission.creatorStake > 0) {
+        return Math.floor(featuredBonus * 1.5);
+      }
+      return featuredBonus;
+    }
+
+    return baseReward;
+  }
+
   // Debug and maintenance methods
   async getStorageInfo(): Promise<any> {
     if ('getStorageInfo' in this.db) {
@@ -765,11 +800,11 @@ export class PersistentMissionService implements MissionService {
 
   async clearAllData(): Promise<void> {
     await this.ensureInitialized();
-    
+
     await this.db.clear(COLLECTIONS.MISSIONS);
     await this.db.clear(COLLECTIONS.MISSION_RESPONSES);
     await this.db.clear('user_missions');
-    
+
     // Reinitialize with default data
     this.initialized = false;
     await this.ensureInitialized();
