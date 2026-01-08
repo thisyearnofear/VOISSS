@@ -28,8 +28,11 @@ app.use(cors({
 app.use(express.json());
 
 // Setup routes
+console.log('📝 Setting up blockchain routes...');
 setupBlockchainRoutes(app);
+console.log('📝 Mounting export routes...');
 app.use('/api/export', exportRoutes);
+console.log('✅ All routes mounted');
 
 
 // Configure multer for memory storage
