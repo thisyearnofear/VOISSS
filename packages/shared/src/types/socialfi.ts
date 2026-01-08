@@ -48,6 +48,7 @@ export const MissionSchema = z.object({
 });
 
 export type Mission = z.infer<typeof MissionSchema>;
+export type CreateMissionInput = z.input<typeof MissionSchema>;
 export type QualityCriteria = z.infer<typeof QualityCriteriaSchema>;
 
 export const MissionResponseSchema = z.object({

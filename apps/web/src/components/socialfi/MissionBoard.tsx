@@ -21,10 +21,10 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
   const [showCreationForm, setShowCreationForm] = useState(false);
 
   // Use React Query hooks instead of useState
-  const { 
-    data: missions = [], 
-    isLoading: loading, 
-    error: queryError 
+  const {
+    data: missions = [],
+    isLoading: loading,
+    error: queryError
   } = useMissions({
     topic: selectedTopic,
     difficulty: selectedDifficulty,
@@ -81,7 +81,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
 
     try {
       await acceptMissionMutation.mutateAsync(mission.id);
-      
+
       if (onMissionSelect) {
         onMissionSelect(mission);
       }
@@ -187,7 +187,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
         </div>
         <div className="voisss-card text-center">
           <div className="text-2xl font-bold text-[#7C5DFA] mb-1">
-            {missions.reduce((sum: number, m: Mission) => sum + m.reward, 0)}
+            {missions.reduce((sum: number, m: Mission) => sum + (m.baseReward || 0), 0)}
           </div>
           <div className="text-sm text-gray-400">Total {getTokenDisplaySymbol()} Rewards</div>
         </div>
@@ -240,15 +240,15 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-           {missions.map((mission: Mission) => (
-             <MissionCard
-               key={mission.id}
-               mission={mission}
-               onAccept={() => handleMissionAccept(mission)}
-               isConnected={isConnected || false}
-             />
-           ))}
-         </div>
+          {missions.map((mission: Mission) => (
+            <MissionCard
+              key={mission.id}
+              mission={mission}
+              onAccept={() => handleMissionAccept(mission)}
+              isConnected={isConnected || false}
+            />
+          ))}
+        </div>
       )}
 
       {/* Call to Action */}

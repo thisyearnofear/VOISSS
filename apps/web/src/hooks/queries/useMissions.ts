@@ -11,6 +11,7 @@ const moderationService = createModerationService();
 // Mission filters interface
 interface MissionFilters {
   difficulty?: string;
+  topic?: string;
   language?: string;
   rewardModel?: string;
   sortBy?: 'newest' | 'reward' | 'participants';
@@ -24,22 +25,26 @@ export function useMissions(filters: MissionFilters = {}) {
     queryFn: async () => {
       try {
         const missions = await missionService.getActiveMissions();
-        
+
         // Apply filters
-         let filteredMissions = missions;
-         
-         if (filters.difficulty && filters.difficulty !== 'all') {
-           filteredMissions = filteredMissions.filter((m: Mission) => m.difficulty === filters.difficulty);
-         }
+        let filteredMissions = missions;
 
-         if (filters.language && filters.language !== 'all') {
-           filteredMissions = filteredMissions.filter((m: Mission) => m.language === filters.language);
-         }
+        if (filters.difficulty && filters.difficulty !== 'all') {
+          filteredMissions = filteredMissions.filter((m: Mission) => m.difficulty === filters.difficulty);
+        }
 
-         if (filters.rewardModel && filters.rewardModel !== 'all') {
-           filteredMissions = filteredMissions.filter((m: Mission) => m.rewardModel === filters.rewardModel);
-         }
-        
+        if (filters.topic && filters.topic !== 'all') {
+          filteredMissions = filteredMissions.filter((m: Mission) => m.topic === filters.topic);
+        }
+
+        if (filters.language && filters.language !== 'all') {
+          filteredMissions = filteredMissions.filter((m: Mission) => m.language === filters.language);
+        }
+
+        if (filters.rewardModel && filters.rewardModel !== 'all') {
+          filteredMissions = filteredMissions.filter((m: Mission) => m.rewardModel === filters.rewardModel);
+        }
+
         if (filters.status) {
           const now = new Date();
           filteredMissions = filteredMissions.filter((m: Mission) => {
@@ -55,23 +60,23 @@ export function useMissions(filters: MissionFilters = {}) {
             }
           });
         }
-        
+
         // Apply sorting
-         switch (filters.sortBy) {
-           case 'reward':
-             filteredMissions.sort((a: Mission, b: Mission) => b.baseReward - a.baseReward);
-             break;
-           case 'participants':
-             filteredMissions.sort((a: Mission, b: Mission) => b.currentParticipants - a.currentParticipants);
-             break;
-           case 'newest':
-           default:
-             filteredMissions.sort((a: Mission, b: Mission) =>
-               new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-             );
-             break;
-         }
-        
+        switch (filters.sortBy) {
+          case 'reward':
+            filteredMissions.sort((a: Mission, b: Mission) => b.baseReward - a.baseReward);
+            break;
+          case 'participants':
+            filteredMissions.sort((a: Mission, b: Mission) => b.currentParticipants - a.currentParticipants);
+            break;
+          case 'newest':
+          default:
+            filteredMissions.sort((a: Mission, b: Mission) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+            break;
+        }
+
         return filteredMissions;
       } catch (error) {
         throw handleQueryError(error);
@@ -105,12 +110,12 @@ export function useMission(missionId: string) {
 // Hook to fetch user's missions
 export function useUserMissions() {
   const { universalAddress: address } = useBaseAccount();
-  
+
   return useQuery({
     queryKey: queryKeys.missions.userMissions(address || ''),
     queryFn: async () => {
       if (!address) return [];
-      
+
       try {
         return await missionService.getUserMissions(address);
       } catch (error) {
@@ -126,13 +131,13 @@ export function useUserMissions() {
 export function useAcceptMission() {
   const queryClient = useQueryClient();
   const { universalAddress: address } = useBaseAccount();
-  
+
   return useMutation({
     mutationFn: async (missionId: string) => {
       if (!address) {
         throw new Error('Wallet not connected');
       }
-      
+
       try {
         return await missionService.acceptMission(missionId, address);
       } catch (error) {
@@ -156,16 +161,16 @@ export const useCompleteMission = () => {
   const { universalAddress: address } = useBaseAccount();
 
   return useMutation({
-    mutationFn: async ({ 
-      missionId, 
-      recordingId, 
-      location, 
+    mutationFn: async ({
+      missionId,
+      recordingId,
+      location,
       context,
       qualityScore,
       transcription,
-    }: { 
-      missionId: string; 
-      recordingId: string; 
+    }: {
+      missionId: string;
+      recordingId: string;
       location: { city: string; country: string; coordinates?: { lat: number; lng: number } };
       context: string;
       qualityScore?: number;
@@ -221,26 +226,26 @@ export const useCompleteMission = () => {
 // Hook to get mission statistics
 export const useMissionStats = () => {
   const { universalAddress: address } = useBaseAccount();
-  
+
   return useQuery({
     queryKey: queryKeys.missions.stats(address || ''),
     queryFn: async () => {
       const missions = await missionService.getActiveMissions();
-      
+
       return {
-         totalMissions: missions.length,
-         activeMissions: missions.filter((m: Mission) => m.isActive).length,
-         completedMissions: missions.filter((m: Mission) => !m.isActive).length,
-         totalRewards: missions.reduce((sum: number, m: Mission) => sum + m.baseReward, 0),
-         averageReward: missions.length > 0 
-           ? missions.reduce((sum: number, m: Mission) => sum + m.baseReward, 0) / missions.length 
-           : 0,
-         languageDistribution: missions
-            .reduce((acc: Record<string, number>, m: Mission) => {
-              acc[m.language] = (acc[m.language] || 0) + 1;
-              return acc;
-            }, {} as Record<string, number>),
-       };
+        totalMissions: missions.length,
+        activeMissions: missions.filter((m: Mission) => m.isActive).length,
+        completedMissions: missions.filter((m: Mission) => !m.isActive).length,
+        totalRewards: missions.reduce((sum: number, m: Mission) => sum + (m.baseReward || 0), 0),
+        averageReward: missions.length > 0
+          ? missions.reduce((sum: number, m: Mission) => sum + (m.baseReward || 0), 0) / missions.length
+          : 0,
+        languageDistribution: missions
+          .reduce((acc: Record<string, number>, m: Mission) => {
+            acc[m.language] = (acc[m.language] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>),
+      };
     },
     enabled: !!address,
   });

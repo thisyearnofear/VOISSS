@@ -29,7 +29,7 @@ interface CreateMissionRequest {
   targetDuration: number;
   expirationDays: number;
   locationBased?: boolean;
-  
+
   // Advanced fields (optional)
   language?: string;
   rewardModel?: 'pool' | 'flat_rate' | 'performance';
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request
     const body: CreateMissionRequest = await request.json();
-    
+
     // Validate required fields
     if (!body.title?.trim() || !body.description?.trim() || !body.difficulty || !body.targetDuration) {
       return NextResponse.json(
@@ -109,7 +109,6 @@ export async function POST(request: NextRequest) {
       creatorStake: body.creatorStake,
       isActive: PLATFORM_CONFIG.missions.autoPublish,
       createdBy: userAddress,
-      currentParticipants: 0,
       expiresAt,
       autoExpire: true,
     });

@@ -1,5 +1,6 @@
 import {
   Mission,
+  CreateMissionInput,
   MissionResponse,
   MISSION_TEMPLATES,
   MissionDifficulty,
@@ -15,7 +16,7 @@ export interface MissionService {
   // Mission Management
   getActiveMissions(): Promise<Mission[]>;
   getMissionById(id: string): Promise<Mission | null>;
-  createMission(mission: Omit<Mission, 'id' | 'createdAt' | 'updatedAt' | 'currentParticipants'>): Promise<Mission>;
+  createMission(mission: Omit<CreateMissionInput, 'id' | 'createdAt' | 'updatedAt' | 'currentParticipants'>): Promise<Mission>;
   updateMission(id: string, updates: Partial<Mission>): Promise<Mission>;
   deactivateMission(id: string): Promise<void>;
 
@@ -236,14 +237,18 @@ export class DefaultMissionService implements MissionService {
     return this.missions.get(id) || null;
   }
 
-  async createMission(missionData: Omit<Mission, 'id' | 'createdAt' | 'updatedAt' | 'currentParticipants'>): Promise<Mission> {
+  async createMission(missionData: Omit<CreateMissionInput, 'id' | 'createdAt' | 'updatedAt' | 'currentParticipants'>): Promise<Mission> {
     const mission: Mission = {
+      curatorReward: 5,
+      autoExpire: true,
+      language: 'en',
+      rewardModel: 'pool',
       ...missionData,
       id: this.generateId(),
       currentParticipants: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
-    };
+    } as Mission;
 
     this.missions.set(mission.id, mission);
     return mission;

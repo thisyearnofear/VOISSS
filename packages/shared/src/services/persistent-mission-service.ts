@@ -7,6 +7,7 @@
 
 import {
   Mission,
+  CreateMissionInput,
   MissionResponse,
   MISSION_TEMPLATES,
   MissionDifficulty,
@@ -185,17 +186,21 @@ export class PersistentMissionService implements MissionService {
     }
   }
 
-  async createMission(missionData: Omit<Mission, 'id' | 'createdAt' | 'updatedAt' | 'currentParticipants'>): Promise<Mission> {
+  async createMission(missionData: Omit<CreateMissionInput, 'id' | 'createdAt' | 'updatedAt' | 'currentParticipants'>): Promise<Mission> {
     await this.ensureInitialized();
 
     try {
       const mission: Mission = {
+        curatorReward: 5,
+        autoExpire: true,
+        language: 'en',
+        rewardModel: 'pool',
         ...missionData,
         id: this.generateId(),
         currentParticipants: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
-      };
+      } as Mission;
 
       await this.db.set(COLLECTIONS.MISSIONS, mission.id, mission);
       return mission;
