@@ -287,6 +287,39 @@ if (txReceipt.status === 'reverted') {
 - Finance Team: [contact]
 - Wallet Manager: [contact]
 
+## Database Initialization (Docker + PostgreSQL)
+
+### Connection Authentication Issues
+
+When setting up PostgreSQL in Docker, external TCP connections with password authentication may fail even though the container is running. This is due to PostgreSQL's `pg_hba.conf` authentication rules.
+
+**Problem:**
+```bash
+# ❌ This will fail: "password authentication failed"
+DATABASE_URL=postgresql://postgres:password@localhost:5433/voisss
+node src/server.js
+```
+
+**Solution:**
+Use `docker exec` to run commands inside the container instead of connecting from the host:
+
+```bash
+# ✅ Create database
+docker exec postgres-indexer psql -U postgres -c "CREATE DATABASE voisss;"
+
+# ✅ Create tables
+docker exec postgres-indexer psql -U postgres voisss -c "CREATE TABLE export_jobs (...);"
+
+# ✅ Run migrations
+docker exec postgres-indexer psql -U postgres voisss -c "SELECT * FROM pg_tables;"
+```
+
+**Key Points:**
+- Always use `docker exec psql` for direct database operations
+- Individual `-c` commands are more reliable than heredoc pipes
+- For bulk SQL, create a script file and scp it to the server first
+- Inside the container, authentication rules are different (no password required)
+
 ## Useful Commands
 
 ```bash
@@ -311,6 +344,10 @@ curl https://your-domain.com/api/base/save-recording
 await window.ethereum.request({
   method: 'eth_requestAccounts'
 });
+
+# Database operations
+docker exec postgres-indexer psql -U postgres DBNAME -c "SELECT * FROM table;"
+docker exec postgres-indexer psql -U postgres -c "CREATE DATABASE dbname;"
 ```
 
 ## Success Criteria
