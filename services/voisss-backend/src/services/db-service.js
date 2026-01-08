@@ -58,6 +58,12 @@ async function query(text, params = []) {
  * PRINCIPLE: Single responsibility - manages schema evolution
  */
 async function runMigrations() {
+  // Skip migrations if env var set
+  if (process.env.SKIP_MIGRATIONS === 'true') {
+    console.log('⏭️  Migrations disabled via SKIP_MIGRATIONS');
+    return;
+  }
+
   const migrationsDir = path.join(__dirname, '../migrations');
 
   if (!fs.existsSync(migrationsDir)) {
