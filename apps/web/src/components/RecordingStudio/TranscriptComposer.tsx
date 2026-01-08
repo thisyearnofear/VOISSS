@@ -116,10 +116,13 @@ export default function TranscriptComposer(props: {
   });
 
   const [playbackRate, setPlaybackRate] = useState(1);
-  
-  // Sync offset in milliseconds: allows user to shift all word timings ±2000ms
+
+  // Sync offset in milliseconds: range scales with audio duration
   // Useful if transcription is consistently off (e.g., all words 100ms late)
   const [syncOffsetMs, setSyncOffsetMs] = useState(0);
+  
+  // Compute dynamic slider range based on duration (±5% or ±2000ms, whichever is smaller)
+  const maxOffsetMs = Math.min(2000, Math.floor(durationSeconds * 1000 * 0.05));
 
   useEffect(() => {
     if (audioRef.current) {
@@ -136,10 +139,22 @@ export default function TranscriptComposer(props: {
   const [rawText, setRawText] = useState('');
   const [timedTranscript, setTimedTranscript] = useState<TimedTranscript | null>(null);
   const [importJson, setImportJson] = useState('');
+  const [baselineTranscript, setBaselineTranscript] = useState<TimedTranscript | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [carouselSlides, setCarouselSlides] = useState<Array<{ filename: string; url: string }> | null>(null);
+
+  // Checkpoint system for saving/restoring state
+  interface Checkpoint {
+    id: string;
+    label: string;
+    timestamp: number;
+    transcriptId: string | null;
+    syncOffsetMs: number;
+    rawText: string;
+  }
+  const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
 
   // Cleanup Blob URLs for carousel slides to prevent memory leaks
   useEffect(() => {
@@ -205,7 +220,7 @@ export default function TranscriptComposer(props: {
       if (data?.style && data.style.theme && data.style.fontFamily && data.style.animation) {
         setStyle(data.style);
       }
-      
+
       // Restore sync offset (optional, default to 0)
       if (typeof data?.syncOffsetMs === 'number') {
         setSyncOffsetMs(Math.max(-2000, Math.min(2000, data.syncOffsetMs)));
@@ -313,26 +328,51 @@ export default function TranscriptComposer(props: {
     };
   }, []);
 
+  // DERIVED: calibratedTranscript applies sync offset to base transcript
+  // This is the source of truth for preview & export
+  const calibratedTranscript = useMemo(() => {
+    if (!timedTranscript) return null;
+    return {
+      ...timedTranscript,
+      segments: timedTranscript.segments.map(seg => ({
+        ...seg,
+        startMs: Math.max(0, seg.startMs + syncOffsetMs),
+        endMs: Math.max(0, seg.endMs + syncOffsetMs),
+        words: seg.words?.map(w => ({
+          ...w,
+          startMs: Math.max(0, w.startMs + syncOffsetMs),
+          endMs: Math.max(0, w.endMs + syncOffsetMs),
+        })),
+      })),
+    };
+  }, [timedTranscript, syncOffsetMs]);
+
+  // LIVE JSON DISPLAY: Show calibrated transcript (with sync offset applied)
+  // This updates in real-time as user adjusts the slider
+  const displayedJson = useMemo(() => {
+    if (!calibratedTranscript) return '';
+    return JSON.stringify(calibratedTranscript, null, 2);
+  }, [calibratedTranscript]);
+
   const pages = useMemo(() => {
-    if (!timedTranscript || !template) return [];
+    if (!calibratedTranscript || !template) return [];
     return buildTranscriptPages({
-      transcript: timedTranscript,
+      transcript: calibratedTranscript,
       maxLines: template.layout.maxLines,
       maxCharsPerLine: template.layout.maxCharsPerLine,
     });
-  }, [timedTranscript, template]);
+  }, [calibratedTranscript, template]);
 
+  // Find active word using calibrated transcript (already has offset baked in)
   const active = useMemo(() => {
-    if (!timedTranscript) return null;
-    // Apply sync offset to time lookup: if user shifts by +100ms, find word at currentTimeMs - 100ms
-    const adjustedTimeMs = currentTimeMs - syncOffsetMs;
-    return findActiveWord(timedTranscript, adjustedTimeMs);
-  }, [timedTranscript, currentTimeMs, syncOffsetMs]);
+    if (!calibratedTranscript) return null;
+    return findActiveWord(calibratedTranscript, currentTimeMs);
+  }, [calibratedTranscript, currentTimeMs]);
 
   const activeSegment = useMemo(() => {
-    if (!timedTranscript || !active) return null;
-    return timedTranscript.segments[active.segmentIndex];
-  }, [timedTranscript, active]);
+    if (!calibratedTranscript || !active) return null;
+    return calibratedTranscript.segments[active.segmentIndex];
+  }, [calibratedTranscript, active]);
 
   const [transitionKey, setTransitionKey] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -366,6 +406,37 @@ export default function TranscriptComposer(props: {
     }
   };
 
+  // Helper: Detect if imported transcript has offset applied by comparing first segment timing
+  const detectOffsetFromImport = (imported: TimedTranscript, baseline: TimedTranscript | null): number => {
+    if (!baseline || imported.segments.length === 0 || baseline.segments.length === 0) {
+      return 0;
+    }
+    // Compare first segment start times to infer offset
+    const detectedOffset = imported.segments[0].startMs - baseline.segments[0].startMs;
+    // Only consider it valid if within ±2000ms
+    return Math.abs(detectedOffset) <= 2000 ? detectedOffset : 0;
+  };
+
+  // Checkpoint helpers
+  const saveCheckpoint = () => {
+    const cp: Checkpoint = {
+      id: Date.now().toString(),
+      label: `Checkpoint ${checkpoints.length + 1}`,
+      timestamp: Date.now(),
+      transcriptId: timedTranscript?.id ?? null,
+      syncOffsetMs,
+      rawText,
+    };
+    setCheckpoints([cp, ...checkpoints.slice(0, 4)]);  // Keep last 5
+    setError(`Saved checkpoint: ${cp.label}`);
+  };
+
+  const restoreCheckpoint = (cp: Checkpoint) => {
+    setSyncOffsetMs(cp.syncOffsetMs);
+    setRawText(cp.rawText);
+    setError(`Restored ${cp.label}`);
+  };
+
   const applyImportedJson = () => {
     setError(null);
     try {
@@ -379,10 +450,24 @@ export default function TranscriptComposer(props: {
         return;
       }
 
+      // Store as baseline (unshifted timing)
+      setBaselineTranscript(tt.data);
       setTimedTranscript(tt.data);
       setRawText(tt.data.text || tt.data.segments.map(s => s.text).join(' '));
       // Mark as accurate ONLY if it came from an accurate provider (not rough or undefined)
       setIsAccurateTranscript(!!tt.data.provider && tt.data.provider !== 'rough');
+      
+      // Try to detect if this JSON was pre-calibrated (offset already applied)
+      // If we have a previous transcript, compare to detect offset
+      if (timedTranscript && timedTranscript.segments.length > 0) {
+        const detectedOffset = detectOffsetFromImport(tt.data, timedTranscript);
+        if (detectedOffset !== 0) {
+          setSyncOffsetMs(detectedOffset);
+          setError(`Imported JSON detected with ${detectedOffset > 0 ? '+' : ''}${detectedOffset}ms offset. Slider adjusted.`);
+        }
+      } else {
+        setSyncOffsetMs(0); // New import, reset slider
+      }
     } catch (e: any) {
       setError(e instanceof SyntaxError ? 'Invalid JSON syntax' : (e?.message || 'Invalid transcript JSON'));
     }
@@ -483,6 +568,7 @@ export default function TranscriptComposer(props: {
                         segmentWords={activeSegment.words}
                         activeWordIndex={active?.wordIndex ?? -1}
                         currentTimeMs={currentTimeMs}
+                        syncOffsetMs={syncOffsetMs}
                         style={style}
                         fontSizePx={template.typography.fontSizePx}
                       />
@@ -519,45 +605,78 @@ export default function TranscriptComposer(props: {
           {/* Sync & Confidence Controls */}
           {timedTranscript && (
             <div className="p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-semibold text-white">Sync Calibration</h4>
-                <span className={`text-xs px-2 py-1 rounded ${
-                  isAccurateTranscript 
-                    ? 'bg-green-500/20 text-green-300' 
-                    : 'bg-yellow-500/20 text-yellow-300'
-                }`}>
-                  {isAccurateTranscript ? '✓ Accurate' : '⚠ Rough Timing'}
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Sync Calibration</h4>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${isAccurateTranscript
+                    ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                    : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+                  }`}>
+                  {isAccurateTranscript ? 'Accurate' : 'Rough Timing'}
                 </span>
               </div>
-              
+
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-300 min-w-[60px]">
-                    Offset: {syncOffsetMs > 0 ? '+' : ''}{syncOffsetMs}ms
-                  </label>
-                  <input
-                    type="range"
-                    min="-2000"
-                    max="2000"
-                    step="50"
-                    value={syncOffsetMs}
-                    onChange={(e) => setSyncOffsetMs(Number(e.target.value))}
-                    className="flex-1 h-2 bg-[#1A1A1A] rounded-lg appearance-none cursor-pointer accent-[#7C5DFA]"
-                    title="Adjust if highlights are ahead or behind speech"
-                  />
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 space-y-1">
+                    <input
+                      type="range"
+                      min={-maxOffsetMs}
+                      max={maxOffsetMs}
+                      step="10"
+                      value={syncOffsetMs}
+                      onChange={(e) => setSyncOffsetMs(Math.max(-maxOffsetMs, Math.min(maxOffsetMs, Number(e.target.value))))}
+                      className="w-full h-2 bg-gradient-to-r from-[#1A1A1A] via-[#2A2A2A] to-[#1A1A1A] rounded-lg appearance-none cursor-pointer accent-[#FF006B] shadow-lg"
+                      style={{
+                        background: `linear-gradient(to right, #1A1A1A 0%, #2A2A2A 50%, #1A1A1A 100%)`,
+                        WebkitAppearance: 'slider-horizontal',
+                      }}
+                      title={`Sync offset: ${syncOffsetMs > 0 ? '+' : ''}${syncOffsetMs}ms (range: ±${maxOffsetMs}ms)`}
+                    />
+                    <div className="flex justify-between text-[10px] text-gray-500 font-mono">
+                      <span>-{Math.floor(maxOffsetMs / 1000) || '0.5'}s</span>
+                      <span className={syncOffsetMs === 0 ? 'text-gray-400' : 'text-[#FF006B] font-bold text-xs'}>
+                        {syncOffsetMs > 0 ? '+' : ''}{syncOffsetMs}ms
+                      </span>
+                      <span>+{Math.floor(maxOffsetMs / 1000) || '0.5'}s</span>
+                    </div>
+                  </div>
                   <button
                     onClick={() => setSyncOffsetMs(0)}
-                    className="px-2 py-1 text-xs bg-[#2A2A2A] border border-[#3A3A3A] text-gray-300 rounded hover:bg-[#3A3A3A]"
+                    className="px-2 py-1 text-[10px] font-bold bg-[#1A1A1A] border border-[#333] text-gray-400 rounded hover:bg-[#2A2A2A] hover:text-white transition-colors"
                   >
-                    Reset
+                    RESET
                   </button>
                 </div>
-                
+
                 <p className="text-xs text-gray-500">
                   {!isAccurateTranscript && 'Rough timing estimates word positions. Adjust offset if highlights don\'t match speech.'}
                   {isAccurateTranscript && syncOffsetMs !== 0 && `Shifted by ${syncOffsetMs}ms. ${syncOffsetMs > 0 ? 'Highlights appear later' : 'Highlights appear earlier'}.`}
                   {isAccurateTranscript && syncOffsetMs === 0 && 'Accurate timing — highlights should sync perfectly.'}
                 </p>
+
+                {/* Checkpoint Panel */}
+                <div className="flex gap-2 items-center mt-3">
+                  <button
+                    onClick={saveCheckpoint}
+                    className="text-[10px] px-2 py-1 font-bold bg-[#1A1A1A] border border-[#333] text-gray-400 rounded hover:bg-[#2A2A2A] hover:text-white transition-colors"
+                  >
+                    💾 Save
+                  </button>
+                  {checkpoints.length > 0 && (
+                    <div className="flex gap-1 overflow-x-auto flex-1">
+                      {checkpoints.map((cp) => (
+                        <button
+                          key={cp.id}
+                          onClick={() => restoreCheckpoint(cp)}
+                          title={new Date(cp.timestamp).toLocaleTimeString()}
+                          className="text-[10px] px-2 py-1 bg-[#0F0F0F] border border-[#2A2A2A] text-gray-300 rounded hover:bg-[#1A1A1A] hover:border-[#444] transition-colors whitespace-nowrap"
+                        >
+                          ↶ {cp.label.split(' ')[1]}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -644,25 +763,29 @@ export default function TranscriptComposer(props: {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white mb-2">Import timed transcript JSON</label>
+            <label className="block text-sm font-medium text-white mb-2">
+              Import or View Calibrated JSON
+              {syncOffsetMs !== 0 && <span className="text-[#00D9FF] ml-2">(current offset: {syncOffsetMs > 0 ? '+' : ''}{syncOffsetMs}ms)</span>}
+            </label>
             <textarea
-              value={importJson}
+              value={importJson || displayedJson}
               onChange={(e) => setImportJson(e.target.value)}
               placeholder='{"id":"tt_abc123","language":"en","segments":[{"start":0,"end":1.2,"text":"transform"},{"start":1.3,"end":2.1,"text":"your"},{"start":2.2,"end":3.0,"text":"voice"}]}'
-              className="voisss-form-textarea min-h-[140px] font-mono text-xs"
+              className="voisss-form-textarea min-h-[140px] font-mono text-xs bg-[#0F0F0F] border border-[#2A2A2A] text-gray-300"
             />
             <div className="flex gap-2 mt-2">
               <button
                 onClick={applyImportedJson}
-                className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white text-sm font-medium hover:from-[#6B4CE6] hover:to-[#8B7AFF]"
+                disabled={!importJson.trim()}
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white text-sm font-medium hover:from-[#6B4CE6] hover:to-[#8B7AFF] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Import JSON
               </button>
-              {timedTranscript && (
+              {calibratedTranscript && (
                 <button
                   onClick={async () => {
-                    await navigator.clipboard.writeText(JSON.stringify(timedTranscript, null, 2));
-                    setError('Copied timed transcript JSON to clipboard');
+                    await navigator.clipboard.writeText(displayedJson);
+                    setError('Copied calibrated JSON to clipboard');
                   }}
                   className="px-4 py-2 rounded-lg bg-[#2A2A2A] border border-[#3A3A3A] text-white text-sm hover:bg-[#3A3A3A]"
                 >
@@ -679,14 +802,14 @@ export default function TranscriptComposer(props: {
             </div>
             <div className="flex flex-wrap gap-2">
               <button
-                disabled={!timedTranscript}
+                disabled={!calibratedTranscript}
                 onClick={async () => {
-                  if (!timedTranscript || !template) return;
+                  if (!calibratedTranscript || !template) return;
                   setError(null);
                   const res = await fetch('/api/transcript/share-link', {
                     method: 'POST',
                     headers: { 'content-type': 'application/json' },
-                    body: JSON.stringify({ transcript: timedTranscript, templateId: template.id, style }),
+                    body: JSON.stringify({ transcript: calibratedTranscript, templateId: template.id, style }),
                   });
                   const data = await res.json();
                   if (!res.ok) {
@@ -724,14 +847,14 @@ export default function TranscriptComposer(props: {
                 </div>
               )}
               <button
-                disabled={!timedTranscript}
+                disabled={!calibratedTranscript}
                 onClick={async () => {
-                  if (!timedTranscript || !template) return;
+                  if (!calibratedTranscript || !template) return;
                   setError(null);
                   const res = await fetch('/api/transcript/export', {
                     method: 'POST',
                     headers: { 'content-type': 'application/json' },
-                    body: JSON.stringify({ kind: 'mp4', templateId: template.id, transcript: timedTranscript, style }),
+                    body: JSON.stringify({ kind: 'mp4', templateId: template.id, transcript: calibratedTranscript, style }),
                   });
                   const data = await res.json();
                   if (!res.ok) {
@@ -745,14 +868,14 @@ export default function TranscriptComposer(props: {
                 Export MP4
               </button>
               <button
-                disabled={!timedTranscript}
+                disabled={!calibratedTranscript}
                 onClick={async () => {
-                  if (!timedTranscript || !template) return;
+                  if (!calibratedTranscript || !template) return;
                   setError(null);
                   const res = await fetch('/api/transcript/export', {
                     method: 'POST',
                     headers: { 'content-type': 'application/json' },
-                    body: JSON.stringify({ kind: 'carousel', templateId: template.id, transcript: timedTranscript, style }),
+                    body: JSON.stringify({ kind: 'carousel', templateId: template.id, transcript: calibratedTranscript, style }),
                   });
                   const data = await res.json();
                   if (!res.ok) {
@@ -812,6 +935,7 @@ function VoisssKaraokePreview(props: {
   segmentWords: Array<{ word: string; startMs: number; endMs: number }>;
   activeWordIndex: number;
   currentTimeMs: number;
+  syncOffsetMs: number;  // Deprecated: offset is baked into segmentWords timing now
   style: TranscriptStyle;
   fontSizePx: number;
 }) {
@@ -832,12 +956,13 @@ function VoisssKaraokePreview(props: {
   return (
     <div className="space-y-4">
       {lineData.map((data, li) => {
-        const { words, startCursor } = data;
+         const { words, startCursor } = data;
         const localActive = activeWordIndex - startCursor;
 
         const activeWord = localActive >= 0 && localActive < words.length ? words[localActive] : undefined;
         const durationMs = activeWord ? Math.max(1, activeWord.endMs - activeWord.startMs) : 1;
-        const activeFill = activeWord ? clamp01((currentTimeMs - activeWord.startMs) / durationMs) : null;
+        const adjustedTimeMs = currentTimeMs;  // Offset already baked into calibratedTranscript
+        const activeFill = activeWord ? clamp01((adjustedTimeMs - activeWord.startMs) / durationMs) : null;
 
         return (
           <div key={li} style={{ fontSize: Math.round(fontSizePx * 0.92) }}>

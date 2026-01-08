@@ -28,34 +28,34 @@ export const TRANSCRIPT_THEMES = [
   {
     id: 'voisss',
     label: 'Voisss',
-    background: '#0A0A0A',
-    textInactive: '#444444',
-    textActive: '#8B5CF6', // Violet
-    textPast: '#FFFFFF',
+    background: '#000000',  // Pure black for stark contrast
+    textInactive: '#555555',  // Mid-gray for visibility
+    textActive: '#FF006B',  // Hot pink electric
+    textPast: '#FFFFFF',  // Pure white
   },
   {
     id: 'blue-white',
-    label: 'Blue & White',
-    background: '#FFFFFF',
-    textInactive: '#94A3B8', // Slate 400
-    textActive: '#2563EB', // Blue 600
-    textPast: '#1E293B', // Slate 800
+    label: 'Electric',
+    background: '#000000',  // Pure black
+    textInactive: '#555555',  // Mid-gray visible
+    textActive: '#00D9FF',  // Electric cyan
+    textPast: '#FFFFFF',  // Pure white
   },
   {
     id: 'paper',
-    label: 'Paper',
-    background: '#F8FAFC',
-    textInactive: '#CBD5E1',
-    textActive: '#000000',
-    textPast: '#334155',
+    label: 'Neon',
+    background: '#000000',  // Pure black
+    textInactive: '#555555',  // Mid-gray
+    textActive: '#39FF14',  // Neon green
+    textPast: '#FFFFFF',  // Pure white
   },
   {
     id: 'cyber',
-    label: 'Cyber',
-    background: '#020617',
-    textInactive: '#1E293B',
-    textActive: '#06B6D4', // Cyan
-    textPast: '#F8FAFC',
+    label: 'Magenta',
+    background: '#000000',  // Pure black
+    textInactive: '#444444',  // Dark gray but readable
+    textActive: '#FF00FF',  // Pure magenta
+    textPast: '#FFFFFF',  // Pure white
   },
 ];
 
