@@ -26,10 +26,13 @@ const OUTPUT_DIR = process.env.EXPORT_OUTPUT_DIR || '/var/www/voisss-exports';
  * Get FFmpeg command for format
  * PRINCIPLE: DRY - Single source of encoding parameters
  */
-function getFFmpegCommand(format, inputPath, outputPath) {
+function getFFmpegCommand(format, inputPath, outputPath, options = {}) {
   const commands = {
+    // Audio only - simple encoding
     mp3: `ffmpeg -i "${inputPath}" -q:a 5 -codec:a libmp3lame "${outputPath}"`,
-    mp4: `ffmpeg -i "${inputPath}" -c:v libx264 -preset fast -crf 23 -c:a aac "${outputPath}"`,
+    
+    // Video with audio track
+    mp4_with_audio: `ffmpeg -f concat -safe 0 -i "${options.frameConcat}" -i "${inputPath}" -c:v libx264 -preset fast -crf 23 -c:a aac -shortest "${outputPath}"`,
   };
 
   if (!commands[format]) {
@@ -43,18 +46,18 @@ function getFFmpegCommand(format, inputPath, outputPath) {
  * Encode audio file to target format
  * PRINCIPLE: PERFORMANT - Uses FFmpeg with reasonable quality settings
  */
-async function encodeAudio(inputPath, format, outputPath) {
+async function encodeAudio(inputPath, format, outputPath, options = {}) {
   if (!fs.existsSync(inputPath)) {
     throw new Error(`Input file not found: ${inputPath}`);
   }
 
-  const cmd = getFFmpegCommand(format, inputPath, outputPath);
+  const cmd = getFFmpegCommand(format, inputPath, outputPath, options);
 
   try {
     console.log(`Encoding ${format}: ${inputPath} → ${outputPath}`);
     await execAsync(cmd, {
-      timeout: 300000, // 5 minutes max
-      maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+      timeout: format === 'mp3' ? 180000 : 600000, // Audio: 3min, Video: 10min
+      maxBuffer: 20 * 1024 * 1024, // 20MB buffer for video
     });
 
     if (!fs.existsSync(outputPath)) {
@@ -62,7 +65,7 @@ async function encodeAudio(inputPath, format, outputPath) {
     }
 
     const stats = fs.statSync(outputPath);
-    console.log(`✅ Encoding complete: ${outputPath} (${stats.size} bytes)`);
+    console.log(`✅ Encoding complete: ${outputPath} (${(stats.size / 1024 / 1024).toFixed(2)}MB)`);
 
     return {
       path: outputPath,
@@ -79,14 +82,45 @@ async function encodeAudio(inputPath, format, outputPath) {
 }
 
 /**
+ * Compose video from frames + audio
+ * PRINCIPLE: MODULAR - Handles video-specific FFmpeg logic
+ */
+async function composeVideoWithAudio(frameConcat, audioPath, outputPath) {
+  if (!fs.existsSync(frameConcat)) {
+    throw new Error(`Frame concat file not found: ${frameConcat}`);
+  }
+  if (!fs.existsSync(audioPath)) {
+    throw new Error(`Audio file not found: ${audioPath}`);
+  }
+
+  return encodeAudio(audioPath, 'mp4_with_audio', outputPath, { frameConcat });
+}
+
+/**
  * Download file from URL to temp location
  * PRINCIPLE: CLEAN - Separate concern from encoding
  */
 async function downloadFile(url, tempFileName) {
   const tempPath = path.join(TEMP_DIR, tempFileName);
-  const fetch = require('node-fetch');
 
   try {
+    // Handle file:// URLs (local files)
+    if (url.startsWith('file://')) {
+      const filePath = url.slice(7); // Remove 'file://'
+      console.log(`Copying local file: ${filePath}`);
+      
+      if (!fs.existsSync(filePath)) {
+        throw new Error(`File not found: ${filePath}`);
+      }
+      
+      fs.copyFileSync(filePath, tempPath);
+      const stats = fs.statSync(tempPath);
+      console.log(`✅ Copied: ${tempPath} (${(stats.size / 1024 / 1024).toFixed(2)}MB)`);
+      return tempPath;
+    }
+
+    // Handle HTTP(S) URLs
+    const fetch = require('node-fetch');
     console.log(`Downloading: ${url}`);
     const response = await fetch(url, { timeout: 30000 });
 
@@ -97,11 +131,15 @@ async function downloadFile(url, tempFileName) {
     const buffer = await response.buffer();
     fs.writeFileSync(tempPath, buffer);
 
-    console.log(`✅ Downloaded: ${tempPath} (${buffer.length} bytes)`);
+    console.log(`✅ Downloaded: ${tempPath} (${(buffer.length / 1024 / 1024).toFixed(2)}MB)`);
     return tempPath;
   } catch (error) {
     if (fs.existsSync(tempPath)) {
-      fs.unlinkSync(tempPath);
+      try {
+        fs.unlinkSync(tempPath);
+      } catch (e) {
+        // ignore cleanup errors
+      }
     }
     throw new Error(`Download failed: ${error.message}`);
   }
@@ -148,6 +186,7 @@ function getPublicUrl(outputPath) {
 
 module.exports = {
   encodeAudio,
+  composeVideoWithAudio,
   downloadFile,
   moveToOutput,
   cleanupTempFiles,

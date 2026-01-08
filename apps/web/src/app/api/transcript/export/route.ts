@@ -9,14 +9,15 @@ import { renderCarouselSlidesAsSvg, renderMp4StoryboardManifest } from './svg-re
 
 export const runtime = 'nodejs';
 
-type ExportKind = 'mp4' | 'carousel';
+type ExportKind = 'mp3' | 'mp4' | 'carousel';
 
 type ExportRequest = {
   kind: ExportKind;
   templateId: string;
   transcript: unknown;
-  /** optional input audio URL (future server encoder) */
-  audioUrl?: string;
+  /** optional input audio blob as Uint8Array */
+  audioBlob?: number[];
+  style?: any;
 };
 
 function getTemplate(templateId: string): TranscriptTemplate | null {
@@ -69,21 +70,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, ...payload });
     }
 
-    // MP4: provide an encoder-ready manifest (no heavy video deps here).
-    const manifest = renderMp4StoryboardManifest({ transcript, template });
-    const payload = {
-      jobId,
-      status: 'complete',
-      kind: body.kind,
-      templateId: template.id,
-      transcriptId: transcript.id,
-      format: 'manifest',
-      manifest,
-      note:
-        'MP4 encoding is not bundled in the web server build. This manifest is designed to be consumed by a separate worker that renders frames and encodes MP4.',
-    };
-    cacheSet(cacheKey, payload);
-    return NextResponse.json({ ok: true, ...payload });
+    if (body.kind === 'mp3' || body.kind === 'mp4') {
+      // Both audio and video exports require audio blob
+      if (!body.audioBlob || !Array.isArray(body.audioBlob)) {
+        return NextResponse.json({ error: 'Audio blob required for export' }, { status: 400 });
+      }
+
+      // For MP4, also generate and include the manifest
+      let payload: any = {
+        jobId,
+        status: 'queued',
+        kind: body.kind,
+        templateId: template.id,
+        transcriptId: transcript.id,
+        audioBlob: body.audioBlob,
+      };
+
+      if (body.kind === 'mp4') {
+        const manifest = renderMp4StoryboardManifest({ transcript, template });
+        payload.manifest = manifest;
+      }
+
+      return NextResponse.json({ ok: true, ...payload });
+    }
+
+    return NextResponse.json({ error: 'Unknown export kind' }, { status: 400 });
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || 'Export failed' }, { status: 500 });
   }

@@ -15,20 +15,31 @@ const {
 const { 
   downloadFile, 
   encodeAudio, 
+  composeVideoWithAudio,
   moveToOutput, 
   cleanupTempFiles, 
   getPublicUrl,
 } = require('../services/ffmpeg-service');
+const { 
+  renderSvgToPng,
+  renderSvgsToFrames,
+} = require('../services/svg-renderer-service');
+const {
+  buildFrameSequence,
+  calculateVideoParams,
+  generateFrameConcat,
+} = require('../services/storyboard-service');
 const { runMigrations, closePool } = require('../services/db-service');
 
 const path = require('path');
 
 /**
  * Process a single export job
- * PRINCIPLE: CLEAN - Single responsibility, clear error handling
+ * PRINCIPLE: MODULAR - Clear separation of audio vs video paths
+ * PRINCIPLE: CLEAN - Each path handles its own logic
  */
 async function processExportJob(job) {
-  const { jobId, kind, audioUrl, transcriptId, userId } = job.data;
+  const { jobId, kind, audioUrl, transcriptId, userId, manifest } = job.data;
   const startTime = Date.now();
   const tempFiles = [];
 
@@ -38,23 +49,24 @@ async function processExportJob(job) {
     // Update status to processing
     await updateJobStatus(jobId, 'processing', { workerId: process.env.WORKER_ID });
 
-    // Step 1: Download audio
+    // Step 1: Get audio file (download or copy local)
     const inputFileName = `${jobId}_input.webm`;
     const inputPath = await downloadFile(audioUrl, inputFileName);
+    // Note: for file:// URLs, downloadFile copies instead of downloading
     tempFiles.push(inputPath);
 
-    // Step 2: Encode (format-specific)
+    // Step 2: Route to appropriate processor
     let outputPath;
     if (kind === 'mp3') {
-      outputPath = path.join('/tmp/voisss-exports', `${jobId}.mp3`);
-      await encodeAudio(inputPath, 'mp3', outputPath);
+      outputPath = await processAudioExport(jobId, inputPath, tempFiles);
     } else if (kind === 'mp4') {
-      outputPath = path.join('/tmp/voisss-exports', `${jobId}.mp4`);
-      await encodeAudio(inputPath, 'mp4', outputPath);
+      if (!manifest) {
+        throw new Error('MP4 export requires storyboard manifest');
+      }
+      outputPath = await processVideoExport(jobId, inputPath, manifest, tempFiles);
     } else {
       throw new Error(`Unsupported export kind: ${kind}`);
     }
-    tempFiles.push(outputPath);
 
     // Step 3: Move to permanent storage
     const finalPath = moveToOutput(outputPath, jobId, kind);
@@ -90,6 +102,98 @@ async function processExportJob(job) {
     // Cleanup temp files
     cleanupTempFiles(tempFiles);
   }
+}
+
+/**
+ * Audio-only export path
+ * PRINCIPLE: MODULAR - Focused on simple MP3 encoding
+ */
+async function processAudioExport(jobId, audioPath, tempFiles) {
+  const outputPath = path.join('/tmp/voisss-exports', `${jobId}.mp3`);
+  await encodeAudio(audioPath, 'mp3', outputPath);
+  tempFiles.push(outputPath);
+  return outputPath;
+}
+
+/**
+ * Video export path
+ * PRINCIPLE: MODULAR - Handles storyboard rendering + composition
+ */
+async function processVideoExport(jobId, audioPath, manifest, tempFiles) {
+  const fs = require('fs');
+  const outputDir = require('../services/ffmpeg-service').TEMP_DIR;
+
+  try {
+    console.log(`\n📹 Starting video composition: ${jobId}`);
+    console.log(`   Segments: ${manifest.segments.length}`);
+
+    // Step 1: Build frame sequence from manifest
+    const frameData = await buildFrameSequence(manifest, {}, jobId);
+    
+    // Step 2: Generate SVG frames for each segment
+    // For now, create simple placeholder frames with segment text
+    // In production, this would render actual template visuals
+    const svgFrames = frameData.map((frame, idx) => {
+      const dims = {
+        portrait: { w: 1080, h: 1920 },
+        square: { w: 1080, h: 1080 },
+        landscape: { w: 1920, h: 1080 },
+      }[manifest.aspect] || { w: 1080, h: 1920 };
+
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${dims.w}" height="${dims.h}" viewBox="0 0 ${dims.w} ${dims.h}">
+  <rect width="100%" height="100%" fill="#0A0A0A"/>
+  <text x="40" y="${dims.h / 2}" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="48" font-weight="bold" word-wrap="break-word" width="${dims.w - 80}">
+    ${escapeXml(frame.text)}
+  </text>
+  <text x="40" y="${dims.h - 60}" fill="#888888" font-family="Arial, sans-serif" font-size="20">VOISSS</text>
+</svg>`;
+    });
+
+    // Step 3: Render SVG frames to PNG
+    console.log(`🎨 Rendering ${svgFrames.length} frames to PNG...`);
+    const frameResults = await Promise.all(
+      svgFrames.map((svg, idx) => 
+        renderSvgToPng(svg, path.join(outputDir, `${jobId}_frame_${String(idx).padStart(4, '0')}.png`))
+      )
+    );
+    frameResults.forEach(p => tempFiles.push(p));
+
+    // Step 4: Calculate video parameters
+    const videoParams = calculateVideoParams(frameData, frameData[frameData.length - 1]?.endMs || 1000);
+    console.log(`   FPS: ${videoParams.fps}, Frames: ${videoParams.numFrames}`);
+
+    // Step 5: Generate FFmpeg concat demuxer file
+    const concatPath = path.join(outputDir, `${jobId}_concat.txt`);
+    const concatList = generateFrameConcat(frameData, outputDir, jobId, videoParams.fps);
+    fs.writeFileSync(concatPath, concatList);
+    tempFiles.push(concatPath);
+    console.log(`📋 Frame concat file: ${concatPath}`);
+
+    // Step 6: Compose video with audio using FFmpeg
+    const outputPath = path.join(outputDir, `${jobId}.mp4`);
+    console.log(`🎬 Composing video with audio...`);
+    await composeVideoWithAudio(concatPath, audioPath, outputPath);
+    tempFiles.push(outputPath);
+
+    console.log(`✅ Video composition complete: ${jobId}`);
+    return outputPath;
+  } catch (error) {
+    console.error(`❌ Video export failed: ${jobId}`, error);
+    throw error;
+  }
+}
+
+/**
+ * Helper to escape XML special characters
+ */
+function escapeXml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /**

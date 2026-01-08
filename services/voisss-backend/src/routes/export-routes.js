@@ -19,18 +19,26 @@ const router = express.Router();
  *   audioUrl: string,           // URL to download audio from
  *   transcriptId: string,
  *   templateId?: string,
+ *   manifest?: object,          // For MP4: storyboard manifest with segments
  *   style?: object,
  *   userId?: string
  * }
  */
 router.post('/request', async (req, res) => {
   try {
-    const { kind, audioUrl, transcriptId, templateId, style, userId } = req.body;
+    const { kind, audioUrl, transcriptId, templateId, manifest, style, userId } = req.body;
 
     // Validate required fields
     if (!kind || !audioUrl || !transcriptId) {
       return res.status(400).json({
         error: 'Missing required fields: kind, audioUrl, transcriptId',
+      });
+    }
+
+    // Validate MP4-specific requirements
+    if (kind === 'mp4' && !manifest) {
+      return res.status(400).json({
+        error: 'MP4 export requires manifest with segment timing',
       });
     }
 
@@ -40,6 +48,7 @@ router.post('/request', async (req, res) => {
       audioUrl,
       transcriptId,
       templateId,
+      manifest,
       style,
       userId: userId || req.user?.id || 'anonymous',
     });

@@ -809,21 +809,61 @@ export default function TranscriptComposer(props: {
                 onClick={async () => {
                   if (!calibratedTranscript || !template) return;
                   setError(null);
-                  const res = await fetch('/api/transcript/export', {
-                    method: 'POST',
-                    headers: { 'content-type': 'application/json' },
-                    body: JSON.stringify({ kind: 'mp4', templateId: template.id, transcript: calibratedTranscript, style }),
-                  });
-                  const data = await res.json();
-                  if (!res.ok) {
-                    setError(data.error || 'MP4 export failed');
-                    return;
+                  try {
+                    const res = await fetch('/api/transcript/export', {
+                      method: 'POST',
+                      headers: { 'content-type': 'application/json' },
+                      body: JSON.stringify({ 
+                        kind: 'mp3', 
+                        templateId: template.id, 
+                        transcript: calibratedTranscript,
+                        audioBlob: Array.from(new Uint8Array(await audioBlob.arrayBuffer())),
+                      }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) {
+                      setError(data.error || 'Audio export failed');
+                      return;
+                    }
+                    setError(`Audio export queued: ${data.jobId}`);
+                  } catch (e: any) {
+                    setError(e?.message || 'Audio export failed');
                   }
-                  setError(`MP4 export queued: ${data.jobId}`);
+                }}
+                className="px-4 py-2 rounded-lg bg-[#2A2A2A] border border-[#3A3A3A] text-white text-sm hover:bg-[#3A3A3A] disabled:opacity-50"
+              >
+                Export Audio (MP3)
+              </button>
+              <button
+                disabled={!calibratedTranscript}
+                onClick={async () => {
+                  if (!calibratedTranscript || !template) return;
+                  setError(null);
+                  try {
+                    const res = await fetch('/api/transcript/export', {
+                      method: 'POST',
+                      headers: { 'content-type': 'application/json' },
+                      body: JSON.stringify({ 
+                        kind: 'mp4', 
+                        templateId: template.id, 
+                        transcript: calibratedTranscript, 
+                        style,
+                        audioBlob: Array.from(new Uint8Array(await audioBlob.arrayBuffer())),
+                      }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) {
+                      setError(data.error || 'Video export failed');
+                      return;
+                    }
+                    setError(`Video export queued: ${data.jobId}`);
+                  } catch (e: any) {
+                    setError(e?.message || 'Video export failed');
+                  }
                 }}
                 className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white text-sm font-medium hover:from-[#6B4CE6] hover:to-[#8B7AFF] disabled:opacity-50"
               >
-                Export MP4
+                Export Video (MP4)
               </button>
               <button
                 disabled={!calibratedTranscript}

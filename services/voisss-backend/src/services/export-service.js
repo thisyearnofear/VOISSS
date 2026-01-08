@@ -20,8 +20,10 @@ async function enqueueExport({
   audioUrl,
   transcriptId,
   templateId,
+  manifest,
   style,
   userId = 'anonymous',
+  audioBlob,
 }) {
   // Validate input
   if (!['mp3', 'mp4', 'carousel'].includes(kind)) {
@@ -30,12 +32,18 @@ async function enqueueExport({
 
   const jobId = `export_${crypto.randomUUID()}`;
 
+  // If audioBlob is provided, save it and generate audioUrl
+  let finalAudioUrl = audioUrl;
+  if (audioBlob) {
+    finalAudioUrl = await saveAudioBlob(jobId, audioBlob);
+  }
+
   // Insert into database
   await query(
     `INSERT INTO export_jobs 
-    (id, user_id, kind, audio_url, transcript_id, template_id, style, status, created_at)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', NOW())`,
-    [jobId, userId, kind, audioUrl, transcriptId, templateId, JSON.stringify(style || {})]
+    (id, user_id, kind, audio_url, transcript_id, template_id, manifest, style, status, created_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending', NOW())`,
+    [jobId, userId, kind, finalAudioUrl, transcriptId, templateId, JSON.stringify(manifest || {}), JSON.stringify(style || {})]
   );
 
   // Add to queue with retry logic
@@ -43,16 +51,17 @@ async function enqueueExport({
   const jobData = {
     jobId,
     kind,
-    audioUrl,
+    audioUrl: finalAudioUrl,
     transcriptId,
     templateId,
+    manifest,
     style,
     userId,
   };
 
   const estimatedSeconds = {
     mp3: 60,
-    mp4: 180,
+    mp4: 300,
     carousel: 2,
   };
 
@@ -72,6 +81,32 @@ async function enqueueExport({
     estimatedSeconds: estimatedSeconds[kind],
     statusUrl: `/api/export/${jobId}/status`,
   };
+}
+
+/**
+ * Save audio blob to file system and return URL
+ * PRINCIPLE: CLEAN - Separate concern for blob storage
+ */
+async function saveAudioBlob(jobId, audioBlob) {
+  const fs = require('fs');
+  const path = require('path');
+  
+  const tempDir = process.env.EXPORT_TEMP_DIR || '/tmp/voisss-exports';
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+  }
+
+  const audioPath = path.join(tempDir, `${jobId}_input.webm`);
+  
+  // Convert array to buffer if needed
+  const buffer = Buffer.isBuffer(audioBlob) 
+    ? audioBlob 
+    : Buffer.from(audioBlob);
+  
+  fs.writeFileSync(audioPath, buffer);
+  
+  // Return file:// URL for local access
+  return `file://${audioPath}`;
 }
 
 /**
