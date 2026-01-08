@@ -89,6 +89,7 @@ export async function POST(req: NextRequest) {
       if (body.kind === 'mp4') {
         const manifest = renderMp4StoryboardManifest({ transcript, template });
         payload.manifest = manifest;
+        payload.template = template; // Include full template for backend rendering
       }
 
       return NextResponse.json({ ok: true, ...payload });

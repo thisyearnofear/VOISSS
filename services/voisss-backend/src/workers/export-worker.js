@@ -63,7 +63,11 @@ async function processExportJob(job) {
       if (!manifest) {
         throw new Error('MP4 export requires storyboard manifest');
       }
-      outputPath = await processVideoExport(jobId, inputPath, manifest, tempFiles);
+      const template = job.data.template;
+      if (!template) {
+        throw new Error('MP4 export requires template data for rendering');
+      }
+      outputPath = await processVideoExport(jobId, inputPath, manifest, template, tempFiles);
     } else {
       throw new Error(`Unsupported export kind: ${kind}`);
     }
@@ -119,58 +123,39 @@ async function processAudioExport(jobId, audioPath, tempFiles) {
  * Video export path
  * PRINCIPLE: MODULAR - Handles storyboard rendering + composition
  */
-async function processVideoExport(jobId, audioPath, manifest, tempFiles) {
+async function processVideoExport(jobId, audioPath, manifest, template, tempFiles) {
   const fs = require('fs');
   const outputDir = require('../services/ffmpeg-service').TEMP_DIR;
 
   try {
     console.log(`\n📹 Starting video composition: ${jobId}`);
     console.log(`   Segments: ${manifest.segments.length}`);
+    console.log(`   Template: ${template.id}`);
 
-    // Step 1: Build frame sequence from manifest
-    const frameData = await buildFrameSequence(manifest, {}, jobId);
+    // Step 1: Build frame sequence with template-styled SVG frames
+    const frameData = await buildFrameSequence(manifest, template, jobId);
     
-    // Step 2: Generate SVG frames for each segment
-    // For now, create simple placeholder frames with segment text
-    // In production, this would render actual template visuals
-    const svgFrames = frameData.map((frame, idx) => {
-      const dims = {
-        portrait: { w: 1080, h: 1920 },
-        square: { w: 1080, h: 1080 },
-        landscape: { w: 1920, h: 1080 },
-      }[manifest.aspect] || { w: 1080, h: 1920 };
-
-      return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${dims.w}" height="${dims.h}" viewBox="0 0 ${dims.w} ${dims.h}">
-  <rect width="100%" height="100%" fill="#0A0A0A"/>
-  <text x="40" y="${dims.h / 2}" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="48" font-weight="bold" word-wrap="break-word" width="${dims.w - 80}">
-    ${escapeXml(frame.text)}
-  </text>
-  <text x="40" y="${dims.h - 60}" fill="#888888" font-family="Arial, sans-serif" font-size="20">VOISSS</text>
-</svg>`;
-    });
-
-    // Step 3: Render SVG frames to PNG
-    console.log(`🎨 Rendering ${svgFrames.length} frames to PNG...`);
+    // Step 2: Render SVG frames to PNG using Sharp
+    console.log(`🎨 Rendering ${frameData.length} frames to PNG...`);
     const frameResults = await Promise.all(
-      svgFrames.map((svg, idx) => 
-        renderSvgToPng(svg, path.join(outputDir, `${jobId}_frame_${String(idx).padStart(4, '0')}.png`))
+      frameData.map((frame, idx) => 
+        renderSvgToPng(frame.svg, path.join(outputDir, `${jobId}_frame_${String(idx).padStart(4, '0')}.png`))
       )
     );
     frameResults.forEach(p => tempFiles.push(p));
 
-    // Step 4: Calculate video parameters
+    // Step 3: Calculate video parameters
     const videoParams = calculateVideoParams(frameData, frameData[frameData.length - 1]?.endMs || 1000);
-    console.log(`   FPS: ${videoParams.fps}, Frames: ${videoParams.numFrames}`);
+    console.log(`   FPS: ${videoParams.fps}, Frames: ${frameData.length}`);
 
-    // Step 5: Generate FFmpeg concat demuxer file
+    // Step 4: Generate FFmpeg concat demuxer file
     const concatPath = path.join(outputDir, `${jobId}_concat.txt`);
     const concatList = generateFrameConcat(frameData, outputDir, jobId, videoParams.fps);
     fs.writeFileSync(concatPath, concatList);
     tempFiles.push(concatPath);
-    console.log(`📋 Frame concat file: ${concatPath}`);
+    console.log(`📋 Frame concat file created`);
 
-    // Step 6: Compose video with audio using FFmpeg
+    // Step 5: Compose video with audio using FFmpeg
     const outputPath = path.join(outputDir, `${jobId}.mp4`);
     console.log(`🎬 Composing video with audio...`);
     await composeVideoWithAudio(concatPath, audioPath, outputPath);
@@ -184,17 +169,7 @@ async function processVideoExport(jobId, audioPath, manifest, tempFiles) {
   }
 }
 
-/**
- * Helper to escape XML special characters
- */
-function escapeXml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+
 
 /**
  * Start worker and listen for jobs
