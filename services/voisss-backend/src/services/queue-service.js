@@ -14,9 +14,11 @@ const queues = {};
  */
 function getQueue(name) {
   if (!queues[name]) {
+    console.log(`📡 Queue "${name}" using Redis at ${process.env.REDIS_HOST || '127.0.0.1'}:${process.env.REDIS_PORT || 6379}`);
+
     queues[name] = new Queue(name, {
       redis: {
-        host: process.env.REDIS_HOST || 'localhost',
+        host: process.env.REDIS_HOST || '127.0.0.1',
         port: process.env.REDIS_PORT || 6379,
         password: process.env.REDIS_PASSWORD,
         maxRetriesPerRequest: null,
@@ -31,7 +33,19 @@ function getQueue(name) {
     });
 
     queues[name].on('error', (err) => {
-      console.error(`Queue "${name}" error:`, err);
+      console.error(`❌ Queue "${name}" error:`, err);
+    });
+
+    queues[name].on('waiting', (jobId) => {
+      console.log(`⏳ Job ${jobId} is waiting in queue "${name}"`);
+    });
+
+    queues[name].on('stalled', (jobId) => {
+      console.warn(`⚠️  Job ${jobId} stalled in queue "${name}"`);
+    });
+
+    queues[name].on('ready', () => {
+      console.log(`✅ Queue "${name}" connected to Redis`);
     });
 
     console.log(`Queue initialized: ${name}`);

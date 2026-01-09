@@ -16,6 +16,10 @@ let pool = null;
 function initializePool() {
   if (pool) return pool;
 
+  if (!process.env.DATABASE_URL) {
+    console.error('❌ DATABASE_URL is not defined in environment variables!');
+  }
+
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     max: parseInt(process.env.DB_POOL_MAX || '10'),
@@ -102,7 +106,7 @@ async function runMigrations() {
   for (const file of files) {
     const migrationName = file.replace('.sql', '');
     let result;
-    
+
     try {
       result = await Promise.race([
         query('SELECT id FROM _migrations WHERE name = $1', [migrationName]),

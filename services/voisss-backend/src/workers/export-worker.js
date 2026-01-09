@@ -8,19 +8,19 @@
 require('dotenv').config();
 
 const { getQueue } = require('../services/queue-service');
-const { 
-  updateJobStatus, 
+const {
+  updateJobStatus,
   EXPORT_QUEUE,
 } = require('../services/export-service');
-const { 
-  downloadFile, 
-  encodeAudio, 
+const {
+  downloadFile,
+  encodeAudio,
   composeVideoWithAudio,
-  moveToOutput, 
-  cleanupTempFiles, 
+  moveToOutput,
+  cleanupTempFiles,
   getPublicUrl,
 } = require('../services/ffmpeg-service');
-const { 
+const {
   renderSvgToPng,
   renderSvgsToFrames,
 } = require('../services/svg-renderer-service');
@@ -43,7 +43,7 @@ async function processExportJob(job) {
   const startTime = Date.now();
   const tempFiles = [];
 
-  console.log(`\n▶️  Processing export: ${jobId} (${kind})`);
+  console.log(`\n▶️  [Worker ${process.env.WORKER_ID}] Processing job ${job.id} for export: ${jobId} (${kind})`);
 
   try {
     // Update status to processing
@@ -134,11 +134,11 @@ async function processVideoExport(jobId, audioPath, manifest, template, tempFile
 
     // Step 1: Build frame sequence with template-styled SVG frames
     const frameData = await buildFrameSequence(manifest, template, jobId);
-    
+
     // Step 2: Render SVG frames to PNG using Sharp
     console.log(`🎨 Rendering ${frameData.length} frames to PNG...`);
     const frameResults = await Promise.all(
-      frameData.map((frame, idx) => 
+      frameData.map((frame, idx) =>
         renderSvgToPng(frame.svg, path.join(outputDir, `${jobId}_frame_${String(idx).padStart(4, '0')}.png`))
       )
     );
@@ -178,8 +178,15 @@ async function startWorker() {
   console.log('🚀 Export Worker Starting...');
 
   try {
-    // Run migrations
+    // Run migrations and test DB connection
     await runMigrations();
+
+    // Explicitly test DB connection if migrations were skipped
+    if (process.env.SKIP_MIGRATIONS === 'true') {
+      const { query } = require('../services/db-service');
+      await query('SELECT 1');
+      console.log('✅ Database connection verified');
+    }
 
     // Get queue and attach processor
     const queue = getQueue(EXPORT_QUEUE);
