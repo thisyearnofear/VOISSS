@@ -156,6 +156,7 @@ export default function TranscriptComposer(props: {
     estimatedSeconds?: number;
   }
   const [exportJobs, setExportJobs] = useState<ExportJob[]>([]);
+  const [exportingKind, setExportingKind] = useState<'mp3' | 'mp4' | 'carousel' | null>(null);
 
   // Checkpoint system for saving/restoring state
   interface Checkpoint {
@@ -729,6 +730,12 @@ export default function TranscriptComposer(props: {
                       return;
                     }
 
+                    // Validate duration client-side (60s limit)
+                    if (durationSeconds > 60.5) { // Allow slight buffer
+                      setError(`Audio too long (${durationSeconds.toFixed(1)}s). Maximum 60 seconds.`);
+                      return;
+                    }
+
                     const form = new FormData();
                     form.append('audio', audioBlob, 'recording.webm');
                     const res = await fetch('/api/transcript/transcribe', { method: 'POST', body: form });
@@ -900,10 +907,11 @@ export default function TranscriptComposer(props: {
                 Export Audio (MP3)
               </button>
               <button
-                disabled={!calibratedTranscript}
+                disabled={!calibratedTranscript || exportingKind !== null}
                 onClick={async () => {
                   if (!calibratedTranscript || !template) return;
                   setError(null);
+                  setExportingKind('mp4');
                   try {
                     const res = await fetch('/api/transcript/export', {
                       method: 'POST',
@@ -919,6 +927,7 @@ export default function TranscriptComposer(props: {
                     const data = await res.json();
                     if (!res.ok) {
                       setError(data.error || 'Video export failed');
+                      setExportingKind(null);
                       return;
                     }
                     // Start tracking the job
@@ -929,48 +938,78 @@ export default function TranscriptComposer(props: {
                       estimatedSeconds: data.estimatedSeconds || 300,
                     };
                     setExportJobs(prev => [newJob, ...prev]);
-                    setError(`Video export started: ${data.jobId}`);
+                    setError(null);
+                    setExportingKind(null);
 
                     // Start polling for status
                     pollExportStatus(data.jobId);
                   } catch (e: any) {
                     setError(e?.message || 'Video export failed');
+                    setExportingKind(null);
                   }
                 }}
-                className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white text-sm font-medium hover:from-[#6B4CE6] hover:to-[#8B7AFF] disabled:opacity-50"
+                className={`px-4 py-2 rounded-lg text-white text-sm font-medium transition-all ${exportingKind === 'mp4'
+                  ? 'bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] opacity-60 cursor-wait'
+                  : 'bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] hover:from-[#6B4CE6] hover:to-[#8B7AFF]'
+                  } disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
               >
-                Export Video (MP4)
+                {exportingKind === 'mp4' ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Exporting...
+                  </>
+                ) : (
+                  'Export Video (MP4)'
+                )}
               </button>
               <button
-                disabled={!calibratedTranscript}
+                disabled={!calibratedTranscript || exportingKind !== null}
                 onClick={async () => {
                   if (!calibratedTranscript || !template) return;
                   setError(null);
-                  const res = await fetch('/api/transcript/export', {
-                    method: 'POST',
-                    headers: { 'content-type': 'application/json' },
-                    body: JSON.stringify({ kind: 'carousel', templateId: template.id, transcript: calibratedTranscript, style }),
-                  });
-                  const data = await res.json();
-                  if (!res.ok) {
-                    setError(data.error || 'Carousel export failed');
-                    return;
-                  }
-                  if (data.slides && Array.isArray(data.slides)) {
-                    // Revoke old URLs before setting new ones
-                    if (carouselSlides) carouselSlides.forEach(s => URL.revokeObjectURL(s.url));
+                  setExportingKind('carousel');
+                  try {
+                    const res = await fetch('/api/transcript/export', {
+                      method: 'POST',
+                      headers: { 'content-type': 'application/json' },
+                      body: JSON.stringify({ kind: 'carousel', templateId: template.id, transcript: calibratedTranscript, style }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) {
+                      setError(data.error || 'Carousel export failed');
+                      setExportingKind(null);
+                      return;
+                    }
+                    if (data.slides && Array.isArray(data.slides)) {
+                      // Revoke old URLs before setting new ones
+                      if (carouselSlides) carouselSlides.forEach(s => URL.revokeObjectURL(s.url));
 
-                    const slidesWithUrls = data.slides.map((s: { filename: string; svg: string }) => ({
-                      filename: s.filename,
-                      url: URL.createObjectURL(new Blob([s.svg], { type: 'image/svg+xml' }))
-                    }));
-                    setCarouselSlides(slidesWithUrls);
+                      const slidesWithUrls = data.slides.map((s: { filename: string; svg: string }) => ({
+                        filename: s.filename,
+                        url: URL.createObjectURL(new Blob([s.svg], { type: 'image/svg+xml' }))
+                      }));
+                      setCarouselSlides(slidesWithUrls);
+                    }
+                    setError(null);
+                    setExportingKind(null);
+                  } catch (e: any) {
+                    setError(e?.message || 'Carousel export failed');
+                    setExportingKind(null);
                   }
-                  setError(`Carousel export ${data.status || 'queued'}: ${data.jobId}`);
                 }}
-                className="px-4 py-2 rounded-lg bg-[#2A2A2A] border border-[#3A3A3A] text-white text-sm hover:bg-[#3A3A3A] disabled:opacity-50"
+                className={`px-4 py-2 rounded-lg border text-white text-sm transition-all ${exportingKind === 'carousel'
+                  ? 'bg-[#2A2A2A] border-[#3A3A3A] opacity-60 cursor-wait'
+                  : 'bg-[#2A2A2A] border-[#3A3A3A] hover:bg-[#3A3A3A]'
+                  } disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
               >
-                Export carousel
+                {exportingKind === 'carousel' ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Exporting...
+                  </>
+                ) : (
+                  'Export carousel'
+                )}
               </button>
             </div>
 
@@ -1098,8 +1137,11 @@ function VoisssKaraokePreview(props: {
   return (
     <div className="w-full relative overflow-hidden" style={{ height: containerHeight }}>
       <div
-        className="transition-transform duration-700 cubic-bezier(0.23, 1, 0.32, 1) flex flex-col items-center"
-        style={{ transform: `translateY(${translateY}px)` }}
+        className="transition-transform duration-700 ease-out flex flex-col items-center"
+        style={{
+          transform: `translateY(${translateY}px)`,
+          transitionTimingFunction: 'cubic-bezier(0.23, 1, 0.32, 1)'
+        }}
       >
         {lineData.map((data, li) => {
           const { words, startCursor } = data;

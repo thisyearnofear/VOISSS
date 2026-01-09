@@ -75,6 +75,7 @@ export default function RecordingStudio({
     audioBlob,
     error,
     waveformData,
+    maxDurationReached,
     startRecording,
     stopRecording,
     pauseRecording,
@@ -191,6 +192,14 @@ export default function RecordingStudio({
       URL.revokeObjectURL(url);
     };
   }, [audioBlob]);
+
+  // Show toast when max recording duration is reached
+  useEffect(() => {
+    if (maxDurationReached) {
+      setToastType("success");
+      setToastMessage("Maximum 60 second recording limit reached. Recording saved automatically!");
+    }
+  }, [maxDurationReached]);
 
   const remainingQuota = getRemainingQuota();
 
@@ -529,8 +538,7 @@ export default function RecordingStudio({
       if (successCount > 0) {
         setToastType("success");
         setToastMessage(
-          `${successCount} version${
-            successCount > 1 ? "s" : ""
+          `${successCount} version${successCount > 1 ? "s" : ""
           } saved successfully!`
         );
 
@@ -600,13 +608,13 @@ export default function RecordingStudio({
               ? "Recording paused"
               : "Recording in progress..."
             : showSaveOptions
-            ? "Recording complete"
-            : "Ready to start recording"}
+              ? "Recording complete"
+              : "Ready to start recording"}
         </p>
       </div>
 
       {/* Core Components */}
-      <DurationDisplay duration={duration} />
+      <DurationDisplay duration={duration} isRecording={isRecording} />
       <WaveformVisualization
         waveformData={waveformData}
         isRecording={isRecording}

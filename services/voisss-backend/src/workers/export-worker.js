@@ -60,17 +60,20 @@ async function processExportJob(job) {
   try {
     // Update status to processing
     await updateJobStatus(jobId, 'processing', { workerId: process.env.WORKER_ID });
+    await job.progress(10); // Report progress to keep job alive
 
     // Step 1: Get audio file (download or copy local)
     const inputFileName = `${jobId}_input.webm`;
     const inputPath = await downloadFile(audioUrl, inputFileName);
     // Note: for file:// URLs, downloadFile copies instead of downloading
     tempFiles.push(inputPath);
+    await job.progress(20); // Audio downloaded
 
     // Step 2: Route to appropriate processor
     let outputPath;
     if (kind === 'mp3') {
       outputPath = await processAudioExport(jobId, inputPath, tempFiles);
+      await job.progress(80);
     } else if (kind === 'mp4') {
       if (!manifest) {
         throw new Error('MP4 export requires storyboard manifest');
@@ -79,7 +82,7 @@ async function processExportJob(job) {
       if (!template) {
         throw new Error('MP4 export requires template data for rendering');
       }
-      outputPath = await processVideoExport(jobId, inputPath, manifest, template, tempFiles);
+      outputPath = await processVideoExport(jobId, inputPath, manifest, template, tempFiles, job);
     } else {
       throw new Error(`Unsupported export kind: ${kind}`);
     }
@@ -135,7 +138,7 @@ async function processAudioExport(jobId, audioPath, tempFiles) {
  * Video export path
  * PRINCIPLE: MODULAR - Handles storyboard rendering + composition
  */
-async function processVideoExport(jobId, audioPath, manifest, template, tempFiles) {
+async function processVideoExport(jobId, audioPath, manifest, template, tempFiles, job) {
   const fs = require('fs');
   const outputDir = require('../services/ffmpeg-service').TEMP_DIR;
 
@@ -146,6 +149,7 @@ async function processVideoExport(jobId, audioPath, manifest, template, tempFile
 
     // Step 1: Build frame sequence with template-styled SVG frames
     const frameData = await buildFrameSequence(manifest, template, jobId);
+    if (job) await job.progress(30);
 
     // Step 2: Render SVG frames to PNG using Sharp
     console.log(`🎨 Rendering ${frameData.length} frames to PNG...`);
@@ -155,6 +159,7 @@ async function processVideoExport(jobId, audioPath, manifest, template, tempFile
       )
     );
     frameResults.forEach(p => tempFiles.push(p));
+    if (job) await job.progress(50);
 
     // Step 3: Calculate video parameters
     const videoParams = calculateVideoParams(frameData, frameData[frameData.length - 1]?.endMs || 1000);
@@ -166,12 +171,14 @@ async function processVideoExport(jobId, audioPath, manifest, template, tempFile
     fs.writeFileSync(concatPath, concatList);
     tempFiles.push(concatPath);
     console.log(`📋 Frame concat file created`);
+    if (job) await job.progress(60);
 
     // Step 5: Compose video with audio using FFmpeg
     const outputPath = path.join(outputDir, `${jobId}.mp4`);
     console.log(`🎬 Composing video with audio...`);
     await composeVideoWithAudio(concatPath, audioPath, outputPath);
     tempFiles.push(outputPath);
+    if (job) await job.progress(90);
 
     console.log(`✅ Video composition complete: ${jobId}`);
     return outputPath;

@@ -2,6 +2,9 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 
+// Maximum recording duration: 60 seconds (helps keep exports fast and predictable)
+export const MAX_RECORDING_DURATION_MS = 60 * 1000;
+
 export interface WebRecordingState {
   isRecording: boolean;
   isLoading: boolean;
@@ -20,7 +23,7 @@ export interface WebRecordingActions {
   requestPermissions: () => Promise<boolean>;
 }
 
-export function useWebAudioRecording(): WebRecordingState & WebRecordingActions {
+export function useWebAudioRecording(): WebRecordingState & WebRecordingActions & { maxDurationReached: boolean } {
   const [state, setState] = useState<WebRecordingState>({
     isRecording: false,
     isLoading: false,
@@ -29,6 +32,7 @@ export function useWebAudioRecording(): WebRecordingState & WebRecordingActions 
     error: null,
     waveformData: [],
   });
+  const [maxDurationReached, setMaxDurationReached] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -37,6 +41,7 @@ export function useWebAudioRecording(): WebRecordingState & WebRecordingActions 
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const waveformIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const shouldAutoStopRef = useRef(false);
 
   // Clean up on unmount
   useEffect(() => {
@@ -81,11 +86,21 @@ export function useWebAudioRecording(): WebRecordingState & WebRecordingActions 
   }, []);
 
   const startDurationTimer = useCallback(() => {
+    setMaxDurationReached(false);
+    shouldAutoStopRef.current = false;
     durationIntervalRef.current = setInterval(() => {
-      setState(prev => ({
-        ...prev,
-        duration: prev.duration + 1000,
-      }));
+      setState(prev => {
+        const newDuration = prev.duration + 1000;
+        // Check if we've hit the max duration
+        if (newDuration >= MAX_RECORDING_DURATION_MS) {
+          shouldAutoStopRef.current = true;
+          setMaxDurationReached(true);
+        }
+        return {
+          ...prev,
+          duration: newDuration,
+        };
+      });
     }, 1000);
   }, []);
 
@@ -219,10 +234,10 @@ export function useWebAudioRecording(): WebRecordingState & WebRecordingActions 
 
       // Set up the onstop handler to resolve with the blob
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { 
-          type: mediaRecorder.mimeType || 'audio/webm' 
+        const blob = new Blob(chunksRef.current, {
+          type: mediaRecorder.mimeType || 'audio/webm'
         });
-        
+
         setState(prev => ({
           ...prev,
           audioBlob: blob,
@@ -296,8 +311,17 @@ export function useWebAudioRecording(): WebRecordingState & WebRecordingActions 
     chunksRef.current = [];
   }, [stopDurationTimer, stopWaveformAnalysis]);
 
+  // Auto-stop recording when max duration is reached
+  useEffect(() => {
+    if (maxDurationReached && state.isRecording) {
+      console.log(`⏱️ Max recording duration (${MAX_RECORDING_DURATION_MS / 1000}s) reached, auto-stopping...`);
+      stopRecording();
+    }
+  }, [maxDurationReached, state.isRecording, stopRecording]);
+
   return {
     ...state,
+    maxDurationReached,
     startRecording,
     stopRecording,
     pauseRecording,

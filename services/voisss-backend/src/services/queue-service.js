@@ -19,11 +19,12 @@ function getQueue(name) {
 
     queues[name] = new Queue(name, redisUrl, {
       settings: {
-        stalledInterval: 30000,
-        maxStalledCount: 3,
-        lockDuration: 60000,
-        lockRenewTime: 20000,
-        retryProcessDelay: 5000,
+        // Video exports can take several minutes - use generous timeouts
+        stalledInterval: 120000, // Check for stalled jobs every 2 minutes
+        maxStalledCount: 5, // Allow more stall attempts before failing
+        lockDuration: 300000, // 5 minute lock (video exports can be slow)
+        lockRenewTime: 60000, // Renew lock every minute
+        retryProcessDelay: 10000, // Wait 10s before retry
       },
     });
 

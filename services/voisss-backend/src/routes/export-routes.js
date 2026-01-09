@@ -65,11 +65,21 @@ router.post('/request', upload.single('audio'), async (req, res) => {
       });
     }
 
-    // Validate MP4-specific requirements
-    if (kind === 'mp4' && !manifest) {
-      return res.status(400).json({
-        error: 'MP4 export requires manifest with segment timing',
-      });
+    // Validate MP4-specific requirements and duration limits
+    if (kind === 'mp4') {
+      if (!manifest) {
+        return res.status(400).json({
+          error: 'MP4 export requires manifest with segment timing',
+        });
+      }
+
+      // Enforce 65s maximum duration (60s + buffer)
+      const lastSegment = manifest.segments?.[manifest.segments.length - 1];
+      if (lastSegment && lastSegment.endMs > 65000) {
+        return res.status(400).json({
+          error: `Export too long (${(lastSegment.endMs / 1000).toFixed(1)}s). Maximum 60 seconds allowed.`,
+        });
+      }
     }
 
     // Enqueue the job

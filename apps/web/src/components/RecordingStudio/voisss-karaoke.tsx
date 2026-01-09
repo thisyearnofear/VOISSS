@@ -115,7 +115,14 @@ export function VoisssKaraokeLine(props: {
         }
 
         return (
-          <span key={`${idx}-${w.word}`} style={activeStyle}>
+          <span
+            key={`${idx}-${w.word}`}
+            style={{
+              ...activeStyle,
+              display: 'inline-block',
+              whiteSpace: 'pre'
+            }}
+          >
             {w.word}
           </span>
         );
