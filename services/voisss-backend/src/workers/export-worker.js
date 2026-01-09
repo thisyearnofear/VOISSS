@@ -239,17 +239,7 @@ async function startWorker() {
     const concurrency = parseInt(process.env.WORKER_CONCURRENCY || '2');
     console.log(`Worker concurrency: ${concurrency}`);
 
-    // Wait for queue to be ready before processing
-    // Check if Redis client is already ready (for cached queue instances)
-    if (queue.client && queue.client.status === 'ready') {
-      console.log('✅ Queue already connected, registering processor...');
-    } else {
-      await new Promise((resolve) => {
-        queue.once('ready', resolve);
-      });
-      console.log('✅ Queue connection established, registering processor...');
-    }
-
+    // Register processor - Bull handles connection timing internally
     queue.process(concurrency, processExportJob);
 
     // Event listeners for monitoring
@@ -283,8 +273,8 @@ async function startWorker() {
  */
 async function shutdown() {
   console.log('\n⏹️  Shutting down worker...');
-  const queue = getQueue(EXPORT_QUEUE);
-  await queue.close();
+  const { closeQueues } = require('./services/queue-service');
+  await closeQueues(); // Close all queues and clear cache
   await closePool();
   console.log('✅ Worker shutdown complete');
   process.exit(0);

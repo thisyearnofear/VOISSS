@@ -58,7 +58,9 @@ async function closeQueues() {
     return queue.close();
   });
   await Promise.all(promises);
-  console.log('All queues closed');
+  // Clear cache to prevent stale instances on worker restart
+  Object.keys(queues).forEach(key => delete queues[key]);
+  console.log('All queues closed and cache cleared');
 }
 
 module.exports = {
