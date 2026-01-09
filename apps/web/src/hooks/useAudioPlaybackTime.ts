@@ -25,7 +25,12 @@ export function useAudioPlaybackTime(
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio) {
+      console.warn('useAudioPlaybackTime: audio ref is null');
+      return;
+    }
+
+    console.log('useAudioPlaybackTime: hook mounted, audio element:', audio);
 
     // Helper: ms conversion
     const toMs = (seconds: number) => Math.max(0, Math.round(seconds * 1000));
@@ -40,6 +45,7 @@ export function useAudioPlaybackTime(
 
     // Primary: timeupdate event (native, reliable, ~30ms intervals)
     const handleTimeUpdate = () => {
+      console.log('timeupdate event:', audio.currentTime);
       updateIfChanged(audio.currentTime);
     };
 

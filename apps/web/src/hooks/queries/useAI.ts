@@ -148,8 +148,8 @@ async function normalizeAudioForDubbing(
       const filename = baseType.includes("wav")
         ? "input.wav"
         : baseType.includes("mp3") || baseType.includes("mpeg")
-        ? "input.mp3"
-        : "input.m4a";
+          ? "input.mp3"
+          : "input.m4a";
       console.log(
         "normalizeAudioForDubbing: Already supported format, passing through"
       );
@@ -280,7 +280,7 @@ export function useAIModels() {
     queryKey: queryKeys.ai.models(),
     queryFn: async (): Promise<AIModel[]> => {
       try {
-        const response = await fetch("/api/elevenlabs/test-models");
+        const response = await fetch("/api/elevenlabs/get-models");
 
         if (!response.ok) {
           throw new Error(`Failed to fetch models: ${response.status}`);
@@ -327,10 +327,10 @@ export function useVoiceTransform() {
         const filename = normalizedType.includes("webm")
           ? "input.webm"
           : normalizedType.includes("ogg")
-          ? "input.ogg"
-          : normalizedType.includes("mpeg") || normalizedType.includes("mp3")
-          ? "input.mp3"
-          : "input";
+            ? "input.ogg"
+            : normalizedType.includes("mpeg") || normalizedType.includes("mp3")
+              ? "input.mp3"
+              : "input";
         formData.append("audio", options.audioBlob, filename);
         formData.append("voiceId", options.voiceId);
 
@@ -426,8 +426,7 @@ export function useAudioDubbing() {
             await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 second delay
 
             console.log(
-              `Polling dubbing status (attempt ${
-                attempt + 1
+              `Polling dubbing status (attempt ${attempt + 1
               }/${maxAttempts})...`
             );
             const statusResponse = await fetch(
@@ -523,7 +522,7 @@ export function useAIServiceStatus() {
     queryFn: async () => {
       try {
         // Test if the AI service is available by fetching a small amount of data
-        const response = await fetch("/api/elevenlabs/test-models");
+        const response = await fetch("/api/elevenlabs/get-models");
 
         if (!response.ok) {
           return {
@@ -578,7 +577,7 @@ export function usePrefetchAIData() {
     queryClient.prefetchQuery({
       queryKey: queryKeys.ai.models(),
       queryFn: async () => {
-        const response = await fetch("/api/elevenlabs/test-models");
+        const response = await fetch("/api/elevenlabs/get-models");
         const data = await response.json();
         return data.recommendedForSpeechToSpeech || [];
       },

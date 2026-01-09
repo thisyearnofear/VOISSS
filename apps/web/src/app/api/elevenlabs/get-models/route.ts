@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
@@ -8,7 +8,11 @@ export async function GET(req: NextRequest) {
   try {
     const apiKey = process.env.ELEVENLABS_API_KEY;
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'ElevenLabs API key not configured' }), { status: 500 });
+      console.error('get-models: ELEVENLABS_API_KEY is not defined in environment variables');
+      return NextResponse.json(
+        { error: 'Server configuration error: API key missing' },
+        { status: 500 }
+      );
     }
 
     // Get available models
@@ -18,22 +22,24 @@ export async function GET(req: NextRequest) {
 
     if (!modelsResponse.ok) {
       const text = await modelsResponse.text().catch(() => '');
-      return new Response(JSON.stringify({ 
-        error: `Failed to fetch models: ${modelsResponse.status} ${text}` 
-      }), { status: modelsResponse.status });
+      console.error(`get-models: ElevenLabs API error ${modelsResponse.status}: ${text}`);
+      return NextResponse.json(
+        { error: `Failed to fetch models: ${modelsResponse.status} ${text}` },
+        { status: modelsResponse.status }
+      );
     }
 
     const modelsData = await modelsResponse.json();
-    
+
     // Filter models that can do speech-to-speech
-    const speechToSpeechModels = modelsData.filter((model: any) => 
-      model.can_do_voice_conversion || 
+    const speechToSpeechModels = modelsData.filter((model: any) =>
+      model.can_do_voice_conversion ||
       model.can_do_streaming ||
       model.name?.includes('turbo') ||
       model.name?.includes('flash')
     );
 
-    return new Response(JSON.stringify({
+    return NextResponse.json({
       allModels: modelsData,
       speechToSpeechModels,
       recommendedForSpeechToSpeech: speechToSpeechModels.map((m: any) => ({
@@ -43,15 +49,12 @@ export async function GET(req: NextRequest) {
         can_do_streaming: m.can_do_streaming,
         description: m.description
       }))
-    }), { 
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
     });
 
   } catch (err: any) {
-    console.error('test-models error:', err);
-    return new Response(
-      JSON.stringify({ error: err?.message || 'Internal server error' }), 
+    console.error('get-models handler error:', err);
+    return NextResponse.json(
+      { error: err?.message || 'Internal server error' },
       { status: 500 }
     );
   }
