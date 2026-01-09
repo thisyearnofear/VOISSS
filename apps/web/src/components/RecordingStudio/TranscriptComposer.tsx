@@ -146,6 +146,17 @@ export default function TranscriptComposer(props: {
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [carouselSlides, setCarouselSlides] = useState<Array<{ filename: string; url: string }> | null>(null);
 
+  // Export job tracking
+  interface ExportJob {
+    jobId: string;
+    kind: 'mp3' | 'mp4';
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+    outputUrl?: string;
+    error?: string;
+    estimatedSeconds?: number;
+  }
+  const [exportJobs, setExportJobs] = useState<ExportJob[]>([]);
+
   // Checkpoint system for saving/restoring state
   interface Checkpoint {
     id: string;
@@ -429,6 +440,49 @@ export default function TranscriptComposer(props: {
     } catch (e: any) {
       setError(e instanceof SyntaxError ? 'Invalid JSON syntax' : (e?.message || 'Invalid transcript JSON'));
     }
+  };
+
+  // Poll export job status
+  const pollExportStatus = async (jobId: string) => {
+    const backendUrl = process.env.NEXT_PUBLIC_VOISSS_PROCESSING_URL || 'https://voisss.famile.xyz';
+    const maxAttempts = 60; // Poll for up to 5 minutes (60 * 5s)
+    let attempts = 0;
+
+    const poll = async () => {
+      if (attempts >= maxAttempts) {
+        setExportJobs(prev => prev.map(job =>
+          job.jobId === jobId ? { ...job, status: 'failed', error: 'Timeout' } : job
+        ));
+        return;
+      }
+
+      try {
+        const res = await fetch(`${backendUrl}/api/export/${jobId}/status`);
+        if (!res.ok) throw new Error('Status check failed');
+
+        const data = await res.json();
+
+        setExportJobs(prev => prev.map(job =>
+          job.jobId === jobId ? {
+            ...job,
+            status: data.status,
+            outputUrl: data.outputUrl,
+            error: data.error,
+          } : job
+        ));
+
+        if (data.status === 'pending' || data.status === 'processing') {
+          attempts++;
+          setTimeout(poll, 5000); // Poll every 5 seconds
+        }
+      } catch (error) {
+        setExportJobs(prev => prev.map(job =>
+          job.jobId === jobId ? { ...job, status: 'failed', error: 'Connection error' } : job
+        ));
+      }
+    };
+
+    poll();
   };
 
   const previewStyle: React.CSSProperties = template
@@ -813,9 +867,9 @@ export default function TranscriptComposer(props: {
                     const res = await fetch('/api/transcript/export', {
                       method: 'POST',
                       headers: { 'content-type': 'application/json' },
-                      body: JSON.stringify({ 
-                        kind: 'mp3', 
-                        templateId: template.id, 
+                      body: JSON.stringify({
+                        kind: 'mp3',
+                        templateId: template.id,
                         transcript: calibratedTranscript,
                         audioBlob: Array.from(new Uint8Array(await audioBlob.arrayBuffer())),
                       }),
@@ -825,7 +879,18 @@ export default function TranscriptComposer(props: {
                       setError(data.error || 'Audio export failed');
                       return;
                     }
-                    setError(`Audio export queued: ${data.jobId}`);
+                    // Start tracking the job
+                    const newJob: ExportJob = {
+                      jobId: data.jobId,
+                      kind: 'mp3',
+                      status: 'pending',
+                      estimatedSeconds: data.estimatedSeconds || 60,
+                    };
+                    setExportJobs(prev => [newJob, ...prev]);
+                    setError(`Audio export started: ${data.jobId}`);
+
+                    // Start polling for status
+                    pollExportStatus(data.jobId);
                   } catch (e: any) {
                     setError(e?.message || 'Audio export failed');
                   }
@@ -843,10 +908,10 @@ export default function TranscriptComposer(props: {
                     const res = await fetch('/api/transcript/export', {
                       method: 'POST',
                       headers: { 'content-type': 'application/json' },
-                      body: JSON.stringify({ 
-                        kind: 'mp4', 
-                        templateId: template.id, 
-                        transcript: calibratedTranscript, 
+                      body: JSON.stringify({
+                        kind: 'mp4',
+                        templateId: template.id,
+                        transcript: calibratedTranscript,
                         style,
                         audioBlob: Array.from(new Uint8Array(await audioBlob.arrayBuffer())),
                       }),
@@ -856,7 +921,18 @@ export default function TranscriptComposer(props: {
                       setError(data.error || 'Video export failed');
                       return;
                     }
-                    setError(`Video export queued: ${data.jobId}`);
+                    // Start tracking the job
+                    const newJob: ExportJob = {
+                      jobId: data.jobId,
+                      kind: 'mp4',
+                      status: 'pending',
+                      estimatedSeconds: data.estimatedSeconds || 300,
+                    };
+                    setExportJobs(prev => [newJob, ...prev]);
+                    setError(`Video export started: ${data.jobId}`);
+
+                    // Start polling for status
+                    pollExportStatus(data.jobId);
                   } catch (e: any) {
                     setError(e?.message || 'Video export failed');
                   }
@@ -897,6 +973,50 @@ export default function TranscriptComposer(props: {
                 Export carousel
               </button>
             </div>
+
+            {/* Active Jobs Tracker */}
+            {exportJobs.length > 0 && (
+              <div className="mt-4 p-3 rounded-xl bg-[#111111] border border-[#2A2A2A] space-y-2">
+                <div className="text-xs text-gray-400 font-medium">Active Exports</div>
+                {exportJobs.map((job) => (
+                  <div key={job.jobId} className="flex items-center justify-between gap-3 bg-[#1A1A1A] p-2 rounded-lg border border-[#2A2A2A]">
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-white font-medium truncate uppercase">{job.kind}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full uppercase font-bold
+                          ${job.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                            job.status === 'failed' ? 'bg-red-500/20 text-red-400' :
+                              'bg-blue-500/20 text-blue-400 animate-pulse'}`}>
+                          {job.status}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-gray-500 truncate max-w-[200px]">{job.jobId}</div>
+                    </div>
+
+                    <div>
+                      {job.status === 'completed' && job.outputUrl ? (
+                        <a
+                          href={job.outputUrl}
+                          download
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-3 py-1.5 bg-gradient-to-r from-green-600 to-green-500 text-white text-xs font-bold rounded hover:opacity-90 transition-opacity"
+                        >
+                          Download
+                        </a>
+                      ) : job.status === 'failed' ? (
+                        <span className="text-[10px] text-red-500">{job.error || 'Failed'}</span>
+                      ) : (
+                        <svg className="animate-spin h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {carouselSlides && carouselSlides.length > 0 && (
               <div className="mt-3 p-3 rounded-xl bg-[#111111] border border-[#2A2A2A]">

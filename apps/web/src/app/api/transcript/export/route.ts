@@ -83,7 +83,13 @@ export async function POST(req: NextRequest) {
       }
 
       // Call the actual backend export worker service
-      const backendUrl = process.env.VOISSS_PROCESSING_URL || 'http://localhost:5577';
+      // In production: https://voisss.famile.xyz
+      // In development: http://localhost:5577
+      const backendUrl = process.env.VOISSS_PROCESSING_URL ||
+        (process.env.NODE_ENV === 'production'
+          ? 'https://voisss.famile.xyz'
+          : 'http://localhost:5577');
+
       const formData = new FormData();
 
       // Create audio blob for backend
