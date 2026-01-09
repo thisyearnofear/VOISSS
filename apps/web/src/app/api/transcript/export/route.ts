@@ -76,23 +76,50 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Audio blob required for export' }, { status: 400 });
       }
 
-      // For MP4, also generate and include the manifest
-      let payload: any = {
-        jobId,
-        status: 'queued',
-        kind: body.kind,
-        templateId: template.id,
-        transcriptId: transcript.id,
-        audioBlob: body.audioBlob,
-      };
-
+      // Prepare manifest for MP4
+      let manifest = null;
       if (body.kind === 'mp4') {
-        const manifest = renderMp4StoryboardManifest({ transcript, template });
-        payload.manifest = manifest;
-        payload.template = template; // Include full template for backend rendering
+        manifest = renderMp4StoryboardManifest({ transcript, template });
       }
 
-      return NextResponse.json({ ok: true, ...payload });
+      // Call the actual backend export worker service
+      const backendUrl = process.env.VOISSS_PROCESSING_URL || 'http://localhost:5577';
+      const formData = new FormData();
+
+      // Create audio blob for backend
+      const audioFile = new Blob([new Uint8Array(body.audioBlob)], { type: 'audio/webm' });
+      formData.append('audio', audioFile, 'recording.webm');
+      formData.append('kind', body.kind);
+      formData.append('transcriptId', transcript.id);
+
+      if (manifest) {
+        formData.append('manifest', JSON.stringify(manifest));
+        formData.append('template', JSON.stringify(template));
+      }
+
+      try {
+        const backendRes = await fetch(`${backendUrl}/api/export/request`, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+
+        if (!backendRes.ok) {
+          const errorData = await backendRes.json().catch(() => ({ error: 'Backend service error' }));
+          return NextResponse.json({ error: errorData.error || 'Export service failed' }, { status: backendRes.status });
+        }
+
+        const backendData = await backendRes.json();
+        return NextResponse.json({ ok: true, ...backendData });
+      } catch (backendError: any) {
+        console.error('Backend export service error:', backendError);
+        return NextResponse.json({
+          error: 'Failed to connect to export service',
+          details: backendError.message
+        }, { status: 503 });
+      }
     }
 
     return NextResponse.json({ error: 'Unknown export kind' }, { status: 400 });

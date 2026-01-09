@@ -6,32 +6,62 @@
  */
 
 const express = require('express');
+const multer = require('multer');
 const { enqueueExport, getJobStatus } = require('../services/export-service');
 
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
 /**
  * POST /api/export/request
  * Enqueue a new export job
  * 
- * Body: {
- *   kind: 'mp3' | 'mp4' | 'carousel',
- *   audioUrl: string,           // URL to download audio from
- *   transcriptId: string,
- *   templateId?: string,
- *   manifest?: object,          // For MP4: storyboard manifest with segments
- *   style?: object,
- *   userId?: string
- * }
+ * Supports two formats:
+ * 1. JSON with audioUrl (for external URLs)
+ * 2. Multipart form-data with audio file (for uploads)
  */
-router.post('/request', async (req, res) => {
+router.post('/request', upload.single('audio'), async (req, res) => {
   try {
-    const { kind, audioUrl, transcriptId, templateId, manifest, style, userId } = req.body;
+    let kind, audioUrl, transcriptId, templateId, manifest, style, userId, audioBlob;
+
+    // Handle multipart/form-data (file upload)
+    if (req.file) {
+      kind = req.body.kind;
+      transcriptId = req.body.transcriptId;
+      templateId = req.body.templateId;
+      audioBlob = req.file.buffer;
+
+      if (req.body.manifest) {
+        try {
+          manifest = JSON.parse(req.body.manifest);
+        } catch (e) {
+          manifest = req.body.manifest;
+        }
+      }
+
+      if (req.body.template) {
+        try {
+          const template = JSON.parse(req.body.template);
+          // Extract template fields if needed
+        } catch (e) {
+          // ignore
+        }
+      }
+    } else {
+      // Handle JSON request (original format)
+      ({ kind, audioUrl, transcriptId, templateId, manifest, style, userId } = req.body);
+    }
 
     // Validate required fields
-    if (!kind || !audioUrl || !transcriptId) {
+    if (!kind || !transcriptId) {
       return res.status(400).json({
-        error: 'Missing required fields: kind, audioUrl, transcriptId',
+        error: 'Missing required fields: kind, transcriptId',
+      });
+    }
+
+    if (!audioUrl && !audioBlob) {
+      return res.status(400).json({
+        error: 'Either audioUrl or audio file is required',
       });
     }
 
@@ -46,6 +76,7 @@ router.post('/request', async (req, res) => {
     const result = await enqueueExport({
       kind,
       audioUrl,
+      audioBlob,
       transcriptId,
       templateId,
       manifest,
