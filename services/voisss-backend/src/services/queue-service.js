@@ -14,15 +14,10 @@ const queues = {};
  */
 function getQueue(name) {
   if (!queues[name]) {
-    console.log(`📡 Queue "${name}" using Redis at ${process.env.REDIS_HOST || '127.0.0.1'}:${process.env.REDIS_PORT || 6379}`);
+    const redisUrl = process.env.REDIS_URL || `redis://${process.env.REDIS_HOST || '127.0.0.1'}:${process.env.REDIS_PORT || 6379}`;
+    console.log(`📡 Queue "${name}" connecting to ${redisUrl}`);
 
-    queues[name] = new Queue(name, {
-      redis: {
-        host: process.env.REDIS_HOST || '127.0.0.1',
-        port: process.env.REDIS_PORT || 6379,
-        password: process.env.REDIS_PASSWORD,
-        maxRetriesPerRequest: null,
-      },
+    queues[name] = new Queue(name, redisUrl, {
       settings: {
         stalledInterval: 30000,
         maxStalledCount: 3,
