@@ -147,12 +147,12 @@ async function updateJobStatus(jobId, status, data = {}) {
 
   await query(
     `UPDATE export_jobs
-    SET status = $1, 
-        output_url = $2,
-        output_size = $3,
-        error_message = $4,
-        completed_at = CASE WHEN $1 IN ('completed', 'failed') THEN NOW() ELSE completed_at END
-    WHERE id = $5`,
+    SET status = $1::varchar, 
+        output_url = $2::text,
+        output_size = $3::integer,
+        error_message = $4::text,
+        completed_at = CASE WHEN $1::varchar IN ('completed', 'failed') THEN NOW() ELSE completed_at END
+    WHERE id = $5::varchar`,
     [status, outputUrl || null, outputSize || null, errorMessage || null, jobId]
   );
 }
