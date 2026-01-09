@@ -27,6 +27,12 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Override default CSP for API endpoints (allow all origins for API)
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy', "default-src 'self'");
+  next();
+});
+
 // Setup routes
 console.log('📝 Setting up blockchain routes...');
 setupBlockchainRoutes(app);
