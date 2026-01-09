@@ -12,6 +12,8 @@ const app = express();
 const PORT = process.env.PORT || 5577;
 const ELEVEN_API_BASE = 'https://api.elevenlabs.io/v1';
 const API_KEY = process.env.ELEVENLABS_API_KEY;
+const path = require('path');
+const OUTPUT_DIR = process.env.EXPORT_OUTPUT_DIR || '/var/www/voisss-exports';
 
 // Middleware
 app.use(cors({
@@ -19,6 +21,8 @@ app.use(cors({
     "https://voisss.netlify.app",
     "https://voisss.vercel.app",
     "https://voisss.app",
+    "https://voisss.famile.xyz",
+    "http://voisss.famile.xyz",
     "http://localhost:4445",
     "http://localhost:3000"
   ],
@@ -27,9 +31,15 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Serve exports publicly
+if (require('fs').existsSync(OUTPUT_DIR)) {
+  console.log(`📂 Serving exports from: ${OUTPUT_DIR}`);
+  app.use('/exports', express.static(OUTPUT_DIR));
+}
+
 // Override default CSP for API endpoints (allow all origins for API)
 app.use((req, res, next) => {
-  res.setHeader('Content-Security-Policy', "default-src 'self'");
+  res.setHeader('Content-Security-Policy', "default-src 'self' *; connect-src 'self' *; media-src 'self' *; img-src 'self' * data:;");
   next();
 });
 
@@ -42,15 +52,15 @@ console.log('✅ All routes mounted');
 
 
 // Configure multer for memory storage
-const upload = multer({ 
+const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
 });
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
+  res.json({
+    status: 'healthy',
     uptime: process.uptime(),
     memory: process.memoryUsage(),
     timestamp: new Date().toISOString()
@@ -72,9 +82,9 @@ app.get('/api/voices', async (req, res) => {
         statusText: response.statusText,
         body: errorText
       });
-      return res.status(response.status).json({ 
+      return res.status(response.status).json({
         error: 'Failed to fetch voices',
-        details: errorText 
+        details: errorText
       });
     }
 
@@ -82,9 +92,9 @@ app.get('/api/voices', async (req, res) => {
     res.json(data);
   } catch (error) {
     console.error('Error listing voices:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Internal server error',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -114,14 +124,14 @@ app.post('/api/transform', upload.single('audio'), async (req, res) => {
     const form = new FormData();
     form.append('model_id', modelId);
     form.append('output_format', outputFormat);
-    
+
     // Normalize MIME type
     const normalizedType = (req.file.mimetype || 'audio/webm').split(';')[0];
     const filename = normalizedType.includes('webm') ? 'input.webm' :
-                     normalizedType.includes('ogg') ? 'input.ogg' :
-                     normalizedType.includes('mpeg') || normalizedType.includes('mp3') ? 'input.mp3' :
-                     'input';
-    
+      normalizedType.includes('ogg') ? 'input.ogg' :
+        normalizedType.includes('mpeg') || normalizedType.includes('mp3') ? 'input.mp3' :
+          'input';
+
     form.append('audio', req.file.buffer, {
       filename,
       contentType: normalizedType
@@ -147,9 +157,9 @@ app.post('/api/transform', upload.single('audio'), async (req, res) => {
         voiceId,
         modelId
       });
-      return res.status(response.status).json({ 
+      return res.status(response.status).json({
         error: 'Voice transformation failed',
-        details: errorText 
+        details: errorText
       });
     }
 
@@ -165,9 +175,9 @@ app.post('/api/transform', upload.single('audio'), async (req, res) => {
 
   } catch (error) {
     console.error('Error in transform:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Internal server error',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -179,11 +189,11 @@ app.post('/api/dubbing/start', upload.single('audio'), async (req, res) => {
       return res.status(400).json({ error: 'No audio file provided' });
     }
 
-    const { 
-      targetLanguage, 
-      sourceLanguage, 
+    const {
+      targetLanguage,
+      sourceLanguage,
       modelId,
-      preserveBackgroundAudio 
+      preserveBackgroundAudio
     } = req.body;
 
     if (!targetLanguage) {
@@ -202,16 +212,16 @@ app.post('/api/dubbing/start', upload.single('audio'), async (req, res) => {
     const form = new FormData();
     const normalizedType = (req.file.mimetype || 'audio/webm').split(';')[0];
     const filename = normalizedType.includes('webm') ? 'input.webm' :
-                     normalizedType.includes('ogg') ? 'input.ogg' :
-                     normalizedType.includes('mpeg') || normalizedType.includes('mp3') ? 'input.mp3' :
-                     'input';
-    
+      normalizedType.includes('ogg') ? 'input.ogg' :
+        normalizedType.includes('mpeg') || normalizedType.includes('mp3') ? 'input.mp3' :
+          'input';
+
     form.append('file', req.file.buffer, {
       filename,
       contentType: normalizedType
     });
     form.append('target_lang', targetLanguage);
-    
+
     if (sourceLanguage) {
       form.append('source_lang', sourceLanguage);
     }
@@ -240,9 +250,9 @@ app.post('/api/dubbing/start', upload.single('audio'), async (req, res) => {
         statusText: response.statusText,
         body: errorText
       });
-      return res.status(response.status).json({ 
+      return res.status(response.status).json({
         error: 'Failed to start dubbing job',
-        details: errorText 
+        details: errorText
       });
     }
 
@@ -256,9 +266,9 @@ app.post('/api/dubbing/start', upload.single('audio'), async (req, res) => {
 
   } catch (error) {
     console.error('Error starting dubbing:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Internal server error',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -281,9 +291,9 @@ app.get('/api/dubbing/:dubbingId/status', async (req, res) => {
         body: errorText,
         dubbingId
       });
-      return res.status(response.status).json({ 
+      return res.status(response.status).json({
         error: 'Failed to get dubbing status',
-        details: errorText 
+        details: errorText
       });
     }
 
@@ -292,9 +302,9 @@ app.get('/api/dubbing/:dubbingId/status', async (req, res) => {
 
   } catch (error) {
     console.error('Error getting dubbing status:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Internal server error',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -318,9 +328,9 @@ app.get('/api/dubbing/:dubbingId/audio/:targetLanguage', async (req, res) => {
         dubbingId,
         targetLanguage
       });
-      return res.status(response.status).json({ 
+      return res.status(response.status).json({
         error: 'Failed to fetch dubbed audio',
-        details: errorText 
+        details: errorText
       });
     }
 
@@ -337,9 +347,9 @@ app.get('/api/dubbing/:dubbingId/audio/:targetLanguage', async (req, res) => {
 
   } catch (error) {
     console.error('Error getting dubbed audio:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Internal server error',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -371,7 +381,7 @@ app.post('/api/dubbing/complete', upload.single('audio'), async (req, res) => {
       contentType: audioFile.mimetype || 'audio/wav'
     });
     form.append('target_lang', targetLanguage);
-    
+
     if (sourceLanguage && sourceLanguage !== 'auto') {
       form.append('source_lang', sourceLanguage);
     }
@@ -392,7 +402,7 @@ app.post('/api/dubbing/complete', upload.single('audio'), async (req, res) => {
     if (!startResponse.ok) {
       const errorText = await startResponse.text();
       console.error('ElevenLabs API Error (complete dubbing start):', errorText);
-      
+
       if (errorText.includes('invalid_workspace_type')) {
         return res.status(402).json({
           error: 'ElevenLabs workspace upgrade required',
@@ -400,7 +410,7 @@ app.post('/api/dubbing/complete', upload.single('audio'), async (req, res) => {
           code: 'LEGACY_WORKSPACE'
         });
       }
-      
+
       return res.status(startResponse.status).json({
         error: 'Failed to start dubbing job',
         details: errorText
@@ -420,7 +430,7 @@ app.post('/api/dubbing/complete', upload.single('audio'), async (req, res) => {
 
     while (status !== 'dubbed') {
       const elapsed = Date.now() - pollStart;
-      
+
       if (elapsed > maxWaitMs) {
         return res.status(408).json({
           error: 'Dubbing timeout',
@@ -430,7 +440,7 @@ app.post('/api/dubbing/complete', upload.single('audio'), async (req, res) => {
       }
 
       await new Promise(r => setTimeout(r, pollIntervalMs));
-      
+
       const statusResponse = await fetch(`${ELEVEN_API_BASE}/dubbing/${dubbingId}`, {
         headers: { 'xi-api-key': API_KEY },
         timeout: 30000
@@ -502,9 +512,9 @@ app.post('/api/dubbing/complete', upload.single('audio'), async (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
-  res.status(500).json({ 
+  res.status(500).json({
     error: 'Internal server error',
-    message: err.message 
+    message: err.message
   });
 });
 
@@ -515,7 +525,7 @@ async function startServer() {
   try {
     // Run pending migrations
     await runMigrations();
-    
+
     const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`\n${'='.repeat(60)}`);
       console.log(`VOISSS Processing Service running on port ${PORT}`);
