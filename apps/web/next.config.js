@@ -51,7 +51,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; connect-src 'self' https://api.cdp.coinbase.com https://api.coinbase.com https://mainnet.base.org https://sepolia.base.org https://voisss.famile.xyz wss://www.walletlink.org https://www.walletlink.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https://ipfs.io https://*.ipfs.dweb.link blob:; frame-src 'self' https://verify.coinbase.com;",
+            value: "default-src 'self'; connect-src 'self' https://api.cdp.coinbase.com https://api.coinbase.com https://cca-lite.coinbase.com https://mainnet.base.org https://sepolia.base.org https://voisss.famile.xyz wss://www.walletlink.org https://www.walletlink.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https://ipfs.io https://*.ipfs.dweb.link blob:; frame-src 'self' https://verify.coinbase.com;",
           },
         ],
       },
