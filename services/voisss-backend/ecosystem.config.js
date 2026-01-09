@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 module.exports = {
   apps: [
     {
@@ -10,7 +12,8 @@ module.exports = {
       max_memory_restart: '1G',
       env: {
         NODE_ENV: 'production',
-        PORT: 5577
+        PORT: 5577,
+        DATABASE_URL: process.env.DATABASE_URL,
       },
       error_file: './logs/error.log',
       out_file: './logs/out.log',
@@ -33,7 +36,8 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         WORKER_CONCURRENCY: 2,
-        WORKER_ID: 'worker-pm2'
+        WORKER_ID: 'worker-pm2',
+        DATABASE_URL: process.env.DATABASE_URL,
       },
       error_file: './logs/worker-error.log',
       out_file: './logs/worker-out.log',
