@@ -49,7 +49,7 @@ export function BaseProvider({ children }: { children: React.ReactNode }) {
         const currentDomain = window.location.origin;
 
         const sdkInstance = createBaseAccountSDK({
-          appName: 'VOISSS - Morph Your Voice',
+          appName: 'VOISSS',
           appLogoUrl: `${currentDomain}/logo.png`,
           appChainIds: [base.id],
           // Note: We use backend spender wallet for gasless transactions
