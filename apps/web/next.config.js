@@ -16,17 +16,17 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react'],
   },
-  
+
   // Optimize images
   images: {
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
-  
+
   // Enable compression
   compress: true,
-  
+
   // Security headers
   async headers() {
     return [
@@ -49,11 +49,15 @@ const nextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(self), geolocation=()',
           },
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'self'; connect-src 'self' https://api.cdp.coinbase.com https://api.coinbase.com https://mainnet.base.org https://sepolia.base.org https://voisss.famile.xyz wss://www.walletlink.org https://www.walletlink.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https://ipfs.io https://*.ipfs.dweb.link blob:; frame-src 'self' https://verify.coinbase.com;",
+          },
         ],
       },
     ];
   },
-  
+
   // Redirect configuration
   async redirects() {
     return [
@@ -64,10 +68,10 @@ const nextConfig = {
       },
     ];
   },
-  
+
   // Output configuration - disable static export for Base SDK pages
   // output: 'standalone',
-  
+
   // Webpack configuration for better tree shaking
   webpack: (config, { dev, isServer }) => {
     // Exclude react-native from bundling to prevent build errors
@@ -75,7 +79,7 @@ const nextConfig = {
       ...config.resolve.alias,
       'react-native': false,
     };
-    
+
     // Add fallbacks for Node.js modules
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -85,7 +89,7 @@ const nextConfig = {
       'path': false,
       'crypto': false,
     };
-    
+
     // Provide process polyfill for browser
     const webpack = require('webpack');
     config.plugins = config.plugins || [];
@@ -97,7 +101,7 @@ const nextConfig = {
         'process.platform': JSON.stringify('browser'),
       })
     );
-    
+
     // Optimize bundle size
     if (!dev && !isServer) {
       config.optimization.splitChunks = {
@@ -116,7 +120,7 @@ const nextConfig = {
         },
       };
     }
-    
+
     return config;
   },
 };

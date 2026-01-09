@@ -7,7 +7,7 @@ export function getConfig() {
     chains: [base, baseSepolia],
     connectors: [
       injected(),
-      coinbaseWallet(),
+      coinbaseWallet({ appName: 'VOISSS', preference: 'smartWalletOnly' }),
     ],
     ssr: true,
     transports: {
