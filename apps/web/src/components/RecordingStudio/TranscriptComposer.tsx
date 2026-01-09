@@ -180,6 +180,7 @@ export default function TranscriptComposer(props: {
 
   // Track if current transcript came from accurate source (not rough auto-generation)
   const [isAccurateTranscript, setIsAccurateTranscript] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
 
   // Restore persisted state with validation
   useEffect(() => {
@@ -244,6 +245,11 @@ export default function TranscriptComposer(props: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const normalizedDurationSeconds = useMemo(() => {
+    // If > 500, it's definitely milliseconds (500s is > 8 mins, which we don't support)
+    return durationSeconds > 500 ? durationSeconds / 1000 : durationSeconds;
+  }, [durationSeconds]);
+
   // Persist state with version (best-effort)
   useEffect(() => {
     try {
@@ -267,7 +273,7 @@ export default function TranscriptComposer(props: {
   // Auto-generate rough timing when text changes and no accurate transcript exists
   useEffect(() => {
     const trimmed = rawText.trim();
-    if (!trimmed || durationSeconds <= 0) return;
+    if (!trimmed || normalizedDurationSeconds <= 0) return;
 
     // CRITICAL: Only auto-generate if we DON'T have an accurate transcript.
     // If user imported accurate JSON, never overwrite it with rough timing.
@@ -276,25 +282,37 @@ export default function TranscriptComposer(props: {
       return; // Don't auto-generate over accurate transcripts
     }
 
-    // For rough transcripts: only regenerate if text meaningfully changed
+    // For rough transcripts: only regenerate if text meaningfully changed or duration is suspicious
+    const lastEndMs = timedTranscript?.segments?.[timedTranscript.segments.length - 1]?.endMs || 0;
+    const isSuspiciousDuration = lastEndMs > 100000 && normalizedDurationSeconds < 100; // e.g. stored 2000s when prop is 2s
     const textDifferent = timedTranscript?.text !== trimmed;
-    if (!textDifferent) {
-      return; // Text hasn't changed, no need to regenerate
+
+    if (!textDifferent && !isSuspiciousDuration) {
+      return; // Text hasn't changed and duration isn't suspicious, no need to regenerate
     }
 
     // Debounce rough timing generation
     const timeoutId = setTimeout(() => {
-      applyRoughTiming();
+      setError(null);
+      try {
+        const tt = createRoughTimedTranscript({
+          text: rawText,
+          durationSeconds: normalizedDurationSeconds
+        });
+        setTimedTranscript(tt);
+        setIsAccurateTranscript(false);
+      } catch (e: any) {
+        setError(e?.message || 'Failed to create timed transcript');
+      }
     }, 1000);
 
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rawText, durationSeconds, isAccurateTranscript]);
+  }, [rawText, normalizedDurationSeconds, isAccurateTranscript, timedTranscript]);
 
   // Use robust audio playback time tracking (timeupdate + RAF interpolation)
   const handleTimeChange = useCallback((timeMs: number) => {
     setCurrentTimeMs(timeMs);
-    console.log('[TranscriptComposer] currentTimeMs updated to:', timeMs);
   }, []);
 
   useAudioPlaybackTime(audioRef, handleTimeChange);
@@ -337,11 +355,7 @@ export default function TranscriptComposer(props: {
   // Find active word using calibrated transcript (already has offset baked in)
   const active = useMemo(() => {
     if (!calibratedTranscript) return null;
-    const result = findActiveWord(calibratedTranscript, currentTimeMs);
-    if (result) {
-      console.log('[TranscriptComposer] Active word:', { segmentIndex: result.segmentIndex, wordIndex: result.wordIndex, currentTimeMs });
-    }
-    return result;
+    return findActiveWord(calibratedTranscript, currentTimeMs);
   }, [calibratedTranscript, currentTimeMs]);
 
   const activeSegment = useMemo(() => {
@@ -373,7 +387,7 @@ export default function TranscriptComposer(props: {
   const applyRoughTiming = () => {
     setError(null);
     try {
-      const tt = createRoughTimedTranscript({ text: rawText, durationSeconds });
+      const tt = createRoughTimedTranscript({ text: rawText, durationSeconds: normalizedDurationSeconds });
       setTimedTranscript(tt);
       setIsAccurateTranscript(false); // Rough timing is not accurate
     } catch (e: any) {
@@ -726,18 +740,22 @@ export default function TranscriptComposer(props: {
               <button
                 onClick={async () => {
                   setError(null);
+                  if (!rawText.trim() || normalizedDurationSeconds <= 0) return;
+                  setError(null);
+
+                  // Final safety check on total duration
+                  if (normalizedDurationSeconds > 60.5) { // Allow slight buffer
+                    setError(`Audio too long (${normalizedDurationSeconds.toFixed(1)}s). Maximum 60 seconds.`);
+                    return;
+                  }
+
+                  setIsTranscribing(true);
                   try {
                     // Validate file size client-side (25 MB limit)
                     const maxSizeMB = 25;
                     const maxSizeBytes = maxSizeMB * 1024 * 1024;
                     if (audioBlob.size > maxSizeBytes) {
                       setError(`Audio file too large (${(audioBlob.size / 1024 / 1024).toFixed(1)}MB). Max 25MB.`);
-                      return;
-                    }
-
-                    // Validate duration client-side (60s limit)
-                    if (durationSeconds > 60.5) { // Allow slight buffer
-                      setError(`Audio too long (${durationSeconds.toFixed(1)}s). Maximum 60 seconds.`);
                       return;
                     }
 
@@ -752,18 +770,27 @@ export default function TranscriptComposer(props: {
                     const tt = TimedTranscriptSchema.parse(data.transcript);
                     setTimedTranscript(tt);
                     setRawText(tt.text || tt.segments.map((s) => s.text).join(' '));
-                    // Mark as accurate since it came from OpenAI transcription
                     setIsAccurateTranscript(true);
                   } catch (e: any) {
                     setError(e?.message || 'Transcription failed');
+                  } finally {
+                    setIsTranscribing(false);
                   }
                 }}
-                className={`px-4 py-2 rounded-lg border text-white text-sm hover:bg-[#3A3A3A] ${autoFocus
+                disabled={isTranscribing || !rawText.trim() || normalizedDurationSeconds <= 0}
+                className={`px-4 py-2 rounded-lg border text-white text-sm hover:bg-[#3A3A3A] flex items-center gap-2 ${autoFocus
                   ? 'bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] border-transparent'
                   : 'bg-[#2A2A2A] border-[#3A3A3A]'
-                  }`}
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                Transcribe audio (accurate)
+                {isTranscribing ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Transcribing...
+                  </>
+                ) : (
+                  'Transcribe audio (accurate)'
+                )}
               </button>
               {autoFocus && (
                 <div className="w-full text-xs text-[#C4B5FD] mt-1">
