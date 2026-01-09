@@ -273,7 +273,7 @@ async function startWorker() {
  */
 async function shutdown() {
   console.log('\n⏹️  Shutting down worker...');
-  const { closeQueues } = require('./services/queue-service');
+  const { closeQueues } = require('../services/queue-service');
   await closeQueues(); // Close all queues and clear cache
   await closePool();
   console.log('✅ Worker shutdown complete');
