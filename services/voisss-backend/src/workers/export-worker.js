@@ -8,6 +8,15 @@
 require('dotenv').config();
 
 const { getQueue } = require('../services/queue-service');
+
+process.on('uncaughtException', (err) => {
+  console.error('💥 UNCAUGHT EXCEPTION:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('💥 UNHANDLED REJECTION:', reason);
+});
 const {
   updateJobStatus,
   EXPORT_QUEUE,
