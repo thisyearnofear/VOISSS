@@ -39,11 +39,14 @@ const path = require('path');
  * PRINCIPLE: CLEAN - Each path handles its own logic
  */
 async function processExportJob(job) {
+  const workerInfo = `[Worker ${process.env.WORKER_ID} PID:${process.pid}]`;
+  console.log(`${workerInfo} 📥 RECEIVED JOB: ${job.id}`);
+
   const { jobId, kind, audioUrl, transcriptId, userId, manifest } = job.data;
   const startTime = Date.now();
   const tempFiles = [];
 
-  console.log(`\n▶️  [Worker ${process.env.WORKER_ID}] Processing job ${job.id} for export: ${jobId} (${kind})`);
+  console.log(`${workerInfo} ▶️  Processing job ${job.id} for export: ${jobId} (${kind})`);
 
   try {
     // Update status to processing

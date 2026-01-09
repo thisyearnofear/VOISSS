@@ -24,10 +24,10 @@ function getQueue(name) {
         maxRetriesPerRequest: null,
       },
       settings: {
-        stalledInterval: 5000,
-        maxStalledCount: 2,
-        lockDuration: 30000,
-        lockRenewTime: 15000,
+        stalledInterval: 30000,
+        maxStalledCount: 3,
+        lockDuration: 60000,
+        lockRenewTime: 20000,
         retryProcessDelay: 5000,
       },
     });
