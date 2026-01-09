@@ -89,6 +89,7 @@ router.post('/request', upload.single('audio'), async (req, res) => {
       audioBlob,
       transcriptId,
       templateId,
+      template: req.body.template ? (typeof req.body.template === 'string' ? JSON.parse(req.body.template) : req.body.template) : null,
       manifest,
       style,
       userId: userId || req.user?.id || 'anonymous',

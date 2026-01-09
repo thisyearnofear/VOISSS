@@ -20,6 +20,7 @@ async function enqueueExport({
   audioUrl,
   transcriptId,
   templateId,
+  template,
   manifest,
   style,
   userId = 'anonymous',
@@ -54,6 +55,7 @@ async function enqueueExport({
     audioUrl: finalAudioUrl,
     transcriptId,
     templateId,
+    template,
     manifest,
     style,
     userId,
@@ -90,21 +92,21 @@ async function enqueueExport({
 async function saveAudioBlob(jobId, audioBlob) {
   const fs = require('fs');
   const path = require('path');
-  
+
   const tempDir = process.env.EXPORT_TEMP_DIR || '/tmp/voisss-exports';
   if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir, { recursive: true });
   }
 
   const audioPath = path.join(tempDir, `${jobId}_input.webm`);
-  
+
   // Convert array to buffer if needed
-  const buffer = Buffer.isBuffer(audioBlob) 
-    ? audioBlob 
+  const buffer = Buffer.isBuffer(audioBlob)
+    ? audioBlob
     : Buffer.from(audioBlob);
-  
+
   fs.writeFileSync(audioPath, buffer);
-  
+
   // Return file:// URL for local access
   return `file://${audioPath}`;
 }
