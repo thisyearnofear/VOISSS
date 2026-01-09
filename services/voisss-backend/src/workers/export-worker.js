@@ -239,6 +239,17 @@ async function startWorker() {
     const concurrency = parseInt(process.env.WORKER_CONCURRENCY || '2');
     console.log(`Worker concurrency: ${concurrency}`);
 
+    // Wait for queue to be ready before processing
+    // Check if Redis client is already ready (for cached queue instances)
+    if (queue.client && queue.client.status === 'ready') {
+      console.log('✅ Queue already connected, registering processor...');
+    } else {
+      await new Promise((resolve) => {
+        queue.once('ready', resolve);
+      });
+      console.log('✅ Queue connection established, registering processor...');
+    }
+
     queue.process(concurrency, processExportJob);
 
     // Event listeners for monitoring
