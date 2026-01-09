@@ -294,6 +294,7 @@ export default function TranscriptComposer(props: {
   // Use robust audio playback time tracking (timeupdate + RAF interpolation)
   const handleTimeChange = useCallback((timeMs: number) => {
     setCurrentTimeMs(timeMs);
+    console.log('[TranscriptComposer] currentTimeMs updated to:', timeMs);
   }, []);
 
   useAudioPlaybackTime(audioRef, handleTimeChange);
@@ -336,7 +337,11 @@ export default function TranscriptComposer(props: {
   // Find active word using calibrated transcript (already has offset baked in)
   const active = useMemo(() => {
     if (!calibratedTranscript) return null;
-    return findActiveWord(calibratedTranscript, currentTimeMs);
+    const result = findActiveWord(calibratedTranscript, currentTimeMs);
+    if (result) {
+      console.log('[TranscriptComposer] Active word:', { segmentIndex: result.segmentIndex, wordIndex: result.wordIndex, currentTimeMs });
+    }
+    return result;
   }, [calibratedTranscript, currentTimeMs]);
 
   const activeSegment = useMemo(() => {
