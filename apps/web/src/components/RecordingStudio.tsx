@@ -655,7 +655,7 @@ export default function RecordingStudio({
             {previewUrl && audioBlob && duration > 0 && (
               <TranscriptComposer
                 previewUrl={previewUrl}
-                durationSeconds={duration}
+                durationSeconds={duration / 1000}
                 audioBlob={audioBlob}
                 initialTemplateId={initialTranscriptTemplateId}
                 autoFocus={initialMode === "transcript"}
