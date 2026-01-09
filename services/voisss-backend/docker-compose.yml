@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # Main API Service
+  voisss-api:
+    build:
+      context: ../../
+      dockerfile: services/voisss-backend/Dockerfile
+    container_name: voisss-api
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - EXPORT_PUBLIC_URL=https://voisss.famile.xyz
+    env_file: .env
+    ports:
+      - "5577:5577"
+    volumes:
+      - voisss-exports:/var/www/voisss-exports
+      - voisss-temp:/tmp/voisss-exports
+    depends_on:
+      - redis
+
+  # Export Worker (Scale this as needed)
+  voisss-worker:
+    build:
+      context: ../../
+      dockerfile: services/voisss-backend/Dockerfile
+    container_name: voisss-worker
+    command: node src/workers/export-worker.js
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - WORKER_CONCURRENCY=2
+      - WORKER_ID=docker-worker
+    env_file: .env
+    volumes:
+      - voisss-exports:/var/www/voisss-exports
+      - voisss-temp:/tmp/voisss-exports
+    depends_on:
+      - redis
+
+  # Redis for Job Queue
+  redis:
+    image: redis:7-alpine
+    container_name: voisss-redis
+    restart: always
+    volumes:
+      - redis-data:/data
+
+volumes:
+  voisss-exports:
+  voisss-temp:
+  redis-data:

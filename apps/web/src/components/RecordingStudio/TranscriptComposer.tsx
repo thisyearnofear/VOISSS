@@ -151,11 +151,14 @@ export default function TranscriptComposer(props: {
     jobId: string;
     kind: 'mp3' | 'mp4';
     status: 'pending' | 'processing' | 'completed' | 'failed';
+    progress?: number;
     outputUrl?: string;
     error?: string;
     estimatedSeconds?: number;
+    createdAt?: string;
   }
   const [exportJobs, setExportJobs] = useState<ExportJob[]>([]);
+  const [userId, setUserId] = useState<string>('anonymous');
   const [exportingKind, setExportingKind] = useState<'mp3' | 'mp4' | 'carousel' | null>(null);
 
   // Checkpoint system for saving/restoring state
@@ -269,6 +272,48 @@ export default function TranscriptComposer(props: {
       // localStorage full or disabled; silently ignore
     }
   }, [templateId, rawText, importJson, timedTranscript, style, syncOffsetMs]);
+
+  // Persistent User ID and Export Library
+  useEffect(() => {
+    let uid = localStorage.getItem('voisss:user_id');
+    if (!uid) {
+      uid = `u_${Math.random().toString(36).substring(2, 11)}`;
+      localStorage.setItem('voisss:user_id', uid);
+    }
+    setUserId(uid);
+
+    // Fetch existing jobs for this user
+    const fetchUserJobs = async () => {
+      const backendUrl = process.env.NEXT_PUBLIC_VOISSS_PROCESSING_URL || 'https://voisss.famile.xyz';
+      try {
+        const res = await fetch(`${backendUrl}/api/export/user/${uid}`);
+        if (res.ok) {
+          const jobs = await res.json();
+          // Filter out very old failed jobs or map to our state
+          setExportJobs(jobs.map((j: any) => ({
+            jobId: j.id,
+            kind: j.kind,
+            status: j.status,
+            outputUrl: j.outputUrl,
+            error: j.error_message,
+            progress: j.status === 'completed' ? 100 : 0,
+            createdAt: j.created_at
+          })));
+
+          // Start polling for any active jobs discovered in history
+          jobs.forEach((j: any) => {
+            if (j.status === 'pending' || j.status === 'processing') {
+              pollExportStatus(j.id);
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch user jobs:', err);
+      }
+    };
+
+    fetchUserJobs();
+  }, []);
 
   // Auto-generate rough timing when text changes and no accurate transcript exists
   useEffect(() => {
@@ -462,10 +507,10 @@ export default function TranscriptComposer(props: {
     }
   };
 
-  // Poll export job status
+  // Poll export job status (Top-level within component)
   const pollExportStatus = async (jobId: string) => {
     const backendUrl = process.env.NEXT_PUBLIC_VOISSS_PROCESSING_URL || 'https://voisss.famile.xyz';
-    const maxAttempts = 60; // Poll for up to 5 minutes (60 * 5s)
+    const maxAttempts = 120; // 6 minutes (120 * 3s)
     let attempts = 0;
 
     const poll = async () => {
@@ -488,12 +533,13 @@ export default function TranscriptComposer(props: {
             status: data.status,
             outputUrl: data.outputUrl,
             error: data.error,
+            progress: data.progress || (data.status === 'completed' ? 100 : job.progress || 0),
           } : job
         ));
 
         if (data.status === 'pending' || data.status === 'processing') {
           attempts++;
-          setTimeout(poll, 5000); // Poll every 5 seconds
+          setTimeout(poll, 3000); // Poll every 3 seconds (matched with our new faster backend)
         }
       } catch (error) {
         setExportJobs(prev => prev.map(job =>
@@ -1078,10 +1124,17 @@ export default function TranscriptComposer(props: {
                       ) : job.status === 'failed' ? (
                         <span className="text-[10px] text-red-500">{job.error || 'Failed'}</span>
                       ) : (
-                        <svg className="animate-spin h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
+                        <div className="flex flex-col items-end gap-1">
+                          <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-blue-500 transition-all duration-500 ease-out"
+                              style={{ width: `${job.progress || 0}%` }}
+                            />
+                          </div>
+                          <span className="text-[8px] text-blue-400 font-mono">
+                            {job.progress ? `${job.progress}%` : 'init...'}
+                          </span>
+                        </div>
                       )}
                     </div>
                   </div>

@@ -7,7 +7,7 @@
 
 const express = require('express');
 const multer = require('multer');
-const { enqueueExport, getJobStatus } = require('../services/export-service');
+const { enqueueExport, getJobStatus, getUserJobs } = require('../services/export-service');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
@@ -123,6 +123,25 @@ router.get('/:jobId/status', async (req, res) => {
     res.json(status);
   } catch (error) {
     console.error('Status request failed:', error);
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * GET /api/export/user/:userId
+ * List export jobs for a user
+ */
+router.get('/user/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { limit = 20, offset = 0 } = req.query;
+
+    const jobs = await getUserJobs(userId, parseInt(limit), parseInt(offset));
+    res.json(jobs);
+  } catch (error) {
+    console.error('User jobs request failed:', error);
     res.status(500).json({
       error: error.message,
     });

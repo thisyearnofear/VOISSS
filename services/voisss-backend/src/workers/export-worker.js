@@ -59,8 +59,11 @@ async function processExportJob(job) {
 
   try {
     // Update status to processing
-    await updateJobStatus(jobId, 'processing', { workerId: process.env.WORKER_ID });
-    await job.progress(10); // Report progress to keep job alive
+    await updateJobStatus(jobId, 'processing', {
+      workerId: process.env.WORKER_ID || 'worker-pm2',
+      progress: 5
+    });
+    await job.progress(5); // Initial kick-off
 
     // Step 1: Get audio file (download or copy local)
     const inputFileName = `${jobId}_input.webm`;
@@ -100,6 +103,11 @@ async function processExportJob(job) {
     await updateJobStatus(jobId, 'completed', {
       outputUrl: publicUrl,
       outputSize: fileSize,
+      stats: {
+        durationMs: duration,
+        fileSizeMb: (fileSize / 1024 / 1024).toFixed(2),
+        kind
+      }
     });
 
     console.log(`✅ Export complete: ${jobId}`);
@@ -153,13 +161,30 @@ async function processVideoExport(jobId, audioPath, manifest, template, tempFile
 
     // Step 2: Render SVG frames to PNG using Sharp
     console.log(`🎨 Rendering ${frameData.length} frames to PNG...`);
-    const frameResults = await Promise.all(
-      frameData.map((frame, idx) =>
-        renderSvgToPng(frame.svg, path.join(outputDir, `${jobId}_frame_${String(idx).padStart(4, '0')}.png`))
-      )
-    );
+
+    // Batch rendering with progress updates
+    const frameResults = [];
+    const batchSize = 10;
+    for (let i = 0; i < frameData.length; i += batchSize) {
+      const batch = frameData.slice(i, i + batchSize);
+      const batchResults = await Promise.all(
+        batch.map((frame, batchIdx) => {
+          const frameIdx = i + batchIdx;
+          return renderSvgToPng(
+            frame.svg,
+            path.join(outputDir, `${jobId}_frame_${String(frameIdx).padStart(4, '0')}.png`)
+          );
+        })
+      );
+      frameResults.push(...batchResults);
+
+      // Calculate rendering progress (30% to 70% range)
+      const renderProgress = 30 + Math.floor((i + batch.length) / frameData.length * 40);
+      if (job) await job.progress(renderProgress);
+      await updateJobStatus(jobId, 'processing', { progress: renderProgress });
+    }
+
     frameResults.forEach(p => tempFiles.push(p));
-    if (job) await job.progress(50);
 
     // Step 3: Calculate video parameters
     const videoParams = calculateVideoParams(frameData, frameData[frameData.length - 1]?.endMs || 1000);
