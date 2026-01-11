@@ -91,16 +91,18 @@ const nextConfig = {
     };
 
     // Provide process polyfill for browser
-    const webpack = require('webpack');
-    config.plugins = config.plugins || [];
-    config.plugins.push(
-      new webpack.DefinePlugin({
-        'process.env': JSON.stringify(process.env),
-        'process.exit': 'undefined',
-        'process.version': JSON.stringify(process.version),
-        'process.platform': JSON.stringify('browser'),
-      })
-    );
+    if (!isServer) {
+      const webpack = require('webpack');
+      config.plugins = config.plugins || [];
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          'process.env': JSON.stringify(process.env),
+          'process.exit': 'undefined',
+          'process.version': JSON.stringify(process.version),
+          'process.platform': JSON.stringify('browser'),
+        })
+      );
+    }
 
     // Optimize bundle size
     if (!dev && !isServer) {
