@@ -22,37 +22,53 @@ export async function generateContentFromAudio(
     throw new Error("Google API Key is missing");
   }
 
+  if (!audioBase64) {
+    throw new Error("Audio data is empty");
+  }
+
+  // Use Gemini 3's native JSON mode for best structure and speed
+  const generationConfig = {
+    responseMimeType: "application/json",
+  };
+
   const prompt = `
-    Analyze this audio recording and provide structured insights.
-    Return the response in JSON format with the following schema:
+    You are an expert audio analyst for VOISSS.
+    Analyze the attached audio recording and extract key metadata.
+    Focus on tone, content, and specific actionable intentions.
+    Provide the result as a JSON object matching this schema:
     {
-      "title": "A short, catchy title for the recording (max 60 chars)",
-      "summary": "A concise summary of the content (3 bullet points)",
-      "tags": ["Array", "of", "5", "relevant", "hashtags"],
-      "actionItems": ["Array", "of", "actionable", "tasks", "extracted", "from", "audio"]
+      "title": "Short catchy title (max 60 chars)",
+      "summary": ["Bullet point 1", "Bullet point 2", "Bullet point 3"],
+      "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
+      "actionItems": ["task1", "task2", "task3"]
     }
   `;
 
-  const result = await model.generateContent([
-    prompt,
-    {
-      inlineData: {
-        mimeType: mimeType,
-        data: audioBase64,
-      },
-    },
-  ]);
-
-  const response = await result.response;
-  const text = response.text();
-
-  // Clean up the response if it includes markdown code blocks
-  const jsonString = text.replace(/```json\n|\n```/g, "").trim();
-
   try {
-    return JSON.parse(jsonString);
+    const result = await model.generateContent({
+      contents: [{
+        role: 'user',
+        parts: [
+          { text: prompt },
+          {
+            inlineData: {
+              mimeType: mimeType,
+              data: audioBase64,
+            },
+          },
+        ],
+      }],
+      generationConfig,
+    });
+
+    const response = await result.response;
+    const text = response.text();
+
+    // In JSON mode, Gemini 3 returns a clean string. 
+    // No need for markdown replacement.
+    return JSON.parse(text);
   } catch (error) {
-    console.error("Failed to parse Gemini response:", text, error);
-    throw new Error("Failed to parse AI insights");
+    console.error("Gemini 3 Analysis Error:", error);
+    throw new Error("Audio analysis failed. Check API quota or audio format.");
   }
 }

@@ -304,9 +304,8 @@ export default function DubbingPanel({
           <span className="text-sm text-gray-400">
             {userTier === "premium"
               ? "∞ unlimited"
-              : `${remainingQuota.dubbing}/${
-                  useFreemiumStore.getState().WEEKLY_DUBBING_LIMIT
-                } free this week`}
+              : `${remainingQuota.dubbing}/${useFreemiumStore.getState().WEEKLY_DUBBING_LIMIT
+              } free this week`}
           </span>
           {/* Service status badge */}
           <div className="mt-1 text-xs">
@@ -395,36 +394,40 @@ export default function DubbingPanel({
               </p>
             </div>
 
-            <div className="space-y-4">
-              <label className="block text-lg font-semibold text-white">
-                🌍 Choose Target Language
-              </label>
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <label className="text-lg font-bold text-white flex items-center gap-2">
+                  <span className="text-xl">🌍</span> Target Language
+                </label>
+                <div className="text-[10px] uppercase tracking-widest text-[#7C5DFA] font-bold bg-[#7C5DFA]/10 px-2 py-1 rounded">
+                  Neural Translation Active
+                </div>
+              </div>
 
               {/* Enhanced Visual Language Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
                 {POPULAR_LANGUAGES.map((lang) => (
                   <button
                     key={lang.code}
                     onClick={() => setSelectedTargetLanguage(lang.code)}
                     disabled={disabled || isDubbing}
-                    className={`p-4 rounded-xl border transition-all duration-200 ${
-                      selectedTargetLanguage === lang.code
-                        ? "border-purple-500 bg-purple-500/20 shadow-lg"
-                        : "border-gray-600 bg-gray-800 hover:border-gray-500 hover:bg-gray-700"
-                    } ${
-                      disabled || isDubbing
+                    className={`group relative p-4 rounded-xl border transition-all duration-300 ${selectedTargetLanguage === lang.code
+                        ? "border-[#7C5DFA] bg-[#7C5DFA]/20 shadow-[0_0_20px_rgba(124,93,250,0.2)]"
+                        : "border-[#2A2A2A] bg-[#0F0F0F] hover:border-[#3A3A3A] hover:bg-[#1A1A1A]"
+                      } ${disabled || isDubbing
                         ? "opacity-50 cursor-not-allowed"
-                        : "cursor-pointer"
-                    }`}
+                        : "cursor-pointer active:scale-95"
+                      }`}
                   >
-                    <div className="text-2xl mb-2">{lang.flag}</div>
-                    <div className="text-sm font-medium text-white mb-1">
+                    <div className="text-3xl mb-3 transform group-hover:scale-110 transition-transform">{lang.flag}</div>
+                    <div className="text-sm font-bold text-white">
                       {lang.name}
                     </div>
-                    <div className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-purple-500/15 text-purple-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
-                      Popular
-                    </div>
+                    {selectedTargetLanguage === lang.code && (
+                      <div className="absolute top-2 right-2">
+                        <div className="w-2 h-2 rounded-full bg-[#7C5DFA] animate-pulse" />
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>
@@ -471,18 +474,15 @@ export default function DubbingPanel({
               ) : dubbedBlob ? (
                 "✨ Dubbing Complete!"
               ) : (
-                `🎭 Dub ${
-                  selectedSourceLanguage === "auto"
-                    ? "Audio"
-                    : `from ${
-                        availableLanguages.find(
-                          (l) => l.code === selectedSourceLanguage
-                        )?.name || selectedSourceLanguage
-                      }`
-                } to ${
-                  availableLanguages.find(
-                    (l) => l.code === selectedTargetLanguage
-                  )?.name || selectedTargetLanguage
+                `🎭 Dub ${selectedSourceLanguage === "auto"
+                  ? "Audio"
+                  : `from ${availableLanguages.find(
+                    (l) => l.code === selectedSourceLanguage
+                  )?.name || selectedSourceLanguage
+                  }`
+                } to ${availableLanguages.find(
+                  (l) => l.code === selectedTargetLanguage
+                )?.name || selectedTargetLanguage
                 }`
               )}
             </button>
@@ -546,40 +546,38 @@ export default function DubbingPanel({
                     }}
                   >
                     <div
-                      className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${
-                        dubbingStage === "preparing" ||
-                        dubbingStage === "translating" ||
-                        dubbingStage === "generating" ||
-                        dubbingStage === "finalizing" ||
-                        dubbingStage === "complete"
+                      className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${dubbingStage === "preparing" ||
+                          dubbingStage === "translating" ||
+                          dubbingStage === "generating" ||
+                          dubbingStage === "finalizing" ||
+                          dubbingStage === "complete"
                           ? "bg-green-500 shadow-lg shadow-green-500/50"
                           : "bg-gray-600"
-                      }`}
+                        }`}
                     >
                       {(dubbingStage === "preparing" ||
                         dubbingStage === "translating" ||
                         dubbingStage === "generating" ||
                         dubbingStage === "finalizing" ||
                         dubbingStage === "complete") && (
-                        <svg
-                          className="w-2.5 h-2.5 text-white"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      )}
+                          <svg
+                            className="w-2.5 h-2.5 text-white"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
                     </div>
                     <span
-                      className={`text-sm font-medium transition-colors ${
-                        dubbingStage === "preparing"
+                      className={`text-sm font-medium transition-colors ${dubbingStage === "preparing"
                           ? "text-white"
                           : "text-gray-400"
-                      }`}
+                        }`}
                     >
                       🎵 Preparing audio
                     </span>
@@ -595,38 +593,36 @@ export default function DubbingPanel({
                     }}
                   >
                     <div
-                      className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${
-                        dubbingStage === "translating" ||
-                        dubbingStage === "generating" ||
-                        dubbingStage === "finalizing" ||
-                        dubbingStage === "complete"
+                      className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${dubbingStage === "translating" ||
+                          dubbingStage === "generating" ||
+                          dubbingStage === "finalizing" ||
+                          dubbingStage === "complete"
                           ? "bg-green-500 shadow-lg shadow-green-500/50"
                           : "bg-gray-600"
-                      }`}
+                        }`}
                     >
                       {(dubbingStage === "translating" ||
                         dubbingStage === "generating" ||
                         dubbingStage === "finalizing" ||
                         dubbingStage === "complete") && (
-                        <svg
-                          className="w-2.5 h-2.5 text-white"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      )}
+                          <svg
+                            className="w-2.5 h-2.5 text-white"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
                     </div>
                     <span
-                      className={`text-sm font-medium transition-colors ${
-                        dubbingStage === "translating"
+                      className={`text-sm font-medium transition-colors ${dubbingStage === "translating"
                           ? "text-white"
                           : "text-gray-400"
-                      }`}
+                        }`}
                     >
                       🌐 AI translation
                     </span>
@@ -642,36 +638,34 @@ export default function DubbingPanel({
                     }}
                   >
                     <div
-                      className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${
-                        dubbingStage === "generating" ||
-                        dubbingStage === "finalizing" ||
-                        dubbingStage === "complete"
+                      className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${dubbingStage === "generating" ||
+                          dubbingStage === "finalizing" ||
+                          dubbingStage === "complete"
                           ? "bg-green-500 shadow-lg shadow-green-500/50"
                           : "bg-gray-600"
-                      }`}
+                        }`}
                     >
                       {(dubbingStage === "generating" ||
                         dubbingStage === "finalizing" ||
                         dubbingStage === "complete") && (
-                        <svg
-                          className="w-2.5 h-2.5 text-white"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      )}
+                          <svg
+                            className="w-2.5 h-2.5 text-white"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
                     </div>
                     <span
-                      className={`text-sm font-medium transition-colors ${
-                        dubbingStage === "generating"
+                      className={`text-sm font-medium transition-colors ${dubbingStage === "generating"
                           ? "text-white"
                           : "text-gray-400"
-                      }`}
+                        }`}
                     >
                       🎙️ Voice synthesis
                     </span>
@@ -687,34 +681,32 @@ export default function DubbingPanel({
                     }}
                   >
                     <div
-                      className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${
-                        dubbingStage === "finalizing" ||
-                        dubbingStage === "complete"
+                      className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${dubbingStage === "finalizing" ||
+                          dubbingStage === "complete"
                           ? "bg-green-500 shadow-lg shadow-green-500/50"
                           : "bg-gray-600"
-                      }`}
+                        }`}
                     >
                       {(dubbingStage === "finalizing" ||
                         dubbingStage === "complete") && (
-                        <svg
-                          className="w-2.5 h-2.5 text-white"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      )}
+                          <svg
+                            className="w-2.5 h-2.5 text-white"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
                     </div>
                     <span
-                      className={`text-sm font-medium transition-colors ${
-                        dubbingStage === "finalizing"
+                      className={`text-sm font-medium transition-colors ${dubbingStage === "finalizing"
                           ? "text-white"
                           : "text-gray-400"
-                      }`}
+                        }`}
                     >
                       ✨ Finalizing
                     </span>
@@ -741,14 +733,14 @@ export default function DubbingPanel({
                           dubbingStage === "preparing"
                             ? "25%"
                             : dubbingStage === "translating"
-                            ? "50%"
-                            : dubbingStage === "generating"
-                            ? "75%"
-                            : dubbingStage === "finalizing"
-                            ? "90%"
-                            : dubbingStage === "complete"
-                            ? "100%"
-                            : "0%",
+                              ? "50%"
+                              : dubbingStage === "generating"
+                                ? "75%"
+                                : dubbingStage === "finalizing"
+                                  ? "90%"
+                                  : dubbingStage === "complete"
+                                    ? "100%"
+                                    : "0%",
                       }}
                     />
                   </div>

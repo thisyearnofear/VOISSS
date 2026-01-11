@@ -58,29 +58,32 @@ export default function GeminiInsightsPanel({ audioBlob, onApplyInsights, isVisi
   };
 
   return (
-    <div className="bg-gray-800/50 rounded-lg p-6 mb-6 border border-purple-500/30">
+    <div className="bg-[#1A1A1A] rounded-xl p-6 mb-6 border border-purple-500/20 shadow-lg">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-purple-400" />
-          <h3 className="text-xl font-semibold text-white">
-            Gemini AI Insights
-          </h3>
+          <Sparkles className="w-5 h-5 text-[#A78BFA]" />
+          <div>
+            <h3 className="text-lg font-bold text-white">
+              Intelligent Voice Insights
+            </h3>
+            <p className="text-xs text-gray-400">AI-generated summary, tags, and suggested title</p>
+          </div>
         </div>
         {!insights && (
           <button
             onClick={handleGenerateInsights}
             disabled={isLoading || !audioBlob}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2 bg-[#7C5DFA] hover:bg-[#8B7AFF] text-white text-sm font-medium rounded-lg transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Analyzing...
+                Analyzing Audio...
               </>
             ) : (
               <>
                 <Sparkles className="w-4 h-4" />
-                Analyze Recording
+                Generate Content Strategy
               </>
             )}
           </button>

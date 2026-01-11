@@ -18,6 +18,7 @@ import DubbingPanel from "./dubbing/DubbingPanel";
 import { VoiceRecordsABI } from "../contracts/VoiceRecordsABI";
 import { createWalletClient, custom, encodeFunctionData } from "viem";
 import { base } from "viem/chains";
+import { Check } from "lucide-react";
 
 // Import modular components
 import RecordingControls from "./RecordingStudio/RecordingControls";
@@ -705,33 +706,50 @@ export default function RecordingStudio({
 
       {/* PHASE 2: LABORATORY (Alchemy & Anchor) */}
       {studioPhase === 'laboratory' && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="text-center py-4 border-b border-[#2A2A2A]">
-            <h3 className="text-xl font-bold text-white">Laboratory</h3>
-            <p className="text-xs text-gray-400">Transform your audio and anchor to the blockchain</p>
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="text-center py-6 border-b border-[#2A2A2A]">
+            <h3 className="text-2xl font-black text-white tracking-tight uppercase">The Laboratory</h3>
+            <p className="text-sm text-gray-400">Alchemy Hub: Transform, Dub, and Secure your creation</p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left: Input/Preview & Metadata */}
-            <div className="space-y-6">
+          {/* Workflow Roadmap */}
+          <div className="flex items-center justify-center gap-4 px-4 py-2 bg-[#0F0F0F] rounded-full w-fit mx-auto border border-[#2A2A2A] text-xs font-bold uppercase tracking-widest">
+            <div className="flex items-center gap-2 text-gray-500">
+              <span className="w-5 h-5 rounded-full border border-gray-500 flex items-center justify-center text-[10px]">1</span>
+              Recording
+            </div>
+            <div className="w-4 h-[1px] bg-[#2A2A2A]" />
+            <div className="flex items-center gap-2 text-[#7C5DFA]">
+              <span className="w-5 h-5 rounded-full bg-[#7C5DFA] text-white flex items-center justify-center text-[10px]">2</span>
+              Alchemy & Anchor
+            </div>
+            <div className="w-4 h-[1px] bg-[#2A2A2A]" />
+            <div className="flex items-center gap-2 text-gray-500 opacity-60">
+              <span className="w-5 h-5 rounded-full border border-gray-500 flex items-center justify-center text-[10px]">3</span>
+              Studio Forge (Transcribe & Style)
+            </div>
+          </div>
+
+          {/* Top Section: Analysis & Metadata */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+            <div className="md:col-span-3 space-y-6">
               <AudioPreview
                 previewUrl={previewUrl}
                 audioBlob={audioBlob}
                 formatFileSize={formatFileSize}
               />
-
               <GeminiInsightsPanel
                 audioBlob={audioBlob}
                 onApplyInsights={handleApplyInsights}
                 isVisible={true}
               />
-
-              <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 space-y-4">
+            </div>
+            <div className="md:col-span-2 space-y-6">
+              <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-6 space-y-6 shadow-xl">
                 <RecordingTitle
                   recordingTitle={recordingTitle}
                   onTitleChange={setRecordingTitle}
                 />
-
                 <PermissionStatus
                   isConnected={isConnected}
                   permissionActive={permissionActive}
@@ -742,9 +760,15 @@ export default function RecordingStudio({
                 />
               </div>
             </div>
+          </div>
 
-            {/* Right: Alchemy Hub */}
-            <div className="space-y-6">
+          {/* Main Section: Alchemy Suite (Spacious) */}
+          <div className="space-y-10 py-8 border-t border-[#2A2A2A]">
+            <div>
+              <h4 className="text-xl font-bold text-white mb-6 px-2 flex items-center gap-3">
+                <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C5DFA] to-[#9C88FF] flex items-center justify-center text-sm">1</span>
+                Voice Alchemy
+              </h4>
               <AIVoicePanel
                 voicesFree={voicesFree}
                 selectedVoiceFree={selectedVoiceFree}
@@ -768,7 +792,13 @@ export default function RecordingStudio({
                 onToastType={setToastType}
                 onSetSelectedVersions={setSelectedVersions}
               />
+            </div>
 
+            <div>
+              <h4 className="text-xl font-bold text-white mb-6 px-2 flex items-center gap-3">
+                <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-sm">2</span>
+                Global Dubbing
+              </h4>
               <DubbingPanel
                 audioBlob={audioBlob}
                 onDubbingComplete={(dubbedBlob, language) => {
@@ -829,6 +859,22 @@ export default function RecordingStudio({
             <div>
               <h3 className="text-xl font-bold text-white">Studio Forge</h3>
               <p className="text-xs text-gray-400">Design and export your final assets</p>
+            </div>
+
+            {/* Workflow Roadmap (Small version for header) */}
+            <div className="hidden md:flex items-center gap-3 px-3 py-1.5 bg-[#0F0F0F] rounded-full border border-[#2A2A2A] text-[9px] font-bold uppercase tracking-widest">
+              <div className="flex items-center gap-1.5 text-green-500">
+                <Check className="w-3 h-3" /> Recording
+              </div>
+              <div className="w-3 h-[1px] bg-[#2A2A2A]" />
+              <div className="flex items-center gap-1.5 text-green-500">
+                <Check className="w-3 h-3" /> Alchemy
+              </div>
+              <div className="w-3 h-[1px] bg-[#2A2A2A]" />
+              <div className="flex items-center gap-1.5 text-[#7C5DFA]">
+                <span className="w-4 h-4 rounded-full bg-[#7C5DFA] text-white flex items-center justify-center text-[8px]">3</span>
+                Forge
+              </div>
             </div>
             <button
               onClick={() => setStudioPhase('laboratory')}

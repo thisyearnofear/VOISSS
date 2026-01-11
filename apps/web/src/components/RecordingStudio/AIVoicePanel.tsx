@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Check } from 'lucide-react';
 
 interface AIVoicePanelProps {
   voicesFree: { voiceId: string; name?: string }[];
@@ -97,44 +98,47 @@ export default function AIVoicePanel({
   };
 
   return (
-    <div className="p-4 mb-6 bg-[#1A1A1A] rounded-xl border border-[#2A2A2A]">
-      <div className="flex justify-between items-center mb-3">
-        <div>
-          <h4 className="text-white font-semibold flex items-center gap-2">
-            <svg className="w-4 h-4 text-[#7C5DFA]" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+    <div className="p-6 bg-[#1A1A1A] rounded-2xl border border-[#2A2A2A] shadow-xl space-y-6">
+      <div className="flex justify-between items-center bg-[#0F0F0F] -mx-6 -mt-6 p-6 rounded-t-2xl border-b border-[#2A2A2A]">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#7C5DFA]/10 flex items-center justify-center">
+            <svg className="w-5 h-5 text-[#7C5DFA]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z" />
             </svg>
-            AI Voice Transform
-          </h4>
-          <p className="text-gray-400 text-sm">Transform your voice with AI</p>
+          </div>
+          <div>
+            <h4 className="text-white font-bold text-lg">Voice Morphing</h4>
+            <p className="text-gray-400 text-xs">AI-powered voice transformation</p>
+          </div>
         </div>
         <div className="text-right">
-          <span className="text-sm text-gray-400">
+          <div className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Weekly Logic</div>
+          <span className="text-sm font-medium text-[#7C5DFA]">
             {userTier === 'premium' ? '∞ unlimited' : `${remainingQuota.aiVoice}/${WEEKLY_AI_VOICE_LIMIT} free`}
           </span>
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         <button
           disabled={!canUseAIVoice() || isLoadingVoicesFree || voicesFree.length > 0}
-          className="w-full px-3 py-2 bg-[#2A2A2A] rounded-lg text-gray-300 hover:bg-[#3A3A3A] disabled:opacity-50 transition-colors"
+          className="w-full px-4 py-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl text-gray-300 hover:border-[#3A3A3A] hover:bg-[#1A1A1A] disabled:opacity-50 transition-all duration-300 flex items-center justify-center gap-3 font-medium"
           onClick={handleLoadVoices}
         >
           {isLoadingVoicesFree ? (
-            <div className="flex items-center justify-center gap-2">
+            <>
               <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
-              Loading Voices...
-            </div>
+              Igniting Alchemy Engine...
+            </>
           ) : voicesFree.length > 0 ? (
-            <div className="flex items-center justify-center gap-2">
-              <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-              </svg>
-              Voices Ready
-            </div>
+            <>
+              <div className="w-5 h-5 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center">
+                <Check className="w-3 h-3" />
+              </div>
+              <span className="text-green-500">Voices Initialized</span>
+            </>
           ) : (
-            "Load AI Voices"
+            "Initialize AI Voices"
           )}
         </button>
 
@@ -177,7 +181,7 @@ export default function AIVoicePanel({
               <div className="mt-3 p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl">
                 <div className="flex items-center gap-2 mb-2">
                   <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                   </svg>
                   <p className="text-green-400 text-sm font-medium">AI Voice Ready!</p>
                 </div>
