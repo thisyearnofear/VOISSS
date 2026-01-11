@@ -63,10 +63,12 @@ async function query(text, params = []) {
  */
 async function runMigrations() {
   // Skip migrations if env var set
+  console.log(`🔍 SKIP_MIGRATIONS env var: "${process.env.SKIP_MIGRATIONS}"`);
   if (process.env.SKIP_MIGRATIONS === 'true') {
     console.log('⏭️  Migrations disabled via SKIP_MIGRATIONS');
     return;
   }
+  console.log('▶️  Running migrations...');
 
   const migrationsDir = path.join(__dirname, '../migrations');
 
