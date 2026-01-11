@@ -225,7 +225,7 @@ function generateSvgFrame(segment, templateData, style, frameIdx, activeWordInde
       // Apply subtle opacity fade to non-active lines
       const lineOpacity = (activeLineIndex === -1 || isActiveLine) ? 1.0 : 0.4;
 
-      return `<text x="${dim.w / 2}" y="${y}" font-family="${fontFamily}" text-anchor="middle" filter="url(#textShadow)" opacity="${lineOpacity}">${tspans}</text>`;
+      return `<text x="${dim.w / 2}" y="${y}" font-family="${fontFamily}" text-anchor="middle" filter="url(#textShadow)" opacity="${lineOpacity}" xml:space="preserve">${tspans}</text>`;
     })
     .join('');
 
