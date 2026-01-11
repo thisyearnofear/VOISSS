@@ -258,14 +258,21 @@ async function startWorker() {
 
     // Register processor - MUST be after queue.isReady()
     console.log(`📝 Registering queue processor...`);
+    
+    // Simple test processor first
     queue.process(concurrency, async (job) => {
+      console.log(`\n${'='.repeat(60)}`);
+      console.log(`🎬 PROCESSOR INVOKED for job ${job.id}`);
+      console.log(`Job data:`, job.data);
+      console.log(`${'='.repeat(60)}\n`);
+      
       try {
-        console.log(`🎬 [PROCESSOR] Processing job ${job.id}`);
         const result = await processExportJob(job);
         console.log(`✅ [PROCESSOR] Completed job ${job.id}`);
         return result;
       } catch (error) {
         console.error(`❌ [PROCESSOR] ERROR in job ${job.id}:`, error.message);
+        console.error(error.stack);
         throw error;
       }
     });
