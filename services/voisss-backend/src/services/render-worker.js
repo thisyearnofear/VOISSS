@@ -7,6 +7,9 @@ const { parentPort } = require('worker_threads');
 const sharp = require('sharp');
 const fs = require('fs');
 
+// Disable sharp cache in worker threads to prevent hangs/memory issues
+sharp.cache(false);
+
 parentPort.on('message', async (taskData) => {
   try {
     const { svg, outputPath } = taskData;

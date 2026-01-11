@@ -24,17 +24,17 @@ class WorkerPool {
   initializePool() {
     for (let i = 0; i < this.poolSize; i++) {
       const worker = new Worker(path.join(__dirname, 'render-worker.js'));
-      
+
       worker.on('error', (err) => {
         console.error(`Worker ${i} error:`, err);
       });
-      
+
       worker.on('exit', (code) => {
         if (code !== 0) {
           console.error(`Worker ${i} exited with code ${code}`);
         }
       });
-      
+
       this.workers.push(worker);
     }
   }
@@ -50,36 +50,53 @@ class WorkerPool {
     return new Promise((resolve, reject) => {
       const task = { taskData, resolve, reject };
 
-      const executeOnWorker = (worker) => {
-        this.activeWorkers.add(worker);
-
-        worker.once('message', (result) => {
-          this.activeWorkers.delete(worker);
-          resolve(result);
-
-          // Process next queued task
-          if (this.tasks.length > 0) {
-            const nextTask = this.tasks.shift();
-            executeOnWorker(nextTask.worker);
-          }
-        });
-
-        worker.once('error', reject);
-
-        worker.postMessage(taskData);
-      };
-
       // Find available worker
       const availableWorker = this.workers.find(w => !this.activeWorkers.has(w));
 
       if (availableWorker) {
-        executeOnWorker(availableWorker);
+        this._dispatch(availableWorker, task);
       } else {
         // Queue task if all workers busy
-        task.worker = this.workers[0];
         this.tasks.push(task);
       }
     });
+  }
+
+  /**
+   * Dispatch task to a specific worker
+   * @private
+   */
+  _dispatch(worker, task) {
+    this.activeWorkers.add(worker);
+
+    const messageHandler = (result) => {
+      worker.off('error', errorHandler);
+      this.activeWorkers.delete(worker);
+      task.resolve(result);
+
+      // Process next queued task if any
+      if (this.tasks.length > 0) {
+        const nextTask = this.tasks.shift();
+        this._dispatch(worker, nextTask);
+      }
+    };
+
+    const errorHandler = (err) => {
+      worker.off('message', messageHandler);
+      this.activeWorkers.delete(worker);
+      task.reject(err);
+
+      // Even on error, the worker might be reusable or need replacement
+      // For now, just try to process next task
+      if (this.tasks.length > 0) {
+        const nextTask = this.tasks.shift();
+        this._dispatch(worker, nextTask);
+      }
+    };
+
+    worker.once('message', messageHandler);
+    worker.once('error', errorHandler);
+    worker.postMessage(task.taskData);
   }
 
   /**
