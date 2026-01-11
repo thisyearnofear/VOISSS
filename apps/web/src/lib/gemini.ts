@@ -11,7 +11,7 @@ if (!apiKey) {
 const genAI = new GoogleGenerativeAI(apiKey || "");
 
 export const model = genAI.getGenerativeModel({
-  model: "gemini-3-flash", // Upgraded to Gemini 3 Flash (released Dec 2025) for bleeding-edge speed and intelligence
+  model: "gemini-3-flash-preview",
 });
 
 export async function generateContentFromAudio(
@@ -32,15 +32,15 @@ export async function generateContentFromAudio(
   };
 
   const prompt = `
-    You are an expert audio analyst for VOISSS.
-    Analyze the attached audio recording and extract key metadata.
-    Focus on tone, content, and specific actionable intentions.
-    Provide the result as a JSON object matching this schema:
+    You are an expert Social Media Strategist and Audio Analyst for VOISSS.
+    Analyze the attached audio recording and provide a high-impact content strategy.
+    
+    Return a JSON object with:
     {
-      "title": "Short catchy title (max 60 chars)",
-      "summary": ["Bullet point 1", "Bullet point 2", "Bullet point 3"],
-      "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
-      "actionItems": ["task1", "task2", "task3"]
+      "title": "A viral-style hook or title (max 60 chars)",
+      "summary": ["Key Point 1", "Key Point 2", "Key Point 3"],
+      "tags": ["socialtag1", "socialtag2", "socialtag3", "socialtag4", "socialtag5"],
+      "actionItems": ["Caption for X/Farcaster", "Caption for TikTok/Reels", "Key takeaway"]
     }
   `;
 

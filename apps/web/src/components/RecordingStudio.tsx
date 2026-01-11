@@ -738,11 +738,6 @@ export default function RecordingStudio({
                 audioBlob={audioBlob}
                 formatFileSize={formatFileSize}
               />
-              <GeminiInsightsPanel
-                audioBlob={audioBlob}
-                onApplyInsights={handleApplyInsights}
-                isVisible={true}
-              />
             </div>
             <div className="md:col-span-2 space-y-6">
               <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-6 space-y-6 shadow-xl">
@@ -883,6 +878,12 @@ export default function RecordingStudio({
               ← Back to Lab
             </button>
           </div>
+
+          <GeminiInsightsPanel
+            audioBlob={activeForgeBlob}
+            onApplyInsights={handleApplyInsights}
+            isVisible={true}
+          />
 
           <TranscriptComposer
             previewUrl={activeForgeUrl || ""}
