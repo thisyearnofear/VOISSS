@@ -40,12 +40,27 @@ async function enqueueExport({
   }
 
   // Insert into database with template data
-  await query(
-    `INSERT INTO export_jobs 
-    (id, user_id, kind, audio_url, transcript_id, template_id, manifest, style, template_data, status, created_at)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending', NOW())`,
-    [jobId, userId, kind, finalAudioUrl, transcriptId, templateId, JSON.stringify(manifest || {}), JSON.stringify(style || {}), JSON.stringify(template || {})]
-  );
+  // Note: template_data column may not exist in older schemas - attempt insert, fall back if needed
+  try {
+    await query(
+      `INSERT INTO export_jobs 
+      (id, user_id, kind, audio_url, transcript_id, template_id, manifest, style, template_data, status, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending', NOW())`,
+      [jobId, userId, kind, finalAudioUrl, transcriptId, templateId, JSON.stringify(manifest || {}), JSON.stringify(style || {}), JSON.stringify(template || {})]
+    );
+  } catch (e) {
+    if (e.message.includes('template_data')) {
+      // Column doesn't exist, try without it
+      await query(
+        `INSERT INTO export_jobs 
+        (id, user_id, kind, audio_url, transcript_id, template_id, manifest, style, status, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending', NOW())`,
+        [jobId, userId, kind, finalAudioUrl, transcriptId, templateId, JSON.stringify(manifest || {}), JSON.stringify(style || {})]
+      );
+    } else {
+      throw e;
+    }
+  }
 
   const estimatedSeconds = {
     mp3: 60,
