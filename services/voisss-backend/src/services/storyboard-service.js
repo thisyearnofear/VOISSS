@@ -264,6 +264,7 @@ function generateFrameConcat(frameData, outputDir, jobId, fps = 24) {
 
   frameData.forEach((frame, idx) => {
     const framePath = `${outputDir}/${jobId}_frame_${String(idx).padStart(4, '0')}.png`;
+    const duration = frame.durationMs / 1000;
 
     concatList += `file '${framePath}'\nduration ${Math.max(0.01, duration)}\n`;
   });
