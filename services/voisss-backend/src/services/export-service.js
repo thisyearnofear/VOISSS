@@ -116,9 +116,10 @@ async function getNextPendingJob() {
       audioUrl: job.audio_url,
       transcriptId: job.transcript_id,
       templateId: job.template_id,
-      manifest: JSON.parse(job.manifest || '{}'),
-      style: JSON.parse(job.style || '{}'),
-      template: JSON.parse(job.template_data || '{}'),
+      // Handle both string and object types (JSONB columns return objects, TEXT return strings)
+      manifest: typeof job.manifest === 'string' ? JSON.parse(job.manifest || '{}') : (job.manifest || {}),
+      style: typeof job.style === 'string' ? JSON.parse(job.style || '{}') : (job.style || {}),
+      template: typeof job.template_data === 'string' ? JSON.parse(job.template_data || '{}') : (job.template_data || {}),
       userId: job.user_id,
     };
   } catch (e) {
@@ -157,8 +158,9 @@ async function getNextPendingJob() {
         audioUrl: job.audio_url,
         transcriptId: job.transcript_id,
         templateId: job.template_id,
-        manifest: JSON.parse(job.manifest || '{}'),
-        style: JSON.parse(job.style || '{}'),
+        // Handle both string and object types (JSONB columns return objects, TEXT return strings)
+        manifest: typeof job.manifest === 'string' ? JSON.parse(job.manifest || '{}') : (job.manifest || {}),
+        style: typeof job.style === 'string' ? JSON.parse(job.style || '{}') : (job.style || {}),
         template: {}, // Empty template for old schema
         userId: job.user_id,
       };
