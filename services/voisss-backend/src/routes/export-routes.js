@@ -3,6 +3,7 @@
  * API endpoints for export operations
  * PRINCIPLE: MODULAR - Routes delegate to services
  * PRINCIPLE: CLEAN - Clear request/response contracts
+ * PRINCIPLE: AGGRESSIVE CONSOLIDATION - Database-driven, no queues
  */
 
 const express = require('express');
@@ -14,7 +15,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 
 
 /**
  * POST /api/export/request
- * Enqueue a new export job
+ * Create a new export job (saved to database, worker will pick it up)
  * 
  * Supports two formats:
  * 1. JSON with audioUrl (for external URLs)
@@ -23,10 +24,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 
 router.post('/request', upload.single('audio'), async (req, res) => {
   try {
     console.log(`📝 Export request received`);
-    console.log(`   req.file exists:`, !!req.file);
-    if (req.file) {
-      console.log(`   Audio file size: ${req.file.size || req.file.buffer?.length} bytes`);
-    }
+    console.log(`   Audio file: ${req.file ? req.file.size + ' bytes' : 'none'}`);
     
     let kind, audioUrl, transcriptId, templateId, manifest, style, userId, audioBlob;
 
@@ -38,7 +36,6 @@ router.post('/request', upload.single('audio'), async (req, res) => {
       audioBlob = req.file.buffer;
       
       console.log(`   Kind: ${kind}, TranscriptId: ${transcriptId}`);
-      console.log(`   AudioBlob size: ${audioBlob?.length} bytes`);
 
       if (req.body.manifest) {
         try {
@@ -50,8 +47,7 @@ router.post('/request', upload.single('audio'), async (req, res) => {
 
       if (req.body.template) {
         try {
-          const template = JSON.parse(req.body.template);
-          // Extract template fields if needed
+          JSON.parse(req.body.template);
         } catch (e) {
           // ignore
         }
@@ -59,7 +55,6 @@ router.post('/request', upload.single('audio'), async (req, res) => {
     } else {
       // Handle JSON request (original format)
       ({ kind, audioUrl, transcriptId, templateId, manifest, style, userId } = req.body);
-      console.log(`   JSON request - audioUrl: ${audioUrl}`);
     }
 
     // Validate required fields

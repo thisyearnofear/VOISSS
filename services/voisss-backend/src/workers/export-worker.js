@@ -1,26 +1,19 @@
 /**
  * Export Worker
- * Processes export jobs from queue
+ * Polls database for pending export jobs and processes them
  * PRINCIPLE: MODULAR - Independent worker process, can scale separately
- * PRINCIPLE: CLEAN - Uses export-service for state management
+ * PRINCIPLE: CLEAN - Uses export-service for job management
+ * PRINCIPLE: AGGRESSIVE CONSOLIDATION - No Bull/Redis, database-driven
  */
 
 require('dotenv').config();
 
 const path = require('path');
-const { getQueue } = require('../services/queue-service');
+const fs = require('fs');
 
-process.on('uncaughtException', (err) => {
-  console.error('💥 UNCAUGHT EXCEPTION:', err);
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('💥 UNHANDLED REJECTION:', reason);
-});
 const {
+  getNextPendingJob,
   updateJobStatus,
-  EXPORT_QUEUE,
 } = require('../services/export-service');
 const {
   downloadFile,
@@ -32,66 +25,62 @@ const {
 } = require('../services/ffmpeg-service');
 const {
   renderSvgToPng,
-  renderSvgsToFrames,
 } = require('../services/svg-renderer-service');
 const {
   buildFrameSequence,
   calculateVideoParams,
   generateFrameConcat,
 } = require('../services/storyboard-service');
-const { runMigrations, closePool } = require('../services/db-service');
+const { runMigrations, closePool, query } = require('../services/db-service');
 const { getWorkerPool, terminateWorkerPool } = require('../services/worker-pool');
+
+process.on('uncaughtException', (err) => {
+  console.error('💥 UNCAUGHT EXCEPTION:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('💥 UNHANDLED REJECTION:', reason);
+});
 
 /**
  * Process a single export job
  * PRINCIPLE: MODULAR - Clear separation of audio vs video paths
- * PRINCIPLE: CLEAN - Each path handles its own logic
  */
 async function processExportJob(job) {
   const workerInfo = `[Worker ${process.env.WORKER_ID} PID:${process.pid}]`;
-  console.log(`${workerInfo} 📥 RECEIVED JOB: ${job.id}`);
-  console.log(`${workerInfo} Data keys:`, Object.keys(job.data).join(', '));
+  console.log(`${workerInfo} 📥 Processing export: ${job.jobId} (${job.kind})`);
 
-  const { jobId, kind, audioUrl, transcriptId, userId, manifest } = job.data;
+  const { jobId, kind, audioUrl, manifest, template } = job;
   const startTime = Date.now();
   const tempFiles = [];
 
-  console.log(`${workerInfo} ▶️  Processing job ${job.id} for export: ${jobId} (${kind})`);
-
   try {
-    console.log(`${workerInfo} Updating status to processing...`);
     // Update status to processing
-    await updateJobStatus(jobId, 'processing', {
-      workerId: process.env.WORKER_ID || 'worker-pm2',
-      progress: 5
-    });
-    console.log(`${workerInfo} Status updated, setting job progress...`);
-    await job.progress(5); // Initial kick-off
-    console.log(`${workerInfo} Initial progress set`);
+    await updateJobStatus(jobId, 'processing', { progress: 5 });
 
-    // Step 1: Get audio file (download or copy local)
-    console.log(`${workerInfo} Downloading audio from: ${audioUrl}`);
+    // Step 1: Download audio file
+    console.log(`${workerInfo} Downloading audio...`);
     const inputFileName = `${jobId}_input.webm`;
     const inputPath = await downloadFile(audioUrl, inputFileName);
-    // Note: for file:// URLs, downloadFile copies instead of downloading
     tempFiles.push(inputPath);
-    console.log(`${workerInfo} Audio ready at: ${inputPath}`);
-    await job.progress(20); // Audio downloaded
+    await updateJobStatus(jobId, 'processing', { progress: 20 });
 
     // Step 2: Route to appropriate processor
     let outputPath;
     if (kind === 'mp3') {
-      outputPath = await processAudioExport(jobId, inputPath, tempFiles);
-      await job.progress(80);
+      console.log(`${workerInfo} Processing MP3...`);
+      outputPath = await processAudioExport(jobId, inputPath, tempFiles, workerInfo);
+      await updateJobStatus(jobId, 'processing', { progress: 80 });
     } else if (kind === 'mp4') {
       if (!manifest) {
         throw new Error('MP4 export requires storyboard manifest');
       }
-      const template = job.data.template;
       if (!template) {
-        throw new Error('MP4 export requires template data for rendering');
+        throw new Error('MP4 export requires template data');
       }
-      outputPath = await processVideoExport(jobId, inputPath, manifest, template, tempFiles, job);
+      console.log(`${workerInfo} Processing MP4...`);
+      outputPath = await processVideoExport(jobId, inputPath, manifest, template, tempFiles, workerInfo);
     } else {
       throw new Error(`Unsupported export kind: ${kind}`);
     }
@@ -101,7 +90,6 @@ async function processExportJob(job) {
     const publicUrl = getPublicUrl(finalPath);
 
     // Step 4: Get file size
-    const fs = require('fs');
     const fileSize = fs.statSync(finalPath).size;
 
     // Step 5: Mark complete
@@ -109,23 +97,15 @@ async function processExportJob(job) {
     await updateJobStatus(jobId, 'completed', {
       outputUrl: publicUrl,
       outputSize: fileSize,
-      stats: {
-        durationMs: duration,
-        fileSizeMb: (fileSize / 1024 / 1024).toFixed(2),
-        kind
-      }
+      progress: 100,
     });
 
-    console.log(`✅ Export complete: ${jobId}`);
-    console.log(`   Format: ${kind}`);
-    console.log(`   Size: ${(fileSize / 1024 / 1024).toFixed(2)} MB`);
-    console.log(`   Duration: ${(duration / 1000).toFixed(1)}s`);
+    console.log(`${workerInfo} ✅ Export complete: ${jobId} (${(fileSize / 1024 / 1024).toFixed(2)}MB, ${(duration / 1000).toFixed(1)}s)`);
 
     return { jobId, status: 'completed', publicUrl, fileSize };
   } catch (error) {
-    console.error(`❌ Export failed: ${jobId}`, error);
+    console.error(`${workerInfo} ❌ Export failed: ${jobId}`, error.message);
 
-    const duration = Date.now() - startTime;
     await updateJobStatus(jobId, 'failed', {
       errorMessage: error.message,
     });
@@ -139,10 +119,10 @@ async function processExportJob(job) {
 
 /**
  * Audio-only export path
- * PRINCIPLE: MODULAR - Focused on simple MP3 encoding
  */
-async function processAudioExport(jobId, audioPath, tempFiles) {
+async function processAudioExport(jobId, audioPath, tempFiles, workerInfo) {
   const outputPath = path.join('/tmp/voisss-exports', `${jobId}.mp3`);
+  console.log(`${workerInfo} Encoding to MP3...`);
   await encodeAudio(audioPath, 'mp3', outputPath);
   tempFiles.push(outputPath);
   return outputPath;
@@ -150,28 +130,20 @@ async function processAudioExport(jobId, audioPath, tempFiles) {
 
 /**
  * Video export path
- * PRINCIPLE: MODULAR - Handles storyboard rendering + composition
  */
-async function processVideoExport(jobId, audioPath, manifest, template, tempFiles, job) {
-  const fs = require('fs');
+async function processVideoExport(jobId, audioPath, manifest, template, tempFiles, workerInfo) {
   const outputDir = require('../services/ffmpeg-service').TEMP_DIR;
 
   try {
-    console.log(`\n📹 Starting video composition: ${jobId}`);
-    console.log(`   Segments: ${manifest.segments.length}`);
-    console.log(`   Template: ${template.id}`);
+    console.log(`${workerInfo} 📹 Starting video composition`);
+    console.log(`${workerInfo}    Segments: ${manifest.segments.length}`);
 
     // Step 1: Build frame sequence with template-styled SVG frames
     const frameData = await buildFrameSequence(manifest, template, jobId);
-    if (job) await job.progress(30);
 
     // Step 2: Render SVG frames to PNG using Worker Thread Pool
-    console.log(`🎨 Rendering ${frameData.length} frames to PNG...`);
-
+    console.log(`${workerInfo} 🎨 Rendering ${frameData.length} frames...`);
     const pool = getWorkerPool();
-    const frameResults = [];
-    
-    // Render all frames in parallel using worker threads
     const renderPromises = frameData.map((frame, frameIdx) => {
       const framePath = path.join(outputDir, `${jobId}_frame_${String(frameIdx).padStart(4, '0')}.png`);
       
@@ -186,7 +158,6 @@ async function processVideoExport(jobId, audioPath, manifest, template, tempFile
         // Update progress every 10 frames
         if ((frameIdx + 1) % 10 === 0) {
           const renderProgress = 30 + Math.floor((frameIdx + 1) / frameData.length * 40);
-          if (job) job.progress(renderProgress).catch(() => {});
           updateJobStatus(jobId, 'processing', { progress: renderProgress }).catch(() => {});
         }
         
@@ -195,117 +166,78 @@ async function processVideoExport(jobId, audioPath, manifest, template, tempFile
     });
 
     const renderedFrames = await Promise.all(renderPromises);
-    frameResults.push(...renderedFrames);
     renderedFrames.forEach(p => tempFiles.push(p));
 
     // Step 3: Calculate video parameters
     const videoParams = calculateVideoParams(frameData, frameData[frameData.length - 1]?.endMs || 1000);
-    console.log(`   FPS: ${videoParams.fps}, Frames: ${frameData.length}`);
+    console.log(`${workerInfo}    FPS: ${videoParams.fps}, Frames: ${frameData.length}`);
 
-    // Step 4: Generate FFmpeg concat demuxer file
+    // Step 4: Generate FFmpeg concat file
     const concatPath = path.join(outputDir, `${jobId}_concat.txt`);
     const concatList = generateFrameConcat(frameData, outputDir, jobId, videoParams.fps);
     fs.writeFileSync(concatPath, concatList);
     tempFiles.push(concatPath);
-    console.log(`📋 Frame concat file created`);
-    if (job) await job.progress(60);
 
-    // Step 5: Compose video with audio using FFmpeg
+    // Step 5: Compose video with audio
     const outputPath = path.join(outputDir, `${jobId}.mp4`);
-    console.log(`🎬 Composing video with audio...`);
+    console.log(`${workerInfo} 🎬 Composing video with audio...`);
     await composeVideoWithAudio(concatPath, audioPath, outputPath);
     tempFiles.push(outputPath);
-    if (job) await job.progress(90);
 
-    console.log(`✅ Video composition complete: ${jobId}`);
+    console.log(`${workerInfo} ✅ Video composition complete`);
     return outputPath;
   } catch (error) {
-    console.error(`❌ Video export failed: ${jobId}`, error);
+    console.error(`${workerInfo} ❌ Video export failed:`, error.message);
     throw error;
   }
 }
 
-
-
 /**
- * Start worker and listen for jobs
+ * Main worker loop - polls database for jobs
  */
 async function startWorker() {
   console.log('🚀 Export Worker Starting...');
+  const workerId = process.env.WORKER_ID || `worker-${process.pid}`;
+  console.log(`   Worker ID: ${workerId}`);
 
   try {
-    // Run migrations and test DB connection
+    // Run migrations and verify DB
     await runMigrations();
+    const { rows } = await query('SELECT 1');
+    console.log('✅ Database connection verified');
 
-    // Explicitly test DB connection if migrations were skipped
-    if (process.env.SKIP_MIGRATIONS === 'true') {
-      const { query } = require('../services/db-service');
-      await query('SELECT 1');
-      console.log('✅ Database connection verified');
-    }
+    const POLL_INTERVAL_MS = 2000; // Poll every 2 seconds
+    let consecutiveEmptyPolls = 0;
+    const MAX_EMPTY_POLLS = 30; // Give up after 1 minute of no jobs
 
-    // Get queue and attach processor
-    const queue = getQueue(EXPORT_QUEUE);
+    console.log(`✅ Worker ready, polling database every ${POLL_INTERVAL_MS}ms`);
 
-    // Wait for queue to be ready before registering processor
-    console.log(`⏳ Waiting for queue to be ready...`);
-    await queue.isReady();
-    console.log(`✅ Queue is ready`);
-
-    // Set concurrency (how many jobs in parallel)
-    const concurrency = parseInt(process.env.WORKER_CONCURRENCY || '2');
-    console.log(`🔧 Configuring worker: concurrency=${concurrency}`);
-
-    // Register processor - MUST be after queue.isReady()
-    console.log(`📝 Registering queue processor...`);
-    
-    // Simple test processor first
-    queue.process(concurrency, async (job) => {
-      console.log(`\n${'='.repeat(60)}`);
-      console.log(`🎬 PROCESSOR INVOKED for job ${job.id}`);
-      console.log(`Job data:`, job.data);
-      console.log(`${'='.repeat(60)}\n`);
-      
+    // Poll loop
+    while (true) {
       try {
-        const result = await processExportJob(job);
-        console.log(`✅ [PROCESSOR] Completed job ${job.id}`);
-        return result;
+        const job = await getNextPendingJob();
+
+        if (!job) {
+          consecutiveEmptyPolls++;
+          if (consecutiveEmptyPolls % 10 === 0) {
+            console.log(`⏳ No pending jobs (${consecutiveEmptyPolls * POLL_INTERVAL_MS / 1000}s idle)`);
+          }
+          await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
+          continue;
+        }
+
+        // Reset counter when we get a job
+        consecutiveEmptyPolls = 0;
+
+        // Process the job
+        await processExportJob(job);
+
       } catch (error) {
-        console.error(`❌ [PROCESSOR] ERROR in job ${job.id}:`, error.message);
-        console.error(error.stack);
-        throw error;
+        console.error('Error in job processing:', error.message);
+        // Continue polling despite errors
+        await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
       }
-    });
-    console.log(`✅ Queue processor registered and listening`);
-
-    // Event listeners for monitoring
-    queue.on('active', (job) => {
-      console.log(`📤 Job started: ${job.id}`);
-    });
-
-    queue.on('completed', (job, result) => {
-      console.log(`📬 Job completed: ${job.id}`);
-    });
-
-    queue.on('failed', (job, err) => {
-      console.error(`📭 Job failed: ${job.id}`, err.message);
-    });
-
-    queue.on('error', (error) => {
-      console.error('🔴 Queue error:', error);
-    });
-
-    queue.on('waiting', (jobId) => {
-      console.log(`⏳ Job ${jobId} waiting to be processed`);
-    });
-
-    queue.on('drained', () => {
-      console.log(`🔋 Queue drained (all jobs processed)`);
-    });
-
-    console.log(`✅ Export worker ready`);
-    console.log(`   Queue: ${EXPORT_QUEUE}`);
-    console.log(`   Worker ID: ${process.env.WORKER_ID}`);
+    }
   } catch (error) {
     console.error('❌ Worker startup failed:', error);
     process.exit(1);
@@ -317,9 +249,7 @@ async function startWorker() {
  */
 async function shutdown() {
   console.log('\n⏹️  Shutting down worker...');
-  const { closeQueues } = require('../services/queue-service');
-  await closeQueues(); // Close all queues and clear cache
-  await terminateWorkerPool(); // Terminate worker thread pool
+  await terminateWorkerPool();
   await closePool();
   console.log('✅ Worker shutdown complete');
   process.exit(0);
