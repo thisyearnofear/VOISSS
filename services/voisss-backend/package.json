@@ -27,6 +27,7 @@
     "node-fetch": "^2.7.0",
     "pg": "^8.10.0",
     "redis": "^4.6.0",
+    "sharp": "^0.33.0",
     "viem": "^2.38.5"
   },
   "devDependencies": {
