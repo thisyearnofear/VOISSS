@@ -80,45 +80,91 @@ async function enqueueExport({
  * PRINCIPLE: MODULAR - Worker fetches its own jobs
  */
 async function getNextPendingJob() {
-  const result = await query(
-    `SELECT id, kind, audio_url, transcript_id, template_id, manifest, style, template_data, user_id
-     FROM export_jobs
-     WHERE status = 'pending'
-     ORDER BY created_at ASC
-     LIMIT 1`,
-  );
+  try {
+    // Try to select template_data (new schema)
+    const result = await query(
+      `SELECT id, kind, audio_url, transcript_id, template_id, manifest, style, template_data, user_id
+       FROM export_jobs
+       WHERE status = 'pending'
+       ORDER BY created_at ASC
+       LIMIT 1`,
+    );
 
-  if (result.rows.length === 0) {
-    return null;
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const job = result.rows[0];
+    
+    // Attempt to lock job by updating status to 'processing'
+    const lockResult = await query(
+      `UPDATE export_jobs 
+       SET status = 'processing', updated_at = NOW()
+       WHERE id = $1 AND status = 'pending'
+       RETURNING *`,
+      [job.id]
+    );
+
+    if (lockResult.rows.length === 0) {
+      // Job was already picked up by another worker
+      return null;
+    }
+
+    return {
+      jobId: job.id,
+      kind: job.kind,
+      audioUrl: job.audio_url,
+      transcriptId: job.transcript_id,
+      templateId: job.template_id,
+      manifest: JSON.parse(job.manifest || '{}'),
+      style: JSON.parse(job.style || '{}'),
+      template: JSON.parse(job.template_data || '{}'),
+      userId: job.user_id,
+    };
+  } catch (e) {
+    if (e.message.includes('template_data')) {
+      // Old schema without template_data - try without it
+      const result = await query(
+        `SELECT id, kind, audio_url, transcript_id, template_id, manifest, style, user_id
+         FROM export_jobs
+         WHERE status = 'pending'
+         ORDER BY created_at ASC
+         LIMIT 1`,
+      );
+
+      if (result.rows.length === 0) {
+        return null;
+      }
+
+      const job = result.rows[0];
+      
+      // Attempt to lock job
+      const lockResult = await query(
+        `UPDATE export_jobs 
+         SET status = 'processing'
+         WHERE id = $1 AND status = 'pending'
+         RETURNING *`,
+        [job.id]
+      );
+
+      if (lockResult.rows.length === 0) {
+        return null;
+      }
+
+      return {
+        jobId: job.id,
+        kind: job.kind,
+        audioUrl: job.audio_url,
+        transcriptId: job.transcript_id,
+        templateId: job.template_id,
+        manifest: JSON.parse(job.manifest || '{}'),
+        style: JSON.parse(job.style || '{}'),
+        template: {}, // Empty template for old schema
+        userId: job.user_id,
+      };
+    }
+    throw e;
   }
-
-  const job = result.rows[0];
-  
-  // Attempt to lock job by updating status to 'processing'
-  const lockResult = await query(
-    `UPDATE export_jobs 
-     SET status = 'processing', updated_at = NOW()
-     WHERE id = $1 AND status = 'pending'
-     RETURNING *`,
-    [job.id]
-  );
-
-  if (lockResult.rows.length === 0) {
-    // Job was already picked up by another worker
-    return null;
-  }
-
-  return {
-    jobId: job.id,
-    kind: job.kind,
-    audioUrl: job.audio_url,
-    transcriptId: job.transcript_id,
-    templateId: job.template_id,
-    manifest: JSON.parse(job.manifest || '{}'),
-    style: JSON.parse(job.style || '{}'),
-    template: JSON.parse(job.template_data || '{}'),
-    userId: job.user_id,
-  };
 }
 
 /**
