@@ -111,7 +111,7 @@ export default function TranscriptComposer(props: {
 
   // Initialize style with defaults
   const [style, setStyle] = useState<TranscriptStyle>({
-    fontFamily: 'Inter',
+    fontFamily: 'Sans',
     theme: TRANSCRIPT_THEMES[0], // Default Voisss theme
     animation: 'cut',
   });
@@ -624,7 +624,7 @@ export default function TranscriptComposer(props: {
               }>
                 <div
                   style={{
-                    fontFamily: style.fontFamily === 'Anton' ? 'Impact, sans-serif' : style.fontFamily,
+                    fontFamily: style.fontFamily === 'Sans' ? 'sans-serif' : style.fontFamily === 'Serif' ? 'serif' : 'monospace',
                     fontSize: template.typography.fontSizePx,
                     fontWeight: template.typography.fontWeight as any,
                     lineHeight: template.typography.lineHeight,

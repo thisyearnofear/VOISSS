@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-export type TranscriptFont = 'Inter' | 'Anton' | 'Syne' | 'Courier Prime';
+export type TranscriptFont = 'Sans' | 'Serif' | 'Mono';
 export type TranscriptAnimation = 'cut' | 'fade' | 'pop' | 'highlight';
 
 export interface TranscriptStyle {
@@ -18,10 +18,9 @@ export interface TranscriptStyle {
 }
 
 export const TRANSCRIPT_FONTS: { label: string; value: TranscriptFont; className: string }[] = [
-  { label: 'Standard', value: 'Inter', className: 'font-sans' },
-  { label: 'Loud', value: 'Anton', className: 'font-anton' },
-  { label: 'Vibe', value: 'Syne', className: 'font-syne' },
-  { label: 'Retro', value: 'Courier Prime', className: 'font-courier' },
+  { label: 'Standard', value: 'Sans', className: 'font-sans' },
+  { label: 'Classic', value: 'Serif', className: 'font-serif' },
+  { label: 'Mono', value: 'Mono', className: 'font-mono' },
 ];
 
 export const TRANSCRIPT_THEMES = [

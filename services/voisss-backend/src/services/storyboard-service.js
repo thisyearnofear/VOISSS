@@ -77,10 +77,9 @@ function generateSvgFrame(segment, templateData, style, frameIdx, activeWordInde
   if (style) {
     if (style.fontFamily) {
       const FONT_MAP = {
-        'Inter': 'Inter, "DejaVu Sans", sans-serif',
-        'Anton': 'Anton, Impact, sans-serif',
-        'Syne': 'Syne, sans-serif',
-        'Courier Prime': '"Courier Prime", Courier, monospace',
+        'Sans': '"DejaVu Sans", sans-serif',
+        'Serif': '"DejaVu Serif", serif',
+        'Mono': '"DejaVu Sans Mono", monospace',
       };
       template.typography.fontFamily = FONT_MAP[style.fontFamily] || template.typography.fontFamily;
     }
