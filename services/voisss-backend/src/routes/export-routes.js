@@ -87,6 +87,20 @@ router.post('/request', upload.single('audio'), async (req, res) => {
       }
     }
 
+    // Parse template if provided
+    let parsedTemplate = null;
+    if (req.body.template) {
+      try {
+        parsedTemplate = typeof req.body.template === 'string' ? JSON.parse(req.body.template) : req.body.template;
+      } catch (e) {
+        console.error('Template parse error:', e.message);
+        return res.status(400).json({
+          error: 'Invalid template JSON',
+          details: e.message,
+        });
+      }
+    }
+
     // Enqueue the job
     const result = await enqueueExport({
       kind,
@@ -94,15 +108,17 @@ router.post('/request', upload.single('audio'), async (req, res) => {
       audioBlob,
       transcriptId,
       templateId,
-      template: req.body.template ? (typeof req.body.template === 'string' ? JSON.parse(req.body.template) : req.body.template) : null,
+      template: parsedTemplate,
       manifest,
       style,
       userId: userId || req.user?.id || 'anonymous',
     });
 
+    console.log(`✅ Export enqueued: ${result.jobId}`);
     res.status(202).json(result); // 202 Accepted
   } catch (error) {
-    console.error('Export request failed:', error);
+    console.error('Export request failed:', error.message);
+    console.error('Stack:', error.stack);
     res.status(400).json({
       error: error.message,
     });
