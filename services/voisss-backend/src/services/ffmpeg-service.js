@@ -1,16 +1,14 @@
 /**
- * FFmpeg Service
- * Handles all audio/video encoding operations
- * PRINCIPLE: MODULAR - Composable encoding operations
- * PRINCIPLE: CLEAN - Single responsibility for encoding
+ * FFmpeg Service - Optimized
+ * Uses fluent-ffmpeg for proper process management and better error handling
+ * PRINCIPLE: PERFORMANT - Streaming, proper resource cleanup
+ * PRINCIPLE: MODULAR - Reusable encoding operations
  */
 
-const { exec } = require('child_process');
-const { promisify } = require('util');
+const FFmpeg = require('fluent-ffmpeg');
 const fs = require('fs');
 const path = require('path');
-
-const execAsync = promisify(exec);
+const { promisify } = require('util');
 
 const TEMP_DIR = process.env.EXPORT_TEMP_DIR || '/tmp/voisss-exports';
 const OUTPUT_DIR = process.env.EXPORT_OUTPUT_DIR || '/var/www/voisss-exports';
@@ -23,82 +21,122 @@ const OUTPUT_DIR = process.env.EXPORT_OUTPUT_DIR || '/var/www/voisss-exports';
 });
 
 /**
- * Get FFmpeg command for format
- * PRINCIPLE: DRY - Single source of encoding parameters
- */
-function getFFmpegCommand(format, inputPath, outputPath, options = {}) {
-  const commands = {
-    // Audio only - simple encoding
-    mp3: `ffmpeg -i "${inputPath}" -q:a 5 -codec:a libmp3lame "${outputPath}"`,
-    
-    // Video with audio track
-    mp4_with_audio: `ffmpeg -f concat -safe 0 -i "${options.frameConcat}" -i "${inputPath}" -c:v libx264 -preset fast -crf 23 -c:a aac -shortest "${outputPath}"`,
-  };
-
-  if (!commands[format]) {
-    throw new Error(`Unsupported format: ${format}`);
-  }
-
-  return commands[format];
-}
-
-/**
  * Encode audio file to target format
- * PRINCIPLE: PERFORMANT - Uses FFmpeg with reasonable quality settings
+ * PRINCIPLE: PERFORMANT - Proper FFmpeg resource handling with fluent-ffmpeg
  */
 async function encodeAudio(inputPath, format, outputPath, options = {}) {
-  if (!fs.existsSync(inputPath)) {
-    throw new Error(`Input file not found: ${inputPath}`);
-  }
+  return new Promise((resolve, reject) => {
+    if (!fs.existsSync(inputPath)) {
+      return reject(new Error(`Input file not found: ${inputPath}`));
+    }
 
-  const cmd = getFFmpegCommand(format, inputPath, outputPath, options);
-
-  try {
     console.log(`Encoding ${format}: ${inputPath} → ${outputPath}`);
-    await execAsync(cmd, {
-      timeout: format === 'mp3' ? 180000 : 600000, // Audio: 3min, Video: 10min
-      maxBuffer: 20 * 1024 * 1024, // 20MB buffer for video
-    });
+    
+    const timeout = format === 'mp3' ? 180000 : 600000;
+    let command = FFmpeg(inputPath)
+      .audioCodec('libmp3lame')
+      .audioQuality(5)
+      .format('mp3')
+      .on('progress', (progress) => {
+        if (progress.percent) {
+          process.stdout.write(`\r  Progress: ${Math.round(progress.percent)}%`);
+        }
+      })
+      .on('error', (err) => {
+        console.error('\n❌ FFmpeg error:', err.message);
+        if (fs.existsSync(outputPath)) {
+          try {
+            fs.unlinkSync(outputPath);
+          } catch (e) {}
+        }
+        reject(new Error(`FFmpeg encoding failed: ${err.message}`));
+      })
+      .on('end', () => {
+        console.log('\n✅ Encoding complete');
+        const stats = fs.statSync(outputPath);
+        resolve({
+          path: outputPath,
+          size: stats.size,
+          format,
+        });
+      });
 
-    if (!fs.existsSync(outputPath)) {
-      throw new Error('FFmpeg encoding failed: output file not created');
-    }
+    // Set timeout
+    setTimeout(() => {
+      command.kill();
+      reject(new Error(`FFmpeg encoding timeout after ${timeout}ms`));
+    }, timeout);
 
-    const stats = fs.statSync(outputPath);
-    console.log(`✅ Encoding complete: ${outputPath} (${(stats.size / 1024 / 1024).toFixed(2)}MB)`);
-
-    return {
-      path: outputPath,
-      size: stats.size,
-      format,
-    };
-  } catch (error) {
-    // Cleanup failed output
-    if (fs.existsSync(outputPath)) {
-      fs.unlinkSync(outputPath);
-    }
-    throw new Error(`FFmpeg encoding failed: ${error.message}`);
-  }
+    command.save(outputPath);
+  });
 }
 
 /**
- * Compose video from frames + audio
- * PRINCIPLE: MODULAR - Handles video-specific FFmpeg logic
+ * Compose video from frame sequence + audio
+ * Uses concat demuxer for fast frame composition
  */
 async function composeVideoWithAudio(frameConcat, audioPath, outputPath) {
-  if (!fs.existsSync(frameConcat)) {
-    throw new Error(`Frame concat file not found: ${frameConcat}`);
-  }
-  if (!fs.existsSync(audioPath)) {
-    throw new Error(`Audio file not found: ${audioPath}`);
-  }
+  return new Promise((resolve, reject) => {
+    if (!fs.existsSync(frameConcat)) {
+      return reject(new Error(`Frame concat file not found: ${frameConcat}`));
+    }
+    if (!fs.existsSync(audioPath)) {
+      return reject(new Error(`Audio file not found: ${audioPath}`));
+    }
 
-  return encodeAudio(audioPath, 'mp4_with_audio', outputPath, { frameConcat });
+    console.log(`🎬 Composing video: ${outputPath}`);
+    
+    const timeout = 600000; // 10 minutes
+    let command = FFmpeg()
+      .input(`concat:${frameConcat}`)
+      .input(audioPath)
+      .videoCodec('libx264')
+      .videoFilter('scale=1920:1080:force_original_aspect_ratio=decrease')
+      .fps(30)
+      .preset('fast')
+      .crf(23)
+      .audioCodec('aac')
+      .audioChannels(2)
+      .audioBitrate('128k')
+      .outputOptions([
+        '-shortest',
+        '-movflags +faststart' // Enable streaming
+      ])
+      .on('progress', (progress) => {
+        if (progress.percent) {
+          process.stdout.write(`\r  Progress: ${Math.round(progress.percent)}%`);
+        }
+      })
+      .on('error', (err) => {
+        console.error('\n❌ Video composition failed:', err.message);
+        if (fs.existsSync(outputPath)) {
+          try {
+            fs.unlinkSync(outputPath);
+          } catch (e) {}
+        }
+        reject(new Error(`Video composition failed: ${err.message}`));
+      })
+      .on('end', () => {
+        console.log('\n✅ Video composition complete');
+        const stats = fs.statSync(outputPath);
+        resolve({
+          path: outputPath,
+          size: stats.size,
+          format: 'mp4',
+        });
+      });
+
+    setTimeout(() => {
+      command.kill();
+      reject(new Error(`Video composition timeout after ${timeout}ms`));
+    }, timeout);
+
+    command.save(outputPath);
+  });
 }
 
 /**
  * Download file from URL to temp location
- * PRINCIPLE: CLEAN - Separate concern from encoding
  */
 async function downloadFile(url, tempFileName) {
   const tempPath = path.join(TEMP_DIR, tempFileName);
@@ -106,7 +144,7 @@ async function downloadFile(url, tempFileName) {
   try {
     // Handle file:// URLs (local files)
     if (url.startsWith('file://')) {
-      const filePath = url.slice(7); // Remove 'file://'
+      const filePath = url.slice(7);
       console.log(`Copying local file: ${filePath}`);
       
       if (!fs.existsSync(filePath)) {
@@ -137,9 +175,7 @@ async function downloadFile(url, tempFileName) {
     if (fs.existsSync(tempPath)) {
       try {
         fs.unlinkSync(tempPath);
-      } catch (e) {
-        // ignore cleanup errors
-      }
+      } catch (e) {}
     }
     throw new Error(`Download failed: ${error.message}`);
   }
@@ -147,7 +183,6 @@ async function downloadFile(url, tempFileName) {
 
 /**
  * Move file from temp to output directory
- * PRINCIPLE: CLEAN - Explicit file management
  */
 function moveToOutput(tempPath, jobId, format) {
   const outputFileName = `${jobId}.${format === 'mp3' ? 'mp3' : 'mp4'}`;
@@ -159,7 +194,6 @@ function moveToOutput(tempPath, jobId, format) {
 
 /**
  * Cleanup temp files
- * PRINCIPLE: PERFORMANT - Reduce disk usage
  */
 function cleanupTempFiles(files) {
   files.forEach(filePath => {
@@ -176,7 +210,6 @@ function cleanupTempFiles(files) {
 
 /**
  * Get public URL for output file
- * PRINCIPLE: MODULAR - Configurable based on storage backend
  */
 function getPublicUrl(outputPath) {
   const baseUrl = process.env.EXPORT_PUBLIC_URL || 'http://localhost:5577';

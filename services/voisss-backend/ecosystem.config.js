@@ -3,8 +3,9 @@ require('dotenv').config();
 module.exports = {
   apps: [
     {
-      name: 'voisss-processing',
+      name: 'voisss-server',
       script: './src/server.js',
+      cwd: './services/voisss-backend',
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
@@ -28,14 +29,15 @@ module.exports = {
     {
       name: 'voisss-export-worker',
       script: './src/workers/export-worker.js',
-      instances: process.env.WORKER_INSTANCES || 2,
+      cwd: './services/voisss-backend',
+      instances: process.env.WORKER_INSTANCES || 1,
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
       max_memory_restart: '2G',
       env: {
         NODE_ENV: 'production',
-        WORKER_CONCURRENCY: 2,
+        WORKER_CONCURRENCY: process.env.WORKER_CONCURRENCY || 4,
         WORKER_ID: 'worker-pm2',
         DATABASE_URL: process.env.DATABASE_URL,
       },

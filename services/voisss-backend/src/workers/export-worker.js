@@ -7,6 +7,7 @@
 
 require('dotenv').config();
 
+const path = require('path');
 const { getQueue } = require('../services/queue-service');
 
 process.on('uncaughtException', (err) => {
@@ -39,8 +40,7 @@ const {
   generateFrameConcat,
 } = require('../services/storyboard-service');
 const { runMigrations, closePool } = require('../services/db-service');
-
-const path = require('path');
+const { getWorkerPool, terminateWorkerPool } = require('../services/worker-pool');
 
 /**
  * Process a single export job
@@ -159,32 +159,38 @@ async function processVideoExport(jobId, audioPath, manifest, template, tempFile
     const frameData = await buildFrameSequence(manifest, template, jobId);
     if (job) await job.progress(30);
 
-    // Step 2: Render SVG frames to PNG using Sharp
+    // Step 2: Render SVG frames to PNG using Worker Thread Pool
     console.log(`🎨 Rendering ${frameData.length} frames to PNG...`);
 
-    // Batch rendering with progress updates
+    const pool = getWorkerPool();
     const frameResults = [];
-    const batchSize = 10;
-    for (let i = 0; i < frameData.length; i += batchSize) {
-      const batch = frameData.slice(i, i + batchSize);
-      const batchResults = await Promise.all(
-        batch.map((frame, batchIdx) => {
-          const frameIdx = i + batchIdx;
-          return renderSvgToPng(
-            frame.svg,
-            path.join(outputDir, `${jobId}_frame_${String(frameIdx).padStart(4, '0')}.png`)
-          );
-        })
-      );
-      frameResults.push(...batchResults);
+    
+    // Render all frames in parallel using worker threads
+    const renderPromises = frameData.map((frame, frameIdx) => {
+      const framePath = path.join(outputDir, `${jobId}_frame_${String(frameIdx).padStart(4, '0')}.png`);
+      
+      return pool.executeTask({
+        svg: frame.svg,
+        outputPath: framePath,
+      }).then(result => {
+        if (!result.success) {
+          throw new Error(`Frame ${frameIdx} rendering failed: ${result.error}`);
+        }
+        
+        // Update progress every 10 frames
+        if ((frameIdx + 1) % 10 === 0) {
+          const renderProgress = 30 + Math.floor((frameIdx + 1) / frameData.length * 40);
+          if (job) job.progress(renderProgress).catch(() => {});
+          updateJobStatus(jobId, 'processing', { progress: renderProgress }).catch(() => {});
+        }
+        
+        return result.path;
+      });
+    });
 
-      // Calculate rendering progress (30% to 70% range)
-      const renderProgress = 30 + Math.floor((i + batch.length) / frameData.length * 40);
-      if (job) await job.progress(renderProgress);
-      await updateJobStatus(jobId, 'processing', { progress: renderProgress });
-    }
-
-    frameResults.forEach(p => tempFiles.push(p));
+    const renderedFrames = await Promise.all(renderPromises);
+    frameResults.push(...renderedFrames);
+    renderedFrames.forEach(p => tempFiles.push(p));
 
     // Step 3: Calculate video parameters
     const videoParams = calculateVideoParams(frameData, frameData[frameData.length - 1]?.endMs || 1000);
@@ -275,6 +281,7 @@ async function shutdown() {
   console.log('\n⏹️  Shutting down worker...');
   const { closeQueues } = require('../services/queue-service');
   await closeQueues(); // Close all queues and clear cache
+  await terminateWorkerPool(); // Terminate worker thread pool
   await closePool();
   console.log('✅ Worker shutdown complete');
   process.exit(0);
