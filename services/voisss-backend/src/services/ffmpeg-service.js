@@ -92,18 +92,22 @@ async function composeVideoWithAudio(frameConcat, audioPath, outputPath) {
       .inputFormat('concat')
       .inputOptions(['-safe 0'])
       .input(audioPath)
-      .videoCodec('libx264')
       .outputOptions([
+        '-map 0:v:0',      // Use video from first input
+        '-map 1:a:0',      // Use audio from second input
+        '-c:v libx264',
         '-pix_fmt yuv420p',
         '-preset fast',
         '-crf 23',
+        '-vf scale=trunc(iw/2)*2:trunc(ih/2)*2', // Ensure even dimensions
         '-c:a aac',
         '-ac 2',
-        '-b:a 128k',
+        '-b:a 192k',
+        '-shortest',        // End when shortest stream ends
         '-movflags +faststart'
       ])
       .on('start', (commandLine) => {
-        console.log('Spawned FFmpeg with command: ' + commandLine);
+        console.log(`🚀 FFmpeg command: ${commandLine}`);
       })
       .on('progress', (progress) => {
         if (progress.percent) {

@@ -100,6 +100,11 @@ export function renderMp4StoryboardManifest(params: {
     transcriptId: transcript.id,
     templateId: template.id,
     aspect: template.aspect,
-    segments: transcript.segments.map((s) => ({ startMs: s.startMs, endMs: s.endMs, text: s.text })),
+    segments: transcript.segments.map((s) => ({
+      startMs: s.startMs,
+      endMs: s.endMs,
+      text: s.text,
+      words: s.words,
+    })),
   };
 }

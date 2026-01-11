@@ -153,9 +153,9 @@ function generateSvgFrame(segment, templateData, frameIdx, activeWordIndex = -1)
 <svg xmlns="http://www.w3.org/2000/svg" width="${dim.w}" height="${dim.h}" viewBox="0 0 ${dim.w} ${dim.h}">
   ${defs}
   <rect width="100%" height="100%" fill="${bgFill}"/>
-  <rect x="${template.layout.paddingPx / 2}" y="${template.layout.paddingPx / 2}" width="${dim.w - template.layout.paddingPx}" height="${dim.h - template.layout.paddingPx}" fill="rgba(0,0,0,0.08)" rx="32"/>
+  <rect x="${template.layout.paddingPx / 2}" y="${template.layout.paddingPx / 2}" width="${dim.w - template.layout.paddingPx}" height="${dim.h - template.layout.paddingPx}" fill="rgba(0,0,0,0.04)" rx="48"/>
   ${textXml}
-  <text x="${x}" y="${dim.h - template.layout.paddingPx}" fill="${mutedColor}" font-family="${fontFamily}" font-size="28" font-weight="700" opacity="0.6">VOISSS</text>
+  <text x="${dim.w / 2}" y="${dim.h - template.layout.paddingPx}" fill="${mutedColor}" font-family="${fontFamily}" font-size="28" font-weight="800" opacity="0.4" text-anchor="middle">VOISSS</text>
 </svg>`;
 
   return svg;
