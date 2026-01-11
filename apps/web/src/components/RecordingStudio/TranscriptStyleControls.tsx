@@ -4,6 +4,7 @@ import React from 'react';
 
 export type TranscriptFont = 'Sans' | 'Serif' | 'Mono';
 export type TranscriptAnimation = 'cut' | 'fade' | 'pop' | 'highlight';
+export type TranscriptDensity = 'breeze' | 'classic' | 'hype';
 
 export interface TranscriptStyle {
   fontFamily: TranscriptFont;
@@ -15,6 +16,7 @@ export interface TranscriptStyle {
     textPast: string;
   };
   animation: TranscriptAnimation;
+  density: TranscriptDensity;
 }
 
 export const TRANSCRIPT_FONTS: { label: string; value: TranscriptFont; className: string }[] = [
@@ -160,6 +162,30 @@ export function TranscriptStyleControls({ style, onChange }: TranscriptStyleCont
             >
               <span className="text-base">{anim.icon}</span>
               <span>{anim.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 4. Layout Density */}
+      <div className="space-y-2 pt-2">
+        <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Density (Words per line)</label>
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { label: 'Breeze', value: 'breeze', icon: '↔️' },
+            { label: 'Classic', value: 'classic', icon: '⧉' },
+            { label: 'Hype', value: 'hype', icon: '↕️' },
+          ].map((item) => (
+            <button
+              key={item.value}
+              onClick={() => onChange({ ...style, density: item.value as any })}
+              className={`px-2 py-2.5 rounded-lg text-[10px] border transition-all flex flex-col items-center gap-1.5 ${style.density === item.value
+                ? 'bg-white text-black border-white'
+                : 'bg-[#1A1A1A] text-gray-400 border-[#333] hover:border-gray-500'
+                }`}
+            >
+              <span className="text-sm">{item.icon}</span>
+              <span className="font-semibold uppercase tracking-tighter">{item.label}</span>
             </button>
           ))}
         </div>

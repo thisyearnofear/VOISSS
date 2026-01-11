@@ -114,6 +114,7 @@ export default function TranscriptComposer(props: {
     fontFamily: 'Sans',
     theme: TRANSCRIPT_THEMES[0], // Default Voisss theme
     animation: 'cut',
+    density: 'classic',
   });
 
   const [playbackRate, setPlaybackRate] = useState(1);

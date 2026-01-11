@@ -156,8 +156,16 @@ function generateSvgFrame(segment, templateData, style, frameIdx, activeWordInde
   // Center vertical target
   const y0 = Math.round(dim.h * 0.5);
 
-  // Process words into lines
-  const maxCharsPerLine = template.layout.maxCharsPerLine || 30;
+  // Process words into lines based on density
+  let maxCharsPerLine = template.layout.maxCharsPerLine || 30;
+  if (style && style.density) {
+    const DENSITY_MAP = {
+      'breeze': 40,
+      'classic': 20,
+      'hype': 8,
+    };
+    maxCharsPerLine = DENSITY_MAP[style.density] || maxCharsPerLine;
+  }
   const words = segment.words || segment.text.split(/\s+/).map(w => ({ word: w }));
 
   const lines = [];
