@@ -87,8 +87,16 @@ export default function TranscriptComposer(props: {
   audioBlob: Blob;
   initialTemplateId?: string;
   autoFocus?: boolean;
+  languageHint?: string;
 }) {
-  const { previewUrl, durationSeconds, audioBlob, initialTemplateId, autoFocus } = props;
+  const {
+    previewUrl,
+    durationSeconds,
+    audioBlob,
+    initialTemplateId,
+    autoFocus,
+    languageHint = 'en'
+  } = props;
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
@@ -430,10 +438,14 @@ export default function TranscriptComposer(props: {
     return pages.find((p) => p.segmentId === activeSegment.id) ?? null;
   }, [pages, activeSegment]);
 
-  const applyRoughTiming = () => {
+  const applyRoughTiming = (language?: string) => {
     setError(null);
     try {
-      const tt = createRoughTimedTranscript({ text: rawText, durationSeconds: normalizedDurationSeconds });
+      const tt = createRoughTimedTranscript({
+        text: rawText,
+        durationSeconds: normalizedDurationSeconds,
+        language: language || languageHint
+      });
       setTimedTranscript(tt);
       setIsAccurateTranscript(false); // Rough timing is not accurate
     } catch (e: any) {
@@ -781,13 +793,17 @@ export default function TranscriptComposer(props: {
               <strong>Accuracy note:</strong> Rough timing uses duration to estimate word timing. For precise karaoke, import word-level timestamps.
             </p>
             <div className="flex flex-wrap gap-2 mt-2">
-              <button onClick={applyRoughTiming} className="voisss-btn-primary">
+              <button
+                onClick={() => applyRoughTiming(languageHint)}
+                className="voisss-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!rawText.trim() || normalizedDurationSeconds <= 0}
+              >
                 Create timed transcript
               </button>
               <button
                 onClick={async () => {
                   setError(null);
-                  if (!rawText.trim() || normalizedDurationSeconds <= 0) return;
+                  if (normalizedDurationSeconds <= 0) return;
                   setError(null);
 
                   // Final safety check on total duration
@@ -808,6 +824,9 @@ export default function TranscriptComposer(props: {
 
                     const form = new FormData();
                     form.append('audio', audioBlob, 'recording.webm');
+                    if (languageHint) {
+                      form.append('language', languageHint);
+                    }
                     const res = await fetch('/api/transcript/transcribe', { method: 'POST', body: form });
                     const data = await res.json();
                     if (!res.ok) {
@@ -824,7 +843,7 @@ export default function TranscriptComposer(props: {
                     setIsTranscribing(false);
                   }
                 }}
-                disabled={isTranscribing || !rawText.trim() || normalizedDurationSeconds <= 0}
+                disabled={isTranscribing || normalizedDurationSeconds <= 0}
                 className={`px-4 py-2 rounded-lg border text-white text-sm hover:bg-[#3A3A3A] flex items-center gap-2 ${autoFocus
                   ? 'bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] border-transparent'
                   : 'bg-[#2A2A2A] border-[#3A3A3A]'

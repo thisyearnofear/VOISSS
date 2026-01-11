@@ -18,6 +18,7 @@ interface VersionSelectionProps {
     aiVoice: boolean;
     dubbed: boolean;
   }) => void;
+  onSelectForForge: (blob: Blob, lang?: string) => void;
 }
 
 export default function VersionSelection({
@@ -30,12 +31,13 @@ export default function VersionSelection({
   userTier,
   remainingQuota,
   onSelectedVersionsChange,
+  onSelectForForge,
 }: VersionSelectionProps) {
   return (
     <div className="mb-6 p-4 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl">
       <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
         <svg className="w-4 h-4 text-[#7C5DFA]" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
         </svg>
         Select Versions to Save
       </h4>
@@ -49,9 +51,9 @@ export default function VersionSelection({
           <input
             type="checkbox"
             checked={selectedVersions.original}
-            onChange={(e) => onSelectedVersionsChange({ 
-              ...selectedVersions, 
-              original: e.target.checked 
+            onChange={(e) => onSelectedVersionsChange({
+              ...selectedVersions,
+              original: e.target.checked
             })}
             className="w-5 h-5 rounded border-gray-600 text-[#7C5DFA] focus:ring-[#7C5DFA] focus:ring-offset-gray-900"
           />
@@ -63,22 +65,33 @@ export default function VersionSelection({
             <p className="text-xs text-gray-400 mt-1">Your original voice recording</p>
           </div>
           {audioBlob && (
-            <span className="text-xs text-gray-500">{(audioBlob.size / 1024).toFixed(0)} KB</span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500">{(audioBlob.size / 1024).toFixed(0)} KB</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onSelectForForge(audioBlob, 'en');
+                }}
+                className="px-2 py-1 text-[10px] bg-[#2A2A2A] text-white rounded hover:bg-[#3A3A3A] transition-colors"
+              >
+                Open in Studio
+              </button>
+            </div>
           )}
         </label>
 
         {/* AI Voice Version */}
-        <label className={`flex items-center gap-3 p-3 bg-[#0F0F0F] border rounded-lg transition-colors ${
-          variantBlobFree
-            ? 'border-[#2A2A2A] cursor-pointer hover:border-[#3A3A3A]'
-            : 'border-[#1A1A1A] opacity-50 cursor-not-allowed'
-        }`}>
+        <label className={`flex items-center gap-3 p-3 bg-[#0F0F0F] border rounded-lg transition-colors ${variantBlobFree
+          ? 'border-[#2A2A2A] cursor-pointer hover:border-[#3A3A3A]'
+          : 'border-[#1A1A1A] opacity-50 cursor-not-allowed'
+          }`}>
           <input
             type="checkbox"
             checked={selectedVersions.aiVoice}
-            onChange={(e) => onSelectedVersionsChange({ 
-              ...selectedVersions, 
-              aiVoice: e.target.checked 
+            onChange={(e) => onSelectedVersionsChange({
+              ...selectedVersions,
+              aiVoice: e.target.checked
             })}
             disabled={!variantBlobFree}
             className="w-5 h-5 rounded border-gray-600 text-[#7C5DFA] focus:ring-[#7C5DFA] focus:ring-offset-gray-900 disabled:opacity-50"
@@ -93,22 +106,33 @@ export default function VersionSelection({
             </p>
           </div>
           {variantBlobFree && (
-            <span className="text-xs text-gray-500">{(variantBlobFree.size / 1024).toFixed(0)} KB</span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500">{(variantBlobFree.size / 1024).toFixed(0)} KB</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onSelectForForge(variantBlobFree!, 'en');
+                }}
+                className="px-2 py-1 text-[10px] bg-[#2A2A2A] text-white rounded hover:bg-[#3A3A3A] transition-colors"
+              >
+                Open in Studio
+              </button>
+            </div>
           )}
         </label>
 
         {/* Dubbed Version */}
-        <label className={`flex items-center gap-3 p-3 bg-[#0F0F0F] border rounded-lg transition-colors ${
-          dubbedBlob
-            ? 'border-[#2A2A2A] cursor-pointer hover:border-[#3A3A3A]'
-            : 'border-[#1A1A1A] opacity-50 cursor-not-allowed'
-        }`}>
+        <label className={`flex items-center gap-3 p-3 bg-[#0F0F0F] border rounded-lg transition-colors ${dubbedBlob
+          ? 'border-[#2A2A2A] cursor-pointer hover:border-[#3A3A3A]'
+          : 'border-[#1A1A1A] opacity-50 cursor-not-allowed'
+          }`}>
           <input
             type="checkbox"
             checked={selectedVersions.dubbed}
-            onChange={(e) => onSelectedVersionsChange({ 
-              ...selectedVersions, 
-              dubbed: e.target.checked 
+            onChange={(e) => onSelectedVersionsChange({
+              ...selectedVersions,
+              dubbed: e.target.checked
             })}
             disabled={!dubbedBlob}
             className="w-5 h-5 rounded border-gray-600 text-[#7C5DFA] focus:ring-[#7C5DFA] focus:ring-offset-gray-900 disabled:opacity-50"
@@ -123,7 +147,19 @@ export default function VersionSelection({
             </p>
           </div>
           {dubbedBlob && (
-            <span className="text-xs text-gray-500">{(dubbedBlob.size / 1024).toFixed(0)} KB</span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500">{(dubbedBlob.size / 1024).toFixed(0)} KB</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onSelectForForge(dubbedBlob!, dubbedLanguage);
+                }}
+                className="px-2 py-1 text-[10px] bg-[#2A2A2A] text-white rounded hover:bg-[#3A3A3A] transition-colors"
+              >
+                Open in Studio
+              </button>
+            </div>
           )}
         </label>
       </div>
@@ -139,11 +175,10 @@ export default function VersionSelection({
         {userTier === 'free' && (
           <div className="flex items-center justify-between text-xs mt-2 pt-2 border-t border-[#2A2A2A]">
             <span className="text-gray-400">Will use:</span>
-            <span className={`font-medium ${
-              Object.values(selectedVersions).filter(Boolean).length > remainingQuota.saves
-                ? 'text-red-400'
-                : 'text-green-400'
-            }`}>
+            <span className={`font-medium ${Object.values(selectedVersions).filter(Boolean).length > remainingQuota.saves
+              ? 'text-red-400'
+              : 'text-green-400'
+              }`}>
               {Object.values(selectedVersions).filter(Boolean).length} of {remainingQuota.saves} saves remaining
             </span>
           </div>

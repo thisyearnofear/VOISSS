@@ -32,6 +32,12 @@ import TranscriptComposer from "./RecordingStudio/TranscriptComposer";
 import ActionButtons from "./RecordingStudio/ActionButtons";
 import RecordingTitle from "./RecordingStudio/RecordingTitle";
 import GeminiInsightsPanel from "./RecordingStudio/GeminiInsightsPanel";
+import {
+  getBlobDuration,
+  saveForgeBlob,
+  getForgeBlob,
+  clearForgeBlob
+} from "../lib/studio-db";
 
 interface RecordingStudioProps {
   onRecordingComplete?: (audioBlob: Blob, duration: number) => void;
@@ -139,6 +145,50 @@ export default function RecordingStudio({
     isLoadingPermissions,
   } = useBaseAccount();
 
+  // Studio workflow phases
+  type StudioPhase = 'recording' | 'laboratory' | 'forge';
+  const [studioPhase, setStudioPhase] = useState<StudioPhase>('recording');
+
+  // Track which version is active for the Forge phase
+  const [activeForgeBlob, setActiveForgeBlob] = useState<Blob | null>(null);
+  const [activeForgeUrl, setActiveForgeUrl] = useState<string | null>(null);
+  const [forgeDuration, setForgeDuration] = useState(0);
+  const [activeForgeLanguage, setActiveForgeLanguage] = useState('en');
+
+  useEffect(() => {
+    const initForge = async () => {
+      if (activeForgeBlob) {
+        const url = URL.createObjectURL(activeForgeBlob);
+        setActiveForgeUrl(url);
+
+        // Accurate duration recalculation
+        const dur = await getBlobDuration(activeForgeBlob);
+        if (dur > 0) setForgeDuration(dur);
+        else setForgeDuration(duration / 1000); // Fallback to original
+
+        // Persist to indexedDB
+        saveForgeBlob(activeForgeBlob).catch(console.error);
+
+        return () => URL.revokeObjectURL(url);
+      }
+    };
+    initForge();
+  }, [activeForgeBlob, duration]);
+
+  // Restore persistence on mount
+  useEffect(() => {
+    const restore = async () => {
+      const savedBlob = await getForgeBlob();
+      if (savedBlob) {
+        setActiveForgeBlob(savedBlob);
+        setStudioPhase('forge');
+      }
+    };
+    restore();
+  }, []);
+
+  // Core recording state
+
   // Services
   const ipfsService = React.useMemo(() => createIPFSService(), []);
 
@@ -218,7 +268,7 @@ export default function RecordingStudio({
     try {
       const blob = await stopRecording();
       if (blob) {
-        setShowSaveOptions(true);
+        setStudioPhase('laboratory');
         resetRecordingStates();
       }
     } catch (error) {
@@ -238,7 +288,7 @@ export default function RecordingStudio({
 
   const handleCancelRecording = useCallback(() => {
     cancelRecording();
-    setShowSaveOptions(false);
+    setStudioPhase('recording');
     setRecordingTitle("");
     setRecordingDescription("");
     setRecordingTags([]);
@@ -259,6 +309,13 @@ export default function RecordingStudio({
       aiVoice: false,
       dubbed: false,
     });
+    setActiveForgeBlob(null);
+    setForgeDuration(0);
+    clearForgeBlob().catch(console.error);
+    if (activeForgeUrl) {
+      URL.revokeObjectURL(activeForgeUrl);
+      setActiveForgeUrl(null);
+    }
   };
 
   const handleApplyInsights = useCallback(
@@ -561,10 +618,17 @@ export default function RecordingStudio({
       }
 
       if (successCount === versionsToSave) {
-        setShowSaveOptions(false);
-        setRecordingTitle("");
-        setRecordingDescription("");
-        setRecordingTags([]);
+        // Prioritize: Dubbed > AI Voice > Original for the subsequent Forge phase
+        let forgeBlob = audioBlob;
+        let forgeLang = 'en';
+        if (selectedVersions.dubbed && dubbedBlob) {
+          forgeBlob = dubbedBlob;
+          forgeLang = dubbedLanguage;
+        } else if (selectedVersions.aiVoice && variantBlobFree) {
+          forgeBlob = variantBlobFree;
+        }
+
+        handleSelectForForge(forgeBlob, forgeLang);
       }
     } catch (error) {
       console.error("Error saving recordings:", error);
@@ -594,6 +658,15 @@ export default function RecordingStudio({
     permissionActive,
     signIn,
   ]);
+
+  const handleSelectForForge = useCallback(async (blob: Blob, lang?: string) => {
+    setActiveForgeBlob(blob);
+    setStudioPhase('forge');
+    setActiveForgeLanguage(lang || 'en');
+    const dur = await getBlobDuration(blob);
+    if (dur > 0) setForgeDuration(dur);
+    else setForgeDuration(duration / 1000);
+  }, [duration]);
 
   return (
     <div className="max-w-2xl mx-auto voisss-card shadow-2xl">
@@ -630,50 +703,95 @@ export default function RecordingStudio({
         onCancelRecording={handleCancelRecording}
       />
 
-      {/* Save Options */}
-      {showSaveOptions && (
-        <>
-          {/* Gemini Insights Panel */}
-          <GeminiInsightsPanel
-            audioBlob={audioBlob}
-            onApplyInsights={handleApplyInsights}
-            isVisible={true}
-          />
+      {/* PHASE 2: LABORATORY (Alchemy & Anchor) */}
+      {studioPhase === 'laboratory' && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="text-center py-4 border-b border-[#2A2A2A]">
+            <h3 className="text-xl font-bold text-white">Laboratory</h3>
+            <p className="text-xs text-gray-400">Transform your audio and anchor to the blockchain</p>
+          </div>
 
-          {/* Main Save Section */}
-          <div className="bg-gray-800 rounded-lg p-6">
-            <h3 className="text-xl font-semibold text-white mb-4 text-center">
-              Save Recording
-            </h3>
-
-            <AudioPreview
-              previewUrl={previewUrl}
-              audioBlob={audioBlob}
-              formatFileSize={formatFileSize}
-            />
-
-            {previewUrl && audioBlob && duration > 0 && (
-              <TranscriptComposer
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left: Input/Preview & Metadata */}
+            <div className="space-y-6">
+              <AudioPreview
                 previewUrl={previewUrl}
-                durationSeconds={duration / 1000}
                 audioBlob={audioBlob}
-                initialTemplateId={initialTranscriptTemplateId}
-                autoFocus={initialMode === "transcript"}
+                formatFileSize={formatFileSize}
               />
-            )}
 
-            <PermissionStatus
-              isConnected={isConnected}
-              permissionActive={permissionActive}
-              isLoadingPermissions={isLoadingPermissions}
-              requestPermission={requestPermission}
-              setToastType={setToastType}
-              setToastMessage={setToastMessage}
-            />
+              <GeminiInsightsPanel
+                audioBlob={audioBlob}
+                onApplyInsights={handleApplyInsights}
+                isVisible={true}
+              />
 
-            <RecordingTitle
-              recordingTitle={recordingTitle}
-              onTitleChange={setRecordingTitle}
+              <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 space-y-4">
+                <RecordingTitle
+                  recordingTitle={recordingTitle}
+                  onTitleChange={setRecordingTitle}
+                />
+
+                <PermissionStatus
+                  isConnected={isConnected}
+                  permissionActive={permissionActive}
+                  isLoadingPermissions={isLoadingPermissions}
+                  requestPermission={requestPermission}
+                  setToastType={setToastType}
+                  setToastMessage={setToastMessage}
+                />
+              </div>
+            </div>
+
+            {/* Right: Alchemy Hub */}
+            <div className="space-y-6">
+              <AIVoicePanel
+                voicesFree={voicesFree}
+                selectedVoiceFree={selectedVoiceFree}
+                variantBlobFree={variantBlobFree}
+                isLoadingVoicesFree={isLoadingVoicesFree}
+                isGeneratingFree={isGeneratingFree}
+                canUseAIVoice={canUseAIVoice}
+                audioBlob={audioBlob}
+                userTier={userTier}
+                remainingQuota={remainingQuota}
+                WEEKLY_AI_VOICE_LIMIT={
+                  useFreemiumStore.getState().WEEKLY_AI_VOICE_LIMIT
+                }
+                onVoicesFreeChange={setVoicesFree}
+                onSelectedVoiceFreeChange={setSelectedVoiceFree}
+                onVariantBlobFreeChange={setVariantBlobFree}
+                onLoadingVoicesFreeChange={setLoadingVoicesFree}
+                onGeneratingFreeChange={setGeneratingFree}
+                onIncrementAIVoiceUsage={incrementAIVoiceUsage}
+                onToastMessage={setToastMessage}
+                onToastType={setToastType}
+                onSetSelectedVersions={setSelectedVersions}
+              />
+
+              <DubbingPanel
+                audioBlob={audioBlob}
+                onDubbingComplete={(dubbedBlob, language) => {
+                  setDubbedBlob(dubbedBlob);
+                  setDubbedLanguage(language);
+                  setSelectedVersions((prev) => ({ ...prev, dubbed: true }));
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-[#2A2A2A] pt-6">
+            <VersionSelection
+              selectedVersions={selectedVersions}
+              audioBlob={audioBlob}
+              variantBlobFree={variantBlobFree}
+              dubbedBlob={dubbedBlob}
+              selectedVoiceFree={selectedVoiceFree}
+              dubbedLanguage={dubbedLanguage}
+              userTier={userTier}
+              remainingQuota={remainingQuota}
+              onSelectedVersionsChange={setSelectedVersions}
+              onSelectForForge={handleSelectForForge}
             />
 
             <ActionButtons
@@ -690,54 +808,58 @@ export default function RecordingStudio({
               setToastType={setToastType}
               setToastMessage={setToastMessage}
             />
+
+            <button
+              onClick={() => {
+                setActiveForgeBlob(audioBlob);
+                setStudioPhase('forge');
+              }}
+              className="w-full mt-4 py-3 text-xs text-gray-400 hover:text-white transition-colors"
+            >
+              Skip to Studio (Forge) without saving
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PHASE 3: FORGE (Transcription & Export) */}
+      {studioPhase === 'forge' && activeForgeBlob && (
+        <div className="space-y-6 animate-in fade-in zoom-in-95 duration-500">
+          <div className="flex items-center justify-between border-b border-[#2A2A2A] pb-4">
+            <div>
+              <h3 className="text-xl font-bold text-white">Studio Forge</h3>
+              <p className="text-xs text-gray-400">Design and export your final assets</p>
+            </div>
+            <button
+              onClick={() => setStudioPhase('laboratory')}
+              className="px-3 py-1.5 rounded-lg bg-[#2A2A2A] text-xs text-gray-300 hover:bg-[#3A3A3A] transition-colors"
+            >
+              ← Back to Lab
+            </button>
           </div>
 
-          {/* Feature Panels */}
-          <AIVoicePanel
-            voicesFree={voicesFree}
-            selectedVoiceFree={selectedVoiceFree}
-            variantBlobFree={variantBlobFree}
-            isLoadingVoicesFree={isLoadingVoicesFree}
-            isGeneratingFree={isGeneratingFree}
-            canUseAIVoice={canUseAIVoice}
-            audioBlob={audioBlob}
-            userTier={userTier}
-            remainingQuota={remainingQuota}
-            WEEKLY_AI_VOICE_LIMIT={
-              useFreemiumStore.getState().WEEKLY_AI_VOICE_LIMIT
-            }
-            onVoicesFreeChange={setVoicesFree}
-            onSelectedVoiceFreeChange={setSelectedVoiceFree}
-            onVariantBlobFreeChange={setVariantBlobFree}
-            onLoadingVoicesFreeChange={setLoadingVoicesFree}
-            onGeneratingFreeChange={setGeneratingFree}
-            onIncrementAIVoiceUsage={incrementAIVoiceUsage}
-            onToastMessage={setToastMessage}
-            onToastType={setToastType}
-            onSetSelectedVersions={setSelectedVersions}
+          <TranscriptComposer
+            previewUrl={activeForgeUrl || ""}
+            durationSeconds={forgeDuration || duration / 1000}
+            audioBlob={activeForgeBlob}
+            initialTemplateId={initialTranscriptTemplateId}
+            autoFocus={initialMode === "transcript"}
+            languageHint={activeForgeLanguage}
           />
 
-          <DubbingPanel
-            audioBlob={audioBlob}
-            onDubbingComplete={(dubbedBlob, language) => {
-              setDubbedBlob(dubbedBlob);
-              setDubbedLanguage(language);
-              setSelectedVersions((prev) => ({ ...prev, dubbed: true }));
-            }}
-          />
-
-          <VersionSelection
-            selectedVersions={selectedVersions}
-            audioBlob={audioBlob}
-            variantBlobFree={variantBlobFree}
-            dubbedBlob={dubbedBlob}
-            selectedVoiceFree={selectedVoiceFree}
-            dubbedLanguage={dubbedLanguage}
-            userTier={userTier}
-            remainingQuota={remainingQuota}
-            onSelectedVersionsChange={setSelectedVersions}
-          />
-        </>
+          <div className="p-4 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl flex items-center justify-between">
+            <p className="text-sm text-gray-400">Ready to start fresh?</p>
+            <button
+              onClick={() => {
+                setStudioPhase('recording');
+                cancelRecording();
+              }}
+              className="px-4 py-2 rounded-lg bg-red-900/20 text-red-400 text-sm border border-red-900/30 hover:bg-red-900/30 transition-all"
+            >
+              New Project
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Social Sharing */}
