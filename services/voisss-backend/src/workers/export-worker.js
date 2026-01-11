@@ -249,10 +249,20 @@ async function startWorker() {
 
     // Set concurrency (how many jobs in parallel)
     const concurrency = parseInt(process.env.WORKER_CONCURRENCY || '2');
-    console.log(`Worker concurrency: ${concurrency}`);
+    console.log(`🔧 Configuring worker: concurrency=${concurrency}`);
 
     // Register processor - Bull handles connection timing internally
-    queue.process(concurrency, processExportJob);
+    console.log(`📝 Registering queue processor...`);
+    const processor = queue.process(concurrency, async (job) => {
+      try {
+        console.log(`[PROCESSOR] Starting processExportJob for ${job.id}`);
+        return await processExportJob(job);
+      } catch (error) {
+        console.error(`[PROCESSOR] ERROR in processExportJob:`, error);
+        throw error;
+      }
+    });
+    console.log(`✅ Queue processor registered`);
 
     // Event listeners for monitoring
     queue.on('active', (job) => {
@@ -268,7 +278,11 @@ async function startWorker() {
     });
 
     queue.on('error', (error) => {
-      console.error('Queue error:', error);
+      console.error('🔴 Queue error:', error);
+    });
+
+    queue.on('waiting', (jobId) => {
+      console.log(`⏳ Job waiting: ${jobId}`);
     });
 
     console.log(`✅ Export worker ready`);
