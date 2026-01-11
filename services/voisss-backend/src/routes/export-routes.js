@@ -132,18 +132,22 @@ router.post('/request', upload.single('audio'), async (req, res) => {
 router.get('/:jobId/status', async (req, res) => {
   try {
     const { jobId } = req.params;
+    console.log(`📊 Status request for: ${jobId}`);
 
     const status = await getJobStatus(jobId);
 
     if (!status) {
+      console.log(`⚠️  Job not found: ${jobId}`);
       return res.status(404).json({
         error: 'Job not found',
       });
     }
 
+    console.log(`✅ Status retrieved: ${jobId} - ${status.status}`);
     res.json(status);
   } catch (error) {
-    console.error('Status request failed:', error);
+    console.error('Status request failed:', error.message);
+    console.error('Stack:', error.stack);
     res.status(500).json({
       error: error.message,
     });
