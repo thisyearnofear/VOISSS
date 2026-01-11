@@ -22,6 +22,12 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 
  */
 router.post('/request', upload.single('audio'), async (req, res) => {
   try {
+    console.log(`📝 Export request received`);
+    console.log(`   req.file exists:`, !!req.file);
+    if (req.file) {
+      console.log(`   Audio file size: ${req.file.size || req.file.buffer?.length} bytes`);
+    }
+    
     let kind, audioUrl, transcriptId, templateId, manifest, style, userId, audioBlob;
 
     // Handle multipart/form-data (file upload)
@@ -30,6 +36,9 @@ router.post('/request', upload.single('audio'), async (req, res) => {
       transcriptId = req.body.transcriptId;
       templateId = req.body.templateId;
       audioBlob = req.file.buffer;
+      
+      console.log(`   Kind: ${kind}, TranscriptId: ${transcriptId}`);
+      console.log(`   AudioBlob size: ${audioBlob?.length} bytes`);
 
       if (req.body.manifest) {
         try {
@@ -50,6 +59,7 @@ router.post('/request', upload.single('audio'), async (req, res) => {
     } else {
       // Handle JSON request (original format)
       ({ kind, audioUrl, transcriptId, templateId, manifest, style, userId } = req.body);
+      console.log(`   JSON request - audioUrl: ${audioUrl}`);
     }
 
     // Validate required fields
