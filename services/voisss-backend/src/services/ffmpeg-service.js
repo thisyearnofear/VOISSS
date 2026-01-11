@@ -31,7 +31,7 @@ async function encodeAudio(inputPath, format, outputPath, options = {}) {
     }
 
     console.log(`Encoding ${format}: ${inputPath} → ${outputPath}`);
-    
+
     const timeout = format === 'mp3' ? 180000 : 600000;
     let command = FFmpeg(inputPath)
       .audioCodec('libmp3lame')
@@ -47,7 +47,7 @@ async function encodeAudio(inputPath, format, outputPath, options = {}) {
         if (fs.existsSync(outputPath)) {
           try {
             fs.unlinkSync(outputPath);
-          } catch (e) {}
+          } catch (e) { }
         }
         reject(new Error(`FFmpeg encoding failed: ${err.message}`));
       })
@@ -85,7 +85,7 @@ async function composeVideoWithAudio(frameConcat, audioPath, outputPath) {
     }
 
     console.log(`🎬 Composing video: ${outputPath}`);
-    
+
     const timeout = 600000; // 10 minutes
     let command = FFmpeg()
       .input(frameConcat)
@@ -93,17 +93,18 @@ async function composeVideoWithAudio(frameConcat, audioPath, outputPath) {
       .inputOptions(['-safe 0'])
       .input(audioPath)
       .videoCodec('libx264')
-      .videoFilter('scale=1920:1080:force_original_aspect_ratio=decrease')
-      .fps(30)
       .outputOptions([
-        '-preset fast',  // Use outputOptions instead of preset()
+        '-pix_fmt yuv420p',
+        '-preset fast',
         '-crf 23',
         '-c:a aac',
         '-ac 2',
         '-b:a 128k',
-        '-shortest',
-        '-movflags +faststart' // Enable streaming
+        '-movflags +faststart'
       ])
+      .on('start', (commandLine) => {
+        console.log('Spawned FFmpeg with command: ' + commandLine);
+      })
       .on('progress', (progress) => {
         if (progress.percent) {
           process.stdout.write(`\r  Progress: ${Math.round(progress.percent)}%`);
@@ -114,7 +115,7 @@ async function composeVideoWithAudio(frameConcat, audioPath, outputPath) {
         if (fs.existsSync(outputPath)) {
           try {
             fs.unlinkSync(outputPath);
-          } catch (e) {}
+          } catch (e) { }
         }
         reject(new Error(`Video composition failed: ${err.message}`));
       })
@@ -148,11 +149,11 @@ async function downloadFile(url, tempFileName) {
     if (url.startsWith('file://')) {
       const filePath = url.slice(7);
       console.log(`Copying local file: ${filePath}`);
-      
+
       if (!fs.existsSync(filePath)) {
         throw new Error(`File not found: ${filePath}`);
       }
-      
+
       fs.copyFileSync(filePath, tempPath);
       const stats = fs.statSync(tempPath);
       console.log(`✅ Copied: ${tempPath} (${(stats.size / 1024 / 1024).toFixed(2)}MB)`);
@@ -177,7 +178,7 @@ async function downloadFile(url, tempFileName) {
     if (fs.existsSync(tempPath)) {
       try {
         fs.unlinkSync(tempPath);
-      } catch (e) {}
+      } catch (e) { }
     }
     throw new Error(`Download failed: ${error.message}`);
   }

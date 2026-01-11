@@ -90,9 +90,9 @@ function generateSvgFrame(segment, templateData, frameIdx, activeWordIndex = -1)
   const fontSize = template.typography.fontSizePx;
   const lineHeightPx = Math.round(fontSize * template.typography.lineHeight);
   const fontWeight = template.typography.fontWeight;
-  const textColor = escapeXml(template.typography.textColor);
+  const textColor = escapeXml(template.typography.textColor || '#FFFFFF');
   const mutedColor = escapeXml(template.typography.mutedColor || '#666666');
-  const activeColor = escapeXml(template.typography.textColor);
+  const activeColor = escapeXml(template.typography.highlightColor || template.typography.activeColor || textColor);
 
   // Layout
   const x = template.layout.paddingPx;
@@ -127,17 +127,18 @@ function generateSvgFrame(segment, templateData, frameIdx, activeWordIndex = -1)
     .map((line, li) => {
       const y = startY + li * lineHeightPx;
       const tspans = line.words.map((w) => {
-        const isPast = activeWordIndex !== -1 && w.globalIndex < activeWordIndex;
-        const isActive = activeWordIndex !== -1 && w.globalIndex === activeWordIndex;
-
-        let color = mutedColor;
+        let color = textColor;
         let weight = fontWeight;
 
-        if (isActive) {
-          color = activeColor;
-          weight = '900'; // Bold active word
-        } else if (isPast) {
-          color = textColor;
+        if (activeWordIndex !== -1) {
+          if (w.globalIndex === activeWordIndex) {
+            color = activeColor;
+            weight = '900'; // Bold active word
+          } else if (w.globalIndex < activeWordIndex) {
+            color = textColor;
+          } else {
+            color = mutedColor;
+          }
         }
 
         return `<tspan fill="${color}" font-weight="${weight}">${escapeXml(w.word)} </tspan>`;
@@ -264,14 +265,16 @@ function generateFrameConcat(frameData, outputDir, jobId, fps = 24) {
   frameData.forEach((frame, idx) => {
     const framePath = `${outputDir}/${jobId}_frame_${String(idx).padStart(4, '0')}.png`;
 
-    // Each frame duration in seconds
-    // No more 0.95 scale; use exact timing.
-    const duration = frame.durationMs / 1000;
-
-    // FFmpeg requires a duration for each file. 
-    // The last frame is usually problematic but FFmpeg handles it if provided.
     concatList += `file '${framePath}'\nduration ${Math.max(0.01, duration)}\n`;
   });
+
+  // FFmpeg concat demuxer "last file" bug fix: 
+  // Add the last file one more time without duration to ensure the previous duration is respected
+  if (frameData.length > 0) {
+    const lastIdx = frameData.length - 1;
+    const lastPath = `${outputDir}/${jobId}_frame_${String(lastIdx).padStart(4, '0')}.png`;
+    concatList += `file '${lastPath}'\n`;
+  }
 
   return concatList;
 }
