@@ -50,6 +50,7 @@ const { getWorkerPool, terminateWorkerPool } = require('../services/worker-pool'
 async function processExportJob(job) {
   const workerInfo = `[Worker ${process.env.WORKER_ID} PID:${process.pid}]`;
   console.log(`${workerInfo} 📥 RECEIVED JOB: ${job.id}`);
+  console.log(`${workerInfo} Data keys:`, Object.keys(job.data).join(', '));
 
   const { jobId, kind, audioUrl, transcriptId, userId, manifest } = job.data;
   const startTime = Date.now();
@@ -58,18 +59,23 @@ async function processExportJob(job) {
   console.log(`${workerInfo} ▶️  Processing job ${job.id} for export: ${jobId} (${kind})`);
 
   try {
+    console.log(`${workerInfo} Updating status to processing...`);
     // Update status to processing
     await updateJobStatus(jobId, 'processing', {
       workerId: process.env.WORKER_ID || 'worker-pm2',
       progress: 5
     });
+    console.log(`${workerInfo} Status updated, setting job progress...`);
     await job.progress(5); // Initial kick-off
+    console.log(`${workerInfo} Initial progress set`);
 
     // Step 1: Get audio file (download or copy local)
+    console.log(`${workerInfo} Downloading audio from: ${audioUrl}`);
     const inputFileName = `${jobId}_input.webm`;
     const inputPath = await downloadFile(audioUrl, inputFileName);
     // Note: for file:// URLs, downloadFile copies instead of downloading
     tempFiles.push(inputPath);
+    console.log(`${workerInfo} Audio ready at: ${inputPath}`);
     await job.progress(20); // Audio downloaded
 
     // Step 2: Route to appropriate processor
