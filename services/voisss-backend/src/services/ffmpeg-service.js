@@ -93,12 +93,12 @@ async function composeVideoWithAudio(frameConcat, audioPath, outputPath) {
       .videoCodec('libx264')
       .videoFilter('scale=1920:1080:force_original_aspect_ratio=decrease')
       .fps(30)
-      .preset('fast')
-      .crf(23)
-      .audioCodec('aac')
-      .audioChannels(2)
-      .audioBitrate('128k')
       .outputOptions([
+        '-preset fast',  // Use outputOptions instead of preset()
+        '-crf 23',
+        '-c:a aac',
+        '-ac 2',
+        '-b:a 128k',
         '-shortest',
         '-movflags +faststart' // Enable streaming
       ])
