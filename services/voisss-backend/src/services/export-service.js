@@ -229,18 +229,37 @@ async function getJobStatus(jobId) {
 async function updateJobStatus(jobId, status, data = {}) {
   const { outputUrl, outputSize, errorMessage, progress } = data;
 
-  await query(
-    `UPDATE export_jobs
-    SET status = $1::varchar,
-        progress = $2::integer,
-        output_url = $3::text,
-        output_size = $4::integer,
-        error_message = $5::text,
-        updated_at = NOW(),
-        completed_at = CASE WHEN $1::varchar IN ('completed', 'failed') THEN NOW() ELSE completed_at END
-    WHERE id = $6::varchar`,
-    [status, progress || 0, outputUrl || null, outputSize || null, errorMessage || null, jobId]
-  );
+  try {
+    // Try with progress column (new schema)
+    await query(
+      `UPDATE export_jobs
+      SET status = $1::varchar,
+          progress = $2::integer,
+          output_url = $3::text,
+          output_size = $4::integer,
+          error_message = $5::text,
+          updated_at = NOW(),
+          completed_at = CASE WHEN $1::varchar IN ('completed', 'failed') THEN NOW() ELSE completed_at END
+      WHERE id = $6::varchar`,
+      [status, progress || 0, outputUrl || null, outputSize || null, errorMessage || null, jobId]
+    );
+  } catch (e) {
+    if (e.message.includes('progress')) {
+      // Old schema without progress column
+      await query(
+        `UPDATE export_jobs
+        SET status = $1::varchar,
+            output_url = $2::text,
+            output_size = $3::integer,
+            error_message = $4::text,
+            completed_at = CASE WHEN $1::varchar IN ('completed', 'failed') THEN NOW() ELSE completed_at END
+        WHERE id = $5::varchar`,
+        [status, outputUrl || null, outputSize || null, errorMessage || null, jobId]
+      );
+    } else {
+      throw e;
+    }
+  }
 }
 
 /**
