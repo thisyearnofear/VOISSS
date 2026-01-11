@@ -51,7 +51,7 @@ async function processExportJob(job) {
   const workerInfo = `[Worker ${process.env.WORKER_ID} PID:${process.pid}]`;
   console.log(`${workerInfo} 📥 Processing export: ${job.jobId} (${job.kind})`);
 
-  const { jobId, kind, audioUrl, manifest, template } = job;
+  const { jobId, kind, audioUrl, manifest, template, style } = job;
   const startTime = Date.now();
   const tempFiles = [];
 
@@ -80,7 +80,7 @@ async function processExportJob(job) {
         throw new Error('MP4 export requires template data');
       }
       console.log(`${workerInfo} Processing MP4...`);
-      outputPath = await processVideoExport(jobId, inputPath, manifest, template, tempFiles, workerInfo);
+      outputPath = await processVideoExport(jobId, inputPath, manifest, template, style, tempFiles, workerInfo);
     } else {
       throw new Error(`Unsupported export kind: ${kind}`);
     }
@@ -131,7 +131,7 @@ async function processAudioExport(jobId, audioPath, tempFiles, workerInfo) {
 /**
  * Video export path
  */
-async function processVideoExport(jobId, audioPath, manifest, template, tempFiles, workerInfo) {
+async function processVideoExport(jobId, audioPath, manifest, template, style, tempFiles, workerInfo) {
   const outputDir = require('../services/ffmpeg-service').TEMP_DIR;
 
   try {
@@ -139,14 +139,14 @@ async function processVideoExport(jobId, audioPath, manifest, template, tempFile
     console.log(`${workerInfo}    Segments: ${manifest.segments.length}`);
 
     // Step 1: Build frame sequence with template-styled SVG frames
-    const frameData = await buildFrameSequence(manifest, template, jobId);
+    const frameData = await buildFrameSequence(manifest, template, style, jobId);
 
     // Step 2: Render SVG frames to PNG using Worker Thread Pool
     console.log(`${workerInfo} 🎨 Rendering ${frameData.length} frames...`);
     const pool = getWorkerPool();
     const renderPromises = frameData.map((frame, frameIdx) => {
       const framePath = path.join(outputDir, `${jobId}_frame_${String(frameIdx).padStart(4, '0')}.png`);
-      
+
       return pool.executeTask({
         svg: frame.svg,
         outputPath: framePath,
@@ -154,13 +154,13 @@ async function processVideoExport(jobId, audioPath, manifest, template, tempFile
         if (!result.success) {
           throw new Error(`Frame ${frameIdx} rendering failed: ${result.error}`);
         }
-        
+
         // Update progress every 10 frames
         if ((frameIdx + 1) % 10 === 0) {
           const renderProgress = 30 + Math.floor((frameIdx + 1) / frameData.length * 40);
-          updateJobStatus(jobId, 'processing', { progress: renderProgress }).catch(() => {});
+          updateJobStatus(jobId, 'processing', { progress: renderProgress }).catch(() => { });
         }
-        
+
         return result.path;
       });
     });
