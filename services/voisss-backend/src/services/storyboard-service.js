@@ -41,22 +41,48 @@ function generateGradientSvg(id, colors) {
   return `<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">${stopsXml}</linearGradient>`;
 }
 
+const DEFAULT_TEMPLATE = {
+  aspect: 'portrait',
+  background: { type: 'solid', colors: ['#0A0A0A'] },
+  typography: {
+    fontFamily: 'Inter, sans-serif',
+    fontSizePx: 64,
+    lineHeight: 1.2,
+    fontWeight: '700',
+    textColor: '#FFFFFF',
+    mutedColor: '#666666',
+  },
+  layout: {
+    paddingPx: 80,
+    maxCharsPerLine: 30,
+  },
+};
+
 /**
  * Generate styled SVG frame from segment text and template
  * Supports word-level highlighting for karaoke effect
  * PRINCIPLE: CLEAN - Full template rendering logic in one place
  */
-function generateSvgFrame(segment, template, frameIdx, activeWordIndex = -1) {
+function generateSvgFrame(segment, templateData, frameIdx, activeWordIndex = -1) {
+  // Deep merge default template with provided data
+  const template = {
+    ...DEFAULT_TEMPLATE,
+    ...templateData,
+    background: { ...DEFAULT_TEMPLATE.background, ...(templateData.background || {}) },
+    typography: { ...DEFAULT_TEMPLATE.typography, ...(templateData.typography || {}) },
+    layout: { ...DEFAULT_TEMPLATE.layout, ...(templateData.layout || {}) },
+  };
+
   const dim = DIMENSIONS[template.aspect] || DIMENSIONS.portrait;
   const bgId = `bg_${frameIdx}`;
 
   // Background
   const bgFill = template.background.type === 'gradient'
     ? `url(#${bgId})`
-    : escapeXml(template.background.colors[0] || '#0A0A0A');
+    : escapeXml((template.background.colors && template.background.colors[0]) || '#0A0A0A');
 
   const defs = template.background.type === 'gradient'
-    ? `<defs>${generateGradientSvg(bgId, template.background.colors)}</defs>`
+    ? `<defs>${generateGradientSvg(bgId, template.background.colors || [])}</defs>`
     : '';
 
   // Typography
@@ -66,7 +92,7 @@ function generateSvgFrame(segment, template, frameIdx, activeWordIndex = -1) {
   const fontWeight = template.typography.fontWeight;
   const textColor = escapeXml(template.typography.textColor);
   const mutedColor = escapeXml(template.typography.mutedColor || '#666666');
-  const activeColor = escapeXml(template.typography.textColor); // or template.typography.activeColor if added
+  const activeColor = escapeXml(template.typography.textColor);
 
   // Layout
   const x = template.layout.paddingPx;

@@ -88,7 +88,9 @@ async function composeVideoWithAudio(frameConcat, audioPath, outputPath) {
     
     const timeout = 600000; // 10 minutes
     let command = FFmpeg()
-      .input(`concat:${frameConcat}`)
+      .input(frameConcat)
+      .inputFormat('concat')
+      .inputOptions(['-safe 0'])
       .input(audioPath)
       .videoCodec('libx264')
       .videoFilter('scale=1920:1080:force_original_aspect_ratio=decrease')
