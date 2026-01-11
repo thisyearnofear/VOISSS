@@ -40,27 +40,12 @@ async function enqueueExport({
   }
 
   // Insert into database with template data
-  // Note: template_data column may not exist in older schemas - attempt insert, fall back if needed
-  try {
-    await query(
-      `INSERT INTO export_jobs 
-      (id, user_id, kind, audio_url, transcript_id, template_id, manifest, style, template_data, status, created_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending', NOW())`,
-      [jobId, userId, kind, finalAudioUrl, transcriptId, templateId, JSON.stringify(manifest || {}), JSON.stringify(style || {}), JSON.stringify(template || {})]
-    );
-  } catch (e) {
-    if (e.message.includes('template_data')) {
-      // Column doesn't exist, try without it
-      await query(
-        `INSERT INTO export_jobs 
-        (id, user_id, kind, audio_url, transcript_id, template_id, manifest, style, status, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending', NOW())`,
-        [jobId, userId, kind, finalAudioUrl, transcriptId, templateId, JSON.stringify(manifest || {}), JSON.stringify(style || {})]
-      );
-    } else {
-      throw e;
-    }
-  }
+  await query(
+    `INSERT INTO export_jobs 
+    (id, user_id, kind, audio_url, transcript_id, template_id, manifest, style, template_data, status, created_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending', NOW())`,
+    [jobId, userId, kind, finalAudioUrl, transcriptId, templateId, JSON.stringify(manifest || {}), JSON.stringify(style || {}), JSON.stringify(template || {})]
+  );
 
   const estimatedSeconds = {
     mp3: 60,
@@ -80,93 +65,46 @@ async function enqueueExport({
  * PRINCIPLE: MODULAR - Worker fetches its own jobs
  */
 async function getNextPendingJob() {
-  try {
-    // Try to select template_data (new schema)
-    const result = await query(
-      `SELECT id, kind, audio_url, transcript_id, template_id, manifest, style, template_data, user_id
-       FROM export_jobs
-       WHERE status = 'pending'
-       ORDER BY created_at ASC
-       LIMIT 1`,
-    );
+  const result = await query(
+    `SELECT id, kind, audio_url, transcript_id, template_id, manifest, style, template_data, user_id
+     FROM export_jobs
+     WHERE status = 'pending'
+     ORDER BY created_at ASC
+     LIMIT 1`,
+  );
 
-    if (result.rows.length === 0) {
-      return null;
-    }
-
-    const job = result.rows[0];
-    
-    // Attempt to lock job by updating status to 'processing'
-    const lockResult = await query(
-      `UPDATE export_jobs 
-       SET status = 'processing', updated_at = NOW()
-       WHERE id = $1 AND status = 'pending'
-       RETURNING *`,
-      [job.id]
-    );
-
-    if (lockResult.rows.length === 0) {
-      // Job was already picked up by another worker
-      return null;
-    }
-
-    return {
-      jobId: job.id,
-      kind: job.kind,
-      audioUrl: job.audio_url,
-      transcriptId: job.transcript_id,
-      templateId: job.template_id,
-      // Handle both string and object types (JSONB columns return objects, TEXT return strings)
-      manifest: typeof job.manifest === 'string' ? JSON.parse(job.manifest || '{}') : (job.manifest || {}),
-      style: typeof job.style === 'string' ? JSON.parse(job.style || '{}') : (job.style || {}),
-      template: typeof job.template_data === 'string' ? JSON.parse(job.template_data || '{}') : (job.template_data || {}),
-      userId: job.user_id,
-    };
-  } catch (e) {
-    if (e.message.includes('template_data')) {
-      // Old schema without template_data - try without it
-      const result = await query(
-        `SELECT id, kind, audio_url, transcript_id, template_id, manifest, style, user_id
-         FROM export_jobs
-         WHERE status = 'pending'
-         ORDER BY created_at ASC
-         LIMIT 1`,
-      );
-
-      if (result.rows.length === 0) {
-        return null;
-      }
-
-      const job = result.rows[0];
-      
-      // Attempt to lock job
-      const lockResult = await query(
-        `UPDATE export_jobs 
-         SET status = 'processing'
-         WHERE id = $1 AND status = 'pending'
-         RETURNING *`,
-        [job.id]
-      );
-
-      if (lockResult.rows.length === 0) {
-        return null;
-      }
-
-      return {
-        jobId: job.id,
-        kind: job.kind,
-        audioUrl: job.audio_url,
-        transcriptId: job.transcript_id,
-        templateId: job.template_id,
-        // Handle both string and object types (JSONB columns return objects, TEXT return strings)
-        manifest: typeof job.manifest === 'string' ? JSON.parse(job.manifest || '{}') : (job.manifest || {}),
-        style: typeof job.style === 'string' ? JSON.parse(job.style || '{}') : (job.style || {}),
-        template: {}, // Empty template for old schema
-        userId: job.user_id,
-      };
-    }
-    throw e;
+  if (result.rows.length === 0) {
+    return null;
   }
+
+  const job = result.rows[0];
+  
+  // Attempt to lock job by updating status to 'processing'
+  const lockResult = await query(
+    `UPDATE export_jobs 
+     SET status = 'processing', updated_at = NOW()
+     WHERE id = $1 AND status = 'pending'
+     RETURNING *`,
+    [job.id]
+  );
+
+  if (lockResult.rows.length === 0) {
+    // Job was already picked up by another worker
+    return null;
+  }
+
+  return {
+    jobId: job.id,
+    kind: job.kind,
+    audioUrl: job.audio_url,
+    transcriptId: job.transcript_id,
+    templateId: job.template_id,
+    // Handle JSONB vs TEXT: JSONB columns return objects, TEXT return strings
+    manifest: typeof job.manifest === 'string' ? JSON.parse(job.manifest || '{}') : (job.manifest || {}),
+    style: typeof job.style === 'string' ? JSON.parse(job.style || '{}') : (job.style || {}),
+    template: typeof job.template_data === 'string' ? JSON.parse(job.template_data || '{}') : (job.template_data || {}),
+    userId: job.user_id,
+  };
 }
 
 /**
@@ -229,37 +167,18 @@ async function getJobStatus(jobId) {
 async function updateJobStatus(jobId, status, data = {}) {
   const { outputUrl, outputSize, errorMessage, progress } = data;
 
-  try {
-    // Try with progress column (new schema)
-    await query(
-      `UPDATE export_jobs
-      SET status = $1::varchar,
-          progress = $2::integer,
-          output_url = $3::text,
-          output_size = $4::integer,
-          error_message = $5::text,
-          updated_at = NOW(),
-          completed_at = CASE WHEN $1::varchar IN ('completed', 'failed') THEN NOW() ELSE completed_at END
-      WHERE id = $6::varchar`,
-      [status, progress || 0, outputUrl || null, outputSize || null, errorMessage || null, jobId]
-    );
-  } catch (e) {
-    if (e.message.includes('progress')) {
-      // Old schema without progress column
-      await query(
-        `UPDATE export_jobs
-        SET status = $1::varchar,
-            output_url = $2::text,
-            output_size = $3::integer,
-            error_message = $4::text,
-            completed_at = CASE WHEN $1::varchar IN ('completed', 'failed') THEN NOW() ELSE completed_at END
-        WHERE id = $5::varchar`,
-        [status, outputUrl || null, outputSize || null, errorMessage || null, jobId]
-      );
-    } else {
-      throw e;
-    }
-  }
+  await query(
+    `UPDATE export_jobs
+    SET status = $1::varchar,
+        progress = $2::integer,
+        output_url = $3::text,
+        output_size = $4::integer,
+        error_message = $5::text,
+        updated_at = NOW(),
+        completed_at = CASE WHEN $1::varchar IN ('completed', 'failed') THEN NOW() ELSE completed_at END
+    WHERE id = $6::varchar`,
+    [status, progress || 0, outputUrl || null, outputSize || null, errorMessage || null, jobId]
+  );
 }
 
 /**
