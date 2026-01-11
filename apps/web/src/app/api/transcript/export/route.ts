@@ -103,6 +103,10 @@ export async function POST(req: NextRequest) {
         formData.append('template', JSON.stringify(template));
       }
 
+      if (body.style) {
+        formData.append('style', JSON.stringify(body.style));
+      }
+
       try {
         const backendRes = await fetch(`${backendUrl}/api/export/request`, {
           method: 'POST',

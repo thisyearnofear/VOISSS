@@ -58,6 +58,15 @@ const DEFAULT_TEMPLATE = {
   },
 };
 
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: (parseInt(result[1], 16) / 255).toFixed(2),
+    g: (parseInt(result[2], 16) / 255).toFixed(2),
+    b: (parseInt(result[3], 16) / 255).toFixed(2)
+  } : { r: 1, g: 0, b: 0.4 };
+}
+
 /**
  * Generate styled SVG frame from segment text and template
  * Supports word-level highlighting for karaoke effect
@@ -101,6 +110,7 @@ function generateSvgFrame(segment, templateData, style, frameIdx, activeWordInde
 
   // Define High Production filters (Glows, Shadows, Texture)
   const activeColor = escapeXml(template.typography.highlightColor || template.typography.activeColor || '#FF006B');
+  const rgb = hexToRgb(activeColor);
 
   const defs = `
     <defs>
@@ -120,7 +130,7 @@ function generateSvgFrame(segment, templateData, style, frameIdx, activeWordInde
       <!-- Active word glow -->
       <filter id="activeGlow" x="-50%" y="-50%" width="200%" height="200%">
         <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur" />
-        <feColorMatrix in="blur" type="matrix" values="0 0 0 0 1  0 0 0 0 0  0 0 0 0 0.4  0 0 0 0.6 0" result="coloredBlur"/>
+        <feColorMatrix in="blur" type="matrix" values="0 0 0 0 ${rgb.r}  0 0 0 0 ${rgb.g}  0 0 0 0 ${rgb.b}  0 0 0 0.8 0" result="coloredBlur"/>
         <feMerge>
           <feMergeNode in="coloredBlur" />
           <feMergeNode in="SourceGraphic" />

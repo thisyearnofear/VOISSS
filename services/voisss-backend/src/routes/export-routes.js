@@ -25,8 +25,9 @@ router.post('/request', upload.single('audio'), async (req, res) => {
   try {
     console.log(`📝 Export request received`);
     console.log(`   Audio file: ${req.file ? req.file.size + ' bytes' : 'none'}`);
-    
+
     let kind, audioUrl, transcriptId, templateId, manifest, style, userId, audioBlob;
+    let parsedTemplate = null;
 
     // Handle multipart/form-data (file upload)
     if (req.file) {
@@ -34,7 +35,7 @@ router.post('/request', upload.single('audio'), async (req, res) => {
       transcriptId = req.body.transcriptId;
       templateId = req.body.templateId;
       audioBlob = req.file.buffer;
-      
+
       console.log(`   Kind: ${kind}, TranscriptId: ${transcriptId}`);
 
       if (req.body.manifest) {
@@ -47,14 +48,25 @@ router.post('/request', upload.single('audio'), async (req, res) => {
 
       if (req.body.template) {
         try {
-          JSON.parse(req.body.template);
+          parsedTemplate = typeof req.body.template === 'string' ? JSON.parse(req.body.template) : req.body.template;
         } catch (e) {
-          // ignore
+          console.error('Template parse error:', e.message);
+        }
+      }
+
+      if (req.body.style) {
+        try {
+          style = typeof req.body.style === 'string' ? JSON.parse(req.body.style) : req.body.style;
+        } catch (e) {
+          console.error('Style parse error:', e.message);
         }
       }
     } else {
       // Handle JSON request (original format)
       ({ kind, audioUrl, transcriptId, templateId, manifest, style, userId } = req.body);
+      if (req.body.template) {
+        parsedTemplate = typeof req.body.template === 'string' ? JSON.parse(req.body.template) : req.body.template;
+      }
     }
 
     // Validate required fields
@@ -83,20 +95,6 @@ router.post('/request', upload.single('audio'), async (req, res) => {
       if (lastSegment && lastSegment.endMs > 65000) {
         return res.status(400).json({
           error: `Export too long (${(lastSegment.endMs / 1000).toFixed(1)}s). Maximum 60 seconds allowed.`,
-        });
-      }
-    }
-
-    // Parse template if provided
-    let parsedTemplate = null;
-    if (req.body.template) {
-      try {
-        parsedTemplate = typeof req.body.template === 'string' ? JSON.parse(req.body.template) : req.body.template;
-      } catch (e) {
-        console.error('Template parse error:', e.message);
-        return res.status(400).json({
-          error: 'Invalid template JSON',
-          details: e.message,
         });
       }
     }
