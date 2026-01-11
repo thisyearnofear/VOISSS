@@ -247,22 +247,29 @@ async function startWorker() {
     // Get queue and attach processor
     const queue = getQueue(EXPORT_QUEUE);
 
+    // Wait for queue to be ready before registering processor
+    console.log(`⏳ Waiting for queue to be ready...`);
+    await queue.isReady();
+    console.log(`✅ Queue is ready`);
+
     // Set concurrency (how many jobs in parallel)
     const concurrency = parseInt(process.env.WORKER_CONCURRENCY || '2');
     console.log(`🔧 Configuring worker: concurrency=${concurrency}`);
 
-    // Register processor - Bull handles connection timing internally
+    // Register processor - MUST be after queue.isReady()
     console.log(`📝 Registering queue processor...`);
-    const processor = queue.process(concurrency, async (job) => {
+    queue.process(concurrency, async (job) => {
       try {
-        console.log(`[PROCESSOR] Starting processExportJob for ${job.id}`);
-        return await processExportJob(job);
+        console.log(`🎬 [PROCESSOR] Processing job ${job.id}`);
+        const result = await processExportJob(job);
+        console.log(`✅ [PROCESSOR] Completed job ${job.id}`);
+        return result;
       } catch (error) {
-        console.error(`[PROCESSOR] ERROR in processExportJob:`, error);
+        console.error(`❌ [PROCESSOR] ERROR in job ${job.id}:`, error.message);
         throw error;
       }
     });
-    console.log(`✅ Queue processor registered`);
+    console.log(`✅ Queue processor registered and listening`);
 
     // Event listeners for monitoring
     queue.on('active', (job) => {
@@ -282,7 +289,11 @@ async function startWorker() {
     });
 
     queue.on('waiting', (jobId) => {
-      console.log(`⏳ Job waiting: ${jobId}`);
+      console.log(`⏳ Job ${jobId} waiting to be processed`);
+    });
+
+    queue.on('drained', () => {
+      console.log(`🔋 Queue drained (all jobs processed)`);
     });
 
     console.log(`✅ Export worker ready`);
