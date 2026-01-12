@@ -2,6 +2,10 @@
 
 import { DEFAULT_VOISSS_TEMPLATES, type TranscriptTemplate } from '@voisss/shared/types/transcript';
 import { VoisssKaraokeLine } from '../../components/RecordingStudio/voisss-karaoke';
+import { useStudioSettings, type StudioMode } from '../../hooks/useStudioSettings';
+import { useBaseAccount } from '../../hooks/useBaseAccount';
+import { Zap, UserX, Crown, Trophy, Check, Lock, Sparkles } from 'lucide-react';
+import { useState } from 'react';
 
 function aspectLabel(aspect: TranscriptTemplate['aspect']) {
   return aspect === 'portrait' ? '9:16' : aspect === 'square' ? '1:1' : '16:9';
@@ -48,6 +52,139 @@ function TemplatePreview({ template }: { template: TranscriptTemplate }) {
       <div className="absolute inset-x-4 bottom-3 flex items-center justify-between opacity-40">
         <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
         <div className="text-[8px] font-mono text-white/60">00:04</div>
+      </div>
+    </div>
+  );
+}
+
+function AlchemyMasteryHub() {
+  const { universalAddress } = useBaseAccount();
+  const { activeMode, setMode, isUnlocked } = useStudioSettings(universalAddress);
+  const [isSwitching, setIsSwitching] = useState<string | null>(null);
+
+  const modes = [
+    {
+      id: 'ghost',
+      name: 'Ghost Post',
+      icon: UserX,
+      desc: 'Relay saves through our spender. Your wallet address is NOT linked to the recording on-chain.',
+      badge: 'Open Access',
+      color: 'gray',
+      locked: !isUnlocked.ghost,
+    },
+    {
+      id: 'pro',
+      name: 'Pro Session',
+      icon: Zap,
+      desc: 'Activate a 24-hour gasless pass. Perfect for rapid iteration and version testing without wallet popups.',
+      badge: 'Power User',
+      color: 'indigo',
+      locked: !isUnlocked.pro,
+    },
+    {
+      id: 'vip',
+      name: 'VIP Lane',
+      icon: Crown,
+      desc: 'Permanent gasless saves with priority on-chain placement. Requires $papajams holding.',
+      badge: 'Token Gated',
+      color: 'yellow',
+      locked: !isUnlocked.vip,
+    },
+    {
+      id: 'producer',
+      name: 'Producer Perk',
+      icon: Trophy,
+      desc: 'Earn monthly gasless quotas by achieving high engagement on your published voice missions.',
+      badge: 'Engagement Gated',
+      color: 'green',
+      locked: true, // Always locked for now as it is engagement based
+    }
+  ];
+
+  const handleModeSwitch = async (modeId: string) => {
+    if (modeId === 'producer') return;
+    setIsSwitching(modeId);
+    try {
+      await setMode(modeId as StudioMode);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setTimeout(() => setIsSwitching(null), 500);
+    }
+  };
+
+  return (
+    <div className="mb-16">
+      <div className="text-center mb-10">
+        <h2 className="text-3xl font-bold text-white mb-2 flex items-center justify-center gap-3">
+          <Sparkles className="text-[#7C5DFA] w-8 h-8" />
+          Alchemy Mastery Hub
+        </h2>
+        <p className="text-gray-400 text-sm max-w-2xl mx-auto">
+          Configure your Studio workflow and unlock advanced on-chain routing.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {modes.map((m) => {
+          const isActive = activeMode === m.id;
+          const Icon = m.icon;
+
+          return (
+            <div
+              key={m.id}
+              onClick={() => !m.locked && handleModeSwitch(m.id)}
+              className={`voisss-card group transition-all duration-300 relative overflow-hidden flex flex-col cursor-pointer ${isActive
+                  ? `border-${m.color}-500/50 bg-${m.color}-500/10 scale-[1.02] shadow-2xl shadow-${m.color}-500/10`
+                  : m.locked
+                    ? 'opacity-60 grayscale border-white/5 bg-white/2 cursor-not-allowed'
+                    : 'border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10'
+                }`}
+            >
+              {isActive && (
+                <div className={`absolute top-0 right-0 p-3 text-${m.color}-400`}>
+                  <Check className="w-5 h-5" />
+                </div>
+              )}
+
+              {m.locked && (
+                <div className="absolute top-0 right-0 p-3 text-gray-500">
+                  <Lock className="w-4 h-4" />
+                </div>
+              )}
+
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110 ${isActive ? `bg-${m.color}-500/20 text-${m.color}-400` : 'bg-white/10 text-white/60'
+                }`}>
+                <Icon className="w-6 h-6" />
+              </div>
+
+              <h3 className={`text-lg font-bold mb-2 ${isActive ? 'text-white' : 'text-gray-300'}`}>
+                {m.name}
+              </h3>
+
+              <p className="text-gray-400 text-xs leading-relaxed mb-6 flex-1">
+                {m.desc}
+              </p>
+
+              <div className="flex items-center justify-between">
+                <div className={`px-3 py-1.5 rounded-lg border text-[10px] uppercase font-black tracking-widest ${isActive
+                    ? `bg-${m.color}-500/20 border-${m.color}-500/50 text-${m.color}-400`
+                    : `bg-white/5 border-white/10 text-gray-500`
+                  }`}>
+                  {m.badge}
+                </div>
+
+                {isSwitching === m.id ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : !isActive && !m.locked && (
+                  <span className="text-[10px] font-bold text-[#7C5DFA] opacity-0 group-hover:opacity-100 transition-opacity">
+                    Activate →
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -125,6 +262,9 @@ export default function FeaturesPage() {
             ))}
           </div>
         </div>
+
+        {/* Alchemy Mastery Hub */}
+        <AlchemyMasteryHub />
 
         {/* Utilities */}
         <div className="mb-10">

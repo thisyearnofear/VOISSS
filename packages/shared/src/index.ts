@@ -22,7 +22,6 @@ export * from './utils/formatters';
 export * from './theme';
 
 // Services with explicit exports to avoid conflicts
-export * from './services/baseRecordingService';
 export * from './services/ipfs-service';
 export * from './services/audio-converter';
 export * from './services/recording-service';

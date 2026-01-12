@@ -1,5 +1,4 @@
 require("dotenv").config();
-const { setupBlockchainRoutes } = require("./blockchain-routes");
 const express = require('express');
 const multer = require('multer');
 const FormData = require('form-data');
@@ -44,8 +43,6 @@ app.use((req, res, next) => {
 });
 
 // Setup routes
-console.log('📝 Setting up blockchain routes...');
-setupBlockchainRoutes(app);
 console.log('📝 Mounting export routes...');
 app.use('/api/export', exportRoutes);
 console.log('✅ All routes mounted');

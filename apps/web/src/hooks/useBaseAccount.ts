@@ -2,46 +2,31 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useBase } from "../app/providers";
-import { parseEther } from "viem";
-import { base } from "viem/chains";
-import {
-  requestSpendPermission,
-  fetchPermissions,
-  getPermissionStatus,
-} from "@base-org/account/spend-permission/browser";
 import { crossPlatformStorage } from "@voisss/shared";
 
-// Type for the spend permission returned by the Base Account API  
-type SpendPermission = any;
-
-const NATIVE_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
-const SPENDER_ADDRESS = process.env.NEXT_PUBLIC_SPENDER_ADDRESS as `0x${string}`;
 const STORAGE_KEY = 'voisss_base_account_address';
-
-if (!SPENDER_ADDRESS) {
-  console.warn('⚠️ NEXT_PUBLIC_SPENDER_ADDRESS not configured. Gasless transactions will not work.');
-}
+const SUB_ACCOUNT_KEY = 'voisss_sub_account_address';
 
 interface UseBaseAccountReturn {
   // Connection state
   isConnected: boolean;
   isConnecting: boolean;
   universalAddress: string | null;
+  subAccountAddress: string | null;
   connectionState: 'idle' | 'checking' | 'connected' | 'disconnected';
 
   // Actions
   connect: () => Promise<void>;
   disconnect: () => void;
 
-  // Spend permission state
-  permissionActive: boolean;
-  currentPermission: SpendPermission | null;
-  isLoadingPermissions: boolean;
-  permissionError: string | null;
+  // Sub Account state
+  hasSubAccount: boolean;
+  isCreatingSubAccount: boolean;
+  subAccountError: string | null;
 
-  // Spend permission actions
-  requestPermission: () => Promise<void>;
-  refreshPermissions: () => Promise<void>;
+  // Sub Account actions
+  createSubAccount: () => Promise<void>;
+  refreshSubAccount: () => Promise<void>;
 
   // Status
   status: string;
@@ -54,15 +39,15 @@ export function useBaseAccount(): UseBaseAccountReturn {
 
   const [connectionState, setConnectionState] = useState<'idle' | 'checking' | 'connected' | 'disconnected'>('checking');
   const [universalAddress, setUniversalAddress] = useState<string | null>(null);
+  const [subAccountAddress, setSubAccountAddress] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [status, setStatus] = useState("Checking connection...");
   const [error, setError] = useState<string | null>(null);
 
-  // Permission state
-  const [permissionActive, setPermissionActive] = useState<boolean>(false);
-  const [currentPermission, setCurrentPermission] = useState<SpendPermission | null>(null);
-  const [isLoadingPermissions, setIsLoadingPermissions] = useState(false);
-  const [permissionError, setPermissionError] = useState<string | null>(null);
+  // Sub Account state
+  const [hasSubAccount, setHasSubAccount] = useState<boolean>(false);
+  const [isCreatingSubAccount, setIsCreatingSubAccount] = useState(false);
+  const [subAccountError, setSubAccountError] = useState<string | null>(null);
 
   // Check for existing connection on mount
   useEffect(() => {
@@ -71,10 +56,10 @@ export function useBaseAccount(): UseBaseAccountReturn {
 
   const checkExistingConnection = useCallback(async () => {
     if (!provider) return;
-    
+
     try {
       setConnectionState('checking');
-      
+
       const accounts = await provider.request({
         method: "eth_accounts",
         params: [],
@@ -85,14 +70,14 @@ export function useBaseAccount(): UseBaseAccountReturn {
         setUniversalAddress(universalAddr);
         setConnectionState('connected');
         setStatus("Connected");
-        
+
         // Persist to localStorage
         if (typeof window !== 'undefined') {
           localStorage.setItem(STORAGE_KEY, universalAddr);
         }
 
-        // Check for existing spend permission
-        await checkForPermission(universalAddr);
+        // Check for existing Sub Account
+        await checkForSubAccount(universalAddr);
       } else {
         // Check localStorage as fallback
         if (typeof window !== 'undefined') {
@@ -101,11 +86,11 @@ export function useBaseAccount(): UseBaseAccountReturn {
             setUniversalAddress(storedAddress);
             setConnectionState('connected');
             setStatus("Connected");
-            await checkForPermission(storedAddress);
+            await checkForSubAccount(storedAddress);
             return;
           }
         }
-        
+
         setConnectionState('disconnected');
         setStatus("Not connected");
       }
@@ -116,47 +101,37 @@ export function useBaseAccount(): UseBaseAccountReturn {
     }
   }, [provider]);
 
-  const checkForPermission = async (userAddress: string) => {
-    if (!provider || !SPENDER_ADDRESS) return;
+  const checkForSubAccount = async (userAddress: string) => {
+    if (!provider) return;
 
     try {
-      console.log('🔍 Checking for spend permission...');
-      setIsLoadingPermissions(true);
+      console.log('🔍 Checking for Sub Account...');
 
-      const permissions = await fetchPermissions({
-        account: userAddress as `0x${string}`,
-        chainId: 8453,
-        spender: SPENDER_ADDRESS,
-        provider,
-      });
+      const result = await provider.request({
+        method: 'wallet_getSubAccounts',
+        params: [{
+          account: userAddress,
+          domain: typeof window !== 'undefined' ? window.location.origin : '',
+        }]
+      }) as { subAccounts: Array<{ address: string }> };
 
-      if (permissions.length > 0) {
-        const permission = permissions[0];
-        const status = await getPermissionStatus(permission);
+      if (result.subAccounts && result.subAccounts.length > 0) {
+        const subAccount = result.subAccounts[0];
+        console.log('✅ Sub Account found:', subAccount.address);
+        setSubAccountAddress(subAccount.address);
+        setHasSubAccount(true);
+        setStatus("Connected with Sub Account");
 
-        if (status.isActive) {
-          console.log('✅ Active spend permission found');
-          setCurrentPermission(permission);
-          setPermissionActive(true);
-          setStatus("Connected with spend permission");
-
-          // Store permission hash using cross-platform storage
-          await crossPlatformStorage.setItem('spendPermissionHash', (permission as any).hash);
-        } else {
-          console.log('⚠️ Permission exists but is not active');
-          setPermissionActive(false);
-          setStatus("Connected (permission inactive)");
-        }
+        // Store Sub Account address
+        await crossPlatformStorage.setItem(SUB_ACCOUNT_KEY, subAccount.address);
       } else {
-        console.log('⚠️ No spend permission found');
-        setPermissionActive(false);
-        setStatus("Connected (no permission)");
+        console.log('⚠️ No Sub Account found');
+        setHasSubAccount(false);
+        setStatus("Connected (no Sub Account)");
       }
     } catch (err) {
-      console.error("❌ Failed to check permission:", err);
-      setPermissionError("Failed to check spend permission");
-    } finally {
-      setIsLoadingPermissions(false);
+      console.error("❌ Failed to check Sub Account:", err);
+      setSubAccountError("Failed to check Sub Account");
     }
   };
 
@@ -183,8 +158,8 @@ export function useBaseAccount(): UseBaseAccountReturn {
         localStorage.setItem(STORAGE_KEY, universalAddr);
       }
 
-      // Check for existing permission
-      await checkForPermission(universalAddr);
+      // Check for existing Sub Account
+      await checkForSubAccount(universalAddr);
 
     } catch (err: any) {
       console.error("Connection failed:", err);
@@ -199,84 +174,83 @@ export function useBaseAccount(): UseBaseAccountReturn {
   const disconnect = useCallback(async () => {
     setConnectionState('disconnected');
     setUniversalAddress(null);
-    setCurrentPermission(null);
-    setPermissionActive(false);
+    setSubAccountAddress(null);
+    setHasSubAccount(false);
     setStatus("Disconnected");
     setError(null);
-    
-    // Clear localStorage
+
+    // Clear storage
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(SUB_ACCOUNT_KEY);
     }
-    
-    await crossPlatformStorage.removeItem('spendPermissionHash');
+    await crossPlatformStorage.removeItem(SUB_ACCOUNT_KEY);
   }, []);
 
-  const requestPermission = useCallback(async () => {
-    if (!provider || !universalAddress || !SPENDER_ADDRESS) {
-      throw new Error("Not connected or spender not configured");
+  const createSubAccount = useCallback(async () => {
+    if (!provider || !universalAddress) {
+      throw new Error("Not connected to Base Account");
     }
 
+    setIsCreatingSubAccount(true);
+    setSubAccountError(null);
+
     try {
-      setStatus("Requesting spend permission...");
-      setIsLoadingPermissions(true);
-      setPermissionError(null);
+      console.log('🔨 Creating Sub Account...');
 
-      console.log('📝 Requesting spend permission for gasless transactions...');
+      const subAccount = await provider.request({
+        method: 'wallet_addSubAccount',
+        params: [{
+          account: {
+            type: 'create',
+          },
+        }],
+      }) as { address: string };
 
-      // Request spend permission (ONE-TIME POPUP)
-      const permission = await requestSpendPermission({
-        account: universalAddress as `0x${string}`,
-        spender: SPENDER_ADDRESS,
-        token: NATIVE_TOKEN,
-        chainId: 8453,
-        allowance: parseEther("10"), // 10 ETH max per period
-        periodInDays: 30, // Monthly reset
-        provider,
-      });
+      console.log('✅ Sub Account created:', subAccount.address);
+      setSubAccountAddress(subAccount.address);
+      setHasSubAccount(true);
+      setStatus("Connected with Sub Account");
 
-      console.log('✅ Spend permission granted:', permission);
-
-      setCurrentPermission(permission);
-      setPermissionActive(true);
-      setStatus("Spend permission granted!");
-
-      // Store permission hash using cross-platform storage
-      await crossPlatformStorage.setItem('spendPermissionHash', (permission as any).hash);
+      // Store Sub Account address
+      await crossPlatformStorage.setItem(SUB_ACCOUNT_KEY, subAccount.address);
 
     } catch (err: any) {
-      console.error("❌ Permission request failed:", err);
-      setPermissionError(err.message || "Failed to request permission");
-      setStatus("Permission request failed");
+      console.error("❌ Failed to create Sub Account:", err);
+      setSubAccountError(err.message || "Failed to create Sub Account");
       throw err;
     } finally {
-      setIsLoadingPermissions(false);
+      setIsCreatingSubAccount(false);
     }
   }, [provider, universalAddress]);
 
-  const refreshPermissions = useCallback(async () => {
-    if (!universalAddress) {
-      setPermissionActive(false);
-      setCurrentPermission(null);
-      return;
-    }
-
-    await checkForPermission(universalAddress);
+  const refreshSubAccount = useCallback(async () => {
+    if (!universalAddress) return;
+    await checkForSubAccount(universalAddress);
   }, [universalAddress, provider]);
 
   return {
+    // Connection state
     isConnected: connectionState === 'connected',
     isConnecting,
     universalAddress,
+    subAccountAddress,
     connectionState,
+
+    // Actions
     connect,
     disconnect,
-    permissionActive,
-    currentPermission,
-    isLoadingPermissions,
-    permissionError,
-    requestPermission,
-    refreshPermissions,
+
+    // Sub Account state
+    hasSubAccount,
+    isCreatingSubAccount,
+    subAccountError,
+
+    // Sub Account actions
+    createSubAccount,
+    refreshSubAccount,
+
+    // Status
     status,
     error,
   };

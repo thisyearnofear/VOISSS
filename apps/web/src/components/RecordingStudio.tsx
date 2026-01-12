@@ -5,12 +5,12 @@
 
 import React, { useState, useCallback, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { useBase } from "../app/providers";
 import { useBaseAccount } from "../hooks/useBaseAccount";
 import { useWebAudioRecording } from "../hooks/useWebAudioRecording";
 import { useFreemiumStore } from "../store/freemiumStore";
 import {
   createIPFSService,
-  createBaseRecordingService,
   crossPlatformStorage,
 } from "@voisss/shared";
 import { SocialShare } from "@voisss/ui";
@@ -18,7 +18,7 @@ import DubbingPanel from "./dubbing/DubbingPanel";
 import { VoiceRecordsABI } from "../contracts/VoiceRecordsABI";
 import { createWalletClient, custom, encodeFunctionData } from "viem";
 import { base } from "viem/chains";
-import { Check } from "lucide-react";
+import { Check, Zap, UserX, Crown } from "lucide-react";
 
 // Import modular components
 import RecordingControls from "./RecordingStudio/RecordingControls";
@@ -27,7 +27,8 @@ import WaveformVisualization from "./RecordingStudio/WaveformVisualization";
 import ToastNotification from "./RecordingStudio/ToastNotification";
 import AIVoicePanel from "./RecordingStudio/AIVoicePanel";
 import VersionSelection from "./RecordingStudio/VersionSelection";
-import PermissionStatus from "./RecordingStudio/PermissionStatus";
+import AlchemyModeStatus from "./RecordingStudio/AlchemyModeStatus";
+import { useStudioSettings } from "../hooks/useStudioSettings";
 import AudioPreview from "./RecordingStudio/AudioPreview";
 import TranscriptComposer from "./RecordingStudio/TranscriptComposer";
 import ActionButtons from "./RecordingStudio/ActionButtons";
@@ -69,6 +70,27 @@ interface SaveResult {
   recording: ShareableRecording;
 }
 
+const AlchemyModeBadge = ({ mode }: { mode: 'standard' | 'ghost' | 'pro' | 'vip' }) => {
+  const config = {
+    standard: { label: 'Standard', icon: Zap, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+    ghost: { label: 'Ghost', icon: UserX, color: 'text-gray-400', bg: 'bg-gray-500/10', border: 'border-gray-500/20' },
+    pro: { label: 'Pro', icon: Zap, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+    vip: { label: 'VIP', icon: Crown, color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20' },
+  };
+
+  const current = config[mode] || config.standard;
+  const Icon = current.icon;
+
+  return (
+    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${current.bg} ${current.border} shadow-sm animate-in zoom-in duration-300`}>
+      <Icon className={`w-3 h-3 ${current.color}`} />
+      <span className={`text-[10px] font-black uppercase tracking-tighter ${current.color}`}>
+        {current.label}
+      </span>
+    </div>
+  );
+};
+
 export default function RecordingStudio({
   onRecordingComplete,
   initialTranscriptTemplateId,
@@ -89,6 +111,10 @@ export default function RecordingStudio({
     resumeRecording,
     cancelRecording,
   } = useWebAudioRecording();
+
+  // Base provider for transactions
+  const baseContext = useBase();
+  const provider = baseContext?.provider;
 
   // Basic UI state
   const [isPaused, setIsPaused] = useState(false);
@@ -139,12 +165,16 @@ export default function RecordingStudio({
     status,
     isConnected,
     universalAddress,
+    subAccountAddress,
     connect,
-    permissionActive,
-    permissionError,
-    requestPermission,
-    isLoadingPermissions,
+    hasSubAccount,
+    subAccountError,
+    createSubAccount,
+    isCreatingSubAccount,
   } = useBaseAccount();
+
+  // Studio Mastery Settings (Ghost / Pro / VIP)
+  const { activeMode } = useStudioSettings(universalAddress);
 
   // Studio workflow phases
   type StudioPhase = 'recording' | 'laboratory' | 'forge';
@@ -192,23 +222,6 @@ export default function RecordingStudio({
 
   // Services
   const ipfsService = React.useMemo(() => createIPFSService(), []);
-
-  const baseRecordingService = React.useMemo(() => {
-    if (!universalAddress) return null;
-    try {
-      return createBaseRecordingService(universalAddress, {
-        contractAddress: contractAddress,
-        permissionRetriever: () => {
-          // Note: This is sync, but we're calling an async storage getter
-          // For now, return null - the async value would need to be fetched separately
-          return null;
-        },
-      });
-    } catch (error) {
-      console.warn("Base recording service not available:", error);
-      return null;
-    }
-  }, [universalAddress, contractAddress]);
 
   // Freemium state
   const {
@@ -356,16 +369,14 @@ export default function RecordingStudio({
   // Core save functions
   const saveRecordingToBase = useCallback(
     async (audioBlob: Blob, metadata: any) => {
-      if (!baseRecordingService) {
+      if (!subAccountAddress || !hasSubAccount) {
         throw new Error(
-          "Base recording contract not configured. Please deploy the contract first."
+          "Sub Account not available. Use saveRecordingWithGas instead."
         );
       }
 
-      if (!isConnected || !permissionActive) {
-        throw new Error(
-          "Base Account not connected or permission not granted."
-        );
+      if (!isConnected) {
+        throw new Error("Base Account not connected.");
       }
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -380,16 +391,31 @@ export default function RecordingStudio({
         duration: duration,
       });
 
-      const txId = await baseRecordingService.saveRecording(ipfsResult.hash, {
-        title: metadata.title,
-        description: metadata.description,
-        isPublic: metadata.isPublic,
-        tags: metadata.tags,
+      // Prepare contract call data
+      const callData = encodeFunctionData({
+        abi: VoiceRecordsABI,
+        functionName: "saveRecording",
+        args: [
+          ipfsResult.hash,
+          metadata.title,
+          JSON.stringify({ description: metadata.description, tags: metadata.tags }),
+          metadata.isPublic,
+        ],
       });
 
-      return { ipfsHash: ipfsResult.hash, txId };
+      // Send transaction from Sub Account (gasless)
+      const txHash = await provider?.request({
+        method: "eth_sendTransaction",
+        params: [{
+          from: subAccountAddress,
+          to: contractAddress,
+          data: callData,
+        }],
+      });
+
+      return { ipfsHash: ipfsResult.hash, txId: txHash };
     },
-    [baseRecordingService, isConnected, permissionActive, ipfsService, duration]
+    [subAccountAddress, hasSubAccount, isConnected, ipfsService, duration, contractAddress, provider]
   );
 
   const saveRecordingWithGas = useCallback(
@@ -437,7 +463,12 @@ export default function RecordingStudio({
         const data = encodeFunctionData({
           abi: VoiceRecordsABI,
           functionName: "saveRecording",
-          args: [ipfsResult.hash, metadata.title, metadata.isPublic],
+          args: [
+            ipfsResult.hash,
+            metadata.title,
+            JSON.stringify({ description: metadata.description, tags: metadata.tags }),
+            metadata.isPublic
+          ],
         });
 
         const txHash = await walletClient.sendTransaction({
@@ -496,12 +527,7 @@ export default function RecordingStudio({
       return;
     }
 
-    if (!permissionActive) {
-      setToastType("error");
-      setToastMessage("Please grant spend permission first for gasless saves.");
-      return;
-    }
-
+    // Check if user has enough quota (for free tier)
     if (userTier === "free" && versionsToSave > remainingQuota.saves) {
       setToastType("error");
       setToastMessage(
@@ -515,8 +541,11 @@ export default function RecordingStudio({
         recordingTitle || `Recording ${new Date().toLocaleString()}`;
       const results: SaveResult[] = [];
 
+      // Choose save method based on Sub Account availability
+      const saveMethod = hasSubAccount ? saveRecordingToBase : saveRecordingWithGas;
+
       if (selectedVersions.original && audioBlob) {
-        const result = await saveRecordingToBase(audioBlob, {
+        const result = await saveMethod(audioBlob, {
           title: baseTitle,
           description: recordingDescription || "Original recording",
           isPublic: true,
@@ -656,7 +685,7 @@ export default function RecordingStudio({
     setToastType,
     setToastMessage,
     isConnected,
-    permissionActive,
+    hasSubAccount,
     signIn,
   ]);
 
@@ -672,7 +701,10 @@ export default function RecordingStudio({
   return (
     <div className="max-w-2xl mx-auto voisss-card shadow-2xl">
       {/* Header */}
-      <div className="text-center mb-8">
+      <div className="text-center mb-8 relative">
+        <div className="absolute top-0 right-0 sm:right-4 flex justify-end">
+          <AlchemyModeBadge mode={activeMode as any} />
+        </div>
         <h2 className="text-3xl font-bold text-white mb-2">
           Voice Recording Studio
         </h2>
@@ -745,11 +777,12 @@ export default function RecordingStudio({
                   recordingTitle={recordingTitle}
                   onTitleChange={setRecordingTitle}
                 />
-                <PermissionStatus
+                <AlchemyModeStatus
                   isConnected={isConnected}
-                  permissionActive={permissionActive}
-                  isLoadingPermissions={isLoadingPermissions}
-                  requestPermission={requestPermission}
+                  hasSubAccount={hasSubAccount}
+                  activeMode={activeMode}
+                  isCreatingSubAccount={isCreatingSubAccount}
+                  createSubAccount={createSubAccount}
                   setToastType={setToastType}
                   setToastMessage={setToastMessage}
                 />
@@ -824,14 +857,14 @@ export default function RecordingStudio({
               isDirectSaving={isDirectSaving}
               userTier={userTier}
               remainingQuota={remainingQuota}
-              baseRecordingService={baseRecordingService}
-              permissionActive={permissionActive}
+              hasSubAccount={hasSubAccount}
               handleDownload={handleDownload}
               handleSaveSelectedVersions={handleSaveSelectedVersions}
               saveRecordingWithGas={saveRecordingWithGas}
               audioBlob={audioBlob}
               setToastType={setToastType}
               setToastMessage={setToastMessage}
+              activeMode={activeMode}
             />
 
             <button
