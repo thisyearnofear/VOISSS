@@ -66,3 +66,12 @@ export * from './utils/featureFlags';
 
 // Language constants and utilities
 export * from './constants/languages';
+
+// Token access configuration and hooks (exported for both web and mobile)
+export * from './config/tokenAccess';
+export * from './services/token-burn-service';
+export * from './hooks/useTokenAccess';
+
+// Note: Other hooks are NOT exported from main index to prevent bundling in server components
+// Client components should import directly:
+// import { useMemoryContext } from '@voisss/shared/hooks/useMemoryContext'

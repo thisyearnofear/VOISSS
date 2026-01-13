@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../../contexts/AuthContext";
+import { useTokenAccess } from "@voisss/shared/hooks/useTokenAccess";
 import { PLATFORM_CONFIG } from "@voisss/shared/config/platform";
 import EligibilityCheck from "./EligibilityCheck";
 import MissionFormFields, { FormData } from "./MissionFormFields";
@@ -26,7 +27,8 @@ export default function MissionCreationForm({
   onSuccess,
   onCancel,
 }: MissionCreationFormProps) {
-  const { address } = useAuth();
+  const { address, isCreatorEligible, isCheckingEligibility } = useAuth();
+  const { tier, isLoading: isLoadingVoisss } = useTokenAccess({ address });
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -97,9 +99,12 @@ export default function MissionCreationForm({
     }
   };
 
-  // Check eligibility first
-  const eligibilityStatus = <EligibilityCheck />;
-  if (eligibilityStatus?.props === null || !address) {
+  // Show eligibility check if still checking or eligibility not met
+  const meetsVoisssRequirement = tier && tier !== 'none';
+  const isCheckingEligibilityStatus = isCheckingEligibility || isLoadingVoisss;
+  const meetsAllRequirements = isCreatorEligible && meetsVoisssRequirement;
+
+  if (isCheckingEligibilityStatus || !meetsAllRequirements) {
     return (
       <div className="voisss-card">
         <EligibilityCheck />

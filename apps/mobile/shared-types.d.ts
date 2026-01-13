@@ -135,7 +135,6 @@ declare module '@voisss/shared' {
   // Service types
   export const crossPlatformStorage: any;
   export const walletConnectorService: any;
-  export const baseRecordingService: any;
   export const ipfsService: any;
   export const audioConverter: any;
   export const recordingService: any;
@@ -147,7 +146,6 @@ declare module '@voisss/shared' {
   export const onboardingService: any;
   export const walletConnectors: any;
   export const createIPFSService: any;
-  export const createBaseRecordingService: any;
 
   // Utility functions
   export const formatDuration: (seconds: number) => string;

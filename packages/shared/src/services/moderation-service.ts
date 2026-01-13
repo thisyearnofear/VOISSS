@@ -32,7 +32,9 @@ export class DefaultModerationService implements ModerationService {
   
   async evaluateQuality(response: MissionResponse, criteria?: QualityCriteria): Promise<ModerationResult> {
     const violations = await this.detectViolations(response);
-    const audioScore = response.qualityScore || 50; // Placeholder - would be computed from audio analysis
+    
+    // Engagement-based scoring (now that we auto-approve submissions)
+    const engagementScore = response.views + (response.likes * 2) + (response.comments * 3);
     
     // Check transcription if required
     const hasTranscription = !!response.transcription;
@@ -40,10 +42,10 @@ export class DefaultModerationService implements ModerationService {
       violations.violations.push('Transcription required but not provided');
     }
 
-    // Validate audio quality against criteria
+    // Submissions are auto-approved, so threshold check is optional now
     let meetsAudioThreshold = true;
-    if (criteria?.audioMinScore && audioScore < criteria.audioMinScore) {
-      violations.violations.push(`Audio quality ${audioScore} below minimum ${criteria.audioMinScore}`);
+    if (criteria?.audioMinScore && engagementScore < criteria.audioMinScore) {
+      violations.violations.push(`Engagement score ${engagementScore} below minimum ${criteria.audioMinScore}`);
       meetsAudioThreshold = false;
     }
 
@@ -65,7 +67,7 @@ export class DefaultModerationService implements ModerationService {
 
     return {
       passed,
-      audioQualityScore: audioScore,
+      audioQualityScore: engagementScore,
       hasViolations: violations.violations.length > 0,
       violations: violations.violations,
       isTranscribed: hasTranscription,
@@ -121,8 +123,8 @@ export class DefaultModerationService implements ModerationService {
     if (response.transcription) {
       confidence += 0.2; // Higher confidence with transcription
     }
-    if (response.qualityScore) {
-      confidence += 0.1; // A bit more with quality score
+    if (response.views + response.likes + response.comments > 0) {
+      confidence += 0.1; // A bit more with engagement
     }
     confidence = Math.min(confidence, 0.99);
 

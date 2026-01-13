@@ -1,9 +1,12 @@
 /**
- * Centralized Platform Configuration
- * Controls platform-wide settings including token, mission creation requirements, and reward structure
+ * Platform Configuration
+ * Centralized settings for mission creation, rewards, and creator requirements
+ * 
+ * Note: Token access tiers are defined in tokenAccess.ts (holds $voisss)
+ * $papajams is used here for mission creator minimum and reward distribution
  */
 
-export interface TokenConfig {
+export interface PapajamsTokenConfig {
   symbol: string;
   address: `0x${string}`;
   decimals: number;
@@ -31,7 +34,7 @@ export interface MissionConfig {
 }
 
 export interface PlatformConfigType {
-  token: TokenConfig;
+  papajamsToken: PapajamsTokenConfig;
   creatorRequirements: CreatorRequirements;
   rewards: RewardStructure;
   missions: MissionConfig;
@@ -43,7 +46,7 @@ export interface PlatformConfigType {
  * Change token/requirements here instead of scattered throughout the codebase
  */
 export const PLATFORM_CONFIG: PlatformConfigType = {
-  token: {
+  papajamsToken: {
     symbol: process.env.NEXT_PUBLIC_REWARD_TOKEN_SYMBOL || 'papajams',
     address: (process.env.NEXT_PUBLIC_REWARD_TOKEN_ADDRESS || '0x2e9be99b199c874bd403f1b70fcaa9f11f47b96c') as `0x${string}`,
     decimals: parseInt(process.env.NEXT_PUBLIC_REWARD_TOKEN_DECIMALS || '18'),
@@ -93,7 +96,7 @@ export function meetsCreatorRequirements(tokenBalance: bigint): boolean {
  */
 export function formatTokenAmount(amount: number | bigint): string {
   const num = typeof amount === 'bigint' ? Number(amount) : amount;
-  const divisor = Math.pow(10, PLATFORM_CONFIG.token.decimals);
+  const divisor = Math.pow(10, PLATFORM_CONFIG.papajamsToken.decimals);
   return (num / divisor).toFixed(2);
 }
 
@@ -101,5 +104,42 @@ export function formatTokenAmount(amount: number | bigint): string {
  * Get display symbol with prefix
  */
 export function getTokenDisplaySymbol(): string {
-  return `$${PLATFORM_CONFIG.token.symbol}`;
+  return `$${PLATFORM_CONFIG.papajamsToken.symbol}`;
+}
+
+/**
+ * Calculate reward based on engagement metrics
+ * Base reward + bonuses for views, likes, comments
+ * 
+ * Formula:
+ * - Base: mission.baseReward
+ * - Per view: 0.001 tokens (100 views = 0.1 tokens)
+ * - Per like: 0.05 tokens (20 likes = 1 token)
+ * - Per comment: 0.1 tokens (10 comments = 1 token)
+ */
+export function calculateEngagementReward(
+  baseReward: number,
+  views: number = 0,
+  likes: number = 0,
+  comments: number = 0
+): number {
+  const viewBonus = Math.floor(views * 0.001);
+  const likeBonus = Math.floor(likes * 0.05);
+  const commentBonus = Math.floor(comments * 0.1);
+  
+  return baseReward + viewBonus + likeBonus + commentBonus;
+}
+
+/**
+ * Calculate split between $papajams and $voisss based on mission reward
+ * 70% $papajams (creator stake), 30% $voisss (platform)
+ */
+export function calculateRewardSplit(totalReward: number): {
+  papajams: number;
+  voisss: number;
+} {
+  const papajams = Math.floor(totalReward * 0.7);
+  const voisss = Math.floor(totalReward * 0.3);
+  
+  return { papajams, voisss };
 }

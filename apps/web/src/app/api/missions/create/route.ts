@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createPublicClient, http } from 'viem';
+import { base } from 'viem/chains';
 import { createMissionService } from '@voisss/shared';
-import { PLATFORM_CONFIG } from '@voisss/shared/config/platform';
+import { PLATFORM_CONFIG, meetsCreatorRequirements } from '@voisss/shared/config/platform';
+import { getTierForBalance, VOISSS_TOKEN_ACCESS } from '@voisss/shared/config/tokenAccess';
 import { Mission, QualityCriteria } from '@voisss/shared/types/socialfi';
 
 const missionService = createMissionService();
@@ -12,13 +15,28 @@ const REWARD_BY_DIFFICULTY = {
   hard: 50,
 };
 
+// ERC20 ABI for balanceOf
+const ERC20_ABI = [
+  {
+    type: 'function',
+    name: 'balanceOf',
+    inputs: [{ type: 'address' }],
+    outputs: [{ type: 'uint256' }],
+    stateMutability: 'view',
+  },
+] as const;
+
 /**
  * POST /api/missions/create
  * 
  * Creates a new mission with simplified form fields.
  * Automatically calculates baseReward from difficulty.
- * Client validates creator eligibility before calling.
- * Server validates auth and required fields.
+ * 
+ * Validates:
+ * - User address format and auth
+ * - Dual-token requirements ($papajams + $voisss)
+ * - Required fields (title, description, difficulty, duration)
+ * - Duration and expiration ranges
  */
 
 interface CreateMissionRequest {
@@ -49,6 +67,60 @@ export async function POST(request: NextRequest) {
     const userAddress = authHeader.substring(7);
     if (!userAddress?.startsWith('0x') || userAddress.length !== 42) {
       return NextResponse.json({ error: 'Invalid address' }, { status: 401 });
+    }
+
+    // Validate dual-token requirements (both $papajams and $voisss)
+    const publicClient = createPublicClient({
+      chain: base,
+      transport: http(process.env.BASE_RPC_URL || undefined),
+    });
+
+    // Check $papajams balance (creator stake)
+    const papajamsAddress = PLATFORM_CONFIG.papajamsToken.address;
+    const papajamsBalance = await publicClient.readContract({
+      address: papajamsAddress,
+      abi: ERC20_ABI,
+      functionName: 'balanceOf',
+      args: [userAddress as `0x${string}`],
+    });
+
+    if (!meetsCreatorRequirements(papajamsBalance)) {
+      return NextResponse.json(
+        {
+          error: 'Insufficient $papajams balance',
+          required: `${PLATFORM_CONFIG.creatorRequirements.minTokenBalance} $papajams`,
+          balance: papajamsBalance.toString(),
+        },
+        { status: 403 }
+      );
+    }
+
+    // Check $voisss balance (platform tier - need at least Basic tier)
+    const voisssAddress = process.env.NEXT_PUBLIC_VOISSS_TOKEN_ADDRESS as `0x${string}`;
+    if (!voisssAddress) {
+      return NextResponse.json(
+        { error: 'Token configuration error' },
+        { status: 500 }
+      );
+    }
+
+    const voisssBalance = await publicClient.readContract({
+      address: voisssAddress,
+      abi: ERC20_ABI,
+      functionName: 'balanceOf',
+      args: [userAddress as `0x${string}`],
+    });
+
+    const tier = getTierForBalance(voisssBalance);
+    if (tier === 'none') {
+      return NextResponse.json(
+        {
+          error: 'Insufficient $voisss balance',
+          required: `10k $voisss (Basic tier minimum)`,
+          balance: voisssBalance.toString(),
+        },
+        { status: 403 }
+      );
     }
 
     // Parse and validate request

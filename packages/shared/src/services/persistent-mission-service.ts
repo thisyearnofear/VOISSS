@@ -69,6 +69,7 @@ export class PersistentMissionService implements MissionService {
         language: "en",
         curatorReward: 5,
         autoExpire: true,
+        submissions: [],
         qualityCriteria: {
           audioMinScore: 60,
           transcriptionRequired: true,
@@ -88,6 +89,7 @@ export class PersistentMissionService implements MissionService {
         language: "en",
         curatorReward: 5,
         autoExpire: true,
+        submissions: [],
         qualityCriteria: {
           audioMinScore: 65,
           transcriptionRequired: true,
@@ -107,6 +109,7 @@ export class PersistentMissionService implements MissionService {
         language: "en",
         curatorReward: 5,
         autoExpire: true,
+        submissions: [],
         qualityCriteria: {
           audioMinScore: 70,
           transcriptionRequired: true,
@@ -126,8 +129,69 @@ export class PersistentMissionService implements MissionService {
         language: "en",
         curatorReward: 5,
         autoExpire: true,
+        submissions: [],
         qualityCriteria: {
           audioMinScore: 65,
+          transcriptionRequired: true,
+        },
+      },
+      {
+        title: "Global Coffee Culture",
+        description: "Visit a local cafe and capture a conversation about what coffee culture means in your city. Is it a social ritual or a fuel for work?",
+        difficulty: "easy",
+        baseReward: 15,
+        rewardModel: "pool",
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        locationBased: true,
+        isActive: true,
+        createdBy: "platform",
+        targetDuration: 90,
+        language: "en",
+        curatorReward: 5,
+        autoExpire: true,
+        submissions: [],
+        qualityCriteria: {
+          audioMinScore: 60,
+          transcriptionRequired: false,
+        },
+      },
+      {
+        title: "The Future of Education",
+        description: "Interview a student or teacher about how they think learning will change in the next decade. Focus on digital vs. physical classrooms.",
+        difficulty: "hard",
+        baseReward: 60,
+        rewardModel: "pool",
+        expiresAt: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000),
+        locationBased: false,
+        isActive: true,
+        createdBy: "platform",
+        targetDuration: 400,
+        language: "en",
+        curatorReward: 10,
+        autoExpire: true,
+        submissions: [],
+        qualityCriteria: {
+          audioMinScore: 75,
+          transcriptionRequired: true,
+        },
+      },
+      {
+        title: "Mental Health in Tech",
+        description: "A safe space to share perspectives on burnout, work-life balance, and the psychological impact of constant connectivity in the tech industry.",
+        difficulty: "medium",
+        baseReward: 35,
+        rewardModel: "pool",
+        expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+        locationBased: false,
+        isActive: true,
+        createdBy: "platform",
+        targetDuration: 240,
+        language: "en",
+        curatorReward: 5,
+        autoExpire: true,
+        submissions: [],
+        qualityCriteria: {
+          audioMinScore: 70,
           transcriptionRequired: true,
         },
       }
@@ -193,6 +257,7 @@ export class PersistentMissionService implements MissionService {
       const mission: Mission = {
         curatorReward: 5,
         autoExpire: true,
+        submissions: [],
         language: 'en',
         rewardModel: 'pool',
         ...missionData,
@@ -410,6 +475,7 @@ export class PersistentMissionService implements MissionService {
       maxParticipants: customizations?.maxParticipants || 100,
       isActive: customizations?.isActive ?? true,
       createdBy: customizations?.createdBy || "platform",
+      submissions: [],
       tags: customizations?.tags || [templateKey, template.difficulty],
       locationBased: customizations?.locationBased ?? ((template.contextSuggestions as unknown as string[]).includes("taxi") ||
         (template.contextSuggestions as unknown as string[]).includes("street")),
@@ -448,8 +514,9 @@ export class PersistentMissionService implements MissionService {
       );
 
       const totalResponses = responses.length;
+      // Average engagement score (views + likes + comments)
       const averageQuality = responses.length > 0
-        ? responses.reduce((sum, r) => sum + (r.qualityScore || 0), 0) / responses.length
+        ? responses.reduce((sum, r) => sum + (r.views + r.likes + r.comments), 0) / responses.length
         : 0;
 
       const geographicDistribution: Record<string, number> = {};
@@ -752,10 +819,8 @@ export class PersistentMissionService implements MissionService {
       failures.push('Transcription required but not provided');
     }
 
-    // Check audio quality score
-    if (criteria.audioMinScore !== undefined && (response.qualityScore || 0) < criteria.audioMinScore) {
-      failures.push(`Audio quality score ${response.qualityScore || 0} below minimum ${criteria.audioMinScore}`);
-    }
+    // Note: Submissions are auto-approved, quality validation is optional now
+    // Quality scores are based on engagement metrics (views, likes, comments)
 
     return {
       passed: failures.length === 0,
@@ -813,6 +878,39 @@ export class PersistentMissionService implements MissionService {
     // Reinitialize with default data
     this.initialized = false;
     await this.ensureInitialized();
+  }
+
+  // Submission management stubs (delegated to DefaultMissionService)
+  async getSubmission(id: string): Promise<MissionResponse | null> {
+    // Not implemented in persistent service - use in-memory service
+    return null;
+  }
+
+  async getSubmissionsByMission(missionId: string, status?: MissionResponse['status']): Promise<MissionResponse[]> {
+    // Not implemented in persistent service - use in-memory service
+    return [];
+  }
+
+  async getAllSubmissions(filters?: {
+    status?: MissionResponse['status'];
+    missionId?: string;
+    userId?: string;
+    after?: Date;
+  }): Promise<MissionResponse[]> {
+    // Not implemented in persistent service - use in-memory service
+    return [];
+  }
+
+  async flagSubmission(submissionId: string, reason: string): Promise<MissionResponse> {
+    throw new Error('Not implemented in persistent service');
+  }
+
+  async removeSubmission(submissionId: string, reason: string): Promise<MissionResponse> {
+    throw new Error('Not implemented in persistent service');
+  }
+
+  async updateEngagement(submissionId: string, views: number, likes: number, comments: number): Promise<MissionResponse> {
+    throw new Error('Not implemented in persistent service');
   }
 }
 

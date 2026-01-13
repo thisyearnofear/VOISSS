@@ -22,6 +22,10 @@ function StudioPageInner() {
     () => searchParams.get("mode") || undefined,
     [searchParams]
   );
+  const missionId = useMemo(
+    () => searchParams.get("missionId") || undefined,
+    [searchParams]
+  );
   // Legacy local recordings state (for backward compatibility)
   const [localRecordings, setLocalRecordings] = useState<
     Array<{
@@ -148,6 +152,7 @@ function StudioPageInner() {
             onRecordingComplete={handleRecordingComplete}
             initialTranscriptTemplateId={templateId}
             initialMode={mode}
+            missionId={missionId}
           />
         </div>
 

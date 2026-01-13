@@ -8,6 +8,8 @@ interface MissionCardProps {
   mission: Mission;
   onAccept: () => void;
   isConnected: boolean;
+  isAccepted?: boolean;
+  className?: string;
 }
 
 // Difficulty color helper
@@ -24,10 +26,12 @@ const getDifficultyColor = (difficulty: string): string => {
   }
 };
 
-export default function MissionCard({ 
-  mission, 
-  onAccept, 
-  isConnected 
+export default function MissionCard({
+  mission,
+  onAccept,
+  isConnected,
+  isAccepted = false,
+  className = ""
 }: MissionCardProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);
@@ -67,7 +71,7 @@ export default function MissionCard({
 
 
   return (
-    <div className="voisss-card group hover:border-[#7C5DFA]/30 transition-all duration-300">
+    <div className={`voisss-card group hover:border-[#7C5DFA]/30 transition-all duration-300 ${className} ${isAccepted ? 'border-indigo-500/40 bg-indigo-500/5' : ''}`}>
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
@@ -129,16 +133,25 @@ export default function MissionCard({
         className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
           !isConnected
             ? "bg-gray-500/20 text-gray-400 cursor-not-allowed"
-            : "bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white hover:from-[#6B4CE6] hover:to-[#8B7AFF] hover:scale-[1.02]"
+            : isAccepted 
+              ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-600/30"
+              : "bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white hover:from-[#6B4CE6] hover:to-[#8B7AFF] hover:scale-[1.02]"
         }`}
       >
         {isAccepting ? (
           <>
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            Accepting...
+            {isAccepted ? "Opening..." : "Accepting..."}
           </>
         ) : !isConnected ? (
           "Connect Wallet to Accept"
+        ) : isAccepted ? (
+          <>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+            </svg>
+            Record Submission
+          </>
         ) : (
           <>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

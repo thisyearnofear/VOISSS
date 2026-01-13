@@ -134,13 +134,28 @@ export default function MissionFormFields({
         </div>
 
         {/* Estimated Reward Display */}
-        <div className="p-3 bg-[#1A1A1A] border border-[#3A3A3A] rounded-lg">
-          <p className="text-sm text-gray-300">
-            Base reward per participant: <span className="font-semibold text-[#7C5DFA]">{baseReward} {getTokenDisplaySymbol()}</span>
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            Splits equally across all submissions. Bonus tokens for quality & featured content.
-          </p>
+        <div className="p-3 bg-[#1A1A1A] border border-[#3A3A3A] rounded-lg space-y-3">
+          <div>
+            <p className="text-sm text-gray-300">
+              Base reward per participant: <span className="font-semibold text-[#7C5DFA]">{baseReward} {getTokenDisplaySymbol()}</span>
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Splits equally across all submissions. Bonus tokens for engagement & featured content.
+            </p>
+          </div>
+          
+          {/* Token breakdown */}
+          <div className="pt-2 border-t border-[#3A3A3A] space-y-2">
+            <p className="text-xs font-semibold text-gray-400">Reward allocation:</p>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-[#7C5DFA]">📊</span>
+              <span className="text-gray-300">70% {getTokenDisplaySymbol()} → participants</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-purple-400">💜</span>
+              <span className="text-gray-300">30% $voisss → platform</span>
+            </div>
+          </div>
         </div>
       </div>
 

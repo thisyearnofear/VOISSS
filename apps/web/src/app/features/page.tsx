@@ -59,7 +59,7 @@ function TemplatePreview({ template }: { template: TranscriptTemplate }) {
 
 function AlchemyMasteryHub() {
   const { universalAddress } = useBaseAccount();
-  const { activeMode, setMode, isUnlocked } = useStudioSettings(universalAddress);
+  const { activeMode, setMode, isUnlocked, tier } = useStudioSettings(universalAddress);
   const [isSwitching, setIsSwitching] = useState<string | null>(null);
 
   const modes = [
@@ -67,28 +67,31 @@ function AlchemyMasteryHub() {
       id: 'ghost',
       name: 'Ghost Post',
       icon: UserX,
-      desc: 'Relay saves through our spender. Your wallet address is NOT linked to the recording on-chain.',
-      badge: 'Open Access',
+      desc: 'Relay saves through our spender (10k+ $voisss). Your wallet address is NOT linked to the recording on-chain.',
+      badge: 'Basic Tier',
       color: 'gray',
       locked: !isUnlocked.ghost,
+      tier: 'basic',
     },
     {
       id: 'pro',
       name: 'Pro Session',
       icon: Zap,
-      desc: 'Activate a 24-hour gasless pass. Perfect for rapid iteration and version testing without wallet popups.',
-      badge: 'Power User',
+      desc: 'Activate a 24-hour gasless pass (50k+ $voisss). Perfect for rapid iteration and version testing without wallet popups.',
+      badge: 'Pro Tier',
       color: 'indigo',
       locked: !isUnlocked.pro,
+      tier: 'pro',
     },
     {
       id: 'vip',
       name: 'VIP Lane',
       icon: Crown,
-      desc: 'Permanent gasless saves with priority on-chain placement. Requires $papajams holding.',
-      badge: 'Token Gated',
+      desc: 'Permanent gasless saves with priority on-chain placement (250k+ $voisss). No transaction signing.',
+      badge: 'Premium Tier',
       color: 'yellow',
       locked: !isUnlocked.vip,
+      tier: 'premium',
     },
     {
       id: 'producer',
@@ -98,6 +101,7 @@ function AlchemyMasteryHub() {
       badge: 'Engagement Gated',
       color: 'green',
       locked: true, // Always locked for now as it is engagement based
+      tier: 'none',
     }
   ];
 

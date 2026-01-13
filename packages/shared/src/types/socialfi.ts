@@ -38,6 +38,9 @@ export const MissionSchema = z.object({
   publishedAt: z.date().optional(),
   autoExpire: z.boolean().default(true),
 
+  // Submissions tracking
+  submissions: z.array(z.string()).default([]), // array of MissionResponse IDs
+
   // Additional fields for mission management
   maxParticipants: z.number().min(1).optional(), // max number of participants
   topic: z.string().optional(), // mission topic/category
@@ -54,8 +57,9 @@ export type QualityCriteria = z.infer<typeof QualityCriteriaSchema>;
 export const MissionResponseSchema = z.object({
   id: z.string(),
   missionId: z.string(),
-  userId: z.string(),
+  userId: z.string(), // wallet address of submitter
   recordingId: z.string(),
+  recordingIpfsHash: z.string().optional(), // IPFS hash of the recording
   location: z.object({
     city: z.string(),
     country: z.string(),
@@ -70,11 +74,19 @@ export const MissionResponseSchema = z.object({
   isAnonymized: z.boolean(),
   voiceObfuscated: z.boolean(),
   submittedAt: z.date(),
-  status: z.enum(['pending', 'approved', 'rejected', 'featured']),
-  qualityScore: z.number().optional(), // 0-100 based on audio quality and content
+  status: z.enum(['approved', 'flagged', 'removed']).default('approved'), // Auto-approved on submission
   transcription: z.string().optional(),
   sentiment: z.enum(['positive', 'negative', 'neutral', 'mixed']).optional(),
-  moderationFlags: z.array(z.string()).optional(),
+  
+  // Engagement metrics (earned over time)
+  views: z.number().default(0),
+  likes: z.number().default(0),
+  comments: z.number().default(0),
+  
+  // Moderation
+  flaggedAt: z.date().optional(),
+  flagReason: z.string().optional(), // why it was flagged/removed
+  removedAt: z.date().optional(),
 });
 
 export type MissionResponse = z.infer<typeof MissionResponseSchema>;

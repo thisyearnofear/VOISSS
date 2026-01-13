@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Mission } from "@voisss/shared/types/socialfi";
 import { getTokenDisplaySymbol } from "@voisss/shared/config/platform";
 import { useBaseAccount } from "../../hooks/useBaseAccount";
-import { useMissions, useAcceptMission, useMissionStats } from "../../hooks/queries/useMissions";
+import { useMissions, useAcceptMission, useMissionStats, useUserMissions } from "../../hooks/queries/useMissions";
 import MissionCard from "./MissionCard";
 import MissionFilters from "./MissionFilters";
 import MissionCreationForm from "./MissionCreationForm";
@@ -14,6 +15,7 @@ interface MissionBoardProps {
 }
 
 export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
+  const router = useRouter();
   const { universalAddress: address, isConnected } = useBaseAccount();
   const [selectedTopic, setSelectedTopic] = useState<string>("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
@@ -32,46 +34,13 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
     status: 'active'
   });
 
+  const { data: userMissionsData } = useUserMissions();
+  const acceptedMissionIds = new Set(userMissionsData?.active.map(m => m.id) || []);
+
   const { data: missionStats } = useMissionStats();
   const acceptMissionMutation = useAcceptMission();
 
   const error = queryError?.message || null;
-
-  // Helper functions for UI
-  const getTopicIcon = (topic: string) => {
-    const icons: Record<string, string> = {
-      technology: "💻",
-      lifestyle: "🌟",
-      business: "💼",
-      entertainment: "🎬",
-      education: "📚",
-      health: "🏥",
-      travel: "✈️",
-      food: "🍽️",
-      sports: "⚽",
-      politics: "🏛️",
-      crypto: "🪙",
-      work: "💼",
-      relationships: "💑",
-      social: "👥",
-      local: "🏘️",
-      culture: "🎭",
-      default: "💬"
-    };
-    return icons[topic] || icons.default;
-  };
-
-  const getDifficultyColor = (difficulty: string) => {
-    const colors: Record<string, string> = {
-      beginner: "text-green-400 bg-green-400/10 border-green-400/20",
-      intermediate: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
-      advanced: "text-red-400 bg-red-400/10 border-red-400/20",
-      easy: "text-green-400 bg-green-500/20 border-green-500/30",
-      medium: "text-yellow-400 bg-yellow-500/20 border-yellow-500/30",
-      hard: "text-red-400 bg-red-500/20 border-red-500/30"
-    };
-    return colors[difficulty] || "text-gray-400 bg-gray-500/20 border-gray-500/30";
-  };
 
   const handleMissionAccept = async (mission: Mission) => {
     if (!isConnected || !address) {
@@ -85,6 +54,9 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
       if (onMissionSelect) {
         onMissionSelect(mission);
       }
+      
+      // Navigate to recording studio with mission context
+      router.push(`/studio?missionId=${mission.id}`);
     } catch (err) {
       console.error("Failed to accept mission:", err);
       alert("Failed to accept mission. Please try again.");
@@ -146,6 +118,9 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
       </div>
     );
   }
+
+  const platformMissions = missions.filter((m: Mission) => m.createdBy === 'platform');
+  const communityMissions = missions.filter((m: Mission) => m.createdBy !== 'platform');
 
   return (
     <div className="max-w-6xl mx-auto voisss-section-spacing">
@@ -239,15 +214,52 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {missions.map((mission: Mission) => (
-            <MissionCard
-              key={mission.id}
-              mission={mission}
-              onAccept={() => handleMissionAccept(mission)}
-              isConnected={isConnected || false}
-            />
-          ))}
+        <div className="space-y-8">
+           {/* Featured / Platform Missions */}
+           {platformMissions.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-4 px-1">
+                <span className="text-2xl">🌟</span>
+                <h2 className="text-xl font-bold text-white">Featured Missions</h2>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {platformMissions.map((mission: Mission) => (
+                  <MissionCard
+                    key={mission.id}
+                    mission={mission}
+                    onAccept={() => handleMissionAccept(mission)}
+                    isConnected={isConnected || false}
+                    isAccepted={acceptedMissionIds.has(mission.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Community Missions */}
+          <div>
+            <div className="flex items-center gap-2 mb-4 px-1">
+              <span className="text-2xl">👥</span>
+              <h2 className="text-xl font-bold text-white">Community Missions</h2>
+            </div>
+            {communityMissions.length === 0 ? (
+               <div className="text-center py-8 bg-[#1A1A1A] rounded-xl border border-[#2A2A2A] border-dashed">
+                <p className="text-gray-400">No community missions yet. Be the first to create one!</p>
+               </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {communityMissions.map((mission: Mission) => (
+                  <MissionCard
+                    key={mission.id}
+                    mission={mission}
+                    onAccept={() => handleMissionAccept(mission)}
+                    isConnected={isConnected || false}
+                    isAccepted={acceptedMissionIds.has(mission.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

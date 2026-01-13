@@ -126,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           address: addressToCheck,
-          tokenAddress: PLATFORM_CONFIG.token.address,
+          tokenAddress: PLATFORM_CONFIG.papajamsToken.address,
         }),
       });
 

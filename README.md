@@ -61,8 +61,6 @@
 - **Mobile Flutter**: iOS native exploration ⏸️ **ON HOLD**
 - **Sync**: Cross-platform data synchronization (Web ready, mobile in development)
 
-### 🏆 AI Partner Catalyst Hackathon Submission
-
 ### ## Inspiration
 VOISSS was born from a pivotal question: In an era where AI can synthesize any voice in seconds, who truly owns your acoustic identity? As we move toward an AI-agent economy, our voices are becoming our most valuable digital signatures. We were inspired to build a platform that doesn't just "process" voice, but empowers it—giving creators and global citizens a way to transform their vocal expression while maintaining sovereign ownership through decentralized infrastructure.
 

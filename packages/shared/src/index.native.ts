@@ -29,7 +29,6 @@ export * from './utils/featureFlags';
 export * from './utils/session';
 
 // Services that don't require Node.js dependencies
-export * from './services/baseRecordingService';
 export * from './services/ipfs-service';
 export * from './services/mission-service';
 export * from './services/database-service';

@@ -24,6 +24,14 @@ export interface MissionService {
   acceptMission(missionId: string, userId: string): Promise<boolean>;
   submitMissionResponse(response: Omit<MissionResponse, 'id' | 'submittedAt'>): Promise<MissionResponse>;
   getUserMissions(userId: string): Promise<{ active: Mission[], completed: MissionResponse[] }>;
+  
+  // Submission Management
+  getSubmission(id: string): Promise<MissionResponse | null>;
+  getSubmissionsByMission(missionId: string, status?: MissionResponse['status']): Promise<MissionResponse[]>;
+  getAllSubmissions(filters?: { status?: MissionResponse['status']; missionId?: string; userId?: string; after?: Date }): Promise<MissionResponse[]>;
+  flagSubmission(submissionId: string, reason: string): Promise<MissionResponse>;
+  removeSubmission(submissionId: string, reason: string): Promise<MissionResponse>;
+  updateEngagement(submissionId: string, views: number, likes: number, comments: number): Promise<MissionResponse>;
 
   // Mission Discovery
   getMissionsByLocation(city: string, country: string): Promise<Mission[]>;
@@ -83,6 +91,7 @@ export class DefaultMissionService implements MissionService {
         language: "en",
         curatorReward: 5,
         autoExpire: true,
+        submissions: [],
         qualityCriteria: {
           audioMinScore: 60,
           transcriptionRequired: true,
@@ -102,6 +111,7 @@ export class DefaultMissionService implements MissionService {
         language: "en",
         curatorReward: 5,
         autoExpire: true,
+        submissions: [],
         qualityCriteria: {
           audioMinScore: 65,
           transcriptionRequired: true,
@@ -121,6 +131,7 @@ export class DefaultMissionService implements MissionService {
         language: "en",
         curatorReward: 5,
         autoExpire: true,
+        submissions: [],
         qualityCriteria: {
           audioMinScore: 70,
           transcriptionRequired: true,
@@ -140,6 +151,7 @@ export class DefaultMissionService implements MissionService {
         language: "en",
         curatorReward: 5,
         autoExpire: true,
+        submissions: [],
         qualityCriteria: {
           audioMinScore: 65,
           transcriptionRequired: true,
@@ -195,7 +207,7 @@ export class DefaultMissionService implements MissionService {
     return baseReward;
   }
 
-  // Quality Validation (AI moderation)
+  // Quality Validation - now auto-approve on submission, so this is optional
   async validateQualityCriteria(
     response: MissionResponse,
     criteria?: QualityCriteria
@@ -209,11 +221,6 @@ export class DefaultMissionService implements MissionService {
     // Check transcription requirement
     if (criteria.transcriptionRequired && !response.transcription) {
       failures.push('Transcription required but not provided');
-    }
-
-    // Check audio quality score
-    if (criteria.audioMinScore !== undefined && (response.qualityScore || 0) < criteria.audioMinScore) {
-      failures.push(`Audio quality score ${response.qualityScore || 0} below minimum ${criteria.audioMinScore}`);
     }
 
     // Check duration bounds (if we had duration in response)
@@ -304,9 +311,25 @@ export class DefaultMissionService implements MissionService {
       ...responseData,
       id: `response_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       submittedAt: new Date(),
+      status: 'approved', // Auto-approve on submission
+      views: responseData.views || 0,
+      likes: responseData.likes || 0,
+      comments: responseData.comments || 0,
     };
 
     this.responses.set(response.id, response);
+
+    // Update mission: add submission to submissions array
+    const mission = this.missions.get(responseData.missionId);
+    if (mission) {
+      mission.submissions = mission.submissions || [];
+      mission.submissions.push(response.id);
+      mission.updatedAt = new Date();
+    }
+
+    // Automatically complete 'submission' milestone
+    await this.completeMilestone(responseData.userId, responseData.missionId, response.id, 'submission', 0);
+
     return response;
   }
 
@@ -362,6 +385,7 @@ export class DefaultMissionService implements MissionService {
       maxParticipants: customizations?.maxParticipants || 100,
       isActive: customizations?.isActive ?? true,
       createdBy: customizations?.createdBy || "platform",
+      submissions: [],
       tags: customizations?.tags || [templateKey, template.difficulty],
       locationBased: customizations?.locationBased ?? ((template.contextSuggestions as unknown as string[]).includes("taxi") || (template.contextSuggestions as unknown as string[]).includes("street")),
       autoExpire: customizations?.autoExpire ?? true,
@@ -391,8 +415,9 @@ export class DefaultMissionService implements MissionService {
       .filter(response => response.missionId === missionId);
 
     const totalResponses = responses.length;
-    const averageQuality = responses.length > 0
-      ? responses.reduce((sum, r) => sum + (r.qualityScore || 0), 0) / responses.length
+    // Average engagement score (views + likes + comments)
+    const averageEngagement = responses.length > 0
+      ? responses.reduce((sum, r) => sum + (r.views + r.likes + r.comments), 0) / responses.length
       : 0;
 
     const geographicDistribution: Record<string, number> = {};
@@ -407,7 +432,7 @@ export class DefaultMissionService implements MissionService {
 
     return {
       totalResponses,
-      averageQuality,
+      averageQuality: Math.round(averageEngagement),
       geographicDistribution,
       completionRate,
     };
@@ -569,6 +594,106 @@ export class DefaultMissionService implements MissionService {
       pendingRewards,
       unclaimedCount,
     };
+  }
+
+  // ===== SUBMISSION MANAGEMENT =====
+
+  async getSubmission(id: string): Promise<MissionResponse | null> {
+    return this.responses.get(id) || null;
+  }
+
+  async getSubmissionsByMission(missionId: string, status?: MissionResponse['status']): Promise<MissionResponse[]> {
+    const submissions = Array.from(this.responses.values())
+      .filter(r => r.missionId === missionId);
+    
+    if (status) {
+      return submissions.filter(r => r.status === status);
+    }
+    return submissions;
+  }
+
+  async getAllSubmissions(filters?: {
+    status?: MissionResponse['status'];
+    missionId?: string;
+    userId?: string;
+    after?: Date;
+  }): Promise<MissionResponse[]> {
+    let submissions = Array.from(this.responses.values());
+
+    if (filters?.status) {
+      submissions = submissions.filter(r => r.status === filters.status);
+    }
+    if (filters?.missionId) {
+      submissions = submissions.filter(r => r.missionId === filters.missionId);
+    }
+    if (filters?.userId) {
+      submissions = submissions.filter(r => r.userId === filters.userId);
+    }
+    if (filters?.after) {
+      submissions = submissions.filter(r => r.submittedAt >= filters.after!);
+    }
+
+    // Sort by submission date, newest first
+    return submissions.sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
+  }
+
+  async flagSubmission(submissionId: string, reason: string): Promise<MissionResponse> {
+    const submission = this.responses.get(submissionId);
+    if (!submission) {
+      throw new Error(`Submission ${submissionId} not found`);
+    }
+
+    const updated: MissionResponse = {
+      ...submission,
+      status: 'flagged',
+      flaggedAt: new Date(),
+      flagReason: reason,
+    };
+
+    this.responses.set(submissionId, updated);
+    return updated;
+  }
+
+  async removeSubmission(submissionId: string, reason: string): Promise<MissionResponse> {
+    const submission = this.responses.get(submissionId);
+    if (!submission) {
+      throw new Error(`Submission ${submissionId} not found`);
+    }
+
+    const updated: MissionResponse = {
+      ...submission,
+      status: 'removed',
+      removedAt: new Date(),
+      flagReason: reason,
+    };
+
+    this.responses.set(submissionId, updated);
+
+    // Remove from mission's submissions array
+    const mission = this.missions.get(submission.missionId);
+    if (mission && mission.submissions) {
+      mission.submissions = mission.submissions.filter(id => id !== submissionId);
+      mission.updatedAt = new Date();
+    }
+
+    return updated;
+  }
+
+  async updateEngagement(submissionId: string, views: number, likes: number, comments: number): Promise<MissionResponse> {
+    const submission = this.responses.get(submissionId);
+    if (!submission) {
+      throw new Error(`Submission ${submissionId} not found`);
+    }
+
+    const updated: MissionResponse = {
+      ...submission,
+      views,
+      likes,
+      comments,
+    };
+
+    this.responses.set(submissionId, updated);
+    return updated;
   }
 }
 

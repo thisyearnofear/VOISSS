@@ -9,6 +9,8 @@ import { useBase } from "../app/providers";
 import { useBaseAccount } from "../hooks/useBaseAccount";
 import { useWebAudioRecording } from "../hooks/useWebAudioRecording";
 import { useFreemiumStore } from "../store/freemiumStore";
+import { useMission, useCompleteMission } from "../hooks/queries/useMissions";
+import { Mission } from "@voisss/shared/types/socialfi";
 import {
   createIPFSService,
   crossPlatformStorage,
@@ -45,6 +47,7 @@ interface RecordingStudioProps {
   onRecordingComplete?: (audioBlob: Blob, duration: number) => void;
   initialTranscriptTemplateId?: string;
   initialMode?: "transcript" | string;
+  missionId?: string;
 }
 
 interface ShareableRecording {
@@ -95,6 +98,7 @@ export default function RecordingStudio({
   onRecordingComplete,
   initialTranscriptTemplateId,
   initialMode,
+  missionId,
 }: RecordingStudioProps) {
   // Core recording state
   const {
@@ -112,6 +116,10 @@ export default function RecordingStudio({
     cancelRecording,
   } = useWebAudioRecording();
 
+  // Mission Context
+  const { data: mission } = useMission(missionId || "");
+  const completeMissionMutation = useCompleteMission();
+
   // Base provider for transactions
   const baseContext = useBase();
   const provider = baseContext?.provider;
@@ -123,6 +131,14 @@ export default function RecordingStudio({
   const [recordingTags, setRecordingTags] = useState<string[]>([]);
   const [showSaveOptions, setShowSaveOptions] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Initialize title with mission title if available
+  useEffect(() => {
+    if (mission && !recordingTitle) {
+      setRecordingTitle(`Response to: ${mission.title}`);
+      setRecordingDescription(`Submission for mission: ${mission.title}`);
+    }
+  }, [mission, recordingTitle]);
 
   // AI Voice state
   const [voicesFree, setVoicesFree] = useState<
@@ -541,6 +557,64 @@ export default function RecordingStudio({
         recordingTitle || `Recording ${new Date().toLocaleString()}`;
       const results: SaveResult[] = [];
 
+      // Check for mission context and prioritize mission submission
+      if (missionId && mission) {
+        // First save to IPFS (we need the hash for mission submission)
+        if (!audioBlob) return;
+        
+        // Use gasless save if available for the asset creation
+        const saveMethod = hasSubAccount ? saveRecordingToBase : saveRecordingWithGas;
+        
+        const result = await saveMethod(audioBlob, {
+          title: baseTitle,
+          description: recordingDescription || `Mission submission for: ${mission.title}`,
+          isPublic: true, // Missions are usually public
+          tags: ["mission-submission", missionId, ...recordingTags],
+        });
+        
+        // Submit to mission service
+        await completeMissionMutation.mutateAsync({
+           missionId,
+           recordingId: result.ipfsHash,
+           location: {
+             city: "Web User", // Placeholder for geolocation if not available
+             country: "Internet",
+           },
+           context: "Recording Studio",
+           qualityScore: 85, // Placeholder - would be calculated by service
+           transcription: recordingDescription, // Use summary as transcription placeholder if needed
+        });
+
+        setToastType("success");
+        setToastMessage("Mission submitted successfully!");
+        
+        // Return early or continue based on flow? 
+        // Let's treat it as a success and show sharing
+        
+        results.push({
+          type: "mission-submission",
+          success: true,
+          error: null,
+          ipfsHash: result.ipfsHash,
+          recording: {
+             id: `mission-${Date.now()}`,
+             title: baseTitle,
+             ipfsHash: result.ipfsHash,
+             ipfsUrl: `https://ipfs.io/ipfs/${result.ipfsHash}`,
+             duration,
+             createdAt: new Date().toISOString(),
+          }
+        });
+        
+         const newSavedRecordings = results
+          .filter((r) => r.success)
+          .map((r) => r.recording);
+        setSavedRecordings(newSavedRecordings);
+        setShowSharing(true);
+        return; // Exit here for mission flow
+      }
+
+
       // Choose save method based on Sub Account availability
       const saveMethod = hasSubAccount ? saveRecordingToBase : saveRecordingWithGas;
 
@@ -705,6 +779,14 @@ export default function RecordingStudio({
         <div className="absolute top-0 right-0 sm:right-4 flex justify-end">
           <AlchemyModeBadge mode={activeMode as any} />
         </div>
+        
+        {mission && (
+          <div className="mb-4 inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 rounded-full">
+            <span className="text-indigo-400">🎯 Mission:</span>
+            <span className="font-semibold text-white">{mission.title}</span>
+          </div>
+        )}
+
         <h2 className="text-3xl font-bold text-white mb-2">
           Voice Recording Studio
         </h2>
@@ -866,6 +948,12 @@ export default function RecordingStudio({
               setToastMessage={setToastMessage}
               activeMode={activeMode}
             />
+            
+            {mission && (
+              <p className="text-center text-sm text-indigo-400 mt-2">
+                Clicking "Save & Anchor" will also submit this recording to the mission.
+              </p>
+            )}
 
             <button
               onClick={() => {

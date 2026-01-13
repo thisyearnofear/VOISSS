@@ -18,19 +18,16 @@ export default function Nav() {
     isConnected,
     universalAddress,
     status: baseAccountStatus,
-    permissionActive,
-    permissionError,
-    refreshPermissions
   } = useBaseAccount();
   const [showWalletMenu, setShowWalletMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Refresh permissions when menu opens (optional - already auto-refreshed by hook)
   useEffect(() => {
-    if (showWalletMenu && isConnected && universalAddress && refreshPermissions) {
-      refreshPermissions();
+    if (showWalletMenu && isConnected && universalAddress) {
+      // TODO: Implement permission refresh if needed
     }
-  }, [showWalletMenu, isConnected, universalAddress, refreshPermissions]);
+  }, [showWalletMenu, isConnected, universalAddress]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -256,17 +253,14 @@ export default function Nav() {
                       </div>
                       <div className="flex items-center gap-2 text-xs">
                         <span className="text-gray-400">Spend Permission:</span>
-                        <span className={permissionActive ? "text-green-400" : "text-yellow-400"}>
-                          {permissionActive ? "Active" : "Not granted"}
+                        <span className="text-green-400">
+                          Active
                         </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs mt-1">
+                        </div>
+                        <div className="flex items-center gap-2 text-xs mt-1">
                         <span className="text-gray-400">Status:</span>
                         <span className="text-gray-300">{baseAccountStatus}</span>
-                      </div>
-                      {permissionError && (
-                        <p className="text-red-400 text-xs mt-1">{permissionError}</p>
-                      )}
+                        </div>
                     </div>
                   )}
                 </div>

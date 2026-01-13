@@ -99,15 +99,70 @@ voisss/
 
 **Reality Check**: This app is NOT launch ready and requires 6+ months of development
 
+## 💰 Token Access & Utility
+
+### $VOISSS Token Model (Holding-First, Burn-Minimal)
+
+**Single source of truth**: `packages/shared/src/config/tokenAccess.ts`
+
+#### Holding Tiers (No Transaction Signing)
+
+| Tier | Balance | Features |
+|------|---------|----------|
+| **Freemium** | None | 1 free AI transform/session, basic recording |
+| **Basic** | 10k+ | Unlimited transforms, dubbing, transcription, standard voices |
+| **Pro** | 50k+ | Priority processing, advanced voices, multi-language |
+| **Premium** | 250k+ | VIP Lane mode (gasless saves), creator tools, mission creation |
+
+#### Burn Actions (Spending, Premium Outputs)
+
+| Action | Cost | Purpose |
+|--------|------|---------|
+| Video Export | 5k $voisss | Shareable transcript video |
+| NFT Mint | 2k $voisss | On-chain recording artifact |
+| White-Label Export | 10k $voisss | API access for embedded recordings |
+| Batch Overage | 1 $voisss/op | Anti-abuse (100+ operations/24h) |
+
+#### Implementation
+
+- **`useTokenAccess()` hook** (`packages/shared/src/hooks/useTokenAccess.ts`)
+  - Single balance fetch on mount, auto-refresh every 60s
+  - Returns: `tier`, `balance`, `canAccess()`, `meetsMinimum()`, `getBurnCost()`
+  - Works on web and mobile via shared package
+  
+- **`useBurnAction()` hook** (`apps/web/src/hooks/useBurnAction.ts`)
+  - Manage burn action lifecycle (check affordability, execute, handle errors)
+  - Shows confirmation modal before signing
+  
+- **Token Burn Service** (`packages/shared/src/services/token-burn-service.ts`)
+  - `canAffordBurnAction()`, `getBurnActionDisplay()`, `calculateBatchOverageCost()`
+  - Backend endpoint: `POST /api/token/burn`
+
+#### Studio Modes → Token Tiers
+
+- `standard` = None (freemium)
+- `ghost` = Basic (10k, relay through spender)
+- `pro` = Pro (50k, 24h gasless)
+- `vip` = Premium (250k, permanent gasless)
+
+### $PAPAJAMS Token (Mission Rewards)
+
+**Config**: `packages/shared/src/config/platform.ts`
+
+- Mission creator minimum: 1M $papajams
+- Reward distribution: 70% $papajams (future 30% $voisss split planned)
+- Milestone-based: 50% submission, 30% quality, 20% featured
+
 ## 🎯 Current Focus & Roadmap
 
-### ✅ **Current: Mission System & Creator Economy**
-- **Completed**: Centralized platform configuration (`packages/shared/config/platform.ts`)
-- **Completed**: Reward service with milestone-based distribution
-- **Completed**: Mission creation form with token eligibility checks
-- **Completed**: Wallet state management improvements (localStorage persistence)
+### ✅ **Current: Token Access System & Creator Economy**
+- **Completed**: $voisss token access tiers and burn actions (holding-first model)
+- **Completed**: Unified `useTokenAccess()` hook replacing scattered balance checks
+- **Completed**: Studio modes mapped to token tiers (ghost/pro/vip)
+- **Completed**: Token burn service for premium outputs (video export, NFT mint)
+- **Completed**: Mission system with $papajams creator requirements
 - **In Progress**: Backend mission persistence (Supabase integration)
-- **In Progress**: Token balance verification on Base chain
+- **In Progress**: Integrate $voisss token contract calls (currently mocked)
 - **Upcoming**: Auto-expiration cron job and reward claim mechanisms
 
 ### ✅ **Short-term: Web & React Native Unification**

@@ -76,6 +76,18 @@ export interface TranscriptTemplate {
     maxCharsPerLine: number;
     paddingPx: number;
   };
+  /** Branding configuration */
+  branding?: {
+    requiredTier: 'none' | 'basic' | 'pro' | 'premium';
+    requiresBurn: boolean;
+    burnCost?: bigint;
+    watermark: {
+      position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center' | 'none';
+      opacity: number;
+      voisssBrandingSize: 'none' | 'minimal' | 'standard' | 'prominent';
+      userAttributionSize: 'small' | 'medium' | 'large';
+    };
+  };
 }
 
 export const DEFAULT_VOISSS_TEMPLATES: TranscriptTemplate[] = [
@@ -102,6 +114,16 @@ export const DEFAULT_VOISSS_TEMPLATES: TranscriptTemplate[] = [
       maxCharsPerLine: 18,
       paddingPx: 64,
     },
+    branding: {
+      requiredTier: 'none',
+      requiresBurn: false,
+      watermark: {
+        position: 'bottom-right',
+        opacity: 0.8,
+        voisssBrandingSize: 'prominent',
+        userAttributionSize: 'small',
+      },
+    },
   },
   {
     id: 'voisss-pulse-square',
@@ -126,6 +148,16 @@ export const DEFAULT_VOISSS_TEMPLATES: TranscriptTemplate[] = [
       maxCharsPerLine: 20,
       paddingPx: 56,
     },
+    branding: {
+      requiredTier: 'none',
+      requiresBurn: false,
+      watermark: {
+        position: 'bottom-right',
+        opacity: 0.8,
+        voisssBrandingSize: 'prominent',
+        userAttributionSize: 'small',
+      },
+    },
   },
   {
     id: 'voisss-pulse-landscape',
@@ -149,6 +181,87 @@ export const DEFAULT_VOISSS_TEMPLATES: TranscriptTemplate[] = [
       maxLines: 3,
       maxCharsPerLine: 28,
       paddingPx: 56,
+    },
+    branding: {
+      requiredTier: 'none',
+      requiresBurn: false,
+      watermark: {
+        position: 'bottom-right',
+        opacity: 0.8,
+        voisssBrandingSize: 'prominent',
+        userAttributionSize: 'small',
+      },
+    },
+  },
+  // Pro tier templates
+  {
+    id: 'voisss-co-branded-portrait',
+    name: 'Co-Branded Mobile',
+    aspect: 'portrait',
+    highlightMode: 'word',
+    background: {
+      type: 'gradient',
+      colors: ['#0A0A0A', '#17112A', '#0A0A0A'],
+    },
+    typography: {
+      fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
+      fontSizePx: 42,
+      fontWeight: 700,
+      lineHeight: 1.15,
+      textColor: '#FFFFFF',
+      highlightColor: '#7C5DFA',
+      mutedColor: '#A1A1AA',
+    },
+    layout: {
+      maxLines: 4,
+      maxCharsPerLine: 18,
+      paddingPx: 64,
+    },
+    branding: {
+      requiredTier: 'pro',
+      requiresBurn: false,
+      watermark: {
+        position: 'bottom-left',
+        opacity: 0.6,
+        voisssBrandingSize: 'standard',
+        userAttributionSize: 'medium',
+      },
+    },
+  },
+  // Premium tier templates
+  {
+    id: 'voisss-white-label-portrait',
+    name: 'White Label Mobile',
+    aspect: 'portrait',
+    highlightMode: 'word',
+    background: {
+      type: 'gradient',
+      colors: ['#0A0A0A', '#17112A', '#0A0A0A'],
+    },
+    typography: {
+      fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
+      fontSizePx: 42,
+      fontWeight: 700,
+      lineHeight: 1.15,
+      textColor: '#FFFFFF',
+      highlightColor: '#7C5DFA',
+      mutedColor: '#A1A1AA',
+    },
+    layout: {
+      maxLines: 4,
+      maxCharsPerLine: 18,
+      paddingPx: 64,
+    },
+    branding: {
+      requiredTier: 'premium',
+      requiresBurn: true,
+      burnCost: BigInt('10000') * BigInt(10) ** BigInt(18), // 10k $VOISSS
+      watermark: {
+        position: 'none',
+        opacity: 0,
+        voisssBrandingSize: 'minimal',
+        userAttributionSize: 'large',
+      },
     },
   },
 ];
