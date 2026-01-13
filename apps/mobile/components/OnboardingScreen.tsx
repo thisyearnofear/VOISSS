@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { onboardingService, type OnboardingStep } from '../utils/onboarding';
 import { blockchain } from '../utils/starknet';
@@ -514,12 +514,12 @@ const TutorialStep = ({ onNext, onSkip }: { onNext: () => void; onSkip: () => vo
       </Text>
       
       <Text style={styles.sectionTitle}>🚀 Quick Start Guide:</Text>
-      {guide.map((item, index) => (
+      {guide.map((item: string, index: number) => (
         <Text key={index} style={styles.guideItem}>• {item}</Text>
       ))}
-      
+
       <Text style={styles.sectionTitle}>💡 Pro Tips:</Text>
-      {tips.map((tip, index) => (
+      {tips.map((tip: string, index: number) => (
         <Text key={index} style={styles.tipItem}>{tip}</Text>
       ))}
     </View>

@@ -33,7 +33,7 @@ export const TipButton: React.FC<TipButtonProps> = ({
     const loadData = async () => {
       try {
         const chain = await blockchain.getStoredChain();
-        setCurrentChain(chain);
+        setCurrentChain(String(chain));
         
         const address = await blockchain.getStoredWalletAddress();
         if (address) {

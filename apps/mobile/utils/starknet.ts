@@ -38,6 +38,7 @@ export type TipTransaction = {
   chain: MobileSupportedChains;
   network: string;
   timestamp: number;
+  message?: string;
 };
 
 const STORAGE_KEYS = {
@@ -193,6 +194,12 @@ class BlockchainMobile {
   async estimateTipCost(amount: string, tokenAddress?: string): Promise<string> {
     // Return a mock estimate for now
     return '21000'; // Base gas limit
+  }
+
+  async getBalance(address: string): Promise<string> {
+    // TODO: Implement mobile-compatible balance checking
+    console.warn("Native balance checking not yet implemented for mobile");
+    return '0';
   }
 
   async getTokenBalance(address: string, tokenAddress: string): Promise<string> {
