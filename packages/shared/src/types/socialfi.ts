@@ -78,11 +78,6 @@ export const MissionResponseSchema = z.object({
   transcription: z.string().optional(),
   sentiment: z.enum(['positive', 'negative', 'neutral', 'mixed']).optional(),
   
-  // Engagement metrics (earned over time)
-  views: z.number().default(0),
-  likes: z.number().default(0),
-  comments: z.number().default(0),
-  
   // Moderation
   flaggedAt: z.date().optional(),
   flagReason: z.string().optional(), // why it was flagged/removed
