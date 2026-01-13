@@ -26,7 +26,7 @@ const missionService = createMissionService();
  * Response:
  * {
  *   success: true,
- *   submission: MissionResponse (id, missionId, userId, status='approved', engagement=0)
+ *   submission: MissionResponse (id, missionId, userId, status='approved')
  * }
  */
 
@@ -131,9 +131,6 @@ export async function POST(request: NextRequest) {
       isAnonymized: body.isAnonymized,
       voiceObfuscated: body.voiceObfuscated,
       status: 'approved', // Auto-approved
-      views: 0,
-      likes: 0,
-      comments: 0,
     };
 
     // Submit via service

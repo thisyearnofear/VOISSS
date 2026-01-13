@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Recording, RecordingFilter, Tag } from "../types";
 import { mockRecordings, mockTags } from "../mocks/recordings";
-import { createMobileIPFSService, MobileIPFSService } from "../services/ipfsService";
+import { getIPFSService, MobileIPFSService } from "../services/ipfsService";
 
 interface RecordingsState {
   recordings: Recording[];
@@ -166,7 +166,7 @@ export const useRecordingsStore = create<RecordingsState>()(
 
           // Initialize IPFS service if not already done
           if (!get().ipfsService) {
-            const ipfsService = createMobileIPFSService();
+            const ipfsService = getIPFSService();
             set({ ipfsService });
             // Test connection without arguments
             const isConnected = await ipfsService.testConnection();
@@ -249,7 +249,7 @@ export const useRecordingsStore = create<RecordingsState>()(
           
           // Initialize IPFS service if not already done
           if (!get().ipfsService) {
-            const ipfsService = createMobileIPFSService();
+            const ipfsService = getIPFSService();
             set({ ipfsService });
           }
           
@@ -342,6 +342,7 @@ export const useFilteredRecordings = () => {
 
       // Filter by tags
       if (
+        filter.tags &&
         filter.tags.length > 0 &&
         !filter.tags.some((tagId) => recording.tags.includes(tagId))
       ) {

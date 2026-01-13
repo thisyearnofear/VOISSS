@@ -5,20 +5,30 @@
  * leveraging ElevenLabs API for a superior user experience.
  */
 
-import { 
-  type TransformOptions, 
+import {
+  type TransformOptions,
   type VoiceInfo,
   type VoiceVariantPreview,
   type DubbingOptions,
   type DubbingResult,
   type AIVoiceStyle,
-  type AIEnhancementOption
+  type AIEnhancementOption,
+  type ElevenLabsTransformProvider,
+  type ScrollVoiceChallenge,
+  type ScrollAchievement,
+  type VoiceChallengeSubmission,
+  type ScrollLeaderboardEntry,
+  type UserAchievementProgress,
+  type VoiceCacheEntry,
+  AI_VOICE_STYLES,
+  AI_ENHANCEMENT_OPTIONS,
+} from "../types";
 
 export class MobileAIService {
   private elevenLabsProvider: ElevenLabsTransformProvider | null = null;
   private voiceStyles: AIVoiceStyle[];
   private enhancementOptions: AIEnhancementOption[];
-  private voiceCache: Map<string, Blob>;
+  private voiceCache: Map<string, VoiceCacheEntry>;
   private challengeCache: ScrollVoiceChallenge[] | null;
   private achievementCache: ScrollAchievement[] | null;
   private cacheTTL: number;
@@ -43,6 +53,15 @@ export class MobileAIService {
     // Mobile-isolated stub provider
     this.elevenLabsProvider = {
       transform: async (audio: Uint8Array, voiceId: string) => audio,
+      listVoices: async () => [],
+      transformVoice: async (blob: Blob, options: TransformOptions) => blob,
+      dubAudio: async (blob: Blob, options: DubbingOptions) => ({ dubbedAudio: blob }),
+      getSupportedDubbingLanguages: async () => [],
+      remixVoice: async (params: { baseVoiceId: string; description: string; text: string }) => [],
+      createVoiceFromPreview: async (previewId: string, params: { name: string; description?: string }) => ({ voiceId: previewId }),
+      startDubbingJob: async (blob: Blob, options: DubbingOptions) => '',
+      getDubbingStatus: async (dubbingId: string) => ({ status: 'completed' }),
+      getDubbedAudio: async (dubbingId: string, targetLanguage: string) => ({ dubbedAudio: new Blob() }),
     };
     console.log('🚀 ElevenLabs provider initialized (mobile stub)');
   }
@@ -52,10 +71,10 @@ export class MobileAIService {
    */
   private clearExpiredCache(): void {
     const now = Date.now();
-    
+
     // Clear expired voice cache
-    for (const [key, { timestamp }] of this.voiceCache) {
-      if (now - timestamp > this.cacheTTL) {
+    for (const [key, entry] of this.voiceCache) {
+      if (now - entry.timestamp > this.cacheTTL) {
         this.voiceCache.delete(key);
       }
     }
@@ -67,7 +86,7 @@ export class MobileAIService {
   private getCachedVoice(key: string): Blob | null {
     this.clearExpiredCache();
     const cached = this.voiceCache.get(key);
-    return cached?.blob || null;
+    return cached ? cached.blob : null;
   }
   
   /**
@@ -210,7 +229,8 @@ export class MobileAIService {
       // For now, we'll use the transform method as a placeholder
       // In a real implementation, we would use ElevenLabs text-to-speech API
       const dummyAudio = new Blob(['dummy-audio-data'], { type: 'audio/mpeg' });
-      return this.transformVoice(dummyAudio, voiceStyleId, enhancements);
+      const result = await this.transformVoice(dummyAudio, voiceStyleId, enhancements);
+      return result.transformedAudio;
       
     } catch (error) {
       console.error('Text-to-speech generation failed:', error);

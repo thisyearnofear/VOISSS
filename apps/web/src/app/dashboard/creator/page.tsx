@@ -71,10 +71,10 @@ export default function CreatorDashboardPage() {
     filteredSubmissions = submissions.filter(s => new Date(s.submittedAt) >= cutoff);
   }
 
-  // Calculate stats
-  const totalViews = filteredSubmissions.reduce((sum: number, s) => sum + s.views, 0);
-  const totalLikes = filteredSubmissions.reduce((sum: number, s) => sum + s.likes, 0);
-  const totalComments = filteredSubmissions.reduce((sum: number, s) => sum + s.comments, 0);
+  // Calculate stats (engagement metrics removed)
+  const totalViews = 0;
+  const totalLikes = 0;
+  const totalComments = 0;
   
   const totalEarnings = distributions.reduce((sum: number, d) => sum + d.papajamsAmount + d.voisssAmount, 0);
   const pendingEarnings = distributions
@@ -104,16 +104,15 @@ export default function CreatorDashboardPage() {
             </div>
           </div>
 
-          {/* Total Engagement */}
+          {/* Total Engagement (removed) */}
           <div className="voisss-card">
             <p className="text-gray-500 text-xs mb-2">TOTAL ENGAGEMENT ({timeRange})</p>
             <p className="text-3xl font-bold text-[#7C5DFA] mb-4">
-              {totalViews + totalLikes + totalComments}
+              {filteredSubmissions.length}
             </p>
             <div className="space-y-1 text-sm text-gray-400">
-              <p>👁️ {totalViews} views</p>
-              <p>❤️ {totalLikes} likes</p>
-              <p>💬 {totalComments} comments</p>
+              <p>🎯 {filteredSubmissions.length} submissions</p>
+              <p>✅ All auto-approved</p>
             </div>
           </div>
 
@@ -127,17 +126,15 @@ export default function CreatorDashboardPage() {
             </div>
           </div>
 
-          {/* Avg. Engagement Per Submission */}
+          {/* Avg. Engagement Per Submission (removed) */}
           <div className="voisss-card">
             <p className="text-gray-500 text-xs mb-2">AVG. PER SUBMISSION ({timeRange})</p>
             <p className="text-3xl font-bold text-white mb-4">
-              {filteredSubmissions.length > 0
-                ? Math.round((totalViews + totalLikes + totalComments) / filteredSubmissions.length)
-                : 0}
+              {filteredSubmissions.length > 0 ? 1 : 0}
             </p>
             <div className="space-y-1 text-sm text-gray-400">
-              <p>🚀 Engagement per post</p>
-              <p>Trending potential</p>
+              <p>🚀 Auto-approved submissions</p>
+              <p>Quality validated</p>
             </div>
           </div>
         </div>
@@ -269,21 +266,13 @@ export default function CreatorDashboardPage() {
             </div>
 
             <div className="space-y-5">
-              {/* Engagement */}
+              {/* Status */}
               <div>
-                <p className="text-xs text-gray-500 mb-2">Engagement</p>
-                <div className="grid grid-cols-3 gap-2 p-3 bg-[#1A1A1A] rounded-lg border border-[#2A2A2A]">
+                <p className="text-xs text-gray-500 mb-2">Status</p>
+                <div className="p-3 bg-[#1A1A1A] rounded-lg border border-[#2A2A2A]">
                   <div className="text-center">
-                    <p className="text-xs text-gray-500 mb-1">Views</p>
-                    <p className="text-lg font-semibold text-white">{selectedSubmission.views}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500 mb-1">Likes</p>
-                    <p className="text-lg font-semibold text-[#22C55E]">{selectedSubmission.likes}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500 mb-1">Comments</p>
-                    <p className="text-lg font-semibold text-[#7C5DFA]">{selectedSubmission.comments}</p>
+                    <p className="text-lg font-semibold text-[#22C55E]">Auto-approved</p>
+                    <p className="text-xs text-gray-500 mt-1">Quality validated</p>
                   </div>
                 </div>
               </div>

@@ -17,7 +17,7 @@ import { RecordingFilter } from "../types";
 import { useRecordingsStore } from "../store/recordingsStore";
 import { theme } from "@voisss/ui";
 import { colors } from "@voisss/ui";
-import { BaseModal } from "@voisss/ui";
+import { BaseModal } from "@voisss/ui/src/components/BaseModal";
 import TagBadge from "./TagBadge";
 
 interface FilterModalProps {

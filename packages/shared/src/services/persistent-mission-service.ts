@@ -514,10 +514,8 @@ export class PersistentMissionService implements MissionService {
       );
 
       const totalResponses = responses.length;
-      // Average engagement score (views + likes + comments)
-      const averageQuality = responses.length > 0
-        ? responses.reduce((sum, r) => sum + (r.views + r.likes + r.comments), 0) / responses.length
-        : 0;
+      // Average quality score (simplified without engagement metrics)
+      const averageQuality = 0; // Placeholder for future quality metrics
 
       const geographicDistribution: Record<string, number> = {};
       responses.forEach(response => {
@@ -820,7 +818,6 @@ export class PersistentMissionService implements MissionService {
     }
 
     // Note: Submissions are auto-approved, quality validation is optional now
-    // Quality scores are based on engagement metrics (views, likes, comments)
 
     return {
       passed: failures.length === 0,
@@ -909,9 +906,6 @@ export class PersistentMissionService implements MissionService {
     throw new Error('Not implemented in persistent service');
   }
 
-  async updateEngagement(submissionId: string, views: number, likes: number, comments: number): Promise<MissionResponse> {
-    throw new Error('Not implemented in persistent service');
-  }
 }
 
 /**

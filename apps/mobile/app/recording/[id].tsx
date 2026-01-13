@@ -15,7 +15,7 @@ import { useBaseAccount } from "../../hooks/useBaseAccount";
 import { colors } from "@voisss/ui";
 import RecordingWaveform from "../../components/RecordingWaveform";
 import {
-  createMobileIPFSService,
+  getIPFSService,
   MobileIPFSService,
 } from "../../services/ipfsService";
 
@@ -25,7 +25,7 @@ async function uploadToIpfs(uri: string): Promise<string> {
 
   try {
     // Create IPFS service instance
-    const ipfsService = createMobileIPFSService();
+    const ipfsService = getIPFSService();
 
     // Check if IPFS is properly configured
     if (

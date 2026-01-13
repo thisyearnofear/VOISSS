@@ -25,25 +25,25 @@ const missionService = createMissionService();
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    
+
     // Build filters
     const filters: Parameters<typeof missionService.getAllSubmissions>[0] = {};
-    
+
     if (searchParams.has('status')) {
       const status = searchParams.get('status') as MissionResponse['status'];
       if (['approved', 'flagged', 'removed'].includes(status)) {
         filters.status = status;
       }
     }
-    
+
     if (searchParams.has('missionId')) {
       filters.missionId = searchParams.get('missionId') || undefined;
     }
-    
+
     if (searchParams.has('userId')) {
       filters.userId = searchParams.get('userId') || undefined;
     }
-    
+
     if (searchParams.has('after')) {
       const afterStr = searchParams.get('after');
       if (afterStr) {
@@ -71,14 +71,13 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/admin/submissions/{submissionId}/flag
  * POST /api/admin/submissions/{submissionId}/remove
- * POST /api/admin/submissions/{submissionId}/engagement
- * 
+ *
  * Action endpoints (see POST handler below)
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, submissionId, reason, views, likes, comments } = body;
+    const { action, submissionId, reason } = body;
 
     if (!submissionId) {
       return NextResponse.json(
@@ -112,25 +111,9 @@ export async function POST(request: NextRequest) {
         break;
       }
 
-      case 'updateEngagement': {
-        if (views === undefined || likes === undefined || comments === undefined) {
-          return NextResponse.json(
-            { error: 'Missing engagement metrics: views, likes, comments' },
-            { status: 400 }
-          );
-        }
-        updated = await missionService.updateEngagement(
-          submissionId,
-          views,
-          likes,
-          comments
-        );
-        break;
-      }
-
       default:
         return NextResponse.json(
-          { error: `Unknown action: ${action}. Expected: flag, remove, updateEngagement` },
+          { error: `Unknown action: ${action}. Expected: flag, remove` },
           { status: 400 }
         );
     }

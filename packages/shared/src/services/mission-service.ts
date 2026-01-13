@@ -24,14 +24,13 @@ export interface MissionService {
   acceptMission(missionId: string, userId: string): Promise<boolean>;
   submitMissionResponse(response: Omit<MissionResponse, 'id' | 'submittedAt'>): Promise<MissionResponse>;
   getUserMissions(userId: string): Promise<{ active: Mission[], completed: MissionResponse[] }>;
-  
+
   // Submission Management
   getSubmission(id: string): Promise<MissionResponse | null>;
   getSubmissionsByMission(missionId: string, status?: MissionResponse['status']): Promise<MissionResponse[]>;
   getAllSubmissions(filters?: { status?: MissionResponse['status']; missionId?: string; userId?: string; after?: Date }): Promise<MissionResponse[]>;
   flagSubmission(submissionId: string, reason: string): Promise<MissionResponse>;
   removeSubmission(submissionId: string, reason: string): Promise<MissionResponse>;
-  updateEngagement(submissionId: string, views: number, likes: number, comments: number): Promise<MissionResponse>;
 
   // Mission Discovery
   getMissionsByLocation(city: string, country: string): Promise<Mission[]>;
@@ -312,9 +311,6 @@ export class DefaultMissionService implements MissionService {
       id: `response_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       submittedAt: new Date(),
       status: 'approved', // Auto-approve on submission
-      views: responseData.views || 0,
-      likes: responseData.likes || 0,
-      comments: responseData.comments || 0,
     };
 
     this.responses.set(response.id, response);
@@ -415,10 +411,8 @@ export class DefaultMissionService implements MissionService {
       .filter(response => response.missionId === missionId);
 
     const totalResponses = responses.length;
-    // Average engagement score (views + likes + comments)
-    const averageEngagement = responses.length > 0
-      ? responses.reduce((sum, r) => sum + (r.views + r.likes + r.comments), 0) / responses.length
-      : 0;
+    // Average quality score (simplified without engagement metrics)
+    const averageEngagement = 0; // Placeholder for future quality metrics
 
     const geographicDistribution: Record<string, number> = {};
     responses.forEach(response => {
@@ -605,7 +599,7 @@ export class DefaultMissionService implements MissionService {
   async getSubmissionsByMission(missionId: string, status?: MissionResponse['status']): Promise<MissionResponse[]> {
     const submissions = Array.from(this.responses.values())
       .filter(r => r.missionId === missionId);
-    
+
     if (status) {
       return submissions.filter(r => r.status === status);
     }
@@ -679,22 +673,6 @@ export class DefaultMissionService implements MissionService {
     return updated;
   }
 
-  async updateEngagement(submissionId: string, views: number, likes: number, comments: number): Promise<MissionResponse> {
-    const submission = this.responses.get(submissionId);
-    if (!submission) {
-      throw new Error(`Submission ${submissionId} not found`);
-    }
-
-    const updated: MissionResponse = {
-      ...submission,
-      views,
-      likes,
-      comments,
-    };
-
-    this.responses.set(submissionId, updated);
-    return updated;
-  }
 }
 
 // Factory function to create mission service

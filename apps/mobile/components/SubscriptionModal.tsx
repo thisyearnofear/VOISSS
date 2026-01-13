@@ -28,7 +28,7 @@ import { colors } from "@voisss/ui";
 import { useSubscriptionStore } from "../store/subscriptionStore";
 import { useBase } from "../hooks/useBase";
 import { WalletModal } from "./WalletModal";
-import { BaseModal } from "@voisss/ui";
+import { BaseModal } from "@voisss/ui/src/components/BaseModal";
 
 interface SubscriptionModalProps {
   visible: boolean;

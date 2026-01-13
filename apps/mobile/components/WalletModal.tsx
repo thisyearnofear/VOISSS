@@ -10,7 +10,7 @@ import {
 import { X, Wallet, Shield, Zap, Globe, CheckCircle, AlertCircle } from 'lucide-react-native';
 import { colors } from "@voisss/ui";
 import { useBase } from '../hooks/useBase';
-import { BaseModal } from "@voisss/ui";
+import { BaseModal } from "@voisss/ui/src/components/BaseModal";
 
 interface WalletModalProps {
   visible: boolean;
@@ -164,7 +164,7 @@ export function WalletModal({ visible, onClose, onConnected }: WalletModalProps)
           alignItems: 'center',
         }}>
           <AlertCircle size={20} color={colors.dark.error} style={{ marginRight: 8 }} />
-          <Text style={{ color: colors.dark.error }}>{error.message || 'Connection failed'}</Text>
+          <Text style={{ color: colors.dark.error }}>{error || 'Connection failed'}</Text>
         </View>
       )}
 

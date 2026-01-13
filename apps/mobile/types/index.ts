@@ -22,10 +22,15 @@ export interface VoiceRecording {
   waveform?: number[];
   context?: string;
   metadata?: Record<string, any>;
+  participantConsent?: boolean;
+  isAnonymized?: boolean;
+  voiceObfuscated?: boolean;
+  isCompleted?: boolean;
 }
 
 export interface Recording extends VoiceRecording {
   // Extended recording type
+  mimeType?: string;
 }
 
 export interface Tag {
@@ -42,6 +47,10 @@ export interface RecordingFilter {
     end: Date;
   };
   searchQuery?: string;
+  search?: string;
+  sortBy?: 'date' | 'duration' | 'name';
+  sortOrder?: 'asc' | 'desc';
+  favorites?: boolean;
 }
 
 export interface Mission {
@@ -52,6 +61,9 @@ export interface Mission {
   expiresAt?: string | Date;
   currentParticipants?: number;
   maxParticipants?: number;
+  topic?: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  locationBased?: boolean;
 }
 
 export interface MissionRecording {
@@ -137,6 +149,147 @@ export interface VoiceInfo {
   gender?: 'male' | 'female' | 'neutral';
 }
 
+export interface TransformOptions {
+  voiceId: string;
+  modelId?: string;
+  outputFormat?: string;
+}
+
+export interface VoiceVariantPreview {
+  generatedVoiceId: string;
+  audioBase64?: string;
+}
+
+export interface DubbingLanguage {
+  code: string;
+  name: string;
+  nativeName?: string;
+}
+
+export interface DubbingOptions extends TransformOptions {
+  targetLanguage: string;
+  sourceLanguage?: string;
+  preserveBackgroundAudio?: boolean;
+  modelId?: string;
+}
+
+export interface DubbingResult {
+  dubbedAudio: Blob;
+  transcript?: string;
+  translatedTranscript?: string;
+  detectedSpeakers?: number;
+  targetLanguage: string;
+  processingTime?: number;
+}
+
+export interface AIVoiceStyle {
+  id: string;
+  name?: string;
+  description?: string;
+  category: 'professional' | 'creative' | 'fun' | 'emotional';
+  previewText: string;
+  icon: string;
+  isPremium?: boolean;
+  popularity?: number;
+  tags?: string[];
+}
+
+export interface AIEnhancementOption {
+  id: string;
+  name: string;
+  description: string;
+  type: 'style' | 'emotion' | 'effect' | 'language';
+  values: string[];
+  defaultValue?: string;
+}
+
+export interface IAudioTransformProvider {
+  listVoices(): Promise<VoiceInfo[]>;
+  transformVoice(blob: Blob, options: TransformOptions): Promise<Blob>;
+  dubAudio?(blob: Blob, options: DubbingOptions): Promise<DubbingResult>;
+  getSupportedDubbingLanguages?(): Promise<DubbingLanguage[]>;
+  remixVoice?(params: { baseVoiceId: string; description: string; text: string }): Promise<VoiceVariantPreview[]>;
+  createVoiceFromPreview?(previewId: string, params: { name: string; description?: string }): Promise<{ voiceId: string }>;
+  startDubbingJob?(blob: Blob, options: DubbingOptions): Promise<string>;
+  getDubbingStatus?(dubbingId: string): Promise<{ status: string; error?: string }>;
+  getDubbedAudio?(dubbingId: string, targetLanguage: string): Promise<DubbingResult>;
+}
+
+export interface ElevenLabsTransformProvider extends IAudioTransformProvider {
+  // ElevenLabs-specific methods
+}
+
+// Constants for AI voice styles and enhancements
+export const AI_VOICE_STYLES: AIVoiceStyle[] = [
+  {
+    id: 'professional',
+    name: 'Professional',
+    description: 'Clear, articulate voice for business presentations',
+    category: 'professional',
+    previewText: 'This is a professional voice for formal communications.',
+    icon: '💼',
+  },
+  {
+    id: 'narrator',
+    name: 'Narrator',
+    description: 'Engaging storytelling voice',
+    category: 'creative',
+    previewText: 'Once upon a time, in a land far away...',
+    icon: '📖',
+  },
+  {
+    id: 'friendly',
+    name: 'Friendly',
+    description: 'Warm and approachable tone',
+    category: 'emotional',
+    previewText: 'Hello there! How can I help you today?',
+    icon: '😊',
+  },
+  {
+    id: 'enthusiastic',
+    name: 'Enthusiastic',
+    description: 'Energetic and upbeat voice',
+    category: 'emotional',
+    previewText: 'This is amazing! Let\'s get started right away!',
+    icon: '🔥',
+  },
+];
+
+export const AI_ENHANCEMENT_OPTIONS: AIEnhancementOption[] = [
+  {
+    id: 'pitch',
+    name: 'Pitch',
+    description: 'Adjust the pitch of the voice',
+    type: 'effect',
+    values: ['lower', 'higher', 'normal'],
+    defaultValue: 'normal',
+  },
+  {
+    id: 'speed',
+    name: 'Speed',
+    description: 'Control the speaking speed',
+    type: 'effect',
+    values: ['slower', 'faster', 'normal'],
+    defaultValue: 'normal',
+  },
+  {
+    id: 'tone',
+    name: 'Tone',
+    description: 'Modify the emotional tone',
+    type: 'emotion',
+    values: ['happy', 'sad', 'angry', 'calm'],
+    defaultValue: 'calm',
+  },
+  {
+    id: 'accent',
+    name: 'Accent',
+    description: 'Apply regional accents',
+    type: 'language',
+    values: ['american', 'british', 'australian', 'none'],
+    defaultValue: 'none',
+  },
+];
+
 export interface AudioMetadata {
   duration: number;
   sampleRate: number;
@@ -144,6 +297,77 @@ export interface AudioMetadata {
   channels: number;
   format: string;
   codec: string;
+  filename?: string;
+}
+
+// Scroll-specific types
+export interface ScrollVoiceChallenge {
+  id: string;
+  title: string;
+  description: string;
+  theme: string;
+  difficulty: number; // Changed from string to number as per error
+  reward: string;
+  voiceStyleRequirements?: string[];
+  durationRequirements?: {
+    minSeconds: number;
+    maxSeconds: number;
+  };
+  chainSpecific: 'scroll' | 'starknet' | 'both';
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  participants?: string[];
+  winners?: string[];
+}
+
+export interface ScrollAchievement {
+  id: string;
+  name: string;
+  description: string;
+  criteria: string; // Added as per error
+  points: number;
+  isSecret?: boolean;
+  chainSpecific: 'scroll' | 'starknet' | 'both';
+}
+
+export interface VoiceChallengeSubmission {
+  challengeId: string;
+  userAddress: string; // Added as per error
+  recordingId: string;
+  submissionDate: string;
+  voiceStyleUsed: string;
+  enhancementsUsed: Record<string, string>;
+  status: 'pending' | 'approved' | 'rejected' | 'winner';
+  vrfProof?: string;
+}
+
+export interface ScrollLeaderboardEntry {
+  userAddress: string; // Added as per error
+  username: string;
+  score: number;
+  rank: number;
+  challengesCompleted: number;
+  challengesWon: number;
+  totalRecordings: number;
+  privateRecordings: number;
+  lastActive: string;
+}
+
+export interface UserAchievementProgress {
+  achievementId: string;
+  userAddress: string; // Added as per error
+  progress: number;
+  completed: boolean;
+  completionDate?: string;
+  userId?: string; // Added as per error
+  lastUpdated?: string; // Added as per error
+}
+
+// Voice cache entry with timestamp
+export interface VoiceCacheEntry {
+  blob: Blob;
+  timestamp: number;
 }
 
 export interface IPFSUploadResult {
@@ -151,3 +375,86 @@ export interface IPFSUploadResult {
   size: number;
   url?: string;
 }
+
+// Blockchain types
+export interface BaseChainConfig {
+  name: string;
+  id: number;
+  rpcUrl: string;
+  explorerUrl: string;
+  currency: {
+    name: string;
+    symbol: string;
+    decimals: number;
+  };
+  contractAddresses: {
+    [key: string]: string;
+  };
+}
+
+// Define chain configurations
+export const ALL_CHAINS = {
+  starknet: {
+    TESTNET: {
+      name: 'Starknet Sepolia',
+      id: 11155111,
+      rpcUrl: 'https://starknet-sepolia.public.blastapi.io',
+      explorerUrl: 'https://sepolia.starkscan.co',
+      currency: {
+        name: 'STRK',
+        symbol: 'STRK',
+        decimals: 18,
+      },
+      contractAddresses: {
+        recordingRegistry: '0x1234567890123456789012345678901234567890',
+      },
+    },
+    MAINNET: {
+      name: 'Starknet Mainnet',
+      id: 11155111,
+      rpcUrl: 'https://starknet-mainnet.public.blastapi.io',
+      explorerUrl: 'https://starkscan.co',
+      currency: {
+        name: 'STRK',
+        symbol: 'STRK',
+        decimals: 18,
+      },
+      contractAddresses: {
+        recordingRegistry: '0x1234567890123456789012345678901234567890',
+      },
+    },
+  },
+  scroll: {
+    TESTNET: {
+      name: 'Scroll Sepolia',
+      id: 534351,
+      rpcUrl: 'https://sepolia-rpc.scroll.io',
+      explorerUrl: 'https://sepolia.scrollscan.com',
+      currency: {
+        name: 'Ether',
+        symbol: 'ETH',
+        decimals: 18,
+      },
+      contractAddresses: {
+        recordingRegistry: '0x1234567890123456789012345678901234567890',
+      },
+    },
+    MAINNET: {
+      name: 'Scroll Mainnet',
+      id: 534352,
+      rpcUrl: 'https://rpc.scroll.io',
+      explorerUrl: 'https://scrollscan.com',
+      currency: {
+        name: 'Ether',
+        symbol: 'ETH',
+        decimals: 18,
+      },
+      contractAddresses: {
+        recordingRegistry: '0x1234567890123456789012345678901234567890',
+      },
+    },
+  },
+} as const;
+
+// Re-export MobileSupportedChains as SupportedChains for backward compatibility
+export type SupportedChains = keyof typeof ALL_CHAINS; // 'starknet' | 'scroll'

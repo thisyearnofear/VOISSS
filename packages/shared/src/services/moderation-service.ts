@@ -13,13 +13,13 @@ export interface ModerationResult {
 export interface ModerationService {
   // Evaluate response against quality criteria
   evaluateQuality(response: MissionResponse, criteria?: QualityCriteria): Promise<ModerationResult>;
-  
+
   // Detect content violations (profanity, PII, hate speech, etc)
   detectViolations(response: MissionResponse): Promise<{ violations: string[]; confidence: number }>;
-  
+
   // Validate transcription quality
   validateTranscription(transcription: string, audioLength: number): Promise<{ isValid: boolean; wordCount: number; estimatedAccuracy: number }>;
-  
+
   // Audio quality analysis
   analyzeAudioQuality(audioMetadata: { duration: number; bitrate: number; sampleRate: number; format: string }): Promise<number>;
 }
@@ -29,13 +29,13 @@ export interface ModerationService {
  * Implements basic rule-based moderation that can be easily swapped out for ML models
  */
 export class DefaultModerationService implements ModerationService {
-  
+
   async evaluateQuality(response: MissionResponse, criteria?: QualityCriteria): Promise<ModerationResult> {
     const violations = await this.detectViolations(response);
-    
-    // Engagement-based scoring (now that we auto-approve submissions)
-    const engagementScore = response.views + (response.likes * 2) + (response.comments * 3);
-    
+
+    // Engagement-based scoring removed - auto-approve submissions
+    const engagementScore = 0;
+
     // Check transcription if required
     const hasTranscription = !!response.transcription;
     if (criteria?.transcriptionRequired && !hasTranscription) {
@@ -50,12 +50,12 @@ export class DefaultModerationService implements ModerationService {
     }
 
     const passed = violations.violations.length === 0 && meetsAudioThreshold;
-    
+
     // Determine suggestion based on violations
     let suggestion: 'approve' | 'reject' | 'review' = 'approve';
     if (violations.violations.length > 0) {
       // Major violations = reject
-      const majorViolations = violations.violations.filter(v => 
+      const majorViolations = violations.violations.filter(v =>
         v.includes('profanity') || v.includes('hate') || v.includes('PII')
       );
       if (majorViolations.length > 0) {
@@ -78,10 +78,10 @@ export class DefaultModerationService implements ModerationService {
 
   async detectViolations(response: MissionResponse): Promise<{ violations: string[]; confidence: number }> {
     const violations: string[] = [];
-    
+
     // Get text to analyze (transcription or metadata)
     const textToAnalyze = response.transcription || '';
-    
+
     if (!textToAnalyze) {
       return { violations, confidence: 0.3 }; // Low confidence without text
     }
@@ -123,9 +123,7 @@ export class DefaultModerationService implements ModerationService {
     if (response.transcription) {
       confidence += 0.2; // Higher confidence with transcription
     }
-    if (response.views + response.likes + response.comments > 0) {
-      confidence += 0.1; // A bit more with engagement
-    }
+    // Engagement metrics removed - confidence based on other factors only
     confidence = Math.min(confidence, 0.99);
 
     return { violations, confidence };
@@ -133,14 +131,14 @@ export class DefaultModerationService implements ModerationService {
 
   async validateTranscription(transcription: string, audioLength: number): Promise<{ isValid: boolean; wordCount: number; estimatedAccuracy: number }> {
     const words = transcription.trim().split(/\s+/).length;
-    
+
     // Basic heuristic: ~130 words per minute of speech
     const expectedWords = Math.floor((audioLength / 60) * 130);
     const wordCountDeviation = Math.abs(words - expectedWords) / expectedWords;
-    
+
     // If deviation is > 50%, might be truncated or duplicate transcription
     const isValid = wordCountDeviation < 0.5;
-    
+
     // Estimate accuracy (placeholder - would use actual model confidence scores)
     const estimatedAccuracy = Math.max(0.7, 1 - wordCountDeviation);
 

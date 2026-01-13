@@ -31,12 +31,4 @@
     "shared-types.d.ts",
     "ui-types.d.ts"
   ],
-  "references": [
-    {
-      "path": "../../packages/shared"
-    },
-    {
-      "path": "../../packages/ui"
-    }
-  ]
 }

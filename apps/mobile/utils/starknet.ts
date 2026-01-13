@@ -47,6 +47,27 @@ const STORAGE_KEYS = {
   CHAIN: "@voisss/chain",
 } as const;
 
+// Simple storage implementation for mobile
+const storage = {
+  getItem: async (key: string): Promise<string | null> => {
+    // In a real React Native app, we would use AsyncStorage
+    // For now, using a simple in-memory store for demo purposes
+    return (globalThis as any)[key] || null;
+  },
+  setItem: async (key: string, value: string): Promise<void> => {
+    // In a real React Native app, we would use AsyncStorage
+    (globalThis as any)[key] = value;
+  },
+  removeItem: async (key: string): Promise<void> => {
+    // In a real React Native app, we would use AsyncStorage
+    delete (globalThis as any)[key];
+  }
+};
+
+async function getStoredWalletAddress(): Promise<string | null> {
+  return await storage.getItem(STORAGE_KEYS.WALLET_ADDRESS);
+}
+
 class BlockchainMobile {
   private currentChain: MobileSupportedChains;
   private currentNetwork: string;
@@ -57,7 +78,7 @@ class BlockchainMobile {
   }
 
   async getStoredWalletAddress(): Promise<string | null> {
-    return getStoredWalletAddress();
+    return await getStoredWalletAddress();
   }
 
   async setStoredWalletAddress(address: string): Promise<void> {
