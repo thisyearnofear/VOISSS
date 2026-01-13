@@ -102,9 +102,10 @@ export function formatTokenAmount(amount: number | bigint): string {
 
 /**
  * Get display symbol with prefix
+ * Shows both tokens since rewards are split between $papajams (70%) and $voisss (30%)
  */
 export function getTokenDisplaySymbol(): string {
-  return `$${PLATFORM_CONFIG.papajamsToken.symbol}`;
+  return `$papajams + $voisss`;
 }
 
 /**
@@ -126,7 +127,7 @@ export function calculateEngagementReward(
   const viewBonus = Math.floor(views * 0.001);
   const likeBonus = Math.floor(likes * 0.05);
   const commentBonus = Math.floor(comments * 0.1);
-  
+
   return baseReward + viewBonus + likeBonus + commentBonus;
 }
 
@@ -140,6 +141,6 @@ export function calculateRewardSplit(totalReward: number): {
 } {
   const papajams = Math.floor(totalReward * 0.7);
   const voisss = Math.floor(totalReward * 0.3);
-  
+
   return { papajams, voisss };
 }

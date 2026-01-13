@@ -37,9 +37,9 @@ export default function MissionFilters({
 
   const difficulties = [
     { value: "all", label: "All Levels" },
-    { value: "easy", label: "Easy (5-15 $papajams)", color: "text-green-400" },
-    { value: "medium", label: "Medium (20-35 $papajams)", color: "text-yellow-400" },
-    { value: "hard", label: "Hard (40+ $papajams)", color: "text-red-400" },
+    { value: "easy", label: "Easy (5-15 $papajams + $voisss)", color: "text-green-400" },
+    { value: "medium", label: "Medium (20-35 $papajams + $voisss)", color: "text-yellow-400" },
+    { value: "hard", label: "Hard (40+ $papajams + $voisss)", color: "text-red-400" },
   ];
 
   const sortOptions = [

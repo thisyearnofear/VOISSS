@@ -90,12 +90,12 @@ if (typeof origTransform === 'function') {
 // Reduce worker count to prevent memory spikes
 config.maxWorkers = 2;
 
-// Optimized transformer - disable memory-intensive features
+// Optimized transformer - enable import.meta polyfill for Zustand compatibility
 config.transformer = {
   ...config.transformer,
   unstable_allowRequireContext: true,
   experimental_importSupport: false,
-  unstable_transformImportMeta: false,
+  unstable_transformImportMeta: true, // ENABLED to fix Zustand import.meta issue
   // Minification settings for production only
   getTransformOptions: async () => ({
     transform: {
