@@ -6,6 +6,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { MissionResponse } from "@voisss/shared/types/socialfi";
 import SubmissionCard from "@/components/submissions/SubmissionCard";
 
+type RewardDistribution = {
+  id: string;
+  submissionId: string;
+  walletAddress: string;
+  papajamsAmount: number;
+  voisssAmount: number;
+  status: "pending_transaction" | "sent" | "failed";
+  notes?: string;
+  distributedAt: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export default function CreatorDashboardPage() {
   const { address, isAuthenticated } = useAuth();
   const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d" | "all">("30d");
@@ -48,7 +61,7 @@ export default function CreatorDashboardPage() {
   }
 
   const submissions: MissionResponse[] = submissionsData?.submissions || [];
-  const distributions = distributionsData?.distributions || [];
+  const distributions: RewardDistribution[] = distributionsData?.distributions || [];
 
   // Filter submissions by time range
   let filteredSubmissions = submissions;
@@ -59,14 +72,14 @@ export default function CreatorDashboardPage() {
   }
 
   // Calculate stats
-  const totalViews = filteredSubmissions.reduce((sum, s) => sum + s.views, 0);
-  const totalLikes = filteredSubmissions.reduce((sum, s) => sum + s.likes, 0);
-  const totalComments = filteredSubmissions.reduce((sum, s) => sum + s.comments, 0);
+  const totalViews = filteredSubmissions.reduce((sum: number, s) => sum + s.views, 0);
+  const totalLikes = filteredSubmissions.reduce((sum: number, s) => sum + s.likes, 0);
+  const totalComments = filteredSubmissions.reduce((sum: number, s) => sum + s.comments, 0);
   
-  const totalEarnings = distributions.reduce((sum, d) => sum + d.papajamsAmount + d.voisssAmount, 0);
+  const totalEarnings = distributions.reduce((sum: number, d) => sum + d.papajamsAmount + d.voisssAmount, 0);
   const pendingEarnings = distributions
     .filter(d => d.status === "pending_transaction")
-    .reduce((sum, d) => sum + d.papajamsAmount + d.voisssAmount, 0);
+    .reduce((sum: number, d) => sum + d.papajamsAmount + d.voisssAmount, 0);
 
   return (
     <div className="voisss-container voisss-section-spacing">
