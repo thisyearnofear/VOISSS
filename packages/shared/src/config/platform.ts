@@ -108,28 +108,7 @@ export function getTokenDisplaySymbol(): string {
   return `$papajams + $voisss`;
 }
 
-/**
- * Calculate reward based on engagement metrics
- * Base reward + bonuses for views, likes, comments
- * 
- * Formula:
- * - Base: mission.baseReward
- * - Per view: 0.001 tokens (100 views = 0.1 tokens)
- * - Per like: 0.05 tokens (20 likes = 1 token)
- * - Per comment: 0.1 tokens (10 comments = 1 token)
- */
-export function calculateEngagementReward(
-  baseReward: number,
-  views: number = 0,
-  likes: number = 0,
-  comments: number = 0
-): number {
-  const viewBonus = Math.floor(views * 0.001);
-  const likeBonus = Math.floor(likes * 0.05);
-  const commentBonus = Math.floor(comments * 0.1);
 
-  return baseReward + viewBonus + likeBonus + commentBonus;
-}
 
 /**
  * Calculate split between $papajams and $voisss based on mission reward

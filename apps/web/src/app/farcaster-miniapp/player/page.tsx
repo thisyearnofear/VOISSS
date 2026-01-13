@@ -168,7 +168,6 @@ export default function VoisssMiniAppPlayer() {
     author: userContext?.username || "Anonymous",
     authorAvatar: userContext?.pfpUrl || "/default-avatar.png",
     plays: 1234,
-    likes: 89,
     waveform: Array.from({ length: 50 }, () => Math.random() * 0.8 + 0.2),
   };
 
@@ -360,10 +359,6 @@ export default function VoisssMiniAppPlayer() {
           <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
             <Play size={16} />
             <span>{mockRecording.plays}</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <Heart size={16} />
-            <span>{mockRecording.likes}</span>
           </div>
         </div>
       </div>

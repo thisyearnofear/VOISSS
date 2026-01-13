@@ -73,8 +73,6 @@ const trendingRecordings = [
     author: "Alex Chen",
     duration: 145, // 2:25
     plays: 1243,
-    likes: 89,
-    comments: 12,
     isPublic: true,
     avatar:
       "https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80",
@@ -86,8 +84,6 @@ const trendingRecordings = [
     author: "Maria Lopez",
     duration: 78, // 1:18
     plays: 876,
-    likes: 54,
-    comments: 8,
     isPublic: true,
     avatar:
       "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80",
@@ -99,8 +95,6 @@ const trendingRecordings = [
     author: "James Wilson",
     duration: 182, // 3:02
     plays: 542,
-    likes: 32,
-    comments: 5,
     isPublic: true,
     avatar:
       "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80",
@@ -368,14 +362,7 @@ export default function DiscoverScreen() {
             <Headphones size={16} color={colors.dark.textSecondary} />
             <Text style={styles.statText}>{item.plays}</Text>
           </View>
-          <View style={styles.statItem}>
-            <Heart size={16} color={colors.dark.textSecondary} />
-            <Text style={styles.statText}>{item.likes}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <MessageCircle size={16} color={colors.dark.textSecondary} />
-            <Text style={styles.statText}>{item.comments}</Text>
-          </View>
+
           <TouchableOpacity style={styles.shareButton}>
             <Share2 size={16} color={colors.dark.textSecondary} />
           </TouchableOpacity>

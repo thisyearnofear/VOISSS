@@ -30,10 +30,9 @@ export default function TokensInfoPage() {
               <div className="p-3 bg-[#1A1A1A] rounded-lg border border-[#2A2A2A] space-y-2">
                 <p className="text-xs font-semibold text-gray-300">You Get:</p>
                 <ul className="text-xs text-gray-400 space-y-1">
-                  <li>✓ 70% of mission rewards → your wallet</li>
-                  <li>✓ Engagement bonuses (views, likes, comments)</li>
-                  <li>✓ Creator stake you put into missions</li>
-                </ul>
+                   <li>✓ 70% of mission rewards → your wallet</li>
+                   <li>✓ Creator stake you put into missions</li>
+                 </ul>
               </div>
               <div className="p-3 bg-green-600/10 rounded-lg border border-green-600/30">
                 <p className="text-xs font-semibold text-green-300 mb-2">Minimum to Create Missions:</p>
@@ -97,7 +96,7 @@ export default function TokensInfoPage() {
               <div>
                 <p className="font-semibold text-white mb-1">Users Submit Recordings</p>
                 <p className="text-sm text-gray-400">
-                  Submissions are auto-approved. Engagement starts accumulating (views, likes, comments).
+                  Submissions are auto-approved. Quality validated.
                 </p>
               </div>
             </div>
@@ -110,7 +109,7 @@ export default function TokensInfoPage() {
               <div>
                 <p className="font-semibold text-white mb-1">Rewards Are Calculated</p>
                 <p className="text-sm text-gray-400">
-                  Base reward + engagement bonuses = total tokens.
+                  Base reward is set by difficulty level.
                   Split automatically: 70% $papajams (to creator) + 30% $voisss (to platform).
                 </p>
               </div>
@@ -138,45 +137,25 @@ export default function TokensInfoPage() {
           
           <div className="space-y-3">
             <div className="p-3 bg-[#1A1A1A] rounded-lg border border-[#2A2A2A]">
-              <p className="text-sm font-semibold text-gray-300 mb-2">Submission Performance:</p>
-              <div className="grid grid-cols-3 gap-3 text-center text-xs">
-                <div>
-                  <p className="text-gray-500">Views</p>
-                  <p className="text-white font-semibold">500</p>
+              <p className="text-sm font-semibold text-gray-300 mb-2">Example Setup:</p>
+              <div className="space-y-2 text-sm text-gray-400">
+                <div className="flex justify-between">
+                  <span>Mission Difficulty:</span>
+                  <span className="text-white">Medium</span>
                 </div>
-                <div>
-                  <p className="text-gray-500">Likes</p>
-                  <p className="text-white font-semibold">50</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Comments</p>
-                  <p className="text-white font-semibold">20</p>
+                <div className="flex justify-between">
+                  <span>Base Reward:</span>
+                  <span className="text-white">25 tokens</span>
                 </div>
               </div>
             </div>
 
             <div className="p-3 bg-[#1A1A1A] rounded-lg border border-[#2A2A2A]">
-              <p className="text-sm font-semibold text-gray-300 mb-3">Calculation:</p>
+              <p className="text-sm font-semibold text-gray-300 mb-3">Total Reward:</p>
               <div className="space-y-2 text-sm text-gray-400">
-                <div className="flex justify-between">
-                  <span>Base reward (medium):</span>
-                  <span className="text-white">25 tokens</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>View bonus (500 × 0.001):</span>
-                  <span className="text-white">0.5 tokens</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Like bonus (50 × 0.05):</span>
-                  <span className="text-white">2.5 tokens</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Comment bonus (20 × 0.1):</span>
-                  <span className="text-white">2 tokens</span>
-                </div>
                 <div className="pt-2 border-t border-[#3A3A3A] flex justify-between font-semibold">
                   <span>Total:</span>
-                  <span className="text-[#7C5DFA]">30 tokens</span>
+                  <span className="text-[#7C5DFA]">25 tokens</span>
                 </div>
               </div>
             </div>
@@ -186,11 +165,11 @@ export default function TokensInfoPage() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Creator gets (70%):</span>
-                  <span className="text-[#7C5DFA] font-semibold">21 $papajams</span>
+                  <span className="text-[#7C5DFA] font-semibold">17.5 $papajams</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Platform gets (30%):</span>
-                  <span className="text-purple-400 font-semibold">9 $voisss</span>
+                  <span className="text-purple-400 font-semibold">7.5 $voisss</span>
                 </div>
               </div>
             </div>

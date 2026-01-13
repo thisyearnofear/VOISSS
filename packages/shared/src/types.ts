@@ -155,18 +155,7 @@ export const RecordingFilterSchema = z.object({
 
 export type RecordingFilter = z.infer<typeof RecordingFilterSchema>;
 
-export const CommentSchema = z.object({
-  id: z.string(),
-  recordingId: z.string(),
-  userId: z.string(),
-  userName: z.string(),
-  userAvatar: z.string(),
-  text: z.string(),
-  createdAt: z.string(), // Using string for simplicity, can be zod.date()
-  likes: z.number(),
-});
 
-export type Comment = z.infer<typeof CommentSchema>;
 
 export const CommunitySchema = z.object({
   id: z.string(),
