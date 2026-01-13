@@ -7,8 +7,7 @@ interface SaveOptionsProps {
   remainingQuota: { saves: number };
   userTier: string;
   isDirectSaving: boolean;
-  baseRecordingService: any;
-  permissionActiveStatus: boolean;
+  hasSubAccount: boolean;
   setToastType: (type: 'success' | 'error') => void;
   setToastMessage: (message: string | null) => void;
   setRecordingTitle: (title: string) => void;
@@ -25,8 +24,7 @@ export default function SaveOptions({
   remainingQuota,
   userTier,
   isDirectSaving,
-  baseRecordingService,
-  permissionActiveStatus,
+  hasSubAccount,
   setToastType,
   setToastMessage,
   setRecordingTitle,
@@ -48,7 +46,7 @@ export default function SaveOptions({
             <div>
               <h4 className="text-white font-semibold flex items-center gap-2">
                 <svg className="w-4 h-4 text-[#7C5DFA]" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z"/>
+                  <path d="M8 5v14l11-7z" />
                 </svg>
                 Preview Recording
               </h4>
@@ -63,7 +61,7 @@ export default function SaveOptions({
       )}
 
       {/* Permission Status - will be handled by PermissionStatus component */}
-      
+
       {/* Recording Title */}
       <div className="mb-6">
         <label
@@ -99,8 +97,8 @@ export default function SaveOptions({
             }
 
             try {
-              // Try gasless first if available, otherwise use direct gas payment
-              if (baseRecordingService && permissionActiveStatus) {
+              // Try gasless Sub Account save first if available, otherwise use direct gas payment
+              if (hasSubAccount) {
                 await handleSaveSelectedVersions();
               } else {
                 // This would need to be updated to handle selected versions
@@ -121,26 +119,25 @@ export default function SaveOptions({
             }
           }}
           disabled={isDirectSaving || !recordingTitle.trim()}
-          className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-            isDirectSaving || !recordingTitle.trim()
-              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              : baseRecordingService && permissionActiveStatus
+          className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${isDirectSaving || !recordingTitle.trim()
+            ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+            : hasSubAccount
               ? userTier === 'premium'
                 ? 'bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-500 hover:to-green-600'
                 : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-500 hover:to-blue-600'
               : 'bg-gradient-to-r from-orange-600 to-orange-700 text-white hover:from-orange-500 hover:to-orange-600'
-          }`}
+            }`}
         >
           {isDirectSaving ? (
             <>
               <svg className="w-4 h-4 animate-spin" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2v4m0 12v4m10-10h-4M6 12H2m15.364-7.364l-2.828 2.828M9.464 9.464L6.636 6.636m12.728 12.728l-2.828-2.828M9.464 14.536l-2.828 2.828"/>
+                <path d="M12 2v4m0 12v4m10-10h-4M6 12H2m15.364-7.364l-2.828 2.828M9.464 9.464L6.636 6.636m12.728 12.728l-2.828-2.828M9.464 14.536l-2.828 2.828" />
               </svg>
               Saving...
             </>
-          ) : baseRecordingService && permissionActiveStatus ? (
-            userTier === 'premium' ? 
-              `💾 Save Selected (∞ Gasless)` : 
+          ) : hasSubAccount ? (
+            userTier === 'premium' ?
+              `💾 Save Selected (∞ Gasless)` :
               `💾 Save Selected (${remainingQuota.saves} free, gasless)`
           ) : (
             '💾 Save Onchain'

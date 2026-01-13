@@ -15,10 +15,10 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "composite": false,
+    "composite": true,
     "resolveJsonModule": true,
     "isolatedModules": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "src/test-integration.ts", "src/test-utils/**/*"]
+  "exclude": ["node_modules", "dist", "src/test-integration.ts", "src/test-utils/**/*", "src/contracts/test-deployment.ts"]
 }

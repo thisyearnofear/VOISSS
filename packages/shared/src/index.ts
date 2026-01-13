@@ -67,10 +67,11 @@ export * from './utils/featureFlags';
 // Language constants and utilities
 export * from './constants/languages';
 
-// Token access configuration and hooks (exported for both web and mobile)
+// Token access configuration (server-safe)
 export * from './config/tokenAccess';
 export * from './services/token-burn-service';
-export * from './hooks/useTokenAccess';
+// Note: useTokenAccess is a client-only hook and should be imported directly:
+// import { useTokenAccess } from '@voisss/shared/hooks/useTokenAccess'
 
 // Note: Other hooks are NOT exported from main index to prevent bundling in server components
 // Client components should import directly:

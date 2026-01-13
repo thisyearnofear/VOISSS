@@ -36,16 +36,6 @@ const createAIServiceClient = (config: any) => ({
   enhance: async (audio: any, options: any) => audio,
 });
 
-// Mobile-isolated Base Recording Service stub
-const createBaseRecordingService = (address: string, options: any) => ({
-  saveRecording: async (ipfsHash: string, metadata: any) => ({
-    success: true,
-    txHash: `0x${Math.random().toString(16).slice(2)}`,
-    status: 'pending',
-    blockNumber: '0',
-  }),
-});
-
 const { width } = Dimensions.get("window");
 
 import { WaveformVisualization, AITransformationPanel, DubbingPanel } from "@voisss/ui";
@@ -90,10 +80,10 @@ export default function RecordScreen() {
   const [isTransforming, setIsTransforming] = useState(false);
   const [transformedBlob, setTransformedBlob] = useState<Blob | null>(null);
   const [aiService] = useState(() =>
-  createAIServiceClient({
-  apiBaseUrl: "https://voisss.netlify.app/api",
-  platform: "mobile",
-  })
+    createAIServiceClient({
+      apiBaseUrl: "https://voisss.netlify.app/api",
+      platform: "mobile",
+    })
   );
 
   // Dubbing state
@@ -179,9 +169,9 @@ export default function RecordScreen() {
 
   // Load voices when AI features become available
   useEffect(() => {
-  if (capabilities.canAccessAI && showSaveOptions) {
-  loadVoices();
-  }
+    if (capabilities.canAccessAI && showSaveOptions) {
+      loadVoices();
+    }
   }, [capabilities.canAccessAI, showSaveOptions, loadVoices]);
 
   // Handle ScrollVRF "Surprise Me" voice selection
@@ -260,19 +250,19 @@ export default function RecordScreen() {
   }, [startRecording]);
 
   const handleStopRecording = useCallback(async () => {
-  try {
-  const recordingUri = await stopRecording();
-  if (recordingUri) {
-  setShowSaveOptions(true);
-  // Reset AI state for new recording
-    setVoices([]);
-      setSelectedVoiceId("");
-    setTransformedBlob(null);
-  setIsLoadingVoices(false);
-  setIsTransforming(false);
-    // Reset dubbing state
-    setDubbedBlob(null);
-      setDubbedLanguage("");
+    try {
+      const recordingUri = await stopRecording();
+      if (recordingUri) {
+        setShowSaveOptions(true);
+        // Reset AI state for new recording
+        setVoices([]);
+        setSelectedVoiceId("");
+        setTransformedBlob(null);
+        setIsLoadingVoices(false);
+        setIsTransforming(false);
+        // Reset dubbing state
+        setDubbedBlob(null);
+        setDubbedLanguage("");
         // Reset version selection
         setSelectedVersions({
           original: true,
@@ -426,7 +416,7 @@ export default function RecordScreen() {
       setIsStoringOnScroll(true);
       const baseTitle = recordingTitle || `Recording ${new Date().toLocaleString()}`;
       const results = [];
-      
+
       // Connect to Scroll if not already connected
       if (!mobileWeb3Service.isConnected() && account) {
         console.log('📡 Connecting to Scroll Sepolia...');
@@ -531,21 +521,21 @@ export default function RecordScreen() {
         setShowSaveOptions(false);
         setRecordingTitle("");
       }
-      } catch (error) {
+    } catch (error) {
       console.error('Error saving recordings:', error);
       if (error instanceof Error && error.message.includes('Wallet not connected')) {
         Alert.alert("Wallet Connection", "Please connect your wallet to save to Scroll blockchain.");
       } else {
         Alert.alert("Save Error", "Failed to save recordings. Please try again.");
       }
-      } finally {
+    } finally {
       setIsStoringOnScroll(false);
-      }
-      }, [
-      audioBlobForDubbing,
-      transformedBlob,
-      dubbedBlob,
-      selectedVersions,
+    }
+  }, [
+    audioBlobForDubbing,
+    transformedBlob,
+    dubbedBlob,
+    selectedVersions,
     recordingTitle,
     duration,
     selectedVoiceId,
@@ -572,16 +562,19 @@ export default function RecordScreen() {
     );
 
     // Save to Base blockchain
-    const baseService = createBaseRecordingService(account.address, {
-      permissionRetriever: async () => {
-        // TODO: Implement proper permission retrieval for mobile
-        // For now, return stored permission hash
-        const { crossPlatformStorage } = {};
-        return await crossPlatformStorage.getItem('spendPermissionHash');
-      }
+    // TODO: Implement direct contract call for mobile
+    console.log('Saving recording to Base blockchain...', {
+      address: account.address,
+      ipfsHash: ipfsResult.hash,
+      metadata
     });
 
-    const txHash = await baseService.saveRecording(ipfsResult.hash, metadata);
+    const txHash = {
+      success: true,
+      txHash: `0x${Math.random().toString(16).slice(2)}`,
+      status: 'pending',
+      blockNumber: '0',
+    };
 
     const recording = {
       id: Date.now().toString(),
@@ -720,12 +713,12 @@ export default function RecordScreen() {
               {isUploadingToIPFS
                 ? `Uploading to IPFS... ${ipfsUploadProgress}%`
                 : isRecording
-                ? isPaused
-                  ? "Paused"
-                  : "Recording..."
-                : showSaveOptions
-                ? "Ready to save"
-                : "Tap to start recording"}
+                  ? isPaused
+                    ? "Paused"
+                    : "Recording..."
+                  : showSaveOptions
+                    ? "Ready to save"
+                    : "Tap to start recording"}
             </Text>
 
             {/* IPFS Upload Progress Bar */}
@@ -760,23 +753,23 @@ export default function RecordScreen() {
         </View>
 
         {/* AI Transformation Panel - Use enhanced selector with VRF */}
-         {showSaveOptions && capabilities.canAccessAI && (
-         <AITransformationPanel
-         voices={voices}
-         selectedVoiceId={selectedVoiceId}
-         setSelectedVoiceId={setSelectedVoiceId}
-         isLoadingVoices={isLoadingVoices}
-         isTransforming={isTransforming}
-         transformedBlob={transformedBlob}
-         audioBlobForDubbing={audioBlobForDubbing} // Pass original audio for preview
-         onTransform={transformVoice}
-         onVRFSelect={handleVRFVoiceSelection}
-         isVRFLoading={isVRFLoading}
-         capabilities={capabilities}
-         currentTier={currentTier}
-         useEnhancedSelector={true} // Enable enhanced AI voice selector
-         />
-         )}
+        {showSaveOptions && capabilities.canAccessAI && (
+          <AITransformationPanel
+            voices={voices}
+            selectedVoiceId={selectedVoiceId}
+            setSelectedVoiceId={setSelectedVoiceId}
+            isLoadingVoices={isLoadingVoices}
+            isTransforming={isTransforming}
+            transformedBlob={transformedBlob}
+            audioBlobForDubbing={audioBlobForDubbing} // Pass original audio for preview
+            onTransform={transformVoice}
+            onVRFSelect={handleVRFVoiceSelection}
+            isVRFLoading={isVRFLoading}
+            capabilities={capabilities}
+            currentTier={currentTier}
+            useEnhancedSelector={true} // Enable enhanced AI voice selector
+          />
+        )}
 
         {/* Dubbing Panel */}
         {showSaveOptions && audioBlobForDubbing && (
@@ -794,32 +787,32 @@ export default function RecordScreen() {
         )}
 
         {/* Version Selection Panel */}
-         {showSaveOptions && (
-           <View style={styles.versionSelectionPanel}>
-             <Text style={styles.versionSelectionTitle}>Select Versions to Save</Text>
-             <Text style={styles.versionSelectionSubtitle}>
-               Choose which versions you want to save to blockchain
-             </Text>
+        {showSaveOptions && (
+          <View style={styles.versionSelectionPanel}>
+            <Text style={styles.versionSelectionTitle}>Select Versions to Save</Text>
+            <Text style={styles.versionSelectionSubtitle}>
+              Choose which versions you want to save to blockchain
+            </Text>
 
-             {/* Privacy Toggle - Scroll Integration */}
-             <TouchableOpacity
-               style={[styles.privacyToggle, isRecordingPublic && styles.privacyTogglePublic]}
-               onPress={() => setIsRecordingPublic(!isRecordingPublic)}
-             >
-               <View style={styles.privacyToggleContent}>
-                 <Text style={styles.privacyToggleLabel}>
-                   {isRecordingPublic ? '🌐 Public Recording' : '🔒 Private Recording'}
-                 </Text>
-                 <Text style={styles.privacyToggleSubtitle}>
-                   {isRecordingPublic
-                     ? 'Anyone can view this recording'
-                     : 'Only you can access via Scroll Privacy'}
-                 </Text>
-               </View>
-               <View style={[styles.toggleSwitch, isRecordingPublic && styles.toggleSwitchActive]} />
-             </TouchableOpacity>
+            {/* Privacy Toggle - Scroll Integration */}
+            <TouchableOpacity
+              style={[styles.privacyToggle, isRecordingPublic && styles.privacyTogglePublic]}
+              onPress={() => setIsRecordingPublic(!isRecordingPublic)}
+            >
+              <View style={styles.privacyToggleContent}>
+                <Text style={styles.privacyToggleLabel}>
+                  {isRecordingPublic ? '🌐 Public Recording' : '🔒 Private Recording'}
+                </Text>
+                <Text style={styles.privacyToggleSubtitle}>
+                  {isRecordingPublic
+                    ? 'Anyone can view this recording'
+                    : 'Only you can access via Scroll Privacy'}
+                </Text>
+              </View>
+              <View style={[styles.toggleSwitch, isRecordingPublic && styles.toggleSwitchActive]} />
+            </TouchableOpacity>
 
-             <View style={styles.versionOptions}>
+            <View style={styles.versionOptions}>
               {/* Original Version */}
               <TouchableOpacity
                 style={[styles.versionOption, selectedVersions.original && styles.versionOptionSelected]}
@@ -905,21 +898,21 @@ export default function RecordScreen() {
         )}
 
         {/* Save Actions */}
-         {showSaveOptions && (
-           <View style={styles.saveActions}>
-             <TouchableOpacity
-               style={[buttonStyles.primaryButton, styles.saveButton, isStoringOnScroll && { opacity: 0.6 }]}
-               onPress={handleUnifiedSave}
-               disabled={!Object.values(selectedVersions).some(Boolean) || isStoringOnScroll}
-             >
-               <Text style={styles.saveButtonText}>
-                 {isStoringOnScroll
-                   ? 'Saving to Scroll...'
-                   : Object.values(selectedVersions).filter(Boolean).length === 0
-                   ? 'Select versions to save'
-                   : `Save Selected (${Object.values(selectedVersions).filter(Boolean).length})`}
-               </Text>
-             </TouchableOpacity>
+        {showSaveOptions && (
+          <View style={styles.saveActions}>
+            <TouchableOpacity
+              style={[buttonStyles.primaryButton, styles.saveButton, isStoringOnScroll && { opacity: 0.6 }]}
+              onPress={handleUnifiedSave}
+              disabled={!Object.values(selectedVersions).some(Boolean) || isStoringOnScroll}
+            >
+              <Text style={styles.saveButtonText}>
+                {isStoringOnScroll
+                  ? 'Saving to Scroll...'
+                  : Object.values(selectedVersions).filter(Boolean).length === 0
+                    ? 'Select versions to save'
+                    : `Save Selected (${Object.values(selectedVersions).filter(Boolean).length})`}
+              </Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={[buttonStyles.secondaryButton, styles.downloadButton]}

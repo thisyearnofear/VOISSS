@@ -108,36 +108,25 @@ export async function POST(req: NextRequest) {
       }
 
       const slides = renderCarouselSlidesAsSvg({ transcript, template: brandedTemplate });
-      const payload = {
-        jobId,
-        status: 'complete',
-        kind: body.kind,
-        templateId: template.id,
-        transcriptId: transcript.id,
-        format: 'svg',
-        slides,
-        branding: body.userAddress ? {
-          userAddress: body.userAddress,
-          fid: body.fid,
-          templateId: body.brandingTemplateId,
-        } : null,
-      };
-      cacheSet(cacheKey, payload);
-      return NextResponse.json({ ok: true, ...payload });
-    }
-    format: 'svg',
-      slides,
-      branding: body.userAddress ? {
-        userAddress: body.userAddress,
-        fid: body.fid,
-        templateId: body.brandingTemplateId,
-      } : null,
-      };
-  cacheSet(cacheKey, payload);
-  return NextResponse.json({ ok: true, ...payload });
-}
+       const payload = {
+         jobId,
+         status: 'complete',
+         kind: body.kind,
+         templateId: template.id,
+         transcriptId: transcript.id,
+         format: 'svg',
+         slides,
+         branding: body.userAddress ? {
+           userAddress: body.userAddress,
+           fid: body.fid,
+           templateId: body.brandingTemplateId,
+         } : null,
+       };
+       cacheSet(cacheKey, payload);
+       return NextResponse.json({ ok: true, ...payload });
+      }
 
-if (body.kind === 'mp3' || body.kind === 'mp4') {
+      if (body.kind === 'mp3' || body.kind === 'mp4') {
   // Both audio and video exports require audio blob
   if (!body.audioBlob || !Array.isArray(body.audioBlob)) {
     return NextResponse.json({ error: 'Audio blob required for export' }, { status: 400 });
@@ -201,6 +190,6 @@ if (body.kind === 'mp3' || body.kind === 'mp4') {
 
 return NextResponse.json({ error: 'Unknown export kind' }, { status: 400 });
   } catch (err: any) {
-  return NextResponse.json({ error: err?.message || 'Export failed' }, { status: 500 });
-}
+    return NextResponse.json({ error: err?.message || 'Export failed' }, { status: 500 });
+  }
 }
