@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { MissionResponse } from "@voisss/shared/types/socialfi";
-import { calculateEngagementReward, calculateRewardSplit } from "@voisss/shared/config/platform";
+import { calculateRewardSplit } from "@voisss/shared/config/platform";
 
 interface RewardDistributionFormProps {
   submission: MissionResponse;
@@ -29,26 +29,9 @@ export default function RewardDistributionForm({
     notes: "",
   });
   const [useCustomAmount, setUseCustomAmount] = useState(false);
-  const [calculationMode, setCalculationMode] = useState<"manual" | "auto">("auto");
-
-  // Auto-calculate reward based on engagement
-  const autoCalculatedReward = calculateEngagementReward(
-    10, // Base reward per submission
-    submission.views,
-    submission.likes,
-    submission.comments
-  );
-
-  const { papajams: autoPapajams, voisss: autoVoisss } = calculateRewardSplit(autoCalculatedReward);
 
   const handleCalculate = () => {
-    if (calculationMode === "auto") {
-      setFormData(prev => ({
-        ...prev,
-        papajamsAmount: autoPapajams,
-        voisssAmount: autoVoisss,
-      }));
-    }
+    // Rewards are manually determined (no engagement tracking)
   };
 
   const handleFieldChange = (field: keyof FormData, value: any) => {
@@ -93,84 +76,19 @@ export default function RewardDistributionForm({
         </p>
       </div>
 
-      {/* Engagement Summary */}
-      <div className="grid grid-cols-3 gap-4 p-4 bg-[#1A1A1A] rounded-lg border border-[#2A2A2A]">
-        <div className="text-center">
-          <p className="text-xs text-gray-400 mb-1">Views</p>
-          <p className="text-xl font-semibold text-white">{submission.views}</p>
-        </div>
-        <div className="text-center">
-          <p className="text-xs text-gray-400 mb-1">Likes</p>
-          <p className="text-xl font-semibold text-white">{submission.likes}</p>
-        </div>
-        <div className="text-center">
-          <p className="text-xs text-gray-400 mb-1">Comments</p>
-          <p className="text-xl font-semibold text-white">{submission.comments}</p>
-        </div>
-      </div>
-
-      {/* Calculation Mode */}
-      <div className="space-y-3">
-        <label className="block text-sm font-medium text-white">Calculation Mode</label>
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              setCalculationMode("auto");
-              handleCalculate();
-            }}
-            className={`flex-1 py-2 px-3 rounded-lg font-medium transition-all ${
-              calculationMode === "auto"
-                ? "bg-[#7C5DFA] text-white"
-                : "bg-[#2A2A2A] text-gray-400 border border-[#3A3A3A] hover:border-[#4A4A4A]"
-            }`}
-          >
-            Auto (Engagement-based)
-          </button>
-          <button
-            type="button"
-            onClick={() => setCalculationMode("manual")}
-            className={`flex-1 py-2 px-3 rounded-lg font-medium transition-all ${
-              calculationMode === "manual"
-                ? "bg-[#7C5DFA] text-white"
-                : "bg-[#2A2A2A] text-gray-400 border border-[#3A3A3A] hover:border-[#4A4A4A]"
-            }`}
-          >
-            Manual Entry
-          </button>
-        </div>
-        <p className="text-xs text-gray-500">
-          {calculationMode === "auto"
-            ? `Auto: Base (10) + engagement bonuses = ${autoCalculatedReward} total tokens`
-            : "Manual: Enter amounts directly"}
+      {/* Submission Status */}
+      <div className="p-4 bg-[#1A1A1A] rounded-lg border border-[#2A2A2A]">
+        <p className="text-xs text-gray-400 mb-1">Status</p>
+        <p className={`text-sm font-semibold ${
+          submission.status === 'approved' ? 'text-[#22C55E]' :
+          submission.status === 'flagged' ? 'text-yellow-500' :
+          'text-red-500'
+        }`}>
+          {submission.status === 'approved' && '✓ Approved'}
+          {submission.status === 'flagged' && '⚠ Flagged'}
+          {submission.status === 'removed' && '✗ Removed'}
         </p>
       </div>
-
-      {/* Auto-calculation preview */}
-      {calculationMode === "auto" && (
-        <div className="p-3 bg-[#1A1A1A] rounded-lg border border-[#2A2A2A] space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-400">Base reward</span>
-            <span className="text-white">10 tokens</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-400">View bonus (0.001 per view)</span>
-            <span className="text-white">{Math.floor(submission.views * 0.001)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-400">Like bonus (0.05 per like)</span>
-            <span className="text-white">{Math.floor(submission.likes * 0.05)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-400">Comment bonus (0.1 per comment)</span>
-            <span className="text-white">{Math.floor(submission.comments * 0.1)}</span>
-          </div>
-          <div className="border-t border-[#3A3A3A] pt-2 mt-2 flex justify-between font-medium">
-            <span className="text-white">Total tokens</span>
-            <span className="text-[#7C5DFA]">{autoCalculatedReward}</span>
-          </div>
-        </div>
-      )}
 
       {/* Token Explanation */}
       <div className="p-3 bg-[#1A1A1A] rounded-lg border border-[#2A2A2A] space-y-2">

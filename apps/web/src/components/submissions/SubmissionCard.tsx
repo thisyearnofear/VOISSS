@@ -18,9 +18,6 @@ export default function SubmissionCard({
   onClick,
   variant = "gallery",
 }: SubmissionCardProps) {
-  const totalEngagement = submission.views + submission.likes + submission.comments;
-  const engagementScore = Math.min(100, Math.floor((totalEngagement / 100) * 100)); // Normalize to 0-100
-
   return (
     <div
       onClick={onClick}
@@ -45,8 +42,16 @@ export default function SubmissionCard({
             {new Date(submission.submittedAt).toLocaleDateString()}
           </p>
         </div>
-        <span className="px-2 py-1 rounded-full text-xs font-medium bg-[#22C55E]/20 text-[#22C55E] whitespace-nowrap">
-          Live
+        <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+          submission.status === 'approved' 
+            ? 'bg-[#22C55E]/20 text-[#22C55E]'
+            : submission.status === 'flagged'
+            ? 'bg-yellow-600/20 text-yellow-500'
+            : 'bg-red-600/20 text-red-500'
+        }`}>
+          {submission.status === 'approved' && '✓ Approved'}
+          {submission.status === 'flagged' && '⚠ Flagged'}
+          {submission.status === 'removed' && '✗ Removed'}
         </span>
       </div>
 
@@ -61,35 +66,13 @@ export default function SubmissionCard({
         Context: {submission.context}
       </p>
 
-      {/* Engagement Metrics */}
-      <div className="grid grid-cols-3 gap-3 mb-4 p-3 bg-[#1A1A1A] rounded-lg border border-[#2A2A2A]">
-        <div className="text-center">
-          <p className="text-xs text-gray-500 mb-1">Views</p>
-          <p className="text-lg font-semibold text-white">{submission.views}</p>
+      {/* Quality & Transcript */}
+      {submission.transcription && (
+        <div className="mb-4 p-3 bg-[#1A1A1A] rounded-lg border border-[#2A2A2A]">
+          <p className="text-xs text-gray-500 mb-2">Transcription</p>
+          <p className="text-sm text-gray-300 line-clamp-2">{submission.transcription}</p>
         </div>
-        <div className="text-center">
-          <p className="text-xs text-gray-500 mb-1">Likes</p>
-          <p className="text-lg font-semibold text-[#22C55E]">{submission.likes}</p>
-        </div>
-        <div className="text-center">
-          <p className="text-xs text-gray-500 mb-1">Comments</p>
-          <p className="text-lg font-semibold text-[#7C5DFA]">{submission.comments}</p>
-        </div>
-      </div>
-
-      {/* Engagement Progress Bar */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs text-gray-500">Engagement Score</p>
-          <p className="text-xs font-semibold text-[#7C5DFA]">{engagementScore}/100</p>
-        </div>
-        <div className="w-full h-2 bg-[#2A2A2A] rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] transition-all"
-            style={{ width: `${engagementScore}%` }}
-          />
-        </div>
-      </div>
+      )}
 
       {/* Additional Info */}
       {variant === "dashboard" && (

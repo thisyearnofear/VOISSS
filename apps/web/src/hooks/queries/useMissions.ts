@@ -194,9 +194,6 @@ export const useCompleteMission = () => {
         voiceObfuscated: false,
         status: 'approved' as const,
         transcription,
-        views: 0,
-        likes: 0,
-        comments: 0,
       };
 
       // Run moderation check

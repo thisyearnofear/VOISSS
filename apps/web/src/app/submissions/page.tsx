@@ -36,14 +36,11 @@ export default function SubmissionsGalleryPage() {
       case "recent":
         return b.submittedAt.getTime() - a.submittedAt.getTime();
       case "most-liked":
-        return b.likes - a.likes;
+        // Sort by submission date when likes not available
+        return b.submittedAt.getTime() - a.submittedAt.getTime();
       case "trending":
-        // Trending: engagement per day
-        const aDays = (Date.now() - new Date(a.submittedAt).getTime()) / (1000 * 60 * 60 * 24) || 1;
-        const bDays = (Date.now() - new Date(b.submittedAt).getTime()) / (1000 * 60 * 60 * 24) || 1;
-        const aEngagement = (a.views + a.likes * 5 + a.comments * 10) / aDays;
-        const bEngagement = (b.views + b.likes * 5 + b.comments * 10) / bDays;
-        return bEngagement - aEngagement;
+        // Sort by submission date when engagement metrics not tracked
+        return b.submittedAt.getTime() - a.submittedAt.getTime();
       default:
         return 0;
     }
@@ -200,23 +197,18 @@ export default function SubmissionsGalleryPage() {
                 <p className="text-sm text-gray-300">{selectedSubmission.context}</p>
               </div>
 
-              {/* Engagement */}
+              {/* Quality Status */}
               <div>
-                <p className="text-xs text-gray-500 mb-2">Engagement</p>
-                <div className="grid grid-cols-3 gap-2 p-3 bg-[#1A1A1A] rounded-lg border border-[#2A2A2A]">
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500 mb-1">Views</p>
-                    <p className="text-lg font-semibold text-white">{selectedSubmission.views}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500 mb-1">Likes</p>
-                    <p className="text-lg font-semibold text-[#22C55E]">{selectedSubmission.likes}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500 mb-1">Comments</p>
-                    <p className="text-lg font-semibold text-[#7C5DFA]">{selectedSubmission.comments}</p>
-                  </div>
-                </div>
+                <p className="text-xs text-gray-500 mb-2">Status</p>
+                <p className={`text-sm font-semibold ${
+                  selectedSubmission.status === 'approved' ? 'text-[#22C55E]' :
+                  selectedSubmission.status === 'flagged' ? 'text-yellow-500' :
+                  'text-red-500'
+                }`}>
+                  {selectedSubmission.status === 'approved' && '✓ Approved'}
+                  {selectedSubmission.status === 'flagged' && '⚠ Flagged'}
+                  {selectedSubmission.status === 'removed' && '✗ Removed'}
+                </p>
               </div>
 
               {/* Submitted */}

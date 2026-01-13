@@ -138,20 +138,18 @@ export default function AdminSubmissionsPage() {
                   </span>
                 </div>
 
-                {/* Engagement Metrics */}
-                <div className="grid grid-cols-3 gap-2 mb-4 p-3 bg-[#1A1A1A] rounded-lg">
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500">Views</p>
-                    <p className="text-sm font-semibold text-white">{submission.views}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500">Likes</p>
-                    <p className="text-sm font-semibold text-white">{submission.likes}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500">Comments</p>
-                    <p className="text-sm font-semibold text-white">{submission.comments}</p>
-                  </div>
+                {/* Status */}
+                <div className="mb-4 p-3 bg-[#1A1A1A] rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Status</p>
+                  <p className={`text-sm font-semibold ${
+                    submission.status === 'approved' ? 'text-[#22C55E]' :
+                    submission.status === 'flagged' ? 'text-yellow-500' :
+                    'text-red-500'
+                  }`}>
+                    {submission.status === 'approved' && '✓ Approved'}
+                    {submission.status === 'flagged' && '⚠ Flagged'}
+                    {submission.status === 'removed' && '✗ Removed'}
+                  </p>
                 </div>
 
                 {/* Location */}
@@ -270,21 +268,13 @@ export default function AdminSubmissionsPage() {
                 <p className="text-sm text-white">{selectedSubmission.context}</p>
               </div>
 
-              {/* Engagement */}
-              <div className="p-3 bg-[#1A1A1A] rounded-lg grid grid-cols-3 gap-3">
-                <div className="text-center">
-                  <p className="text-xs text-gray-500">Views</p>
-                  <p className="text-lg font-semibold text-white">{selectedSubmission.views}</p>
+              {/* Transcription */}
+              {selectedSubmission.transcription && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-2">Transcription</p>
+                  <p className="text-sm text-gray-300">{selectedSubmission.transcription}</p>
                 </div>
-                <div className="text-center">
-                  <p className="text-xs text-gray-500">Likes</p>
-                  <p className="text-lg font-semibold text-white">{selectedSubmission.likes}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xs text-gray-500">Comments</p>
-                  <p className="text-lg font-semibold text-white">{selectedSubmission.comments}</p>
-                </div>
-              </div>
+              )}
 
               {/* Submitted At */}
               <div>
