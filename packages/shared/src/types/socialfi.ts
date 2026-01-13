@@ -8,6 +8,56 @@ export const QualityCriteriaSchema = z.object({
   maximumDuration: z.number().optional(), // seconds
 });
 
+// Quality Scoring - for mission creators to define scoring rubrics
+export const QualityScoreItemSchema = z.object({
+  name: z.string(), // e.g., "Engagement Level", "Accuracy", "Clarity"
+  description: z.string(), // e.g., "How engaged was the participant?"
+  weight: z.number().min(0).max(100), // importance (0-100), sum should = 100
+  rubric: z.array(z.object({
+    score: z.number().min(0).max(10), // 0-10 scale per criterion
+    description: z.string(), // e.g., "10: Very engaged, asking follow-up questions"
+  })),
+});
+
+export const QualityRubricSchema = z.object({
+  missionId: z.string(),
+  createdBy: z.string(),
+  items: z.array(QualityScoreItemSchema), // e.g., [Engagement, Clarity, Authenticity]
+  totalWeight: z.number(), // should be 100
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+// Scoring result for a single submission
+export const SubmissionScoreSchema = z.object({
+  responseId: z.string(),
+  missionId: z.string(),
+  scoredBy: z.string(), // mission creator or reviewer address
+  scores: z.array(z.object({
+    itemName: z.string(), // references QualityRubric.items[].name
+    score: z.number().min(0).max(10),
+    notes: z.string().optional(),
+  })),
+  overallScore: z.number().min(0).max(100), // weighted average
+  scoredAt: z.date(),
+  notes: z.string().optional(), // general feedback
+});
+
+// Reward mapping: score ranges → token amounts
+export const RewardMappingSchema = z.object({
+  missionId: z.string(),
+  createdBy: z.string(),
+  brackets: z.array(z.object({
+    minScore: z.number().min(0).max(100),
+    maxScore: z.number().min(0).max(100),
+    papajamsAmount: z.number().min(0), // creator portion
+    voisssAmount: z.number().min(0), // platform portion
+    description: z.string().optional(), // e.g., "Excellent - top tier"
+  })),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
 export const MissionSchema = z.object({
   // Core fields
   id: z.string(),
@@ -53,6 +103,10 @@ export const MissionSchema = z.object({
 export type Mission = z.infer<typeof MissionSchema>;
 export type CreateMissionInput = z.input<typeof MissionSchema>;
 export type QualityCriteria = z.infer<typeof QualityCriteriaSchema>;
+export type QualityScoreItem = z.infer<typeof QualityScoreItemSchema>;
+export type QualityRubric = z.infer<typeof QualityRubricSchema>;
+export type SubmissionScore = z.infer<typeof SubmissionScoreSchema>;
+export type RewardMapping = z.infer<typeof RewardMappingSchema>;
 
 export const MissionResponseSchema = z.object({
   id: z.string(),
@@ -77,7 +131,15 @@ export const MissionResponseSchema = z.object({
   status: z.enum(['approved', 'flagged', 'removed']).default('approved'), // Auto-approved on submission
   transcription: z.string().optional(),
   sentiment: z.enum(['positive', 'negative', 'neutral', 'mixed']).optional(),
-  
+
+  // Quality Scoring
+  qualityScore: z.number().min(0).max(100).optional(), // 0-100 overall score from rubric
+  qualityScoreId: z.string().optional(), // reference to SubmissionScore record
+  suggestedReward: z.object({
+    papajamsAmount: z.number().min(0),
+    voisssAmount: z.number().min(0),
+  }).optional(), // calculated from RewardMapping based on qualityScore
+
   // Moderation
   flaggedAt: z.date().optional(),
   flagReason: z.string().optional(), // why it was flagged/removed
