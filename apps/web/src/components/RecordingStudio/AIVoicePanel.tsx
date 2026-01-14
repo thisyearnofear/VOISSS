@@ -1,48 +1,49 @@
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
+import { AudioVersion } from '@voisss/shared';
 
 interface AIVoicePanelProps {
   voicesFree: { voiceId: string; name?: string }[];
   selectedVoiceFree: string;
-  variantBlobFree: Blob | null;
   isLoadingVoicesFree: boolean;
   isGeneratingFree: boolean;
   canUseAIVoice: () => boolean;
-  audioBlob: Blob | null;
+  versions: AudioVersion[];
+  activeVersionId: string;
   userTier: string;
   remainingQuota: { aiVoice: number };
   WEEKLY_AI_VOICE_LIMIT: number;
   onVoicesFreeChange: (voices: { voiceId: string; name?: string }[]) => void;
   onSelectedVoiceFreeChange: (voiceId: string) => void;
-  onVariantBlobFreeChange: (blob: Blob | null) => void;
   onLoadingVoicesFreeChange: (loading: boolean) => void;
   onGeneratingFreeChange: (generating: boolean) => void;
   onIncrementAIVoiceUsage: () => void;
   onToastMessage: (message: string | null) => void;
   onToastType: (type: 'success' | 'error') => void;
-  onSetSelectedVersions: (versionsOrUpdater: { original: boolean; aiVoice: boolean; dubbed: boolean } | ((prev: { original: boolean; aiVoice: boolean; dubbed: boolean }) => { original: boolean; aiVoice: boolean; dubbed: boolean })) => void;
+  onAddVersion: (blob: Blob, source: string, parentVersionId: string, metadata: any) => void;
+  onSetSelectedVersionIds: (updater: (prev: Set<string>) => Set<string>) => void;
 }
 
 export default function AIVoicePanel({
   voicesFree,
   selectedVoiceFree,
-  variantBlobFree,
   isLoadingVoicesFree,
   isGeneratingFree,
   canUseAIVoice,
-  audioBlob,
+  versions,
+  activeVersionId,
   userTier,
   remainingQuota,
   WEEKLY_AI_VOICE_LIMIT,
   onVoicesFreeChange,
   onSelectedVoiceFreeChange,
-  onVariantBlobFreeChange,
   onLoadingVoicesFreeChange,
   onGeneratingFreeChange,
   onIncrementAIVoiceUsage,
   onToastMessage,
   onToastType,
-  onSetSelectedVersions,
+  onAddVersion,
+  onSetSelectedVersionIds,
 }: AIVoicePanelProps) {
   const [selectedVoiceId, setSelectedVoiceId] = useState('');
 
@@ -70,12 +71,16 @@ export default function AIVoicePanel({
   };
 
   const handleTransformVoice = async () => {
-    if (!variantBlobFree && canUseAIVoice() && selectedVoiceFree && audioBlob) {
+    const activeVersion = versions.find(v => v.id === activeVersionId);
+    const hasExistingTransform = versions.some(v => v.parentVersionId === activeVersionId && v.source.startsWith('aiVoice-'));
+    
+    if (!hasExistingTransform && canUseAIVoice() && selectedVoiceFree && activeVersion) {
       onGeneratingFreeChange(true);
       try {
         const form = new FormData();
-        form.append("audio", audioBlob, "input.webm");
+        form.append("audio", activeVersion.blob, "input.webm");
         form.append("voiceId", selectedVoiceFree);
+        form.append("sourceVersionId", activeVersionId);
         const res = await fetch("/api/elevenlabs/transform-voice", {
           method: "POST",
           body: form,
@@ -87,10 +92,27 @@ export default function AIVoicePanel({
         }
         const buf = await res.arrayBuffer();
         const blob = new Blob([buf], { type: "audio/mpeg" });
-        onVariantBlobFreeChange(blob);
+        
+        // Get voice name for label
+        const voiceName = voicesFree.find(v => v.voiceId === selectedVoiceFree)?.name || selectedVoiceFree;
+        
+        // Add to version ledger
+        onAddVersion(blob, `aiVoice-${selectedVoiceFree}`, activeVersionId, {
+          voiceId: selectedVoiceFree,
+          voiceName,
+          duration: activeVersion.metadata.duration,
+        });
+        
         onIncrementAIVoiceUsage();
-        // Auto-select AI voice version for saving
-        onSetSelectedVersions((prev: { original: boolean; aiVoice: boolean; dubbed: boolean }) => ({ ...prev, aiVoice: true }));
+        
+        // Auto-select new AI voice version for saving
+        onSetSelectedVersionIds((prev) => {
+          const updated = new Set(prev);
+          // Add the most recent version (will be the newly created one)
+          const newVersionId = versions[versions.length - 1]?.id;
+          if (newVersionId) updated.add(newVersionId);
+          return updated;
+        });
       } catch (e) {
         console.error("Variant generation failed:", e);
         onToastType('error');
@@ -165,7 +187,7 @@ export default function AIVoicePanel({
             </select>
 
             <button
-              disabled={!selectedVoiceFree || !canUseAIVoice() || isGeneratingFree || !!variantBlobFree}
+              disabled={!selectedVoiceFree || !canUseAIVoice() || isGeneratingFree || versions.some(v => v.parentVersionId === activeVersionId && v.source.startsWith('aiVoice-'))}
               className="w-full px-4 py-3 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-lg text-white disabled:opacity-50 font-medium transition-all duration-200"
               onClick={handleTransformVoice}
             >
@@ -174,14 +196,14 @@ export default function AIVoicePanel({
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   Transforming...
                 </div>
-              ) : variantBlobFree ? (
+              ) : versions.some(v => v.parentVersionId === activeVersionId && v.source.startsWith('aiVoice-')) ? (
                 "✨ Transformation Complete!"
               ) : (
                 "Transform Voice"
               )}
             </button>
 
-            {variantBlobFree && (
+            {versions.some(v => v.parentVersionId === activeVersionId && v.source.startsWith('aiVoice-')) && (
               <div className="mt-3 p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl">
                 <div className="flex items-center gap-2 mb-2">
                   <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 24 24">
