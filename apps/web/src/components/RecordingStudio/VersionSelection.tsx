@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AudioVersion } from '@voisss/shared';
-import { ChevronRight, Trash2 } from 'lucide-react';
+import { ChevronRight, Trash2, Zap } from 'lucide-react';
+import VersionComparison from './VersionComparison';
 
 interface VersionSelectionProps {
   versions: AudioVersion[];
@@ -21,6 +22,8 @@ export default function VersionSelection({
   onSelectForForge,
   onDeleteVersion,
 }: VersionSelectionProps) {
+  const [showComparison, setShowComparison] = useState(false);
+
   const toggleVersionSelection = (versionId: string) => {
     onSelectedVersionIdsChange((prev) => {
       const updated = new Set(prev);
@@ -75,7 +78,7 @@ export default function VersionSelection({
       </div>
 
       {/* Version List */}
-      <div className="space-y-2 max-h-96 overflow-y-auto">
+      <div className="space-y-2 max-h-96 overflow-y-auto lg:max-h-full">
         {versions.map((version) => {
           const isSelected = selectedVersionIds.has(version.id);
           const parent = getParentVersion(version.id);
@@ -90,8 +93,8 @@ export default function VersionSelection({
                   : 'bg-[#0F0F0F] border-[#1A1A1A]'
               }`}
             >
-              {/* Header Row */}
-              <div className="flex items-center gap-3">
+              {/* Header Row - Stack on mobile */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <input
                   type="checkbox"
                   checked={isSelected}
@@ -99,22 +102,22 @@ export default function VersionSelection({
                   className="w-5 h-5 rounded border-gray-600 text-[#7C5DFA] focus:ring-[#7C5DFA] focus:ring-offset-gray-900"
                 />
 
-                {/* Version Info */}
+                {/* Version Info - Mobile responsive */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap animate-in fade-in slide-in-from-left-4 duration-300">
                     <span className="text-lg">{getVersionIcon(version.source)}</span>
                     <span className="text-white font-medium truncate">{version.label}</span>
-                    <span className={`text-xs px-2 py-1 rounded border ${getVersionTypeColor(version.source)}`}>
+                    <span className={`text-xs px-2 py-1 rounded border hidden sm:inline-block ${getVersionTypeColor(version.source)}`}>
                       {version.source === 'original' ? 'Original' : 
                        version.source.startsWith('aiVoice-') ? 'Voice Transform' :
                        version.source.startsWith('dub-') ? 'Dubbed' : 'Chain'}
                     </span>
                   </div>
 
-                  {/* Metadata */}
-                  <div className="text-xs text-gray-400 mt-1 flex gap-3 flex-wrap">
+                  {/* Metadata - responsive layout */}
+                  <div className="text-xs text-gray-400 mt-1 flex gap-3 flex-wrap sm:gap-4">
                     <span>{(version.metadata.duration || 0).toFixed(1)}s</span>
-                    <span>{(version.metadata.size / 1024).toFixed(0)} KB</span>
+                    <span className="hidden sm:inline">{(version.metadata.size / 1024).toFixed(0)} KB</span>
                     {version.metadata.language && <span>🌍 {version.metadata.language}</span>}
                     {version.metadata.voiceName && <span>✨ {version.metadata.voiceName}</span>}
                   </div>
@@ -127,22 +130,34 @@ export default function VersionSelection({
                     </div>
                   )}
 
-                  {/* Transformation Chain */}
+                  {/* Transformation Chain with Progress */}
                   {version.metadata.transformChain.length > 0 && (
                     <div className="text-xs text-gray-500 mt-1">
-                      Chain: {version.metadata.transformChain.join(' → ')}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span>Chain:</span>
+                        {version.metadata.transformChain.map((step, idx) => (
+                          <React.Fragment key={idx}>
+                            <span className="px-2 py-0.5 bg-[#2A2A2A] rounded-full text-[10px]">
+                              {step}
+                            </span>
+                            {idx < version.metadata.transformChain.length - 1 && (
+                              <span>→</span>
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex items-center gap-2 ml-auto">
+                {/* Action Buttons - responsive */}
+                <div className="flex items-center gap-2 sm:ml-auto w-full sm:w-auto mt-2 sm:mt-0">
                   <button
                     onClick={() => onSelectForForge(version.id)}
-                    className="px-3 py-1.5 rounded bg-[#2A2A2A] hover:bg-[#3A3A3A] text-xs text-white transition-colors flex items-center gap-1"
+                    className="flex-1 sm:flex-none px-3 py-1.5 rounded bg-[#2A2A2A] hover:bg-[#3A3A3A] text-xs text-white transition-colors flex items-center justify-center sm:justify-start gap-1"
                     title="Open in Studio Forge"
                   >
-                    <span>Forge</span>
+                    <span className="hidden sm:inline">Forge</span>
                     <ChevronRight className="w-3 h-3" />
                   </button>
 
@@ -181,6 +196,25 @@ export default function VersionSelection({
         <div className="p-4 text-center text-gray-500 text-sm">
           Record and transform audio to create versions
         </div>
+      )}
+
+      {/* Compare Button */}
+      {versions.length >= 2 && (
+        <button
+          onClick={() => setShowComparison(true)}
+          className="w-full mt-2 px-4 py-2 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-lg text-white text-sm font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
+        >
+          <Zap className="w-4 h-4" />
+          Compare Versions (A/B)
+        </button>
+      )}
+
+      {/* Comparison Modal */}
+      {showComparison && (
+        <VersionComparison
+          versions={versions}
+          onClose={() => setShowComparison(false)}
+        />
       )}
     </div>
   );
