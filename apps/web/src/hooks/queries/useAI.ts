@@ -251,6 +251,7 @@ export function useAIVoices() {
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: 'include',
         });
 
         if (!response.ok) {
@@ -280,7 +281,7 @@ export function useAIModels() {
     queryKey: queryKeys.ai.models(),
     queryFn: async (): Promise<AIModel[]> => {
       try {
-        const response = await fetch("/api/elevenlabs/get-models");
+        const response = await fetch("/api/elevenlabs/get-models", { credentials: 'include' });
 
         if (!response.ok) {
           throw new Error(`Failed to fetch models: ${response.status}`);
@@ -353,6 +354,7 @@ export function useVoiceTransform() {
         const response = await fetch("/api/elevenlabs/transform-voice", {
           method: "POST",
           body: formData,
+          credentials: 'include',
         });
 
         if (!response.ok) {
@@ -404,6 +406,7 @@ export function useAudioDubbing() {
         const response = await fetch("/api/elevenlabs/dub-audio", {
           method: "POST",
           body: formData,
+          credentials: 'include',
         });
 
         // Handle 202 (still processing) - poll the existing job
@@ -430,7 +433,8 @@ export function useAudioDubbing() {
               }/${maxAttempts})...`
             );
             const statusResponse = await fetch(
-              `${backendUrl}/api/dubbing/${dubbingId}/status`
+              `${backendUrl}/api/dubbing/${dubbingId}/status`,
+              { credentials: 'include' }
             );
 
             if (!statusResponse.ok) {
@@ -445,7 +449,8 @@ export function useAudioDubbing() {
               // Get the final audio
               console.log("Dubbing complete, fetching audio...");
               const audioResponse = await fetch(
-                `${backendUrl}/api/dubbing/${dubbingId}/audio/${targetLanguage}`
+                `${backendUrl}/api/dubbing/${dubbingId}/audio/${targetLanguage}`,
+                { credentials: 'include' }
               );
 
               if (!audioResponse.ok) {
@@ -522,7 +527,7 @@ export function useAIServiceStatus() {
     queryFn: async () => {
       try {
         // Test if the AI service is available by fetching a small amount of data
-        const response = await fetch("/api/elevenlabs/get-models");
+        const response = await fetch("/api/elevenlabs/get-models", { credentials: 'include' });
 
         if (!response.ok) {
           return {
@@ -562,10 +567,11 @@ export function usePrefetchAIData() {
     queryClient.prefetchQuery({
       queryKey: queryKeys.ai.voices(),
       queryFn: async () => {
-        const response = await fetch("/api/elevenlabs/list-voices", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        });
+         const response = await fetch("/api/elevenlabs/list-voices", {
+           method: "POST",
+           headers: { "Content-Type": "application/json" },
+           credentials: 'include',
+         });
         const data = await response.json();
         return data.voices || [];
       },
