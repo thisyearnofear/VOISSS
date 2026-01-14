@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid address' }, { status: 401 });
     }
 
-    // Validate dual-token requirements (both $papajams and $voisss)
+    // Validate either-token requirement (at least $papajams OR $voisss required)
     const publicClient = createPublicClient({
       chain: base,
       transport: http(process.env.BASE_RPC_URL || undefined),
@@ -84,16 +84,7 @@ export async function POST(request: NextRequest) {
       args: [userAddress as `0x${string}`],
     });
 
-    if (!meetsCreatorRequirements(papajamsBalance)) {
-      return NextResponse.json(
-        {
-          error: 'Insufficient $papajams balance',
-          required: `${PLATFORM_CONFIG.creatorRequirements.minTokenBalance} $papajams`,
-          balance: papajamsBalance.toString(),
-        },
-        { status: 403 }
-      );
-    }
+    const meetsPapajamsRequirement = meetsCreatorRequirements(papajamsBalance);
 
     // Check $voisss balance (platform tier - need at least Basic tier)
     const voisssAddress = process.env.NEXT_PUBLIC_VOISSS_TOKEN_ADDRESS as `0x${string}`;
@@ -112,12 +103,16 @@ export async function POST(request: NextRequest) {
     });
 
     const tier = getTierForBalance(voisssBalance);
-    if (tier === 'none') {
+    const meetsVoisssRequirement = tier !== 'none';
+
+    // At least one token requirement must be met
+    if (!meetsPapajamsRequirement && !meetsVoisssRequirement) {
       return NextResponse.json(
         {
-          error: 'Insufficient $voisss balance',
-          required: `10k $voisss (Basic tier minimum)`,
-          balance: voisssBalance.toString(),
+          error: 'Insufficient token balance',
+          required: `Either ${PLATFORM_CONFIG.creatorRequirements.minTokenBalance} $papajams OR 10k $voisss (Basic tier minimum)`,
+          papajamsBalance: papajamsBalance.toString(),
+          voisssBalance: voisssBalance.toString(),
         },
         { status: 403 }
       );

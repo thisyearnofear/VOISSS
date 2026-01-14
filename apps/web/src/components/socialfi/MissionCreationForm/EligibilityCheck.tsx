@@ -38,11 +38,11 @@ export default function EligibilityCheck({ onContinue }: EligibilityCheckProps) 
     );
   }
 
-  // Check both token requirements
+  // Check either token requirement (at least one must be met)
   const meetsVoisssRequirement = tier && tier !== 'none';
   const meetsPapajamsRequirement = isCreatorEligible;
 
-  if (!meetsPapajamsRequirement || !meetsVoisssRequirement) {
+  if (!meetsPapajamsRequirement && !meetsVoisssRequirement) {
     return (
       <div className="voisss-card space-y-4">
         <div className="border-b border-white/10 pb-4">
@@ -96,10 +96,10 @@ export default function EligibilityCheck({ onContinue }: EligibilityCheckProps) 
           </div>
         </div>
 
-        {!meetsPapajamsRequirement || !meetsVoisssRequirement ? (
+        {!meetsPapajamsRequirement && !meetsVoisssRequirement ? (
           <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700/50">
             <p className="text-gray-400 text-sm">
-              You don't meet all requirements yet. Acquire the necessary tokens and try again.
+              You need to acquire at least one token to create missions. Get $papajams or $voisss and try again.
             </p>
           </div>
         ) : null}
