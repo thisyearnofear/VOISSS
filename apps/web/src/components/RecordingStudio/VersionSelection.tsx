@@ -1,189 +1,187 @@
 import React from 'react';
+import { AudioVersion } from '@voisss/shared';
+import { ChevronRight, Trash2 } from 'lucide-react';
 
 interface VersionSelectionProps {
-  selectedVersions: {
-    original: boolean;
-    aiVoice: boolean;
-    dubbed: boolean;
-  };
-  audioBlob: Blob | null;
-  variantBlobFree: Blob | null;
-  dubbedBlob: Blob | null;
-  selectedVoiceFree: string;
-  dubbedLanguage: string;
+  versions: AudioVersion[];
+  selectedVersionIds: Set<string>;
   userTier: string;
   remainingQuota: { saves: number };
-  onSelectedVersionsChange: (versions: {
-    original: boolean;
-    aiVoice: boolean;
-    dubbed: boolean;
-  }) => void;
-  onSelectForForge: (blob: Blob, lang?: string) => void;
+  onSelectedVersionIdsChange: (updater: (prev: Set<string>) => Set<string>) => void;
+  onSelectForForge: (versionId: string) => void;
+  onDeleteVersion: (versionId: string) => void;
 }
 
 export default function VersionSelection({
-  selectedVersions,
-  audioBlob,
-  variantBlobFree,
-  dubbedBlob,
-  selectedVoiceFree,
-  dubbedLanguage,
+  versions,
+  selectedVersionIds,
   userTier,
   remainingQuota,
-  onSelectedVersionsChange,
+  onSelectedVersionIdsChange,
   onSelectForForge,
+  onDeleteVersion,
 }: VersionSelectionProps) {
+  const toggleVersionSelection = (versionId: string) => {
+    onSelectedVersionIdsChange((prev) => {
+      const updated = new Set(prev);
+      if (updated.has(versionId)) {
+        updated.delete(versionId);
+      } else {
+        updated.add(versionId);
+      }
+      return updated;
+    });
+  };
+
+  const getVersionIcon = (source: string): string => {
+    if (source === 'original') return '🎙️';
+    if (source.startsWith('aiVoice-')) return '✨';
+    if (source.startsWith('dub-')) return '🌍';
+    return '🔗';
+  };
+
+  const getVersionTypeColor = (source: string): string => {
+    if (source === 'original') return 'bg-blue-500/20 border-blue-500/30 text-blue-300';
+    if (source.startsWith('aiVoice-')) return 'bg-purple-500/20 border-purple-500/30 text-purple-300';
+    if (source.startsWith('dub-')) return 'bg-green-500/20 border-green-500/30 text-green-300';
+    return 'bg-yellow-500/20 border-yellow-500/30 text-yellow-300';
+  };
+
+  const getParentVersion = (versionId: string): AudioVersion | undefined => {
+    const version = versions.find(v => v.id === versionId);
+    if (!version?.parentVersionId) return undefined;
+    return versions.find(v => v.id === version.parentVersionId);
+  };
+
   return (
-    <div className="mb-6 p-4 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl">
-      <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-        <svg className="w-4 h-4 text-[#7C5DFA]" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-        </svg>
-        Select Versions to Save
-      </h4>
-      <p className="text-gray-400 text-xs mb-4">
-        Choose which versions you want to save to Base/IPFS
-      </p>
-
-      <div className="space-y-3">
-        {/* Original Version */}
-        <label className="flex items-center gap-3 p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg cursor-pointer hover:border-[#3A3A3A] transition-colors">
-          <input
-            type="checkbox"
-            checked={selectedVersions.original}
-            onChange={(e) => onSelectedVersionsChange({
-              ...selectedVersions,
-              original: e.target.checked
-            })}
-            className="w-5 h-5 rounded border-gray-600 text-[#7C5DFA] focus:ring-[#7C5DFA] focus:ring-offset-gray-900"
-          />
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-              <span className="text-white font-medium">Original Recording</span>
-            </div>
-            <p className="text-xs text-gray-400 mt-1">Your original voice recording</p>
-          </div>
-          {audioBlob && (
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-gray-500">{(audioBlob.size / 1024).toFixed(0)} KB</span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  onSelectForForge(audioBlob, 'en');
-                }}
-                className="px-2 py-1 text-[10px] bg-[#2A2A2A] text-white rounded hover:bg-[#3A3A3A] transition-colors"
-              >
-                Open in Studio
-              </button>
-            </div>
-          )}
-        </label>
-
-        {/* AI Voice Version */}
-        <label className={`flex items-center gap-3 p-3 bg-[#0F0F0F] border rounded-lg transition-colors ${variantBlobFree
-          ? 'border-[#2A2A2A] cursor-pointer hover:border-[#3A3A3A]'
-          : 'border-[#1A1A1A] opacity-50 cursor-not-allowed'
-          }`}>
-          <input
-            type="checkbox"
-            checked={selectedVersions.aiVoice}
-            onChange={(e) => onSelectedVersionsChange({
-              ...selectedVersions,
-              aiVoice: e.target.checked
-            })}
-            disabled={!variantBlobFree}
-            className="w-5 h-5 rounded border-gray-600 text-[#7C5DFA] focus:ring-[#7C5DFA] focus:ring-offset-gray-900 disabled:opacity-50"
-          />
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-              <span className="text-white font-medium">AI Voice Transform</span>
-            </div>
-            <p className="text-xs text-gray-400 mt-1">
-              {variantBlobFree ? `AI voice using ${selectedVoiceFree}` : 'Generate AI voice first'}
-            </p>
-          </div>
-          {variantBlobFree && (
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-gray-500">{(variantBlobFree.size / 1024).toFixed(0)} KB</span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  onSelectForForge(variantBlobFree!, 'en');
-                }}
-                className="px-2 py-1 text-[10px] bg-[#2A2A2A] text-white rounded hover:bg-[#3A3A3A] transition-colors"
-              >
-                Open in Studio
-              </button>
-            </div>
-          )}
-        </label>
-
-        {/* Dubbed Version */}
-        <label className={`flex items-center gap-3 p-3 bg-[#0F0F0F] border rounded-lg transition-colors ${dubbedBlob
-          ? 'border-[#2A2A2A] cursor-pointer hover:border-[#3A3A3A]'
-          : 'border-[#1A1A1A] opacity-50 cursor-not-allowed'
-          }`}>
-          <input
-            type="checkbox"
-            checked={selectedVersions.dubbed}
-            onChange={(e) => onSelectedVersionsChange({
-              ...selectedVersions,
-              dubbed: e.target.checked
-            })}
-            disabled={!dubbedBlob}
-            className="w-5 h-5 rounded border-gray-600 text-[#7C5DFA] focus:ring-[#7C5DFA] focus:ring-offset-gray-900 disabled:opacity-50"
-          />
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500"></span>
-              <span className="text-white font-medium">Dubbed Version</span>
-            </div>
-            <p className="text-xs text-gray-400 mt-1">
-              {dubbedBlob ? `Dubbed in ${dubbedLanguage}` : 'Generate dubbed version first'}
-            </p>
-          </div>
-          {dubbedBlob && (
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-gray-500">{(dubbedBlob.size / 1024).toFixed(0)} KB</span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  onSelectForForge(dubbedBlob!, dubbedLanguage);
-                }}
-                className="px-2 py-1 text-[10px] bg-[#2A2A2A] text-white rounded hover:bg-[#3A3A3A] transition-colors"
-              >
-                Open in Studio
-              </button>
-            </div>
-          )}
-        </label>
-      </div>
-
-      {/* Selection Summary */}
-      <div className="mt-4 p-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-400">Selected versions:</span>
-          <span className="text-white font-medium">
-            {Object.values(selectedVersions).filter(Boolean).length} of {[audioBlob, variantBlobFree, dubbedBlob].filter(Boolean).length} available
-          </span>
+    <div className="mb-6 p-4 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h4 className="text-white font-semibold mb-1 flex items-center gap-2">
+            <svg className="w-4 h-4 text-[#7C5DFA]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+            </svg>
+            Audio Versions ({versions.length})
+          </h4>
+          <p className="text-gray-400 text-xs">Select versions to save to Base/IPFS</p>
         </div>
         {userTier === 'free' && (
-          <div className="flex items-center justify-between text-xs mt-2 pt-2 border-t border-[#2A2A2A]">
-            <span className="text-gray-400">Will use:</span>
-            <span className={`font-medium ${Object.values(selectedVersions).filter(Boolean).length > remainingQuota.saves
-              ? 'text-red-400'
-              : 'text-green-400'
-              }`}>
-              {Object.values(selectedVersions).filter(Boolean).length} of {remainingQuota.saves} saves remaining
+          <div className="text-right text-xs">
+            <span className={selectedVersionIds.size > remainingQuota.saves ? 'text-red-400' : 'text-green-400'}>
+              {selectedVersionIds.size} of {remainingQuota.saves} saves
             </span>
           </div>
         )}
       </div>
+
+      {/* Version List */}
+      <div className="space-y-2 max-h-96 overflow-y-auto">
+        {versions.map((version) => {
+          const isSelected = selectedVersionIds.has(version.id);
+          const parent = getParentVersion(version.id);
+          const canDelete = version.id !== 'v0'; // Can't delete original
+
+          return (
+            <div
+              key={version.id}
+              className={`p-3 rounded-lg border transition-all ${
+                isSelected
+                  ? 'bg-[#2A2A2A] border-[#3A3A3A]'
+                  : 'bg-[#0F0F0F] border-[#1A1A1A]'
+              }`}
+            >
+              {/* Header Row */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => toggleVersionSelection(version.id)}
+                  className="w-5 h-5 rounded border-gray-600 text-[#7C5DFA] focus:ring-[#7C5DFA] focus:ring-offset-gray-900"
+                />
+
+                {/* Version Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-lg">{getVersionIcon(version.source)}</span>
+                    <span className="text-white font-medium truncate">{version.label}</span>
+                    <span className={`text-xs px-2 py-1 rounded border ${getVersionTypeColor(version.source)}`}>
+                      {version.source === 'original' ? 'Original' : 
+                       version.source.startsWith('aiVoice-') ? 'Voice Transform' :
+                       version.source.startsWith('dub-') ? 'Dubbed' : 'Chain'}
+                    </span>
+                  </div>
+
+                  {/* Metadata */}
+                  <div className="text-xs text-gray-400 mt-1 flex gap-3 flex-wrap">
+                    <span>{(version.metadata.duration || 0).toFixed(1)}s</span>
+                    <span>{(version.metadata.size / 1024).toFixed(0)} KB</span>
+                    {version.metadata.language && <span>🌍 {version.metadata.language}</span>}
+                    {version.metadata.voiceName && <span>✨ {version.metadata.voiceName}</span>}
+                  </div>
+
+                  {/* Parent Link */}
+                  {parent && (
+                    <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                      <span>from:</span>
+                      <span>{getVersionIcon(parent.source)} {parent.label}</span>
+                    </div>
+                  )}
+
+                  {/* Transformation Chain */}
+                  {version.metadata.transformChain.length > 0 && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      Chain: {version.metadata.transformChain.join(' → ')}
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2 ml-auto">
+                  <button
+                    onClick={() => onSelectForForge(version.id)}
+                    className="px-3 py-1.5 rounded bg-[#2A2A2A] hover:bg-[#3A3A3A] text-xs text-white transition-colors flex items-center gap-1"
+                    title="Open in Studio Forge"
+                  >
+                    <span>Forge</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+
+                  {canDelete && (
+                    <button
+                      onClick={() => onDeleteVersion(version.id)}
+                      className="p-1.5 rounded hover:bg-red-900/20 text-red-400 transition-colors"
+                      title="Delete version and descendants"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Selection Summary */}
+      {versions.length > 0 && (
+        <div className="p-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg text-sm space-y-1">
+          <div className="flex justify-between text-gray-400">
+            <span>Selected for saving:</span>
+            <span className="text-white font-medium">{selectedVersionIds.size} of {versions.length}</span>
+          </div>
+          {userTier === 'free' && selectedVersionIds.size > remainingQuota.saves && (
+            <div className="text-red-400 text-xs">
+              ⚠️ Exceeds remaining saves ({remainingQuota.saves}). Upgrade to save more versions.
+            </div>
+          )}
+        </div>
+      )}
+
+      {versions.length === 0 && (
+        <div className="p-4 text-center text-gray-500 text-sm">
+          Record and transform audio to create versions
+        </div>
+      )}
     </div>
   );
 }
