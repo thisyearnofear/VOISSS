@@ -61,9 +61,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Create public client for Base chain
+    const rpcUrl = process.env.BASE_RPC_URL;
+    console.log('[token-balance] RPC URL:', rpcUrl ? `${rpcUrl.substring(0, 30)}...` : 'UNDEFINED');
+    
     const publicClient = createPublicClient({
       chain: base,
-      transport: http(process.env.BASE_RPC_URL || undefined),
+      transport: http(rpcUrl || undefined),
     });
 
     // Fetch balance from contract
