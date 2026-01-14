@@ -24,6 +24,7 @@ import { MissionService } from './mission-service';
 import { DatabaseService, COLLECTIONS, DatabaseOperationError, DatabaseValidationError } from './database-service';
 import { createLocalStorageDatabase } from './localStorage-database';
 import { createInMemoryDatabase } from './memory-database';
+import { createPostgresDatabase } from './postgres-database';
 
 export class PersistentMissionService implements MissionService {
   private db: DatabaseService;
@@ -1010,6 +1011,10 @@ export function createMissionService(database?: DatabaseService): MissionService
   // Auto-detect environment
   if (typeof window !== 'undefined' && window.localStorage) {
     return new PersistentMissionService(createLocalStorageDatabase('voisss'));
+  }
+  
+  if (process.env.DATABASE_URL) {
+    return new PersistentMissionService(createPostgresDatabase(process.env.DATABASE_URL));
   }
   
   return new PersistentMissionService(createInMemoryDatabase());
