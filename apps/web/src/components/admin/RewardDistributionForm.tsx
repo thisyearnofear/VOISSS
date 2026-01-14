@@ -51,6 +51,7 @@ export default function RewardDistributionForm({
           voisssAmount: formData.voisssAmount,
           notes: formData.notes,
         }),
+        credentials: 'include',
       });
 
       if (!response.ok) {

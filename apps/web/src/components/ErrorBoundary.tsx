@@ -71,6 +71,7 @@ class ErrorBoundary extends Component<Props, State> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(errorReport),
+      credentials: 'include',
     }).catch(console.error);
   };
 

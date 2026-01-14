@@ -827,7 +827,7 @@ export default function TranscriptComposer(props: {
                     if (languageHint) {
                       form.append('language', languageHint);
                     }
-                    const res = await fetch('/api/transcript/transcribe', { method: 'POST', body: form });
+                    const res = await fetch('/api/transcript/transcribe', { method: 'POST', body: form, credentials: 'include' });
                     const data = await res.json();
                     if (!res.ok) {
                       setError(data.error || 'Transcription failed');
@@ -927,6 +927,7 @@ export default function TranscriptComposer(props: {
                     method: 'POST',
                     headers: { 'content-type': 'application/json' },
                     body: JSON.stringify({ transcript: calibratedTranscript, templateId: template.id, style }),
+                    credentials: 'include',
                   });
                   const data = await res.json();
                   if (!res.ok) {
@@ -970,15 +971,16 @@ export default function TranscriptComposer(props: {
                   setError(null);
                   try {
                     const res = await fetch('/api/transcript/export', {
-                      method: 'POST',
-                      headers: { 'content-type': 'application/json' },
-                      body: JSON.stringify({
-                        kind: 'mp3',
-                        templateId: template.id,
-                        transcript: calibratedTranscript,
-                        audioBlob: Array.from(new Uint8Array(await audioBlob.arrayBuffer())),
-                      }),
-                    });
+                       method: 'POST',
+                       headers: { 'content-type': 'application/json' },
+                       body: JSON.stringify({
+                         kind: 'mp3',
+                         templateId: template.id,
+                         transcript: calibratedTranscript,
+                         audioBlob: Array.from(new Uint8Array(await audioBlob.arrayBuffer())),
+                       }),
+                       credentials: 'include',
+                     });
                     const data = await res.json();
                     if (!res.ok) {
                       setError(data.error || 'Audio export failed');

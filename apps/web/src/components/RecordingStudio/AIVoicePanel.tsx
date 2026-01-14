@@ -50,7 +50,10 @@ export default function AIVoicePanel({
     if (!isLoadingVoicesFree && voicesFree.length === 0) {
       onLoadingVoicesFreeChange(true);
       try {
-        const res = await fetch("/api/elevenlabs/list-voices", { method: "POST" });
+        const res = await fetch("/api/elevenlabs/list-voices", { 
+          method: "POST",
+          credentials: 'include' 
+        });
         const data = await res.json();
         onVoicesFreeChange((data.voices || []).slice(0, 3));
         if (data.voices?.[0]?.voiceId) {
@@ -76,6 +79,7 @@ export default function AIVoicePanel({
         const res = await fetch("/api/elevenlabs/transform-voice", {
           method: "POST",
           body: form,
+          credentials: 'include'
         });
         if (!res.ok) {
           const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
