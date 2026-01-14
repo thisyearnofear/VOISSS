@@ -33,6 +33,7 @@ type DubbingLanguage = LanguageInfo;
 interface VoiceTransformOptions {
   voiceId: string;
   audioBlob: Blob;
+  sourceVersionId?: string;  // For version ledger support (parent version being transformed)
   modelId?: string;
   stability?: number;
   similarityBoost?: number;
@@ -43,6 +44,7 @@ interface DubbingOptions {
   audioBlob: Blob;
   targetLanguage: string;
   sourceLanguage?: string;
+  sourceVersionId?: string;  // For version ledger support (parent version being dubbed)
   preserveBackgroundAudio?: boolean;
 }
 

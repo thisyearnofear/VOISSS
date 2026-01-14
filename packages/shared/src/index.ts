@@ -37,6 +37,7 @@ export * from './services/persistent-mission-service';
 
 // Audio types and services
 export * from './types/audio';
+export * from './types/audio-version';
 export * from './types/transcript';
 export * from './utils/timed-transcript';
 export * from './services/audio/ai/elevenlabs-service';

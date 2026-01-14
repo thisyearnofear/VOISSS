@@ -3,6 +3,7 @@
  * 
  * Replaces the Map-based DefaultMissionService with proper data persistence.
  * Uses the DatabaseService interface for storage, ensuring data survives page refreshes.
+ * Implements validation using Zod schemas and robust ID generation.
  */
 
 import {
@@ -14,12 +15,15 @@ import {
   RewardRecord,
   MilestoneProgress,
   Milestone,
-  RewardClaim
+  RewardClaim,
+  MissionSchema,
+  MissionResponseSchema
 } from '../types/socialfi';
 import { getRewardForMilestone } from '../config/platform';
 import { MissionService } from './mission-service';
-import { DatabaseService, COLLECTIONS, DatabaseOperationError } from './database-service';
+import { DatabaseService, COLLECTIONS, DatabaseOperationError, DatabaseValidationError } from './database-service';
 import { createLocalStorageDatabase } from './localStorage-database';
+import { createInMemoryDatabase } from './memory-database';
 
 export class PersistentMissionService implements MissionService {
   private db: DatabaseService;
@@ -38,11 +42,8 @@ export class PersistentMissionService implements MissionService {
       this.initialized = true;
     } catch (error) {
       console.error('Failed to initialize PersistentMissionService:', error);
-      throw new DatabaseOperationError(
-        'Failed to initialize mission service',
-        COLLECTIONS.MISSIONS,
-        'initialize'
-      );
+      // Don't throw here to allow partial functionality, or log and rethrow
+      // throw new DatabaseOperationError('Failed to initialize', COLLECTIONS.MISSIONS, 'initialize');
     }
   }
 
@@ -214,7 +215,14 @@ export class PersistentMissionService implements MissionService {
   }
 
   private generateId(): string {
-    return `mission_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    // Fallback for environments without crypto.randomUUID
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
   }
 
   async getActiveMissions(): Promise<Mission[]> {
@@ -267,9 +275,16 @@ export class PersistentMissionService implements MissionService {
         updatedAt: new Date(),
       } as Mission;
 
+      // Validate schema
+      const result = MissionSchema.safeParse(mission);
+      if (!result.success) {
+        throw new DatabaseValidationError(`Invalid mission data: ${result.error.message}`, COLLECTIONS.MISSIONS);
+      }
+
       await this.db.set(COLLECTIONS.MISSIONS, mission.id, mission);
       return mission;
     } catch (error) {
+      if (error instanceof DatabaseValidationError) throw error;
       throw new DatabaseOperationError(
         'Failed to create mission',
         COLLECTIONS.MISSIONS,
@@ -282,14 +297,24 @@ export class PersistentMissionService implements MissionService {
     await this.ensureInitialized();
 
     try {
-      const updatedMission = await this.db.update<Mission>(COLLECTIONS.MISSIONS, id, {
-        ...updates,
-        updatedAt: new Date(),
-      });
+      const existing = await this.getMissionById(id);
+      if (!existing) {
+         throw new DatabaseOperationError(`Mission ${id} not found`, COLLECTIONS.MISSIONS, 'updateMission');
+      }
 
-      return updatedMission;
+      const updated = { ...existing, ...updates, updatedAt: new Date() };
+      
+      // Partial validation could be complex, for now we assume updates are valid or rely on type safety
+      // To be safe, we could validate the merged object
+      const result = MissionSchema.safeParse(updated);
+      if (!result.success) {
+        throw new DatabaseValidationError(`Invalid mission update: ${result.error.message}`, COLLECTIONS.MISSIONS);
+      }
+
+      await this.db.set(COLLECTIONS.MISSIONS, id, updated);
+      return updated;
     } catch (error) {
-      if (error instanceof DatabaseOperationError) {
+      if (error instanceof DatabaseOperationError || error instanceof DatabaseValidationError) {
         throw error;
       }
 
@@ -356,13 +381,32 @@ export class PersistentMissionService implements MissionService {
     try {
       const response: MissionResponse = {
         ...responseData,
-        id: `response_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `response_${this.generateId()}`,
         submittedAt: new Date(),
       };
 
+      // Validate schema
+      const result = MissionResponseSchema.safeParse(response);
+      if (!result.success) {
+        throw new DatabaseValidationError(`Invalid submission data: ${result.error.message}`, COLLECTIONS.MISSION_RESPONSES);
+      }
+
       await this.db.set(COLLECTIONS.MISSION_RESPONSES, response.id, response);
+      
+      // Update mission to include this submission ID
+      const mission = await this.getMissionById(responseData.missionId);
+      if (mission) {
+          const submissions = mission.submissions || [];
+          if (!submissions.includes(response.id)) {
+             await this.updateMission(mission.id, {
+                 submissions: [...submissions, response.id]
+             });
+          }
+      }
+
       return response;
     } catch (error) {
+      if (error instanceof DatabaseValidationError) throw error;
       throw new DatabaseOperationError(
         'Failed to submit mission response',
         COLLECTIONS.MISSION_RESPONSES,
@@ -596,14 +640,6 @@ export class PersistentMissionService implements MissionService {
     const key = this.getProgressKey(userId, missionId, responseId);
 
     try {
-      // We use the key as ID for progress to ensure uniqueness per user-mission-response
-      // The ID might need to be sanitized if used as a filename in some DBs, 
-      // but for localStorage/IndexedDB usually fine. 
-      // Safe option: hash it or just use it if allowed.
-      // Let's assume we can use it or generate a specific ID and query by fields.
-      // For simplicity with key-value store, we'll try to use a composite key or query.
-
-      // Better approach for general DB: Query by fields
       const progressList = await this.db.getWhere<MilestoneProgress>('milestone_progress',
         p => p.userId === userId && p.missionId === missionId && p.responseId === responseId
       );
@@ -624,8 +660,8 @@ export class PersistentMissionService implements MissionService {
       };
 
       // Store with a unique ID
-      const id = `progress_${this.generateId()}`;
-      await this.db.set('milestone_progress', id, newProgress);
+      const consistentId = `prog_${userId}_${missionId}_${responseId}`.replace(/[^a-zA-Z0-9_]/g, '');
+      await this.db.set('milestone_progress', consistentId, newProgress);
       return newProgress;
     } catch (error) {
       throw new DatabaseOperationError(
@@ -658,33 +694,9 @@ export class PersistentMissionService implements MissionService {
       // Update progress
       const milestoneSequence: Milestone[] = ['submission', 'quality_approved', 'featured'];
       const nextIndex = milestoneSequence.findIndex(m => !progress.completedMilestones.includes(m));
-
-      // Find the ID of the progress record to update
-      const progressList = await this.db.getWhere<MilestoneProgress & { id?: string }>('milestone_progress',
-        p => p.userId === userId && p.missionId === missionId && p.responseId === responseId
-      );
-
-      // If we found it via getMilestoneProgress, it should exist. 
-      // If getMilestoneProgress created a new one, we need to find its ID or we should have returned ID from there.
-      // getMilestoneProgress implementation above creates one if not found.
-      // However, we didn't return the ID in the interface (it's not in MilestoneProgress type usually?).
-      // Let's assume we can find it again.
-
-      // Ideally getMilestoneProgress should return the object which might have an internal ID if it came from DB.
-      // But adhering to interface.
-
-      // Let's simplify: fetch all, find match, get its ID (if stored in DB wrapper) or we need to manage IDs better.
-      // Our DB `getWhere` returns T[]. If T doesn't have ID, we can't update by ID easily unless we know it.
-      // `DatabaseService` methods `set` and `update` take an ID. 
-      // `getWhere` returns the data `T`.
-
-      // Hack/Fix: In `getMilestoneProgress`, I created it with `id = progress_${this.generateId()}`.
-      // I should store that ID in the object if I can, or use a consistent ID generation strategy.
-      // Consistent ID: `progress_${userId}_${missionId}_${responseId}` (sanitized).
-
+      
       const consistentId = `prog_${userId}_${missionId}_${responseId}`.replace(/[^a-zA-Z0-9_]/g, '');
 
-      // Re-implementing getMilestoneProgress logic briefly to ensure we use consistent ID for updates
       const updatedProgress: MilestoneProgress = {
         ...progress,
         completedMilestones: [...progress.completedMilestones, milestone],
@@ -877,15 +889,30 @@ export class PersistentMissionService implements MissionService {
     await this.ensureInitialized();
   }
 
-  // Submission management stubs (delegated to DefaultMissionService)
+  // ===== SUBMISSION MANAGEMENT =====
+
   async getSubmission(id: string): Promise<MissionResponse | null> {
-    // Not implemented in persistent service - use in-memory service
-    return null;
+    await this.ensureInitialized();
+    try {
+        return await this.db.get<MissionResponse>(COLLECTIONS.MISSION_RESPONSES, id);
+    } catch (error) {
+        throw new DatabaseOperationError(`Failed to get submission ${id}`, COLLECTIONS.MISSION_RESPONSES, 'getSubmission');
+    }
   }
 
   async getSubmissionsByMission(missionId: string, status?: MissionResponse['status']): Promise<MissionResponse[]> {
-    // Not implemented in persistent service - use in-memory service
-    return [];
+    await this.ensureInitialized();
+    try {
+        const submissions = await this.db.getWhere<MissionResponse>(COLLECTIONS.MISSION_RESPONSES,
+            (r) => r.missionId === missionId
+        );
+        if (status) {
+            return submissions.filter(r => r.status === status);
+        }
+        return submissions;
+    } catch (error) {
+        throw new DatabaseOperationError('Failed to get submissions by mission', COLLECTIONS.MISSION_RESPONSES, 'getSubmissionsByMission');
+    }
   }
 
   async getAllSubmissions(filters?: {
@@ -894,23 +921,99 @@ export class PersistentMissionService implements MissionService {
     userId?: string;
     after?: Date;
   }): Promise<MissionResponse[]> {
-    // Not implemented in persistent service - use in-memory service
-    return [];
+    await this.ensureInitialized();
+    try {
+        let submissions = await this.db.getAll<MissionResponse>(COLLECTIONS.MISSION_RESPONSES);
+
+        if (filters?.status) {
+          submissions = submissions.filter(r => r.status === filters.status);
+        }
+        if (filters?.missionId) {
+          submissions = submissions.filter(r => r.missionId === filters.missionId);
+        }
+        if (filters?.userId) {
+          submissions = submissions.filter(r => r.userId === filters.userId);
+        }
+        if (filters?.after) {
+          const afterTime = filters.after.getTime();
+          submissions = submissions.filter(r => new Date(r.submittedAt).getTime() >= afterTime);
+        }
+
+        // Sort by submission date, newest first
+        return submissions.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+    } catch (error) {
+        throw new DatabaseOperationError('Failed to get all submissions', COLLECTIONS.MISSION_RESPONSES, 'getAllSubmissions');
+    }
   }
 
   async flagSubmission(submissionId: string, reason: string): Promise<MissionResponse> {
-    throw new Error('Not implemented in persistent service');
+    await this.ensureInitialized();
+    try {
+        const submission = await this.getSubmission(submissionId);
+        if (!submission) {
+            throw new Error(`Submission ${submissionId} not found`);
+        }
+
+        const updated = await this.db.update<MissionResponse>(COLLECTIONS.MISSION_RESPONSES, submissionId, {
+            status: 'flagged',
+            flaggedAt: new Date(),
+            flagReason: reason
+        });
+        
+        return updated;
+    } catch (error) {
+        if (error instanceof DatabaseOperationError) throw error;
+        throw new DatabaseOperationError(`Failed to flag submission ${submissionId}`, COLLECTIONS.MISSION_RESPONSES, 'flagSubmission');
+    }
   }
 
   async removeSubmission(submissionId: string, reason: string): Promise<MissionResponse> {
-    throw new Error('Not implemented in persistent service');
+    await this.ensureInitialized();
+    try {
+        const submission = await this.getSubmission(submissionId);
+        if (!submission) {
+            throw new Error(`Submission ${submissionId} not found`);
+        }
+
+        const updated = await this.db.update<MissionResponse>(COLLECTIONS.MISSION_RESPONSES, submissionId, {
+            status: 'removed',
+            removedAt: new Date(),
+            flagReason: reason
+        });
+
+        // Remove from mission's submissions array
+        const mission = await this.getMissionById(submission.missionId);
+        if (mission && mission.submissions) {
+            const newSubmissions = mission.submissions.filter(id => id !== submissionId);
+            await this.updateMission(mission.id, { submissions: newSubmissions });
+        }
+
+        return updated;
+    } catch (error) {
+        if (error instanceof DatabaseOperationError) throw error;
+        throw new DatabaseOperationError(`Failed to remove submission ${submissionId}`, COLLECTIONS.MISSION_RESPONSES, 'removeSubmission');
+    }
   }
 
 }
 
 /**
- * Factory function to create a persistent mission service
+ * Factory function to create the standard mission service.
+ * Automatically chooses between LocalStorage (browser) and Memory (server/test)
+ * if no database is provided.
  */
-export function createPersistentMissionService(database?: DatabaseService): MissionService {
-  return new PersistentMissionService(database);
+export function createMissionService(database?: DatabaseService): MissionService {
+  if (database) {
+    return new PersistentMissionService(database);
+  }
+
+  // Auto-detect environment
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return new PersistentMissionService(createLocalStorageDatabase('voisss'));
+  }
+  
+  return new PersistentMissionService(createInMemoryDatabase());
 }
+
+// Alias for backward compatibility or explicit persistence request
+export const createPersistentMissionService = createMissionService;
