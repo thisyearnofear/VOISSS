@@ -30,7 +30,7 @@ const CompatibleLanguages = Languages as React.ComponentType<{
 const CompatibleWand2 = Wand2 as React.ComponentType<{ className?: string }>;
 
 import RealTimeWaveform from "./RealTimeWaveform";
-import { createAIServiceClient } from "@voisss/shared";
+import { createAIServiceClient, SUPPORTED_DUBBING_LANGUAGES } from "@voisss/shared";
 
 interface SocialRecordingStudioProps {
   onRecordingComplete?: (audioBlob: Blob, metadata: any) => void;
@@ -85,7 +85,8 @@ export default function SocialRecordingStudio({
     "collaboration",
   ];
   const aiVoices = ["Professional", "Warm", "Energetic", "Calm", "Dramatic"];
-  const languages = ["English", "Spanish", "French", "German", "Japanese"];
+  // Use ISO-639-1 language codes for API compatibility
+  const languages = SUPPORTED_DUBBING_LANGUAGES;
 
   const handleStartRecording = useCallback(async () => {
     try {
@@ -276,8 +277,8 @@ export default function SocialRecordingStudio({
               >
                 <option value="">Keep Original Language</option>
                 {languages.map((lang) => (
-                  <option key={lang} value={lang}>
-                    {lang}
+                  <option key={lang.code} value={lang.code}>
+                    {lang.flag} {lang.name}
                   </option>
                 ))}
               </select>
