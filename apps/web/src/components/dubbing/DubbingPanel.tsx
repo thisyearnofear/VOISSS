@@ -4,7 +4,7 @@ import React, { useState, useCallback, useRef } from "react";
 import LanguageSelector from "./LanguageSelector";
 import AudioComparison from "./AudioComparison";
 import ToastNotification from "../RecordingStudio/ToastNotification";
-import type { LanguageInfo } from "@voisss/shared";
+import type { LanguageInfo, AudioVersion } from "@voisss/shared";
 import {
   useDubbingLanguages,
   useAudioDubbing,
@@ -21,15 +21,17 @@ const POPULAR_LANGUAGES = getPopularLanguages().map((lang) => ({
 }));
 
 interface DubbingPanelProps {
-  audioBlob: Blob | null;
-  onDubbingComplete?: (dubbedBlob: Blob, language: string) => void;
+  versions: AudioVersion[];
+  activeVersionId: string;
+  onDubbingComplete?: (dubbedBlob: Blob, language: string, sourceVersionId: string) => void;
   disabled?: boolean;
   onWalletModalOpen?: () => void;
   recordingTitle?: string;
 }
 
 export default function DubbingPanel({
-  audioBlob,
+  versions,
+  activeVersionId,
   onDubbingComplete,
   disabled = false,
   onWalletModalOpen,
@@ -161,14 +163,21 @@ export default function DubbingPanel({
         }
       }, 45000); // 45 seconds total (15 more for generating stage)
 
+      // Get active version from ledger
+      const activeVersion = versions.find(v => v.id === activeVersionId);
+      if (!activeVersion) {
+        throw new Error('Active version not found');
+      }
+
       // Start the dubbing process (this will now actually call the API which may take time)
       const result = await dubAudio({
-        audioBlob,
+        audioBlob: activeVersion.blob,
         targetLanguage: selectedTargetLanguage,
         sourceLanguage:
           selectedSourceLanguage !== "auto"
             ? selectedSourceLanguage
             : undefined,
+        sourceVersionId: activeVersionId,
         preserveBackgroundAudio: false, // Set to false to get only the dubbed voice without original audio
       });
       const dubbedAudioBlob = result.blob;
@@ -190,7 +199,7 @@ export default function DubbingPanel({
         const languageName =
           availableLanguages.find((l) => l.code === selectedTargetLanguage)
             ?.name || selectedTargetLanguage;
-        onDubbingComplete(dubbedAudioBlob, languageName);
+        onDubbingComplete(dubbedAudioBlob, languageName, activeVersionId);
       }
     } catch (e) {
       console.error("Dubbing failed:", e);
@@ -207,7 +216,8 @@ export default function DubbingPanel({
       setIsDubbing(false);
     }
   }, [
-    audioBlob,
+    versions,
+    activeVersionId,
     selectedTargetLanguage,
     selectedSourceLanguage,
     availableLanguages,
@@ -235,7 +245,8 @@ export default function DubbingPanel({
     }
   }, [dubbedBlob, selectedTargetLanguage, recordingTitle, availableLanguages]);
 
-  if (!audioBlob) {
+  const activeVersion = versions.find(v => v.id === activeVersionId);
+  if (!activeVersion) {
     return (
       <div className="bg-gradient-to-br from-[#1A1A1A] to-[#2A2A2A] border border-[#3A3A3A] rounded-2xl p-8">
         <div className="text-center py-8">
