@@ -14,6 +14,8 @@ import { Mission } from "@voisss/shared/types/socialfi";
 import {
   createIPFSService,
   crossPlatformStorage,
+  useVersionLedger,
+  AudioVersion,
 } from "@voisss/shared";
 import { SocialShare } from "@voisss/ui";
 import DubbingPanel from "./dubbing/DubbingPanel";
@@ -140,12 +142,23 @@ export default function RecordingStudio({
     }
   }, [mission, recordingTitle]);
 
-  // AI Voice state
+  // Unified version ledger (replaces: audioBlob, variantBlobFree, dubbedBlob, activeForgeBlob)
+  const {
+    versions,
+    activeVersion,
+    activeVersionId,
+    addVersion,
+    getVersion,
+    setActiveVersion,
+    deleteVersion,
+    getTransformableVersions,
+  } = useVersionLedger(audioBlob, duration / 1000);
+
+  // AI Voice state (for panel UI only)
   const [voicesFree, setVoicesFree] = useState<
     { voiceId: string; name?: string }[]
   >([]);
   const [selectedVoiceFree, setSelectedVoiceFree] = useState("");
-  const [variantBlobFree, setVariantBlobFree] = useState<Blob | null>(null);
   const [isLoadingVoicesFree, setLoadingVoicesFree] = useState(false);
   const [isGeneratingFree, setGeneratingFree] = useState(false);
 
@@ -158,16 +171,10 @@ export default function RecordingStudio({
   const contractAddress = process.env
     .NEXT_PUBLIC_VOICE_RECORDS_CONTRACT as `0x${string}`;
 
-  // Dubbing state
-  const [dubbedBlob, setDubbedBlob] = useState<Blob | null>(null);
-  const [dubbedLanguage, setDubbedLanguage] = useState<string>("");
-
-  // Version selection state
-  const [selectedVersions, setSelectedVersions] = useState({
-    original: true,
-    aiVoice: false,
-    dubbed: false,
-  });
+  // Version selection state (now maps to ledger versions)
+  const [selectedVersionIds, setSelectedVersionIds] = useState<Set<string>>(
+    new Set(['v0'])
+  );
 
   // Sharing state
   const [savedRecordings, setSavedRecordings] = useState<ShareableRecording[]>(
@@ -196,43 +203,46 @@ export default function RecordingStudio({
   type StudioPhase = 'recording' | 'laboratory' | 'forge';
   const [studioPhase, setStudioPhase] = useState<StudioPhase>('recording');
 
-  // Track which version is active for the Forge phase
-  const [activeForgeBlob, setActiveForgeBlob] = useState<Blob | null>(null);
+  // Forge phase state (derived from active version)
   const [activeForgeUrl, setActiveForgeUrl] = useState<string | null>(null);
   const [forgeDuration, setForgeDuration] = useState(0);
-  const [activeForgeLanguage, setActiveForgeLanguage] = useState('en');
 
   useEffect(() => {
     const initForge = async () => {
-      if (activeForgeBlob) {
-        const url = URL.createObjectURL(activeForgeBlob);
+      if (activeVersion?.blob) {
+        const url = URL.createObjectURL(activeVersion.blob);
         setActiveForgeUrl(url);
 
         // Accurate duration recalculation
-        const dur = await getBlobDuration(activeForgeBlob);
+        const dur = await getBlobDuration(activeVersion.blob);
         if (dur > 0) setForgeDuration(dur);
-        else setForgeDuration(duration / 1000); // Fallback to original
+        else setForgeDuration(activeVersion.metadata.duration || 0);
 
         // Persist to indexedDB
-        saveForgeBlob(activeForgeBlob).catch(console.error);
+        saveForgeBlob(activeVersion.blob).catch(console.error);
 
         return () => URL.revokeObjectURL(url);
       }
     };
     initForge();
-  }, [activeForgeBlob, duration]);
+  }, [activeVersion, activeVersion?.blob]);
 
-  // Restore persistence on mount
+  // Restore persistence on mount (restore active version if in Forge)
   useEffect(() => {
     const restore = async () => {
       const savedBlob = await getForgeBlob();
-      if (savedBlob) {
-        setActiveForgeBlob(savedBlob);
-        setStudioPhase('forge');
+      if (savedBlob && versions.length > 0) {
+        // Find matching version by blob (fallback: use most recent non-original)
+        const matchingVersion = versions.find(v => v.blob === savedBlob) || 
+                               [...versions].reverse().find(v => v.id !== 'v0');
+        if (matchingVersion) {
+          setActiveVersion(matchingVersion.id);
+          setStudioPhase('forge');
+        }
       }
     };
     restore();
-  }, []);
+  }, [versions, setActiveVersion]);
 
   // Core recording state
 
@@ -618,79 +628,57 @@ export default function RecordingStudio({
       // Choose save method based on Sub Account availability
       const saveMethod = hasSubAccount ? saveRecordingToBase : saveRecordingWithGas;
 
-      if (selectedVersions.original && audioBlob) {
-        const result = await saveMethod(audioBlob, {
-          title: baseTitle,
-          description: recordingDescription || "Original recording",
-          isPublic: true,
-          tags:
-            recordingTags.length > 0
-              ? [...recordingTags, "original"]
-              : ["original"],
-        });
-        results.push({
-          type: "original",
-          success: true,
-          error: null,
-          ipfsHash: result.ipfsHash,
-          recording: {
-            id: `original-${Date.now()}`,
-            title: baseTitle,
-            ipfsHash: result.ipfsHash,
-            ipfsUrl: `https://ipfs.io/ipfs/${result.ipfsHash}`,
-            duration,
-            createdAt: new Date().toISOString(),
-          },
-        });
-        incrementSaveUsage();
-      }
+      // Save selected versions from ledger
+      for (const versionId of selectedVersionIds) {
+        const version = getVersion(versionId);
+        if (!version) continue;
 
-      if (selectedVersions.aiVoice && variantBlobFree) {
-        const result = await saveRecordingToBase(variantBlobFree, {
-          title: `${baseTitle} (AI Voice)`,
-          description: `AI voice transformation using ${selectedVoiceFree}\n${recordingDescription}`,
-          isPublic: true,
-          tags: ["ai-voice", selectedVoiceFree, ...recordingTags],
-        });
-        results.push({
-          type: "ai-voice",
-          success: true,
-          error: null,
-          ipfsHash: result.ipfsHash,
-          recording: {
-            id: `ai-voice-${Date.now()}`,
-            title: `${baseTitle} (AI Voice)`,
-            ipfsHash: result.ipfsHash,
-            ipfsUrl: `https://ipfs.io/ipfs/${result.ipfsHash}`,
-            duration,
-            createdAt: new Date().toISOString(),
-          },
-        });
-        incrementSaveUsage();
-      }
+        try {
+          const result = await saveMethod(version.blob, {
+            title: version.label,
+            description: version.metadata.transformChain.length > 0
+              ? `${version.label}\nTransformations: ${version.metadata.transformChain.join(' → ')}\n${recordingDescription}`
+              : recordingDescription || version.label,
+            isPublic: true,
+            tags: [
+              ...version.metadata.transformChain,
+              version.metadata.language || '',
+              version.metadata.voiceId || '',
+              ...recordingTags,
+            ].filter(Boolean),
+          });
 
-      if (selectedVersions.dubbed && dubbedBlob) {
-        const result = await saveRecordingToBase(dubbedBlob, {
-          title: `${baseTitle} (${dubbedLanguage})`,
-          description: `Dubbed to ${dubbedLanguage}\n${recordingDescription}`,
-          isPublic: true,
-          tags: ["dubbed", dubbedLanguage, ...recordingTags],
-        });
-        results.push({
-          type: "dubbed",
-          success: true,
-          error: null,
-          ipfsHash: result.ipfsHash,
-          recording: {
-            id: `dubbed-${Date.now()}`,
-            title: `${baseTitle} (${dubbedLanguage})`,
+          results.push({
+            type: version.source,
+            success: true,
+            error: null,
             ipfsHash: result.ipfsHash,
-            ipfsUrl: `https://ipfs.io/ipfs/${result.ipfsHash}`,
-            duration,
-            createdAt: new Date().toISOString(),
-          },
-        });
-        incrementSaveUsage();
+            recording: {
+              id: `${versionId}-${Date.now()}`,
+              title: version.label,
+              ipfsHash: result.ipfsHash,
+              ipfsUrl: `https://ipfs.io/ipfs/${result.ipfsHash}`,
+              duration: version.metadata.duration,
+              createdAt: new Date().toISOString(),
+            },
+          });
+          incrementSaveUsage();
+        } catch (err) {
+          results.push({
+            type: version.source,
+            success: false,
+            error: err instanceof Error ? err.message : 'Unknown error',
+            ipfsHash: '',
+            recording: {
+              id: `${versionId}-${Date.now()}`,
+              title: version.label,
+              ipfsHash: '',
+              ipfsUrl: '',
+              duration: version.metadata.duration,
+              createdAt: new Date().toISOString(),
+            },
+          });
+        }
       }
 
       const successCount = results.filter((r) => r.success).length;
@@ -721,18 +709,12 @@ export default function RecordingStudio({
         );
       }
 
-      if (successCount === versionsToSave) {
-        // Prioritize: Dubbed > AI Voice > Original for the subsequent Forge phase
-        let forgeBlob = audioBlob;
-        let forgeLang = 'en';
-        if (selectedVersions.dubbed && dubbedBlob) {
-          forgeBlob = dubbedBlob;
-          forgeLang = dubbedLanguage;
-        } else if (selectedVersions.aiVoice && variantBlobFree) {
-          forgeBlob = variantBlobFree;
-        }
-
-        handleSelectForForge(forgeBlob, forgeLang);
+      if (successCount === selectedVersionIds.size) {
+        // Prioritize: Most recent non-original version for Forge
+        const versionToForge = [...selectedVersionIds]
+          .reverse()
+          .find(id => id !== 'v0') || 'v0';
+        handleSelectForForge(versionToForge);
       }
     } catch (error) {
       console.error("Error saving recordings:", error);
@@ -763,14 +745,15 @@ export default function RecordingStudio({
     signIn,
   ]);
 
-  const handleSelectForForge = useCallback(async (blob: Blob, lang?: string) => {
-    setActiveForgeBlob(blob);
+  const handleSelectForForge = useCallback(async (versionId: string) => {
+    const version = getVersion(versionId);
+    if (!version) {
+      console.error(`Version ${versionId} not found`);
+      return;
+    }
+    setActiveVersion(versionId);
     setStudioPhase('forge');
-    setActiveForgeLanguage(lang || 'en');
-    const dur = await getBlobDuration(blob);
-    if (dur > 0) setForgeDuration(dur);
-    else setForgeDuration(duration / 1000);
-  }, [duration]);
+  }, [getVersion, setActiveVersion]);
 
   return (
     <div className="max-w-2xl mx-auto voisss-card shadow-2xl">
@@ -882,11 +865,11 @@ export default function RecordingStudio({
               <AIVoicePanel
                 voicesFree={voicesFree}
                 selectedVoiceFree={selectedVoiceFree}
-                variantBlobFree={variantBlobFree}
                 isLoadingVoicesFree={isLoadingVoicesFree}
                 isGeneratingFree={isGeneratingFree}
                 canUseAIVoice={canUseAIVoice}
-                audioBlob={audioBlob}
+                versions={versions}
+                activeVersionId={activeVersionId}
                 userTier={userTier}
                 remainingQuota={remainingQuota}
                 WEEKLY_AI_VOICE_LIMIT={
@@ -894,13 +877,13 @@ export default function RecordingStudio({
                 }
                 onVoicesFreeChange={setVoicesFree}
                 onSelectedVoiceFreeChange={setSelectedVoiceFree}
-                onVariantBlobFreeChange={setVariantBlobFree}
                 onLoadingVoicesFreeChange={setLoadingVoicesFree}
                 onGeneratingFreeChange={setGeneratingFree}
                 onIncrementAIVoiceUsage={incrementAIVoiceUsage}
                 onToastMessage={setToastMessage}
                 onToastType={setToastType}
-                onSetSelectedVersions={setSelectedVersions}
+                onAddVersion={addVersion}
+                onSetSelectedVersionIds={setSelectedVersionIds}
               />
             </div>
 
@@ -910,11 +893,22 @@ export default function RecordingStudio({
                 Global Dubbing
               </h4>
               <DubbingPanel
-                audioBlob={audioBlob}
-                onDubbingComplete={(dubbedBlob, language) => {
-                  setDubbedBlob(dubbedBlob);
-                  setDubbedLanguage(language);
-                  setSelectedVersions((prev) => ({ ...prev, dubbed: true }));
+                versions={versions}
+                activeVersionId={activeVersionId}
+                onDubbingComplete={(dubbedBlob, language, sourceVersionId) => {
+                  const parentId = sourceVersionId || activeVersionId;
+                  addVersion(dubbedBlob, `dub-${language}`, parentId, {
+                    language,
+                    duration: 0, // Will be calculated by metadata from file
+                  });
+                  setSelectedVersionIds((prev) => {
+                    const updated = new Set(prev);
+                    // Find the new version by checking for most recent dub version
+                    const newVersionIds = versions.map(v => v.id);
+                    const lastId = newVersionIds[newVersionIds.length - 1];
+                    if (lastId) updated.add(lastId);
+                    return updated;
+                  });
                 }}
               />
             </div>
@@ -922,16 +916,13 @@ export default function RecordingStudio({
 
           <div className="border-t border-[#2A2A2A] pt-6">
             <VersionSelection
-              selectedVersions={selectedVersions}
-              audioBlob={audioBlob}
-              variantBlobFree={variantBlobFree}
-              dubbedBlob={dubbedBlob}
-              selectedVoiceFree={selectedVoiceFree}
-              dubbedLanguage={dubbedLanguage}
+              versions={versions}
+              selectedVersionIds={selectedVersionIds}
               userTier={userTier}
               remainingQuota={remainingQuota}
-              onSelectedVersionsChange={setSelectedVersions}
+              onSelectedVersionIdsChange={setSelectedVersionIds}
               onSelectForForge={handleSelectForForge}
+              onDeleteVersion={deleteVersion}
             />
 
             <ActionButtons
@@ -957,7 +948,7 @@ export default function RecordingStudio({
 
             <button
               onClick={() => {
-                setActiveForgeBlob(audioBlob);
+                setActiveVersion('v0');
                 setStudioPhase('forge');
               }}
               className="w-full mt-4 py-3 text-xs text-gray-400 hover:text-white transition-colors"
@@ -1001,19 +992,21 @@ export default function RecordingStudio({
           </div>
 
           <GeminiInsightsPanel
-            audioBlob={activeForgeBlob}
+            audioBlob={activeVersion?.blob || null}
             onApplyInsights={handleApplyInsights}
             isVisible={true}
           />
 
-          <TranscriptComposer
-            previewUrl={activeForgeUrl || ""}
-            durationSeconds={forgeDuration || duration / 1000}
-            audioBlob={activeForgeBlob}
-            initialTemplateId={initialTranscriptTemplateId}
-            autoFocus={initialMode === "transcript"}
-            languageHint={activeForgeLanguage}
-          />
+          {activeVersion && (
+            <TranscriptComposer
+              previewUrl={activeForgeUrl || ""}
+              durationSeconds={forgeDuration || activeVersion.metadata.duration}
+              audioBlob={activeVersion.blob}
+              initialTemplateId={initialTranscriptTemplateId}
+              autoFocus={initialMode === "transcript"}
+              languageHint={activeVersion.metadata.language || 'en'}
+            />
+          )}
 
           <div className="p-4 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl flex items-center justify-between">
             <p className="text-sm text-gray-400">Ready to start fresh?</p>
