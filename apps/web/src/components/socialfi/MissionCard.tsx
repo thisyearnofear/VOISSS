@@ -190,7 +190,7 @@ export default function MissionCard({
       {/* Action Button */}
       <button
         onClick={handleAccept}
-        disabled={!isConnected || (isConnected && !isEligible && mission.requiredTier) || isAccepting}
+        disabled={!isConnected || (isConnected && !isEligible && !!mission.requiredTier) || isAccepting}
         className={`mt-3 w-full py-3 px-4 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
           !isConnected
             ? "bg-gray-500/20 text-gray-400 cursor-not-allowed"

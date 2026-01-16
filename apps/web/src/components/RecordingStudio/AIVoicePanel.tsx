@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
-import { AudioVersion } from '@voisss/shared';
+import { AudioVersion, AudioVersionSource, AudioVersionMetadata } from '@voisss/shared';
 
 interface AIVoicePanelProps {
   voicesFree: { voiceId: string; name?: string }[];
@@ -20,7 +20,7 @@ interface AIVoicePanelProps {
   onIncrementAIVoiceUsage: () => void;
   onToastMessage: (message: string | null) => void;
   onToastType: (type: 'success' | 'error') => void;
-  onAddVersion: (blob: Blob, source: string, parentVersionId: string, metadata: any) => void;
+  onAddVersion: (blob: Blob, source: AudioVersionSource, parentVersionId: string, metadata: Partial<AudioVersionMetadata>) => void;
   onSetSelectedVersionIds: (updater: (prev: Set<string>) => Set<string>) => void;
 }
 

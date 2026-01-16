@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createMissionService } from '@voisss/shared/server';
+import { createMissionServiceWithMemoryDatabase } from '@voisss/shared/server';
 
-const missionService = createMissionService();
+const missionService = createMissionServiceWithMemoryDatabase();
 
 /**
  * POST /api/admin/rewards/distribute

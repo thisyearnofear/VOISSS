@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createMissionService } from '@voisss/shared/server';
+import { createMissionServiceWithMemoryDatabase } from '@voisss/shared/server';
 import { MissionResponse } from '@voisss/shared/types/socialfi';
 
-const missionService = createMissionService();
+const missionService = createMissionServiceWithMemoryDatabase();
 
 /**
  * GET /api/admin/submissions

@@ -4,7 +4,7 @@ import React, { useState, useCallback, useRef } from "react";
 import LanguageSelector from "./LanguageSelector";
 import AudioComparison from "./AudioComparison";
 import ToastNotification from "../RecordingStudio/ToastNotification";
-import type { LanguageInfo, AudioVersion } from "@voisss/shared";
+import type { LanguageInfo, AudioVersion, AudioVersionSource, AudioVersionMetadata } from "@voisss/shared";
 import {
   useDubbingLanguages,
   useAudioDubbing,
@@ -24,6 +24,7 @@ interface DubbingPanelProps {
   versions: AudioVersion[];
   activeVersionId: string;
   onDubbingComplete?: (dubbedBlob: Blob, language: string, sourceVersionId: string) => void;
+  onAddVersion?: (blob: Blob, source: AudioVersionSource, parentVersionId: string, metadata: Partial<AudioVersionMetadata>) => void;
   disabled?: boolean;
   onWalletModalOpen?: () => void;
   recordingTitle?: string;
@@ -33,6 +34,7 @@ export default function DubbingPanel({
   versions,
   activeVersionId,
   onDubbingComplete,
+  onAddVersion,
   disabled = false,
   onWalletModalOpen,
   recordingTitle = "",
@@ -187,6 +189,15 @@ export default function DubbingPanel({
         // Use transcripts when available
         setTranscript(result.transcript || "");
         setTranslatedTranscript(result.translatedTranscript || "");
+
+        // Add to version ledger if callback provided
+        if (onAddVersion) {
+          const metadata: Partial<AudioVersionMetadata> = {
+            language: selectedTargetLanguage,
+            duration: activeVersion.metadata.duration,
+          };
+          onAddVersion(dubbedAudioBlob, `dub-${selectedTargetLanguage}`, activeVersionId, metadata);
+        }
 
         // Increment usage counter
         incrementDubbingUsage();

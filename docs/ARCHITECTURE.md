@@ -46,6 +46,67 @@ voisss/
 - **Audio Processing**: Web Audio API, React Native Audio
 - **Storage**: IPFS for decentralized content storage
 
+## 🔧 Recent Refactoring Improvements
+
+### ✅ Completed Refactoring (January 2025)
+
+**Phase 1: Code Cleanup**
+- Fixed undefined `variantBlobFree` reference in AIVoicePanel
+- Removed stale state variables (`setVariantBlobFree`, `setDubbedBlob`)
+- Consolidated audio blob management into version ledger system
+
+**Phase 2: Module Boundary Separation**
+- Created strict client/server export boundaries
+- Added `index.server.ts` for server-only exports
+- Eliminated browser bundling of Node.js dependencies (pg, dns, net, tls)
+- Updated all API routes to use explicit server imports
+
+**Phase 3: TypeScript Tightening**
+- Replaced 20+ `any` types with proper interfaces
+- Fixed prop type mismatches (AudioVersionSource vs string)
+- Added comprehensive error handling types
+- Enabled strict TypeScript mode (already configured)
+
+**Phase 4: Service Initialization**
+- Removed smart factory pattern from `createMissionService`
+- Created explicit factory functions:
+  - `createMissionServiceWithLocalStorage()` - Browser
+  - `createMissionServiceWithMemoryDatabase()` - Testing
+  - `createMissionService()` - Explicit database injection
+- Moved database setup to API layer initialization
+- Updated all API routes to use explicit database initialization
+
+**Phase 5: Hook Architecture**
+- Created `useMissionService()` hook with version ledger integration
+- Removed all dynamic imports and lazy loading workarounds
+- Added `useMissionServiceWithVersionLedger()` for seamless version tracking
+- Completed integration testing - all builds pass
+
+### 📊 Key Improvements
+
+**Before Refactoring:**
+```typescript
+// ❌ Problem: Auto-detection caused bundling issues
+import { createMissionService } from '@voisss/shared';
+const service = createMissionService(); // Tries to bundle pg in browser!
+```
+
+**After Refactoring:**
+```typescript
+// ✅ Solution: Explicit environment-specific initialization
+import { createMissionServiceWithLocalStorage } from '@voisss/shared';
+const service = createMissionServiceWithLocalStorage(); // Browser-safe!
+```
+
+### 🎯 Benefits Achieved
+
+1. **Eliminated Bundling Errors** - Browser builds no longer include server-only dependencies
+2. **Improved Type Safety** - 20+ any types replaced with proper interfaces
+3. **Clear Architecture** - Explicit database initialization, proper module boundaries
+4. **Better Developer Experience** - IDE autocomplete works, clear import patterns
+5. **Version Ledger Integration** - Mission responses track audio version history
+6. **Maintainable Code** - Clean separation of concerns, easy to test
+
 ## 🎯 Honest Implementation Status
 
 ### ✅ Web App - PRODUCTION READY

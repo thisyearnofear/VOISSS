@@ -201,9 +201,20 @@ export default function TranscriptComposer(props: {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
 
-      let data: any;
+      interface StorageData {
+        __version: number;
+        transcript?: string;
+        templateId?: string;
+        rawText?: string;
+        importJson?: string;
+        timedTranscript?: unknown;
+        style?: Record<string, unknown>;
+        syncOffsetMs?: number;
+        exportJobs?: Array<{ id: string; template: string; exportUrl?: string }>;
+      }
+      let data: StorageData | null = null;
       try {
-        data = JSON.parse(raw);
+        data = JSON.parse(raw) as StorageData;
       } catch {
         // Corrupted JSON, clear and start fresh
         window.localStorage.removeItem(STORAGE_KEY);
@@ -244,8 +255,8 @@ export default function TranscriptComposer(props: {
       }
 
       // Validate style shape (has required theme, fontFamily, animation)
-      if (data?.style && data.style.theme && data.style.fontFamily && data.style.animation) {
-        setStyle(data.style);
+      if (data?.style && typeof data.style === 'object' && 'theme' in data.style && 'fontFamily' in data.style && 'animation' in data.style) {
+        setStyle(data.style as unknown as TranscriptStyle);
       }
 
       // Restore sync offset (optional, default to 0)
@@ -298,21 +309,29 @@ export default function TranscriptComposer(props: {
       try {
         const res = await fetch(`${backendUrl}/api/export/user/${uid}`);
         if (res.ok) {
-          const jobs = await res.json();
-          // Filter out very old failed jobs or map to our state
-          setExportJobs(jobs.map((j: any) => ({
-            jobId: j.id,
-            kind: j.kind,
-            status: j.status,
-            outputUrl: j.outputUrl,
-            error: j.error_message,
-            progress: j.status === 'completed' ? 100 : 0,
-            createdAt: j.created_at
-          })));
+           interface JobResponse {
+             id: string;
+             kind: 'mp3' | 'mp4';
+             status: 'pending' | 'processing' | 'completed' | 'failed';
+             outputUrl?: string;
+             error_message?: string;
+             created_at: string;
+           }
+           const jobs = (await res.json()) as JobResponse[];
+           // Filter out very old failed jobs or map to our state
+           setExportJobs(jobs.map((j) => ({
+             jobId: j.id,
+             kind: j.kind,
+             status: j.status,
+             outputUrl: j.outputUrl,
+             error: j.error_message,
+             progress: j.status === 'completed' ? 100 : 0,
+             createdAt: j.created_at
+           })));
 
-          // Start polling for any active jobs discovered in history
-          jobs.forEach((j: any) => {
-            if (j.status === 'pending' || j.status === 'processing') {
+           // Start polling for any active jobs discovered in history
+           jobs.forEach((j) => {
+             if (j.status === 'pending' || j.status === 'processing') {
               pollExportStatus(j.id);
             }
           });

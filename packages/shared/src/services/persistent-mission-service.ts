@@ -998,33 +998,36 @@ export class PersistentMissionService implements MissionService {
 }
 
 /**
- * Factory function to create the standard mission service.
- * Automatically chooses between LocalStorage (browser) and Memory (server/test)
- * if no database is provided.
+ * Factory function to create mission service with explicit database dependency.
+ * This removes the smart factory pattern and makes database initialization explicit.
+ * 
+ * @param database - The database service to use for persistence
+ * @returns MissionService instance
  */
-export function createMissionService(database?: DatabaseService): MissionService {
-  if (database) {
-    return new PersistentMissionService(database);
-  }
+export function createMissionService(database: DatabaseService): MissionService {
+  return new PersistentMissionService(database);
+}
 
-  // Auto-detect environment
-  if (typeof window !== 'undefined' && window.localStorage) {
-    return new PersistentMissionService(createLocalStorageDatabase('voisss'));
-  }
-  
-  if (process.env.DATABASE_URL) {
-    // Lazy load postgres adapter only on server-side to avoid bundling in browser
-    try {
-      const { createPostgresDatabase } = require('./postgres-database');
-      return new PersistentMissionService(createPostgresDatabase(process.env.DATABASE_URL));
-    } catch (error) {
-      console.warn('PostgreSQL adapter not available, falling back to in-memory storage');
-      return new PersistentMissionService(createInMemoryDatabase());
-    }
-  }
-  
+/**
+ * Factory function to create mission service with LocalStorage database.
+ * This is the recommended way to create a mission service for browser environments.
+ * 
+ * @param namespace - The namespace to use for LocalStorage keys
+ * @returns MissionService instance
+ */
+export function createMissionServiceWithLocalStorage(namespace: string = 'voisss'): MissionService {
+  return new PersistentMissionService(createLocalStorageDatabase(namespace));
+}
+
+/**
+ * Factory function to create mission service with in-memory database.
+ * This is suitable for testing and development environments.
+ * 
+ * @returns MissionService instance
+ */
+export function createMissionServiceWithMemoryDatabase(): MissionService {
   return new PersistentMissionService(createInMemoryDatabase());
 }
 
-// Alias for backward compatibility or explicit persistence request
+// Alias for backward compatibility
 export const createPersistentMissionService = createMissionService;

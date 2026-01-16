@@ -1,5 +1,17 @@
 import React from 'react';
 
+interface SaveMetadata {
+  title: string;
+  description: string;
+  tags: string[];
+  isPublic: boolean;
+}
+
+interface SaveResult {
+  ipfsHash: string;
+  txHash: string;
+}
+
 interface SaveOptionsProps {
   previewUrl: string | null;
   audioBlob: Blob | null;
@@ -13,7 +25,7 @@ interface SaveOptionsProps {
   setRecordingTitle: (title: string) => void;
   handleDownload: () => void;
   handleSaveSelectedVersions: () => Promise<void>;
-  saveRecordingWithGas: (blob: Blob, metadata: any) => Promise<any>;
+  saveRecordingWithGas: (blob: Blob, metadata: SaveMetadata) => Promise<SaveResult>;
   formatFileSize: (bytes: number) => string;
 }
 
@@ -112,10 +124,11 @@ export default function SaveOptions({
 
               setToastType('success');
               setToastMessage('Transaction submitted! Waiting for confirmation...');
-            } catch (error: any) {
+            } catch (error) {
               console.error('Failed to save:', error);
               setToastType('error');
-              setToastMessage(error.message || 'Failed to save recording');
+              const errorMessage = error instanceof Error ? error.message : 'Failed to save recording';
+              setToastMessage(errorMessage);
             }
           }}
           disabled={isDirectSaving || !recordingTitle.trim()}

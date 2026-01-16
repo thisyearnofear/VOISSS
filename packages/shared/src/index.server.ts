@@ -18,6 +18,15 @@ export { PostgresDatabase, createPostgresDatabase } from './services/postgres-da
 // Server-only mission service (also export aliases for compatibility)
 export { 
   createMissionService,
-  createPersistentMissionService, 
+  createPersistentMissionService,
+  createMissionServiceWithLocalStorage,
+  createMissionServiceWithMemoryDatabase,
   PersistentMissionService 
 } from './services/persistent-mission-service';
+
+// Server initialization helpers (recommended for API routes)
+export {
+  initializeMissionService,
+  createMissionServiceWithDatabase,
+  getMissionService
+} from './services/server-initialization';

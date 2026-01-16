@@ -161,7 +161,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
         totalMissions={missions.length}
         filteredCount={missions.length}
         userTier={userTier}
-        userBalance={userBalance}
+        userBalance={userBalance ?? undefined}
       />
 
       {/* Mission Stats */}
@@ -241,7 +241,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
                      isConnected={isConnected || false}
                      isAccepted={acceptedMissionIds.has(mission.id)}
                      userTier={userTier}
-                     userBalance={userBalance}
+                     userBalance={userBalance ?? undefined}
                      balanceStatus={balanceStatus}
                    />
                  ))}
@@ -269,13 +269,13 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
                     isConnected={isConnected || false}
                     isAccepted={acceptedMissionIds.has(mission.id)}
                     userTier={userTier}
-                    userBalance={userBalance}
+                    userBalance={userBalance ?? undefined}
                     balanceStatus={balanceStatus}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+                    />
+                    ))}
+                    </div>
+                    )}
+                    </div>
         </div>
       )}
 

@@ -74,6 +74,7 @@ export const MissionSchema = z.object({
   budgetAllocation: z.number().min(0).optional(), // total tokens allocated to mission
   creatorStake: z.number().min(0).optional(), // tokens staked by creator for confidence
   curatorReward: z.number().min(0).max(100).default(5), // % of featured rewards to creator
+  requiredTier: z.enum(['none', 'basic', 'pro', 'premium']).optional(), // minimum tier required to accept
 
   // Quality & content
   qualityCriteria: QualityCriteriaSchema.optional(),

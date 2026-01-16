@@ -1,5 +1,17 @@
 import React from 'react';
 
+interface SaveMetadata {
+  title: string;
+  description: string;
+  tags: string[];
+  isPublic: boolean;
+}
+
+interface SaveResult {
+  ipfsHash: string;
+  txHash: string;
+}
+
 interface ActionButtonsProps {
   recordingTitle: string;
   isDirectSaving: boolean;
@@ -8,7 +20,7 @@ interface ActionButtonsProps {
   hasSubAccount: boolean;
   handleDownload: () => void;
   handleSaveSelectedVersions: () => Promise<void>;
-  saveRecordingWithGas: (blob: Blob, metadata: any) => Promise<any>;
+  saveRecordingWithGas: (blob: Blob, metadata: SaveMetadata) => Promise<SaveResult>;
   audioBlob: Blob | null;
   setToastType: (type: 'success' | 'error') => void;
   setToastMessage: (message: string | null) => void;
@@ -49,15 +61,16 @@ export default function ActionButtons({
             }
 
             try {
-              // Now we always use handleSaveSelectedVersions as it handles the logic for both gasless and gas
-              await handleSaveSelectedVersions();
-              setToastType('success');
-              setToastMessage('Transaction submitted! Waiting for confirmation...');
-            } catch (error: any) {
-              console.error('Failed to save:', error);
-              setToastType('error');
-              setToastMessage(error.message || 'Failed to save recording');
-            }
+               // Now we always use handleSaveSelectedVersions as it handles the logic for both gasless and gas
+               await handleSaveSelectedVersions();
+               setToastType('success');
+               setToastMessage('Transaction submitted! Waiting for confirmation...');
+             } catch (error) {
+               console.error('Failed to save:', error);
+               setToastType('error');
+               const errorMessage = error instanceof Error ? error.message : 'Failed to save recording';
+               setToastMessage(errorMessage);
+             }
           }}
           disabled={isDirectSaving || !hasTitle}
           className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${isDirectSaving || !hasTitle

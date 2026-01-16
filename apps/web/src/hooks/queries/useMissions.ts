@@ -1,35 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useBaseAccount } from '../useBaseAccount';
 import { createModerationService } from '@voisss/shared';
+import { createMissionServiceWithLocalStorage } from '@voisss/shared/services/persistent-mission-service';
 import { Mission, MissionResponse } from '@voisss/shared/types/socialfi';
 import { queryKeys, handleQueryError } from '../../lib/query-client';
 
-// Create service instances
-// Note: missionService is initialized lazily to avoid bundling postgres dependencies
-let missionService: any;
-
-async function getMissionService() {
-  if (!missionService) {
-    // Lazy load to avoid bundling server-side dependencies
-    // Using dynamic import to prevent webpack from bundling postgres module
-    try {
-      const module = await import('@voisss/shared/services/persistent-mission-service');
-      missionService = module.createPersistentMissionService();
-    } catch (e) {
-      console.warn('Failed to load persistent mission service:', e);
-      // Fallback to a mock service if needed
-      missionService = {
-        getActiveMissions: async () => [],
-        getMissionById: async () => null,
-        getUserMissions: async () => ({ active: [], completed: [] }),
-        acceptMission: async () => null,
-        submitMissionResponse: async () => null,
-      };
-    }
-  }
-  return missionService;
-}
-
+// Create service instances with explicit LocalStorage database
+const missionService = createMissionServiceWithLocalStorage();
 const moderationService = createModerationService();
 
 // Mission filters interface
@@ -48,7 +25,7 @@ export function useMissions(filters: MissionFilters = {}) {
     queryKey: queryKeys.missions.list(filters),
     queryFn: async () => {
       try {
-        const missions = await (await getMissionService()).getActiveMissions();
+        const missions = await missionService.getActiveMissions();
 
         // Apply filters
         let filteredMissions = missions;
@@ -117,7 +94,7 @@ export function useMission(missionId: string) {
     queryKey: [...queryKeys.missions.detail(missionId)],
     queryFn: async () => {
       try {
-        const mission = await (await getMissionService()).getMissionById(missionId);
+        const mission = await missionService.getMissionById(missionId);
         if (!mission) {
           throw new Error('Mission not found');
         }
@@ -141,7 +118,7 @@ export function useUserMissions() {
       if (!address) return { active: [], completed: [] };
 
       try {
-        return await (await getMissionService()).getUserMissions(address);
+        return await missionService.getUserMissions(address);
       } catch (error) {
         throw handleQueryError(error);
       }
@@ -163,7 +140,7 @@ export function useAcceptMission() {
       }
 
       try {
-        return await (await getMissionService()).acceptMission(missionId, address);
+        return await missionService.acceptMission(missionId, address);
       } catch (error) {
         throw handleQueryError(error);
       }
@@ -235,7 +212,7 @@ export const useCompleteMission = () => {
         response.status = 'approved'; // Auto-approved
       }
 
-      return await (await getMissionService()).submitMissionResponse(response);
+      return await missionService.submitMissionResponse(response);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.missions.all });
@@ -253,7 +230,7 @@ export const useMissionStats = () => {
   return useQuery({
     queryKey: queryKeys.missions.stats(address || ''),
     queryFn: async () => {
-      const missions = await (await getMissionService()).getActiveMissions();
+      const missions = await missionService.getActiveMissions();
 
       return {
         totalMissions: missions.length,

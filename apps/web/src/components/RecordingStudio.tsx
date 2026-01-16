@@ -876,12 +876,8 @@ export default function RecordingStudio({
               <DubbingPanel
                 versions={versions}
                 activeVersionId={activeVersionId}
+                onAddVersion={addVersion}
                 onDubbingComplete={(dubbedBlob, language, sourceVersionId) => {
-                  const parentId = sourceVersionId || activeVersionId;
-                  addVersion(dubbedBlob, `dub-${language}`, parentId, {
-                    language,
-                    duration: 0, // Will be calculated by metadata from file
-                  });
                   setSelectedVersionIds((prev) => {
                     const updated = new Set(prev);
                     // Find the new version by checking for most recent dub version
@@ -941,7 +937,7 @@ export default function RecordingStudio({
       )}
 
       {/* PHASE 3: FORGE (Transcription & Export) */}
-      {studioPhase === 'forge' && activeForgeBlob && (
+      {studioPhase === 'forge' && activeForgeUrl && (
         <div className="space-y-6 animate-in fade-in zoom-in-95 duration-500">
           <div className="flex items-center justify-between border-b border-[#2A2A2A] pb-4">
             <div>
