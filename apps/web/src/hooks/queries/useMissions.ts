@@ -23,7 +23,7 @@ export function useMissions(filters: MissionFilters = {}) {
     queryKey: queryKeys.missions.list(filters),
     queryFn: async () => {
       try {
-        const response = await fetch("/api/missions");
+        const response = await fetch("https://voisss.famile.xyz/api/missions");
         if (!response.ok) {
           throw new Error("Failed to fetch missions");
         }
@@ -124,7 +124,9 @@ export function useMission(missionId: string) {
     queryKey: [...queryKeys.missions.detail(missionId)],
     queryFn: async () => {
       try {
-        const response = await fetch(`/api/missions/${missionId}`);
+        const response = await fetch(
+          `https://voisss.famile.xyz/api/missions/${missionId}`
+        );
         if (!response.ok) {
           if (response.status === 404) throw new Error("Mission not found");
           throw new Error("Failed to fetch mission");
@@ -149,7 +151,9 @@ export function useUserMissions() {
       if (!address) return { active: [], completed: [] };
 
       try {
-        const response = await fetch(`/api/user/missions?address=${address}`);
+        const response = await fetch(
+          `https://voisss.famile.xyz/api/missions/user/${address}`
+        );
         if (!response.ok) {
           throw new Error("Failed to fetch user missions");
         }
@@ -175,14 +179,17 @@ export function useAcceptMission() {
       }
 
       try {
-        const response = await fetch("/api/missions/accept", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${address}`,
-          },
-          body: JSON.stringify({ missionId }),
-        });
+        const response = await fetch(
+          "https://voisss.famile.xyz/api/missions/accept",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${address}`,
+            },
+            body: JSON.stringify({ missionId, userId: address }),
+          }
+        );
 
         if (!response.ok) {
           const error = await response.json();
@@ -235,7 +242,9 @@ export const useCompleteMission = () => {
       if (!address) throw new Error("Wallet not connected");
 
       // Get mission to access quality criteria
-      const missionRes = await fetch(`/api/missions/${missionId}`);
+      const missionRes = await fetch(
+        `https://voisss.famile.xyz/api/missions/${missionId}`
+      );
       if (!missionRes.ok) throw new Error("Mission not found");
       const mission = await missionRes.json();
 
@@ -270,14 +279,17 @@ export const useCompleteMission = () => {
         response.status = "approved"; // Auto-approved
       }
 
-      const submitRes = await fetch("/api/missions/submit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${address}`,
-        },
-        body: JSON.stringify(response),
-      });
+      const submitRes = await fetch(
+        "https://voisss.famile.xyz/api/missions/submit",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${address}`,
+          },
+          body: JSON.stringify(response),
+        }
+      );
 
       if (!submitRes.ok) {
         const error = await submitRes.json();
@@ -304,7 +316,7 @@ export const useMissionStats = () => {
   return useQuery({
     queryKey: queryKeys.missions.stats(address || ""),
     queryFn: async () => {
-      const response = await fetch("/api/missions");
+      const response = await fetch("https://voisss.famile.xyz/api/missions");
       if (!response.ok) {
         throw new Error("Failed to fetch missions stats");
       }

@@ -40,14 +40,20 @@ export default function MissionCreationForm({
         throw new Error("Wallet not connected");
       }
 
-      const response = await fetch("/api/missions/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${address}`,
-        },
-        body: JSON.stringify(data),
-      });
+      const response = await fetch(
+        "https://voisss.famile.xyz/api/missions/create",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${address}`,
+          },
+          body: JSON.stringify({
+            ...data,
+            createdBy: address,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const error = await response.json();
