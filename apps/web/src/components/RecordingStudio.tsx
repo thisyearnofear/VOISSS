@@ -42,7 +42,7 @@ import {
   getBlobDuration,
   saveForgeBlob,
   getForgeBlob,
-  clearForgeBlob
+  clearForgeBlob,
 } from "../lib/studio-db";
 
 interface RecordingStudioProps {
@@ -75,21 +75,53 @@ interface SaveResult {
   recording: ShareableRecording;
 }
 
-const AlchemyModeBadge = ({ mode }: { mode: 'standard' | 'ghost' | 'pro' | 'vip' }) => {
+const AlchemyModeBadge = ({
+  mode,
+}: {
+  mode: "standard" | "ghost" | "pro" | "vip";
+}) => {
   const config = {
-    standard: { label: 'Standard', icon: Zap, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
-    ghost: { label: 'Ghost', icon: UserX, color: 'text-gray-400', bg: 'bg-gray-500/10', border: 'border-gray-500/20' },
-    pro: { label: 'Pro', icon: Zap, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
-    vip: { label: 'VIP', icon: Crown, color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20' },
+    standard: {
+      label: "Standard",
+      icon: Zap,
+      color: "text-blue-400",
+      bg: "bg-blue-500/10",
+      border: "border-blue-500/20",
+    },
+    ghost: {
+      label: "Ghost",
+      icon: UserX,
+      color: "text-gray-400",
+      bg: "bg-gray-500/10",
+      border: "border-gray-500/20",
+    },
+    pro: {
+      label: "Pro",
+      icon: Zap,
+      color: "text-purple-400",
+      bg: "bg-purple-500/10",
+      border: "border-purple-500/20",
+    },
+    vip: {
+      label: "VIP",
+      icon: Crown,
+      color: "text-yellow-400",
+      bg: "bg-yellow-500/10",
+      border: "border-yellow-500/20",
+    },
   };
 
   const current = config[mode] || config.standard;
   const Icon = current.icon;
 
   return (
-    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${current.bg} ${current.border} shadow-sm animate-in zoom-in duration-300`}>
+    <div
+      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${current.bg} ${current.border} shadow-sm animate-in zoom-in duration-300`}
+    >
       <Icon className={`w-3 h-3 ${current.color}`} />
-      <span className={`text-[10px] font-black uppercase tracking-tighter ${current.color}`}>
+      <span
+        className={`text-[10px] font-black uppercase tracking-tighter ${current.color}`}
+      >
         {current.label}
       </span>
     </div>
@@ -173,7 +205,7 @@ export default function RecordingStudio({
 
   // Version selection state (now maps to ledger versions)
   const [selectedVersionIds, setSelectedVersionIds] = useState<Set<string>>(
-    new Set(['v0'])
+    new Set(["v0"])
   );
 
   // Sharing state
@@ -200,8 +232,8 @@ export default function RecordingStudio({
   const { activeMode } = useStudioSettings(universalAddress);
 
   // Studio workflow phases
-  type StudioPhase = 'recording' | 'laboratory' | 'forge';
-  const [studioPhase, setStudioPhase] = useState<StudioPhase>('recording');
+  type StudioPhase = "recording" | "laboratory" | "forge";
+  const [studioPhase, setStudioPhase] = useState<StudioPhase>("recording");
 
   // Forge phase state (derived from active version)
   const [activeForgeUrl, setActiveForgeUrl] = useState<string | null>(null);
@@ -233,11 +265,12 @@ export default function RecordingStudio({
       const savedBlob = await getForgeBlob();
       if (savedBlob && versions.length > 0) {
         // Find matching version by blob (fallback: use most recent non-original)
-        const matchingVersion = versions.find(v => v.blob === savedBlob) || 
-                               [...versions].reverse().find(v => v.id !== 'v0');
+        const matchingVersion =
+          versions.find((v) => v.blob === savedBlob) ||
+          [...versions].reverse().find((v) => v.id !== "v0");
         if (matchingVersion) {
           setActiveVersion(matchingVersion.id);
-          setStudioPhase('forge');
+          setStudioPhase("forge");
         }
       }
     };
@@ -287,7 +320,9 @@ export default function RecordingStudio({
   useEffect(() => {
     if (maxDurationReached) {
       setToastType("success");
-      setToastMessage("Maximum 60 second recording limit reached. Recording saved automatically!");
+      setToastMessage(
+        "Maximum 60 second recording limit reached. Recording saved automatically!"
+      );
     }
   }, [maxDurationReached]);
 
@@ -308,7 +343,7 @@ export default function RecordingStudio({
     try {
       const blob = await stopRecording();
       if (blob) {
-        setStudioPhase('laboratory');
+        setStudioPhase("laboratory");
         resetRecordingStates();
       }
     } catch (error) {
@@ -328,7 +363,7 @@ export default function RecordingStudio({
 
   const handleCancelRecording = useCallback(() => {
     cancelRecording();
-    setStudioPhase('recording');
+    setStudioPhase("recording");
     setRecordingTitle("");
     setRecordingDescription("");
     setRecordingTags([]);
@@ -409,7 +444,10 @@ export default function RecordingStudio({
         args: [
           ipfsResult.hash,
           metadata.title,
-          JSON.stringify({ description: metadata.description, tags: metadata.tags }),
+          JSON.stringify({
+            description: metadata.description,
+            tags: metadata.tags,
+          }),
           metadata.isPublic,
         ],
       });
@@ -417,16 +455,26 @@ export default function RecordingStudio({
       // Send transaction from Sub Account (gasless)
       const txHash = await provider?.request({
         method: "eth_sendTransaction",
-        params: [{
-          from: subAccountAddress,
-          to: contractAddress,
-          data: callData,
-        }],
+        params: [
+          {
+            from: subAccountAddress,
+            to: contractAddress,
+            data: callData,
+          },
+        ],
       });
 
       return { ipfsHash: ipfsResult.hash, txId: txHash };
     },
-    [subAccountAddress, hasSubAccount, isConnected, ipfsService, duration, contractAddress, provider]
+    [
+      subAccountAddress,
+      hasSubAccount,
+      isConnected,
+      ipfsService,
+      duration,
+      contractAddress,
+      provider,
+    ]
   );
 
   const saveRecordingWithGas = useCallback(
@@ -477,8 +525,11 @@ export default function RecordingStudio({
           args: [
             ipfsResult.hash,
             metadata.title,
-            JSON.stringify({ description: metadata.description, tags: metadata.tags }),
-            metadata.isPublic
+            JSON.stringify({
+              description: metadata.description,
+              tags: metadata.tags,
+            }),
+            metadata.isPublic,
           ],
         });
 
@@ -555,52 +606,54 @@ export default function RecordingStudio({
       if (missionId && mission) {
         // First save to IPFS (we need the hash for mission submission)
         if (!audioBlob) return;
-        
+
         // Use gasless save if available for the asset creation
-        const saveMethod = hasSubAccount ? saveRecordingToBase : saveRecordingWithGas;
-        
+        const saveMethod = hasSubAccount
+          ? saveRecordingToBase
+          : saveRecordingWithGas;
+
         const result = await saveMethod(audioBlob, {
           title: baseTitle,
-          description: recordingDescription || `Mission submission for: ${mission.title}`,
+          description:
+            recordingDescription || `Mission submission for: ${mission.title}`,
           isPublic: true, // Missions are usually public
           tags: ["mission-submission", missionId, ...recordingTags],
         });
-        
+
         // Submit to mission service
         await completeMissionMutation.mutateAsync({
-           missionId,
-           recordingId: result.ipfsHash,
-           location: {
-             city: "Web User", // Placeholder for geolocation if not available
-             country: "Internet",
-           },
-           context: "Recording Studio",
-           qualityScore: 85, // Placeholder - would be calculated by service
-           transcription: recordingDescription, // Use summary as transcription placeholder if needed
+          missionId,
+          recordingId: result.ipfsHash,
+          location: {
+            city: "Web User", // Placeholder for geolocation if not available
+            country: "Internet",
+          },
+          context: "Recording Studio",
+          transcription: recordingDescription, // Use summary as transcription placeholder if needed
         });
 
         setToastType("success");
         setToastMessage("Mission submitted successfully!");
-        
-        // Return early or continue based on flow? 
+
+        // Return early or continue based on flow?
         // Let's treat it as a success and show sharing
-        
+
         results.push({
           type: "mission-submission",
           success: true,
           error: null,
           ipfsHash: result.ipfsHash,
           recording: {
-             id: `mission-${Date.now()}`,
-             title: baseTitle,
-             ipfsHash: result.ipfsHash,
-             ipfsUrl: `https://ipfs.io/ipfs/${result.ipfsHash}`,
-             duration,
-             createdAt: new Date().toISOString(),
-          }
+            id: `mission-${Date.now()}`,
+            title: baseTitle,
+            ipfsHash: result.ipfsHash,
+            ipfsUrl: `https://ipfs.io/ipfs/${result.ipfsHash}`,
+            duration,
+            createdAt: new Date().toISOString(),
+          },
         });
-        
-         const newSavedRecordings = results
+
+        const newSavedRecordings = results
           .filter((r) => r.success)
           .map((r) => r.recording);
         setSavedRecordings(newSavedRecordings);
@@ -608,9 +661,10 @@ export default function RecordingStudio({
         return; // Exit here for mission flow
       }
 
-
       // Choose save method based on Sub Account availability
-      const saveMethod = hasSubAccount ? saveRecordingToBase : saveRecordingWithGas;
+      const saveMethod = hasSubAccount
+        ? saveRecordingToBase
+        : saveRecordingWithGas;
 
       // Save selected versions from ledger
       for (const versionId of selectedVersionIds) {
@@ -620,14 +674,19 @@ export default function RecordingStudio({
         try {
           const result = await saveMethod(version.blob, {
             title: version.label,
-            description: version.metadata.transformChain.length > 0
-              ? `${version.label}\nTransformations: ${version.metadata.transformChain.join(' → ')}\n${recordingDescription}`
-              : recordingDescription || version.label,
+            description:
+              version.metadata.transformChain.length > 0
+                ? `${
+                    version.label
+                  }\nTransformations: ${version.metadata.transformChain.join(
+                    " → "
+                  )}\n${recordingDescription}`
+                : recordingDescription || version.label,
             isPublic: true,
             tags: [
               ...version.metadata.transformChain,
-              version.metadata.language || '',
-              version.metadata.voiceId || '',
+              version.metadata.language || "",
+              version.metadata.voiceId || "",
               ...recordingTags,
             ].filter(Boolean),
           });
@@ -651,13 +710,13 @@ export default function RecordingStudio({
           results.push({
             type: version.source,
             success: false,
-            error: err instanceof Error ? err.message : 'Unknown error',
-            ipfsHash: '',
+            error: err instanceof Error ? err.message : "Unknown error",
+            ipfsHash: "",
             recording: {
               id: `${versionId}-${Date.now()}`,
               title: version.label,
-              ipfsHash: '',
-              ipfsUrl: '',
+              ipfsHash: "",
+              ipfsUrl: "",
               duration: version.metadata.duration,
               createdAt: new Date().toISOString(),
             },
@@ -671,7 +730,8 @@ export default function RecordingStudio({
       if (successCount > 0) {
         setToastType("success");
         setToastMessage(
-          `${successCount} version${successCount > 1 ? "s" : ""
+          `${successCount} version${
+            successCount > 1 ? "s" : ""
           } saved successfully!`
         );
 
@@ -695,17 +755,16 @@ export default function RecordingStudio({
 
       if (successCount === selectedVersionIds.size) {
         // Prioritize: Most recent non-original version for Forge
-        const versionToForge = [...selectedVersionIds]
-          .reverse()
-          .find(id => id !== 'v0') || 'v0';
+        const versionToForge =
+          [...selectedVersionIds].reverse().find((id) => id !== "v0") || "v0";
         handleSelectForForge(versionToForge);
       }
     } catch (error) {
       console.error("Error saving recordings:", error);
-       setToastType("error");
-       setToastMessage("Error saving recordings");
-      }
-      }, [
+      setToastType("error");
+      setToastMessage("Error saving recordings");
+    }
+  }, [
     audioBlob,
     selectedVersionIds,
     recordingTitle,
@@ -726,15 +785,18 @@ export default function RecordingStudio({
     signIn,
   ]);
 
-  const handleSelectForForge = useCallback(async (versionId: string) => {
-    const version = getVersion(versionId);
-    if (!version) {
-      console.error(`Version ${versionId} not found`);
-      return;
-    }
-    setActiveVersion(versionId);
-    setStudioPhase('forge');
-  }, [getVersion, setActiveVersion]);
+  const handleSelectForForge = useCallback(
+    async (versionId: string) => {
+      const version = getVersion(versionId);
+      if (!version) {
+        console.error(`Version ${versionId} not found`);
+        return;
+      }
+      setActiveVersion(versionId);
+      setStudioPhase("forge");
+    },
+    [getVersion, setActiveVersion]
+  );
 
   return (
     <div className="max-w-2xl mx-auto voisss-card shadow-2xl">
@@ -743,7 +805,7 @@ export default function RecordingStudio({
         <div className="absolute top-0 right-0 sm:right-4 flex justify-end">
           <AlchemyModeBadge mode={activeMode as any} />
         </div>
-        
+
         {mission && (
           <div className="mb-4 inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 rounded-full">
             <span className="text-indigo-400">🎯 Mission:</span>
@@ -760,8 +822,8 @@ export default function RecordingStudio({
               ? "Recording paused"
               : "Recording in progress..."
             : showSaveOptions
-              ? "Recording complete"
-              : "Ready to start recording"}
+            ? "Recording complete"
+            : "Ready to start recording"}
         </p>
       </div>
 
@@ -783,27 +845,37 @@ export default function RecordingStudio({
       />
 
       {/* PHASE 2: LABORATORY (Alchemy & Anchor) */}
-      {studioPhase === 'laboratory' && (
+      {studioPhase === "laboratory" && (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="text-center py-6 border-b border-[#2A2A2A]">
-            <h3 className="text-2xl font-black text-white tracking-tight uppercase">The Laboratory</h3>
-            <p className="text-sm text-gray-400">Alchemy Hub: Transform, Dub, and Secure your creation</p>
+            <h3 className="text-2xl font-black text-white tracking-tight uppercase">
+              The Laboratory
+            </h3>
+            <p className="text-sm text-gray-400">
+              Alchemy Hub: Transform, Dub, and Secure your creation
+            </p>
           </div>
 
           {/* Workflow Roadmap */}
           <div className="flex items-center justify-center gap-4 px-4 py-2 bg-[#0F0F0F] rounded-full w-fit mx-auto border border-[#2A2A2A] text-xs font-bold uppercase tracking-widest">
             <div className="flex items-center gap-2 text-gray-500">
-              <span className="w-5 h-5 rounded-full border border-gray-500 flex items-center justify-center text-[10px]">1</span>
+              <span className="w-5 h-5 rounded-full border border-gray-500 flex items-center justify-center text-[10px]">
+                1
+              </span>
               Recording
             </div>
             <div className="w-4 h-[1px] bg-[#2A2A2A]" />
             <div className="flex items-center gap-2 text-[#7C5DFA]">
-              <span className="w-5 h-5 rounded-full bg-[#7C5DFA] text-white flex items-center justify-center text-[10px]">2</span>
+              <span className="w-5 h-5 rounded-full bg-[#7C5DFA] text-white flex items-center justify-center text-[10px]">
+                2
+              </span>
               Alchemy & Anchor
             </div>
             <div className="w-4 h-[1px] bg-[#2A2A2A]" />
             <div className="flex items-center gap-2 text-gray-500 opacity-60">
-              <span className="w-5 h-5 rounded-full border border-gray-500 flex items-center justify-center text-[10px]">3</span>
+              <span className="w-5 h-5 rounded-full border border-gray-500 flex items-center justify-center text-[10px]">
+                3
+              </span>
               Studio Forge (Transcribe & Style)
             </div>
           </div>
@@ -840,7 +912,9 @@ export default function RecordingStudio({
           <div className="space-y-10 py-8 border-t border-[#2A2A2A]">
             <div>
               <h4 className="text-xl font-bold text-white mb-6 px-2 flex items-center gap-3">
-                <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C5DFA] to-[#9C88FF] flex items-center justify-center text-sm">1</span>
+                <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C5DFA] to-[#9C88FF] flex items-center justify-center text-sm">
+                  1
+                </span>
                 Voice Alchemy
               </h4>
               <AIVoicePanel
@@ -870,7 +944,9 @@ export default function RecordingStudio({
 
             <div>
               <h4 className="text-xl font-bold text-white mb-6 px-2 flex items-center gap-3">
-                <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-sm">2</span>
+                <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-sm">
+                  2
+                </span>
                 Global Dubbing
               </h4>
               <DubbingPanel
@@ -881,7 +957,7 @@ export default function RecordingStudio({
                   setSelectedVersionIds((prev) => {
                     const updated = new Set(prev);
                     // Find the new version by checking for most recent dub version
-                    const newVersionIds = versions.map(v => v.id);
+                    const newVersionIds = versions.map((v) => v.id);
                     const lastId = newVersionIds[newVersionIds.length - 1];
                     if (lastId) updated.add(lastId);
                     return updated;
@@ -916,17 +992,18 @@ export default function RecordingStudio({
               setToastMessage={setToastMessage}
               activeMode={activeMode}
             />
-            
+
             {mission && (
               <p className="text-center text-sm text-indigo-400 mt-2">
-                Clicking "Save & Anchor" will also submit this recording to the mission.
+                Clicking &quot;Save &amp; Anchor&quot; will also submit this
+                recording to the mission.
               </p>
             )}
 
             <button
               onClick={() => {
-                setActiveVersion('v0');
-                setStudioPhase('forge');
+                setActiveVersion("v0");
+                setStudioPhase("forge");
               }}
               className="w-full mt-4 py-3 text-xs text-gray-400 hover:text-white transition-colors"
             >
@@ -937,12 +1014,14 @@ export default function RecordingStudio({
       )}
 
       {/* PHASE 3: FORGE (Transcription & Export) */}
-      {studioPhase === 'forge' && activeForgeUrl && (
+      {studioPhase === "forge" && activeForgeUrl && (
         <div className="space-y-6 animate-in fade-in zoom-in-95 duration-500">
           <div className="flex items-center justify-between border-b border-[#2A2A2A] pb-4">
             <div>
               <h3 className="text-xl font-bold text-white">Studio Forge</h3>
-              <p className="text-xs text-gray-400">Design and export your final assets</p>
+              <p className="text-xs text-gray-400">
+                Design and export your final assets
+              </p>
             </div>
 
             {/* Workflow Roadmap (Small version for header) */}
@@ -956,12 +1035,14 @@ export default function RecordingStudio({
               </div>
               <div className="w-3 h-[1px] bg-[#2A2A2A]" />
               <div className="flex items-center gap-1.5 text-[#7C5DFA]">
-                <span className="w-4 h-4 rounded-full bg-[#7C5DFA] text-white flex items-center justify-center text-[8px]">3</span>
+                <span className="w-4 h-4 rounded-full bg-[#7C5DFA] text-white flex items-center justify-center text-[8px]">
+                  3
+                </span>
                 Forge
               </div>
             </div>
             <button
-              onClick={() => setStudioPhase('laboratory')}
+              onClick={() => setStudioPhase("laboratory")}
               className="px-3 py-1.5 rounded-lg bg-[#2A2A2A] text-xs text-gray-300 hover:bg-[#3A3A3A] transition-colors"
             >
               ← Back to Lab
@@ -981,7 +1062,7 @@ export default function RecordingStudio({
               audioBlob={activeVersion.blob}
               initialTemplateId={initialTranscriptTemplateId}
               autoFocus={initialMode === "transcript"}
-              languageHint={activeVersion.metadata.language || 'en'}
+              languageHint={activeVersion.metadata.language || "en"}
             />
           )}
 
@@ -989,7 +1070,7 @@ export default function RecordingStudio({
             <p className="text-sm text-gray-400">Ready to start fresh?</p>
             <button
               onClick={() => {
-                setStudioPhase('recording');
+                setStudioPhase("recording");
                 cancelRecording();
               }}
               className="px-4 py-2 rounded-lg bg-red-900/20 text-red-400 text-sm border border-red-900/30 hover:bg-red-900/30 transition-all"
