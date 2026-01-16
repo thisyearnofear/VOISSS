@@ -53,7 +53,8 @@ export const PLATFORM_CONFIG: PlatformConfigType = {
     chain: 'base',
   },
   creatorRequirements: {
-    minTokenBalance: BigInt(process.env.NEXT_PUBLIC_CREATOR_MIN_BALANCE || '1000000'), // 1M papajams by default
+    // Balance in wei (1M tokens * 10^18 decimals = 1000000000000000000000000 wei)
+    minTokenBalance: BigInt(process.env.NEXT_PUBLIC_CREATOR_MIN_BALANCE || '1000000000000000000000000'), // 1M papajams by default
     minTokenDecimals: parseInt(process.env.NEXT_PUBLIC_REWARD_TOKEN_DECIMALS || '18'),
   },
   rewards: {
