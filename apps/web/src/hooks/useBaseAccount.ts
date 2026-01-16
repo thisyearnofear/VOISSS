@@ -105,7 +105,9 @@ export function useBaseAccount(): UseBaseAccountReturn {
     if (!provider) return;
 
     try {
-      console.log('🔍 Checking for Sub Account...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 Checking for Sub Account...');
+      }
 
       const result = await provider.request({
         method: 'wallet_getSubAccounts',
@@ -117,7 +119,9 @@ export function useBaseAccount(): UseBaseAccountReturn {
 
       if (result.subAccounts && result.subAccounts.length > 0) {
         const subAccount = result.subAccounts[0];
-        console.log('✅ Sub Account found:', subAccount.address);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Sub Account found:', subAccount.address);
+        }
         setSubAccountAddress(subAccount.address);
         setHasSubAccount(true);
         setStatus("Connected with Sub Account");
@@ -125,13 +129,19 @@ export function useBaseAccount(): UseBaseAccountReturn {
         // Store Sub Account address
         await crossPlatformStorage.setItem(SUB_ACCOUNT_KEY, subAccount.address);
       } else {
-        console.log('⚠️ No Sub Account found');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('⚠️ No Sub Account found');
+        }
         setHasSubAccount(false);
         setStatus("Connected (no Sub Account)");
       }
     } catch (err) {
-      console.error("❌ Failed to check Sub Account:", err);
-      setSubAccountError("Failed to check Sub Account");
+      // Silently handle Sub Account check failures - they're optional
+      if (process.env.NODE_ENV === 'development') {
+        console.warn("Sub Account check failed:", err);
+      }
+      setHasSubAccount(false);
+      setStatus("Connected (no Sub Account)");
     }
   };
 
@@ -196,7 +206,9 @@ export function useBaseAccount(): UseBaseAccountReturn {
     setSubAccountError(null);
 
     try {
-      console.log('🔨 Creating Sub Account...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔨 Creating Sub Account...');
+      }
 
       const subAccount = await provider.request({
         method: 'wallet_addSubAccount',
@@ -207,7 +219,9 @@ export function useBaseAccount(): UseBaseAccountReturn {
         }],
       }) as { address: string };
 
-      console.log('✅ Sub Account created:', subAccount.address);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Sub Account created:', subAccount.address);
+      }
       setSubAccountAddress(subAccount.address);
       setHasSubAccount(true);
       setStatus("Connected with Sub Account");

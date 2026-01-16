@@ -102,9 +102,10 @@ export default function MissionCreationForm({
   // Show eligibility check if still checking or eligibility not met
   const meetsVoisssRequirement = tier && tier !== 'none';
   const isCheckingEligibilityStatus = isCheckingEligibility || isLoadingVoisss;
-  const meetsAllRequirements = isCreatorEligible && meetsVoisssRequirement;
+  // Either token requirement is sufficient (OR, not AND)
+  const meetsAnyRequirement = isCreatorEligible || meetsVoisssRequirement;
 
-  if (isCheckingEligibilityStatus || !meetsAllRequirements) {
+  if (isCheckingEligibilityStatus || !meetsAnyRequirement) {
     return (
       <div className="voisss-card">
         <EligibilityCheck />

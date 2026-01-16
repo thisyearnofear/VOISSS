@@ -11,10 +11,10 @@ interface EligibilityCheckProps {
 }
 
 export default function EligibilityCheck({ onContinue }: EligibilityCheckProps) {
-  const { isConnected, isCheckingEligibility, address, isCreatorEligible } = useAuth();
+  const { isConnected, isCheckingEligibility, address, isCreatorEligible, refreshCreatorStatus, eligibilityError } = useAuth();
   
   // Fetch $voisss balance for platform tier requirement
-  const { balance: voisssBalance, tier, isLoading: isLoadingVoisss } = useTokenAccess({
+  const { balance: voisssBalance, tier, isLoading: isLoadingVoisss, refreshBalance, error: voisssError } = useTokenAccess({
     address,
   });
 
@@ -27,6 +27,10 @@ export default function EligibilityCheck({ onContinue }: EligibilityCheckProps) 
     );
   }
 
+  // Show error state with retry if both checks have errors
+  const hasErrors = eligibilityError || voisssError;
+  const bothFailed = eligibilityError && voisssError;
+
   if (isCheckingEligibility || isLoadingVoisss) {
     return (
       <div className="voisss-card text-center py-8">
@@ -34,6 +38,40 @@ export default function EligibilityCheck({ onContinue }: EligibilityCheckProps) 
           <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
         </div>
         <p className="text-gray-400">Checking your eligibility...</p>
+        {hasErrors && (
+          <div className="mt-4 text-center">
+            <p className="text-yellow-400 text-sm mb-2">This is taking longer than usual...</p>
+            <button
+              onClick={() => {
+                if (refreshCreatorStatus) refreshCreatorStatus();
+                if (refreshBalance) refreshBalance();
+              }}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-white transition-colors"
+            >
+              Retry Now
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // If both checks failed, show error with retry
+  if (bothFailed) {
+    return (
+      <div className="voisss-card text-center py-8">
+        <div className="text-red-400 text-4xl mb-4">⚠️</div>
+        <h3 className="text-lg font-semibold text-white mb-2">Unable to Check Eligibility</h3>
+        <p className="text-gray-400 mb-4">We couldn't fetch your token balances. This might be due to network issues.</p>
+        <button
+          onClick={() => {
+            if (refreshCreatorStatus) refreshCreatorStatus();
+            if (refreshBalance) refreshBalance();
+          }}
+          className="px-6 py-3 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-lg text-white font-semibold hover:opacity-90 transition-opacity"
+        >
+          Retry Balance Check
+        </button>
       </div>
     );
   }

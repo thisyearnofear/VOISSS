@@ -121,6 +121,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setEligibilityError(null);
 
     try {
+      // Add timeout to prevent infinite loading
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
       const response = await fetch('/api/user/token-balance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -128,7 +132,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           address: addressToCheck,
           tokenAddress: PLATFORM_CONFIG.papajamsToken.address,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error('Failed to fetch token balance');
@@ -137,8 +144,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
       setCreatorBalance(BigInt(data.balance || 0));
     } catch (err) {
-      console.error('Error fetching creator balance:', err);
-      setEligibilityError(err instanceof Error ? err.message : 'Unknown error');
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.warn('Creator balance check timed out');
+        setEligibilityError('Balance check timed out');
+      } else {
+        console.error('Error fetching creator balance:', err);
+        setEligibilityError(err instanceof Error ? err.message : 'Unknown error');
+      }
       setCreatorBalance(BigInt(0));
     } finally {
       setIsCheckingEligibility(false);

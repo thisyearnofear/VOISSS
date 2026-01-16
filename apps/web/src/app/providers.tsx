@@ -63,7 +63,9 @@ export function BaseProvider({ children }: { children: React.ReactNode }) {
         if (providerInstance) {
           setSdk(sdkInstance);
           setProvider(providerInstance);
-          console.log('Base Account SDK initialized successfully');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Base Account SDK initialized successfully');
+          }
         } else {
           throw new Error('Provider initialization failed');
         }

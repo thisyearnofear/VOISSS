@@ -114,12 +114,19 @@ export function useTokenAccess(options: UseTokenAccessOptions = {}): UseTokenAcc
       setError(null);
       setBalanceStatus('loading');
 
+      // Add timeout to prevent infinite loading
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
       // Use unified balance endpoint
       const response = await fetch('/api/user/token-balance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ address, tokenAddress, chainId }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const data = await response.json();
 
@@ -156,9 +163,17 @@ export function useTokenAccess(options: UseTokenAccessOptions = {}): UseTokenAcc
       const error = err instanceof Error ? err : new Error('Failed to fetch balance');
       setError(error);
       
-      // NEW: Check if we have recent successful data (use cache)
-      if (lastSuccessfulFetch && Date.now() - lastSuccessfulFetch.getTime() < 5 * 60 * 1000) {
-        // Mark as stale but keep the balance
+      // Handle timeout specifically
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.warn('[useTokenAccess] Balance fetch timed out');
+        setBalanceStatus('error');
+        setFallbackInfo({
+          type: 'retry',
+          message: 'Balance check timed out. Please try again.',
+          url: undefined,
+        });
+      } else if (lastSuccessfulFetch && Date.now() - lastSuccessfulFetch.getTime() < 5 * 60 * 1000) {
+        // Check if we have recent successful data (use cache)
         setBalanceStatus('stale');
         setFallbackInfo({
           type: 'retry',
