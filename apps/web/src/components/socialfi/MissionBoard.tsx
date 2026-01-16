@@ -54,7 +54,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
 
   const { data: userMissionsData } = useUserMissions();
   const acceptedMissionIds = new Set(
-    userMissionsData?.active.map((m) => m.id) || []
+    userMissionsData?.active.map((m: Mission) => m.id) || []
   );
 
   const acceptMissionMutation = useAcceptMission();

@@ -1,20 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createMissionServiceWithMemoryDatabase } from '@voisss/shared/server';
-import { MissionResponse } from '@voisss/shared/types/socialfi';
+import { NextRequest, NextResponse } from "next/server";
+import { getMissionService } from "@voisss/shared/server";
+import { MissionResponse } from "@voisss/shared/types/socialfi";
 
-const missionService = createMissionServiceWithMemoryDatabase();
+const missionService = getMissionService();
 
 /**
  * GET /api/admin/submissions
- * 
+ *
  * List all submissions with optional filters
- * 
+ *
  * Query params:
  * - status: 'approved' | 'flagged' | 'removed'
  * - missionId: string (filter by mission)
  * - userId: string (filter by user wallet)
  * - after: ISO date string (submissions after this date)
- * 
+ *
  * Returns:
  * {
  *   submissions: MissionResponse[],
@@ -29,23 +29,23 @@ export async function GET(request: NextRequest) {
     // Build filters
     const filters: Parameters<typeof missionService.getAllSubmissions>[0] = {};
 
-    if (searchParams.has('status')) {
-      const status = searchParams.get('status') as MissionResponse['status'];
-      if (['approved', 'flagged', 'removed'].includes(status)) {
+    if (searchParams.has("status")) {
+      const status = searchParams.get("status") as MissionResponse["status"];
+      if (["approved", "flagged", "removed"].includes(status)) {
         filters.status = status;
       }
     }
 
-    if (searchParams.has('missionId')) {
-      filters.missionId = searchParams.get('missionId') || undefined;
+    if (searchParams.has("missionId")) {
+      filters.missionId = searchParams.get("missionId") || undefined;
     }
 
-    if (searchParams.has('userId')) {
-      filters.userId = searchParams.get('userId') || undefined;
+    if (searchParams.has("userId")) {
+      filters.userId = searchParams.get("userId") || undefined;
     }
 
-    if (searchParams.has('after')) {
-      const afterStr = searchParams.get('after');
+    if (searchParams.has("after")) {
+      const afterStr = searchParams.get("after");
       if (afterStr) {
         filters.after = new Date(afterStr);
       }
@@ -62,8 +62,9 @@ export async function GET(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('Error fetching submissions:', error);
-    const message = error instanceof Error ? error.message : 'Failed to fetch submissions';
+    console.error("Error fetching submissions:", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch submissions";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
 
     if (!submissionId) {
       return NextResponse.json(
-        { error: 'Missing submissionId' },
+        { error: "Missing submissionId" },
         { status: 400 }
       );
     }
@@ -89,10 +90,10 @@ export async function POST(request: NextRequest) {
     let updated: MissionResponse;
 
     switch (action) {
-      case 'flag': {
+      case "flag": {
         if (!reason) {
           return NextResponse.json(
-            { error: 'Missing reason for flag' },
+            { error: "Missing reason for flag" },
             { status: 400 }
           );
         }
@@ -100,10 +101,10 @@ export async function POST(request: NextRequest) {
         break;
       }
 
-      case 'remove': {
+      case "remove": {
         if (!reason) {
           return NextResponse.json(
-            { error: 'Missing reason for removal' },
+            { error: "Missing reason for removal" },
             { status: 400 }
           );
         }
@@ -123,8 +124,9 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('Admin action error:', error);
-    const message = error instanceof Error ? error.message : 'Failed to perform action';
+    console.error("Admin action error:", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to perform action";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

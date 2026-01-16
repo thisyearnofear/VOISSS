@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPublicClient, http } from "viem";
 import { base } from "viem/chains";
-import { createMissionServiceWithMemoryDatabase } from "@voisss/shared/server";
+import { getMissionService } from "@voisss/shared/server";
 import {
   PLATFORM_CONFIG,
   meetsCreatorRequirements,
@@ -9,7 +9,7 @@ import {
 import { getTierForBalance } from "@voisss/shared/config/tokenAccess";
 import { QualityCriteria } from "@voisss/shared/types/socialfi";
 
-const missionService = createMissionServiceWithMemoryDatabase();
+const missionService = getMissionService();
 
 // Base reward by difficulty
 const REWARD_BY_DIFFICULTY = {

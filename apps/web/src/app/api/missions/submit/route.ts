@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createMissionServiceWithMemoryDatabase } from '@voisss/shared/server';
-import { MissionResponse } from '@voisss/shared/types/socialfi';
+import { NextRequest, NextResponse } from "next/server";
+import { getMissionService } from "@voisss/shared/server";
+import { MissionResponse } from "@voisss/shared/types/socialfi";
 
-const missionService = createMissionServiceWithMemoryDatabase();
+const missionService = getMissionService();
 
 /**
  * POST /api/missions/submit
  *
  * User submits their recording for a mission
- * 
+ *
  * Request body:
  * {
  *   missionId: string,
@@ -22,7 +22,7 @@ const missionService = createMissionServiceWithMemoryDatabase();
  *   isAnonymized: boolean,
  *   voiceObfuscated: boolean
  * }
- * 
+ *
  * Response:
  * {
  *   success: true,
@@ -53,21 +53,30 @@ interface MissionSubmitRequest {
 export async function POST(request: NextRequest) {
   try {
     // Extract address from Bearer token for verification
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const tokenAddress = authHeader.substring(7);
-    if (!tokenAddress?.startsWith('0x') || tokenAddress.length !== 42) {
-      return NextResponse.json({ error: 'Invalid address' }, { status: 401 });
+    if (!tokenAddress?.startsWith("0x") || tokenAddress.length !== 42) {
+      return NextResponse.json({ error: "Invalid address" }, { status: 401 });
     }
 
     // Parse and validate request
     const body: MissionSubmitRequest = await request.json();
 
     // Validate required fields
-    const requiredFields = ['missionId', 'userId', 'recordingId', 'location', 'context', 'participantConsent', 'isAnonymized', 'voiceObfuscated'];
+    const requiredFields = [
+      "missionId",
+      "userId",
+      "recordingId",
+      "location",
+      "context",
+      "participantConsent",
+      "isAnonymized",
+      "voiceObfuscated",
+    ];
     for (const field of requiredFields) {
       if (!(field in body)) {
         return NextResponse.json(
@@ -80,7 +89,7 @@ export async function POST(request: NextRequest) {
     // Validate address matches token
     if (body.userId.toLowerCase() !== tokenAddress.toLowerCase()) {
       return NextResponse.json(
-        { error: 'Address mismatch: userId must match authorization token' },
+        { error: "Address mismatch: userId must match authorization token" },
         { status: 403 }
       );
     }
@@ -97,7 +106,7 @@ export async function POST(request: NextRequest) {
     // Validate mission is still active
     if (!mission.isActive) {
       return NextResponse.json(
-        { error: 'Mission is no longer active' },
+        { error: "Mission is no longer active" },
         { status: 410 }
       );
     }
@@ -105,7 +114,7 @@ export async function POST(request: NextRequest) {
     // Validate mission has not expired
     if (mission.expiresAt < new Date()) {
       return NextResponse.json(
-        { error: 'Mission has expired' },
+        { error: "Mission has expired" },
         { status: 410 }
       );
     }
@@ -113,13 +122,13 @@ export async function POST(request: NextRequest) {
     // Validate location fields
     if (!body.location.city || !body.location.country) {
       return NextResponse.json(
-        { error: 'Location must include city and country' },
+        { error: "Location must include city and country" },
         { status: 400 }
       );
     }
 
     // Create submission with defaults
-    const submissionData: Omit<MissionResponse, 'id' | 'submittedAt'> = {
+    const submissionData: Omit<MissionResponse, "id" | "submittedAt"> = {
       missionId: body.missionId,
       userId: body.userId,
       recordingId: body.recordingId,
@@ -130,11 +139,13 @@ export async function POST(request: NextRequest) {
       consentProof: body.consentProof,
       isAnonymized: body.isAnonymized,
       voiceObfuscated: body.voiceObfuscated,
-      status: 'approved', // Auto-approved
+      status: "approved", // Auto-approved
     };
 
     // Submit via service
-    const submission = await missionService.submitMissionResponse(submissionData);
+    const submission = await missionService.submitMissionResponse(
+      submissionData
+    );
 
     return NextResponse.json(
       {
@@ -144,8 +155,11 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('Mission submission error:', error);
-    const message = error instanceof Error ? error.message : 'Failed to submit mission response';
+    console.error("Mission submission error:", error);
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to submit mission response";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
