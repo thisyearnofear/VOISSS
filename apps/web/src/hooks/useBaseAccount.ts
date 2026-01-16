@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useBase } from "../app/providers";
 import { crossPlatformStorage } from "@voisss/shared";
 
-const STORAGE_KEY = 'voisss_base_account_address';
-const SUB_ACCOUNT_KEY = 'voisss_sub_account_address';
+const STORAGE_KEY = "voisss_base_account_address";
+const SUB_ACCOUNT_KEY = "voisss_sub_account_address";
 
 interface UseBaseAccountReturn {
   // Connection state
@@ -13,7 +13,7 @@ interface UseBaseAccountReturn {
   isConnecting: boolean;
   universalAddress: string | null;
   subAccountAddress: string | null;
-  connectionState: 'idle' | 'checking' | 'connected' | 'disconnected';
+  connectionState: "idle" | "checking" | "connected" | "disconnected";
 
   // Actions
   connect: () => Promise<void>;
@@ -37,9 +37,13 @@ export function useBaseAccount(): UseBaseAccountReturn {
   const context = useBase();
   const provider = context?.provider ?? null;
 
-  const [connectionState, setConnectionState] = useState<'idle' | 'checking' | 'connected' | 'disconnected'>('checking');
+  const [connectionState, setConnectionState] = useState<
+    "idle" | "checking" | "connected" | "disconnected"
+  >("checking");
   const [universalAddress, setUniversalAddress] = useState<string | null>(null);
-  const [subAccountAddress, setSubAccountAddress] = useState<string | null>(null);
+  const [subAccountAddress, setSubAccountAddress] = useState<string | null>(
+    null
+  );
   const [isConnecting, setIsConnecting] = useState(false);
   const [status, setStatus] = useState("Checking connection...");
   const [error, setError] = useState<string | null>(null);
@@ -49,30 +53,78 @@ export function useBaseAccount(): UseBaseAccountReturn {
   const [isCreatingSubAccount, setIsCreatingSubAccount] = useState(false);
   const [subAccountError, setSubAccountError] = useState<string | null>(null);
 
-  // Check for existing connection on mount
-  useEffect(() => {
-    checkExistingConnection();
-  }, [provider]);
+  const checkForSubAccount = useCallback(
+    async (userAddress: string) => {
+      if (!provider) return;
+
+      try {
+        if (process.env.NODE_ENV === "development") {
+          console.log("🔍 Checking for Sub Account...");
+        }
+
+        const result = (await provider.request({
+          method: "wallet_getSubAccounts",
+          params: [
+            {
+              account: userAddress,
+              domain:
+                typeof window !== "undefined" ? window.location.origin : "",
+            },
+          ],
+        })) as { subAccounts: Array<{ address: string }> };
+
+        if (result.subAccounts && result.subAccounts.length > 0) {
+          const subAccount = result.subAccounts[0];
+          if (process.env.NODE_ENV === "development") {
+            console.log("✅ Sub Account found:", subAccount.address);
+          }
+          setSubAccountAddress(subAccount.address);
+          setHasSubAccount(true);
+          setStatus("Connected with Sub Account");
+
+          // Store Sub Account address
+          await crossPlatformStorage.setItem(
+            SUB_ACCOUNT_KEY,
+            subAccount.address
+          );
+        } else {
+          if (process.env.NODE_ENV === "development") {
+            console.log("⚠️ No Sub Account found");
+          }
+          setHasSubAccount(false);
+          setStatus("Connected (no Sub Account)");
+        }
+      } catch (err) {
+        // Silently handle Sub Account check failures - they're optional
+        if (process.env.NODE_ENV === "development") {
+          console.warn("Sub Account check failed:", err);
+        }
+        setHasSubAccount(false);
+        setStatus("Connected (no Sub Account)");
+      }
+    },
+    [provider]
+  );
 
   const checkExistingConnection = useCallback(async () => {
     if (!provider) return;
 
     try {
-      setConnectionState('checking');
+      setConnectionState("checking");
 
-      const accounts = await provider.request({
+      const accounts = (await provider.request({
         method: "eth_accounts",
         params: [],
-      }) as string[];
+      })) as string[];
 
       if (accounts.length > 0) {
         const universalAddr = accounts[0];
         setUniversalAddress(universalAddr);
-        setConnectionState('connected');
+        setConnectionState("connected");
         setStatus("Connected");
 
         // Persist to localStorage
-        if (typeof window !== 'undefined') {
+        if (typeof window !== "undefined") {
           localStorage.setItem(STORAGE_KEY, universalAddr);
         }
 
@@ -80,70 +132,31 @@ export function useBaseAccount(): UseBaseAccountReturn {
         await checkForSubAccount(universalAddr);
       } else {
         // Check localStorage as fallback
-        if (typeof window !== 'undefined') {
+        if (typeof window !== "undefined") {
           const storedAddress = localStorage.getItem(STORAGE_KEY);
           if (storedAddress) {
             setUniversalAddress(storedAddress);
-            setConnectionState('connected');
+            setConnectionState("connected");
             setStatus("Connected");
             await checkForSubAccount(storedAddress);
             return;
           }
         }
 
-        setConnectionState('disconnected');
+        setConnectionState("disconnected");
         setStatus("Not connected");
       }
     } catch (err) {
       console.warn("Error checking connection:", err);
-      setConnectionState('disconnected');
+      setConnectionState("disconnected");
       setStatus("Not connected");
     }
-  }, [provider]);
+  }, [provider, checkForSubAccount]);
 
-  const checkForSubAccount = async (userAddress: string) => {
-    if (!provider) return;
-
-    try {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 Checking for Sub Account...');
-      }
-
-      const result = await provider.request({
-        method: 'wallet_getSubAccounts',
-        params: [{
-          account: userAddress,
-          domain: typeof window !== 'undefined' ? window.location.origin : '',
-        }]
-      }) as { subAccounts: Array<{ address: string }> };
-
-      if (result.subAccounts && result.subAccounts.length > 0) {
-        const subAccount = result.subAccounts[0];
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ Sub Account found:', subAccount.address);
-        }
-        setSubAccountAddress(subAccount.address);
-        setHasSubAccount(true);
-        setStatus("Connected with Sub Account");
-
-        // Store Sub Account address
-        await crossPlatformStorage.setItem(SUB_ACCOUNT_KEY, subAccount.address);
-      } else {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('⚠️ No Sub Account found');
-        }
-        setHasSubAccount(false);
-        setStatus("Connected (no Sub Account)");
-      }
-    } catch (err) {
-      // Silently handle Sub Account check failures - they're optional
-      if (process.env.NODE_ENV === 'development') {
-        console.warn("Sub Account check failed:", err);
-      }
-      setHasSubAccount(false);
-      setStatus("Connected (no Sub Account)");
-    }
-  };
+  // Check for existing connection on mount
+  useEffect(() => {
+    checkExistingConnection();
+  }, [checkExistingConnection]);
 
   const connect = useCallback(async () => {
     if (isConnecting || !provider) return;
@@ -153,36 +166,35 @@ export function useBaseAccount(): UseBaseAccountReturn {
     setStatus("Connecting...");
 
     try {
-      const accounts = await provider.request({
+      const accounts = (await provider.request({
         method: "eth_requestAccounts",
         params: [],
-      }) as string[];
+      })) as string[];
 
       const universalAddr = accounts[0];
       setUniversalAddress(universalAddr);
-      setConnectionState('connected');
+      setConnectionState("connected");
       setStatus("Connected");
 
       // Persist to localStorage
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         localStorage.setItem(STORAGE_KEY, universalAddr);
       }
 
       // Check for existing Sub Account
       await checkForSubAccount(universalAddr);
-
-    } catch (err: any) {
+    } catch (err) {
       console.error("Connection failed:", err);
-      setError(err.message || "Connection failed");
+      setError(err instanceof Error ? err.message : "Connection failed");
       setStatus("Connection failed");
-      setConnectionState('disconnected');
+      setConnectionState("disconnected");
     } finally {
       setIsConnecting(false);
     }
-  }, [isConnecting, provider]);
+  }, [isConnecting, provider, checkForSubAccount]);
 
   const disconnect = useCallback(async () => {
-    setConnectionState('disconnected');
+    setConnectionState("disconnected");
     setUniversalAddress(null);
     setSubAccountAddress(null);
     setHasSubAccount(false);
@@ -190,7 +202,7 @@ export function useBaseAccount(): UseBaseAccountReturn {
     setError(null);
 
     // Clear storage
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(SUB_ACCOUNT_KEY);
     }
@@ -206,21 +218,23 @@ export function useBaseAccount(): UseBaseAccountReturn {
     setSubAccountError(null);
 
     try {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔨 Creating Sub Account...');
+      if (process.env.NODE_ENV === "development") {
+        console.log("🔨 Creating Sub Account...");
       }
 
-      const subAccount = await provider.request({
-        method: 'wallet_addSubAccount',
-        params: [{
-          account: {
-            type: 'create',
+      const subAccount = (await provider.request({
+        method: "wallet_addSubAccount",
+        params: [
+          {
+            account: {
+              type: "create",
+            },
           },
-        }],
-      }) as { address: string };
+        ],
+      })) as { address: string };
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ Sub Account created:', subAccount.address);
+      if (process.env.NODE_ENV === "development") {
+        console.log("✅ Sub Account created:", subAccount.address);
       }
       setSubAccountAddress(subAccount.address);
       setHasSubAccount(true);
@@ -228,10 +242,11 @@ export function useBaseAccount(): UseBaseAccountReturn {
 
       // Store Sub Account address
       await crossPlatformStorage.setItem(SUB_ACCOUNT_KEY, subAccount.address);
-
-    } catch (err: any) {
+    } catch (err) {
       console.error("❌ Failed to create Sub Account:", err);
-      setSubAccountError(err.message || "Failed to create Sub Account");
+      setSubAccountError(
+        err instanceof Error ? err.message : "Failed to create Sub Account"
+      );
       throw err;
     } finally {
       setIsCreatingSubAccount(false);
@@ -241,11 +256,11 @@ export function useBaseAccount(): UseBaseAccountReturn {
   const refreshSubAccount = useCallback(async () => {
     if (!universalAddress) return;
     await checkForSubAccount(universalAddress);
-  }, [universalAddress, provider]);
+  }, [universalAddress, checkForSubAccount]);
 
   return {
     // Connection state
-    isConnected: connectionState === 'connected',
+    isConnected: connectionState === "connected",
     isConnecting,
     universalAddress,
     subAccountAddress,

@@ -69,7 +69,8 @@ export default function MissionCreationForm({
     const newErrors: Record<string, string> = {};
 
     if (!formData.title.trim()) newErrors.title = "Title is required";
-    if (!formData.description.trim()) newErrors.description = "Description is required";
+    if (!formData.description.trim())
+      newErrors.description = "Description is required";
     if (formData.targetDuration < PLATFORM_CONFIG.missions.minDuration) {
       newErrors.targetDuration = `Minimum duration is ${PLATFORM_CONFIG.missions.minDuration}s`;
     }
@@ -88,10 +89,13 @@ export default function MissionCreationForm({
     }
   };
 
-  const handleFieldChange = (field: keyof FormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleFieldChange = <K extends keyof FormData>(
+    field: K,
+    value: FormData[K]
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors(prev => {
+      setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
@@ -100,7 +104,7 @@ export default function MissionCreationForm({
   };
 
   // Show eligibility check if still checking or eligibility not met
-  const meetsVoisssRequirement = tier && tier !== 'none';
+  const meetsVoisssRequirement = tier && tier !== "none";
   const isCheckingEligibilityStatus = isCheckingEligibility || isLoadingVoisss;
   // Either token requirement is sufficient (OR, not AND)
   const meetsAnyRequirement = isCreatorEligible || meetsVoisssRequirement;

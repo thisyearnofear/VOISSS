@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   type TokenTier,
   getTierForBalance,
@@ -12,7 +12,7 @@ import {
   getAvailableTemplates,
   applyUserBranding,
   VOISSS_TOKEN_ACCESS,
-} from '../config/tokenAccess';
+} from "../config/tokenAccess";
 
 export type { TokenTier };
 
@@ -38,11 +38,11 @@ export interface UseTokenAccessResult {
   lastUpdated: Date | null;
 
   // NEW: Balance check status for UI feedback
-  balanceStatus: 'loading' | 'success' | 'stale' | 'fallback' | 'error';
-  
+  balanceStatus: "loading" | "success" | "stale" | "fallback" | "error";
+
   // NEW: Info about why balance check failed (if applicable)
   fallbackInfo?: {
-    type: 'cached' | 'manual_verify' | 'retry';
+    type: "cached" | "manual_verify" | "retry";
     message: string;
     url?: string;
   };
@@ -60,23 +60,33 @@ export interface UseTokenAccessResult {
 
   // Branding functions
   getAvailableTemplates(hasPapaJamsToken?: boolean): any[];
-  applyUserBranding(template: any, userProfile?: { username?: string; pfpUrl?: string; displayName?: string; hasPapaJamsToken?: boolean }): any;
+  applyUserBranding(
+    template: any,
+    userProfile?: {
+      username?: string;
+      pfpUrl?: string;
+      displayName?: string;
+      hasPapaJamsToken?: boolean;
+    }
+  ): any;
 }
 
 /**
  * Unified hook for token access checks
  * Replaces scattered balance checks across the app
- * 
+ *
  * Usage:
  *   const { tier, balance, canAccess, refreshBalance } = useTokenAccess({
  *     address: userAddress,
  *   });
  */
-export function useTokenAccess(options: UseTokenAccessOptions = {}): UseTokenAccessResult {
+export function useTokenAccess(
+  options: UseTokenAccessOptions = {}
+): UseTokenAccessResult {
   const {
     address = null,
     tokenAddress = process.env.NEXT_PUBLIC_VOISSS_TOKEN_ADDRESS,
-    chainId = parseInt(process.env.NEXT_PUBLIC_BASE_CHAIN_ID || '84532'),
+    chainId = parseInt(process.env.NEXT_PUBLIC_BASE_CHAIN_ID || "84532"),
     refreshInterval = 60000, // 1 minute
     autoRefresh = true,
     fid,
@@ -90,10 +100,12 @@ export function useTokenAccess(options: UseTokenAccessOptions = {}): UseTokenAcc
   const [error, setError] = useState<Error | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [hasPapaJamsToken, setHasPapaJamsToken] = useState(false);
-  
+
   // NEW: Balance check status tracking
-  const [lastSuccessfulFetch, setLastSuccessfulFetch] = useState<Date | null>(null);
-  const [balanceStatus, setBalanceStatus] = useState<'loading' | 'success' | 'stale' | 'fallback' | 'error'>('loading');
+  const lastSuccessfulFetch = useRef<Date | null>(null);
+  const [balanceStatus, setBalanceStatus] = useState<
+    "loading" | "success" | "stale" | "fallback" | "error"
+  >("loading");
   const [fallbackInfo, setFallbackInfo] = useState<any>(undefined);
 
   /**
@@ -105,23 +117,23 @@ export function useTokenAccess(options: UseTokenAccessOptions = {}): UseTokenAcc
     if (!address) {
       setBalance(null);
       setError(null);
-      setBalanceStatus('loading');
+      setBalanceStatus("loading");
       return;
     }
 
     try {
       setIsLoading(true);
       setError(null);
-      setBalanceStatus('loading');
+      setBalanceStatus("loading");
 
       // Add timeout to prevent infinite loading
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
       // Use unified balance endpoint
-      const response = await fetch('/api/user/token-balance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/user/token-balance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address, tokenAddress, chainId }),
         signal: controller.signal,
       });
@@ -133,13 +145,13 @@ export function useTokenAccess(options: UseTokenAccessOptions = {}): UseTokenAcc
       if (!response.ok) {
         // NEW: Check if API provided fallback options
         if (data.fallbackOptions) {
-          setBalanceStatus('fallback');
+          setBalanceStatus("fallback");
           setFallbackInfo({
-            type: data.fallbackOptions[0]?.type || 'manual_verify',
-            message: data.error || 'Balance check temporarily unavailable',
+            type: data.fallbackOptions[0]?.type || "manual_verify",
+            message: data.error || "Balance check temporarily unavailable",
             url: data.fallbackOptions[0]?.url,
           });
-          
+
           // Don't throw - keep existing balance and mark as fallback
           setIsLoading(false);
           return;
@@ -148,11 +160,11 @@ export function useTokenAccess(options: UseTokenAccessOptions = {}): UseTokenAcc
         throw new Error(`Balance fetch failed: ${response.statusText}`);
       }
 
-      const balanceBigInt = BigInt(data.balance || '0');
+      const balanceBigInt = BigInt(data.balance || "0");
       setBalance(balanceBigInt);
       setLastUpdated(new Date());
-      setLastSuccessfulFetch(new Date());
-      setBalanceStatus('success');
+      lastSuccessfulFetch.current = new Date();
+      setBalanceStatus("success");
       setFallbackInfo(undefined);
 
       // Check PapaJams token if address provided
@@ -160,44 +172,48 @@ export function useTokenAccess(options: UseTokenAccessOptions = {}): UseTokenAcc
         checkPapaJamsToken(address);
       }
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to fetch balance');
+      const error =
+        err instanceof Error ? err : new Error("Failed to fetch balance");
       setError(error);
-      
+
       // Handle timeout specifically
-      if (err instanceof Error && err.name === 'AbortError') {
-        console.warn('[useTokenAccess] Balance fetch timed out');
-        setBalanceStatus('error');
+      if (err instanceof Error && err.name === "AbortError") {
+        console.warn("[useTokenAccess] Balance fetch timed out");
+        setBalanceStatus("error");
         setFallbackInfo({
-          type: 'retry',
-          message: 'Balance check timed out. Please try again.',
+          type: "retry",
+          message: "Balance check timed out. Please try again.",
           url: undefined,
         });
-      } else if (lastSuccessfulFetch && Date.now() - lastSuccessfulFetch.getTime() < 5 * 60 * 1000) {
+      } else if (
+        lastSuccessfulFetch.current &&
+        Date.now() - lastSuccessfulFetch.current.getTime() < 5 * 60 * 1000
+      ) {
         // Check if we have recent successful data (use cache)
-        setBalanceStatus('stale');
+        setBalanceStatus("stale");
         setFallbackInfo({
-          type: 'retry',
-          message: 'Using cached balance (data may be outdated)',
+          type: "retry",
+          message: "Using cached balance (data may be outdated)",
           url: undefined,
         });
       } else {
-        setBalanceStatus('error');
+        setBalanceStatus("error");
       }
-      
-      console.error('[useTokenAccess] Error:', error);
+
+      console.error("[useTokenAccess] Error:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [address, tokenAddress, chainId, lastSuccessfulFetch]);
+  }, [address, tokenAddress, chainId]);
 
   /**
    * Check PapaJams token holdings
    */
   const checkPapaJamsToken = useCallback(async (userAddress: string) => {
     try {
-      const response = await fetch('/api/tokens/check-papajams', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/tokens/check-papajams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address: userAddress }),
       });
 
@@ -206,7 +222,7 @@ export function useTokenAccess(options: UseTokenAccessOptions = {}): UseTokenAcc
         setHasPapaJamsToken(data.hasPapaJamsToken || false);
       }
     } catch (err) {
-      console.error('[useTokenAccess] PapaJams check failed:', err);
+      console.error("[useTokenAccess] PapaJams check failed:", err);
     }
   }, []);
 
@@ -227,14 +243,14 @@ export function useTokenAccess(options: UseTokenAccessOptions = {}): UseTokenAcc
   /**
    * Determine current tier based on balance
    */
-  const tier: TokenTier = balance ? getTierForBalance(balance) : 'none';
+  const tier: TokenTier = balance ? getTierForBalance(balance) : "none";
 
   /**
    * Query: Check if balance meets minimum for tier
    */
   const meetsMinimum = useCallback(
     (checkTier: TokenTier): boolean => {
-      if (!balance) return checkTier === 'none';
+      if (!balance) return checkTier === "none";
       return meetsMinimumBalance(balance, checkTier);
     },
     [balance]
@@ -253,18 +269,15 @@ export function useTokenAccess(options: UseTokenAccessOptions = {}): UseTokenAcc
   /**
    * Query: Get cost of burn action
    */
-  const getBurnCost = useCallback(
-    (action: string): bigint | null => {
-      return getBurnActionCost(action);
-    },
-    []
-  );
+  const getBurnCost = useCallback((action: string): bigint | null => {
+    return getBurnActionCost(action);
+  }, []);
 
   /**
    * Query: Get formatted balance string
    */
   const getFormattedBalance = useCallback((): string => {
-    if (!balance) return '0';
+    if (!balance) return "0";
     return formatTokenBalance(balance, VOISSS_TOKEN_ACCESS.decimals);
   }, [balance]);
 
@@ -304,19 +317,25 @@ export function useTokenAccess(options: UseTokenAccessOptions = {}): UseTokenAcc
     refreshBalance,
 
     // Branding functions
-    getAvailableTemplates: useCallback((hasPapaJams?: boolean) => {
-      return getAvailableTemplates(tier, hasPapaJams ?? hasPapaJamsToken);
-    }, [tier, hasPapaJamsToken]),
+    getAvailableTemplates: useCallback(
+      (hasPapaJams?: boolean) => {
+        return getAvailableTemplates(tier, hasPapaJams ?? hasPapaJamsToken);
+      },
+      [tier, hasPapaJamsToken]
+    ),
 
-    applyUserBranding: useCallback((template: any, userProfile?: any) => {
-      const profile = userProfile || {
-        username,
-        pfpUrl,
-        displayName: displayName || username,
-        tier,
-        hasPapaJamsToken,
-      };
-      return applyUserBranding(template, profile);
-    }, [username, pfpUrl, displayName, tier, hasPapaJamsToken]),
+    applyUserBranding: useCallback(
+      (template: any, userProfile?: any) => {
+        const profile = userProfile || {
+          username,
+          pfpUrl,
+          displayName: displayName || username,
+          tier,
+          hasPapaJamsToken,
+        };
+        return applyUserBranding(template, profile);
+      },
+      [username, pfpUrl, displayName, tier, hasPapaJamsToken]
+    ),
   };
 }
