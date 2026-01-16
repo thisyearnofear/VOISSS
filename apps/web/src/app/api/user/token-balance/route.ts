@@ -5,10 +5,10 @@ import { VOISSS_TOKEN_ACCESS, getTierForBalance, getTokenExplorerUrl } from '@vo
 
 /**
  * POST /api/user/token-balance
- * 
- * Get user's $voisss token balance from Base chain
- * Returns current tier and formatted balance
- * 
+ *
+ * Get user's $voisss token balance from Base chain with retry fallback.
+ * Returns current tier and formatted balance with intelligent error handling.
+ *
  * Supports both $voisss and $papajams queries via tokenAddress parameter
  */
 
@@ -35,6 +35,63 @@ const ERC20_ABI = [
     stateMutability: 'view',
   },
 ] as const;
+
+// RPC providers with fallbacks
+const RPC_PROVIDERS = [
+  process.env.BASE_RPC_URL || 'https://mainnet.base.org',
+  'https://base.llamarpc.com', // Fallback RPC
+];
+
+async function fetchBalanceWithRetry(
+  tokenAddress: `0x${string}`,
+  userAddress: `0x${string}`,
+  maxRetries: number = 2
+): Promise<bigint> {
+  let lastError: Error | null = null;
+
+  // Try each RPC provider
+  for (const rpcUrl of RPC_PROVIDERS) {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`[token-balance] Attempting RPC: ${rpcUrl} (attempt ${attempt + 1})`);
+        
+        const publicClient = createPublicClient({
+          chain: base,
+          transport: http(rpcUrl, { timeout: 10000 }), // 10s timeout
+        });
+
+        const balance = await Promise.race([
+          publicClient.readContract({
+            address: tokenAddress,
+            abi: ERC20_ABI,
+            functionName: 'balanceOf',
+            args: [userAddress],
+          }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('RPC timeout')), 10000)
+          ),
+        ]);
+
+        console.log(`[token-balance] Successfully fetched balance: ${balance.toString()}`);
+        return balance;
+      } catch (error) {
+        lastError = error as Error;
+        console.warn(
+          `[token-balance] RPC attempt failed: ${(error as Error).message}`,
+          { rpcUrl, attempt }
+        );
+
+        // Wait before retry
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+        }
+      }
+    }
+  }
+
+  // All attempts failed
+  throw lastError || new Error('All RPC providers failed');
+}
 
 export async function POST(request: NextRequest) {
   let tokenAddress: string | undefined;
@@ -64,27 +121,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create public client for Base chain
-    const rpcUrl = process.env.BASE_RPC_URL;
-    console.log('[token-balance] RPC URL:', rpcUrl ? `${rpcUrl.substring(0, 30)}...` : 'UNDEFINED');
-    
-    const publicClient = createPublicClient({
-      chain: base,
-      transport: http(rpcUrl || undefined),
-    });
-
-    // Fetch balance from contract
-    const balance = await publicClient.readContract({
-      address: queryTokenAddress,
-      abi: ERC20_ABI,
-      functionName: 'balanceOf',
-      args: [address as `0x${string}`],
-    });
+    // Fetch balance with retry logic
+    const balance = await fetchBalanceWithRetry(
+      queryTokenAddress,
+      address as `0x${string}`
+    );
 
     // Determine tier based on balance
     const tier = getTierForBalance(balance);
 
-    // Return formatted response
+    // Return formatted response with aggressive caching
     return NextResponse.json(
       {
         address,
@@ -95,13 +141,16 @@ export async function POST(request: NextRequest) {
         symbol: VOISSS_TOKEN_ACCESS.symbol,
         chainId: 8453, // Base mainnet
       },
-      { status: 200, headers: { 'Cache-Control': 'public, max-age=30' } } // Cache for 30s
+      { 
+        status: 200, 
+        headers: { 'Cache-Control': 'public, max-age=60' } // Cache for 60s
+      }
     );
 
   } catch (error) {
-    console.error('[token-balance] Error:', error);
+    console.error('[token-balance] All retry attempts failed:', error);
     
-    // NEW: Return fallback options for graceful degradation
+    // Return degraded response but with 200 status to allow graceful UI degradation
     const queryTokenAddress = (tokenAddress || 
       process.env.NEXT_PUBLIC_VOISSS_TOKEN_ADDRESS) as `0x${string}`;
     
@@ -109,6 +158,8 @@ export async function POST(request: NextRequest) {
       {
         error: 'Unable to fetch token balance',
         balanceStatus: 'fallback',
+        balance: '0', // Default to zero balance
+        tier: 'none', // Default to no tier
         fallbackOptions: [
           {
             type: 'manual_verify',
@@ -123,7 +174,10 @@ export async function POST(request: NextRequest) {
           },
         ],
       },
-      { status: 502 } // Service temporarily unavailable
+      { 
+        status: 200, // Return 200 for graceful client-side degradation
+        headers: { 'Cache-Control': 'no-cache' } // Don't cache error responses
+      }
     );
   }
 }

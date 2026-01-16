@@ -26,6 +26,53 @@ const ERC20_ABI = [
   },
 ] as const;
 
+// RPC providers with fallbacks
+const RPC_PROVIDERS = [
+  process.env.BASE_RPC_URL || 'https://mainnet.base.org',
+  'https://base.llamarpc.com',
+];
+
+async function fetchBalanceWithRetry(
+  tokenAddress: `0x${string}`,
+  userAddress: `0x${string}`,
+  maxRetries: number = 2
+): Promise<bigint> {
+  let lastError: Error | null = null;
+
+  for (const rpcUrl of RPC_PROVIDERS) {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const publicClient = createPublicClient({
+          chain: base,
+          transport: http(rpcUrl, { timeout: 10000 }),
+        });
+
+        const balance = await Promise.race([
+          publicClient.readContract({
+            address: tokenAddress,
+            abi: ERC20_ABI,
+            functionName: 'balanceOf',
+            args: [userAddress],
+          }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('RPC timeout')), 10000)
+          ),
+        ]);
+
+        return balance;
+      } catch (error) {
+        lastError = error as Error;
+        console.warn(`[missions-create] RPC attempt failed: ${(error as Error).message}`);
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+        }
+      }
+    }
+  }
+
+  throw lastError || new Error('All RPC providers failed');
+}
+
 /**
  * POST /api/missions/create
  * 
@@ -70,24 +117,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate either-token requirement (at least $papajams OR $voisss required)
-    const publicClient = createPublicClient({
-      chain: base,
-      transport: http(process.env.BASE_RPC_URL || undefined),
-    });
-
-    // Check $papajams balance (creator stake)
     const papajamsAddress = PLATFORM_CONFIG.papajamsToken.address;
-    const papajamsBalance = await publicClient.readContract({
-      address: papajamsAddress,
-      abi: ERC20_ABI,
-      functionName: 'balanceOf',
-      args: [userAddress as `0x${string}`],
-    });
-
-    const meetsPapajamsRequirement = meetsCreatorRequirements(papajamsBalance);
-
-    // Check $voisss balance (platform tier - need at least Basic tier)
     const voisssAddress = process.env.NEXT_PUBLIC_VOISSS_TOKEN_ADDRESS as `0x${string}`;
+    
     if (!voisssAddress) {
       return NextResponse.json(
         { error: 'Token configuration error' },
@@ -95,12 +127,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const voisssBalance = await publicClient.readContract({
-      address: voisssAddress,
-      abi: ERC20_ABI,
-      functionName: 'balanceOf',
-      args: [userAddress as `0x${string}`],
-    });
+    // Fetch both balances with retry
+    let papajamsBalance: bigint;
+    let voisssBalance: bigint;
+    
+    try {
+      [papajamsBalance, voisssBalance] = await Promise.all([
+        fetchBalanceWithRetry(papajamsAddress, userAddress as `0x${string}`),
+        fetchBalanceWithRetry(voisssAddress, userAddress as `0x${string}`),
+      ]);
+    } catch (error) {
+      console.error('[missions-create] Failed to fetch token balances:', error);
+      return NextResponse.json(
+        { 
+          error: 'Unable to verify token requirements',
+          details: 'Please ensure you have tokens on Base chain and try again'
+        },
+        { status: 503 }
+      );
+    }
+
+    const meetsPapajamsRequirement = meetsCreatorRequirements(papajamsBalance);
 
     const tier = getTierForBalance(voisssBalance);
     const meetsVoisssRequirement = tier !== 'none';

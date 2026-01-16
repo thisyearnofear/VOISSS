@@ -328,3 +328,7 @@ apps/mobile/ios/Podfile.lock
 .qoder
 .qodo
 .claude
+.zenflow
+.zencoder
+.qoder
+.gemini
