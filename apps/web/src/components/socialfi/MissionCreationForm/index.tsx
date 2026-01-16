@@ -79,13 +79,23 @@ export default function MissionCreationForm({
     }
 
     setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      console.log("Validation errors:", newErrors);
+    }
+
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Submitting form:", formData);
+
     if (validateForm()) {
+      console.log("Validation passed, creating mission...");
       createMissionMutation.mutate(formData);
+    } else {
+      console.log("Validation failed");
     }
   };
 
@@ -129,6 +139,12 @@ export default function MissionCreationForm({
         onToggleAdvanced={() => setShowAdvanced(!showAdvanced)}
       />
 
+      {Object.keys(errors).length > 0 && (
+        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+          Please fix the errors above before creating the mission.
+        </div>
+      )}
+
       <MissionFormActions
         isLoading={createMissionMutation.isPending}
         isError={createMissionMutation.isError}
@@ -137,7 +153,6 @@ export default function MissionCreationForm({
             ? createMissionMutation.error.message
             : null
         }
-        onSubmit={handleSubmit}
         onCancel={onCancel || (() => {})}
       />
     </form>

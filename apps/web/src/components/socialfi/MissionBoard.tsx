@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { Mission } from "@voisss/shared/types/socialfi";
 import { getTokenDisplaySymbol } from "@voisss/shared/config/platform";
 import { useBaseAccount } from "../../hooks/useBaseAccount";
-import { useMissions, useAcceptMission, useMissionStats, useUserMissions } from "../../hooks/queries/useMissions";
+import {
+  useMissions,
+  useAcceptMission,
+  useUserMissions,
+} from "../../hooks/queries/useMissions";
 import { useTokenAccess } from "@voisss/shared/hooks/useTokenAccess";
 import MissionCard from "./MissionCard";
 import MissionFilters from "./MissionFilters";
@@ -20,11 +24,17 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
   const { universalAddress: address, isConnected } = useBaseAccount();
   const [selectedTopic, setSelectedTopic] = useState<string>("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<"newest" | "reward" | "participants">("newest");
+  const [sortBy, setSortBy] = useState<"newest" | "reward" | "participants">(
+    "newest"
+  );
   const [showCreationForm, setShowCreationForm] = useState(false);
 
   // NEW: Get token access info for mission eligibility display
-  const { tier: userTier, balance: userBalance, balanceStatus } = useTokenAccess({
+  const {
+    tier: userTier,
+    balance: userBalance,
+    balanceStatus,
+  } = useTokenAccess({
     address: isConnected ? address : undefined,
     autoRefresh: true,
     refreshInterval: 60000,
@@ -34,18 +44,19 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
   const {
     data: missions = [],
     isLoading: loading,
-    error: queryError
+    error: queryError,
   } = useMissions({
     topic: selectedTopic,
     difficulty: selectedDifficulty,
     sortBy,
-    status: 'active'
+    status: "active",
   });
 
   const { data: userMissionsData } = useUserMissions();
-  const acceptedMissionIds = new Set(userMissionsData?.active.map(m => m.id) || []);
+  const acceptedMissionIds = new Set(
+    userMissionsData?.active.map((m) => m.id) || []
+  );
 
-  const { data: missionStats } = useMissionStats();
   const acceptMissionMutation = useAcceptMission();
 
   const error = queryError?.message || null;
@@ -62,7 +73,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
       if (onMissionSelect) {
         onMissionSelect(mission);
       }
-      
+
       // Navigate to recording studio with mission context
       router.push(`/studio?missionId=${mission.id}`);
     } catch (err) {
@@ -78,8 +89,18 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
           onClick={() => setShowCreationForm(false)}
           className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
           Back to Missions
         </button>
@@ -98,8 +119,12 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#7C5DFA] to-[#9C88FF] rounded-full mb-4">
             <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Loading Missions</h2>
-          <p className="text-gray-400">Discovering exciting conversation opportunities...</p>
+          <h2 className="text-2xl font-bold text-white mb-2">
+            Loading Missions
+          </h2>
+          <p className="text-gray-400">
+            Discovering exciting conversation opportunities...
+          </p>
         </div>
       </div>
     );
@@ -110,11 +135,23 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
       <div className="max-w-6xl mx-auto voisss-section-spacing">
         <div className="voisss-card text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-red-500/20 rounded-full mb-4">
-            <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="w-8 h-8 text-red-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Error Loading Missions</h2>
+          <h2 className="text-2xl font-bold text-white mb-2">
+            Error Loading Missions
+          </h2>
           <p className="text-gray-400 mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
@@ -127,16 +164,30 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
     );
   }
 
-  const platformMissions = missions.filter((m: Mission) => m.createdBy === 'platform');
-  const communityMissions = missions.filter((m: Mission) => m.createdBy !== 'platform');
+  const platformMissions = missions.filter(
+    (m: Mission) => m.createdBy === "platform"
+  );
+  const communityMissions = missions.filter(
+    (m: Mission) => m.createdBy !== "platform"
+  );
 
   return (
     <div className="max-w-6xl mx-auto voisss-section-spacing">
       {/* Header */}
       <div className="voisss-card text-center mb-8">
         <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#7C5DFA] to-[#9C88FF] rounded-full mb-4">
-          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+          <svg
+            className="w-8 h-8 text-white"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
+            />
           </svg>
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4">
@@ -146,7 +197,8 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
           Discover conversation missions and earn {getTokenDisplaySymbol()}
         </p>
         <p className="text-sm text-gray-400">
-          Record candid conversations on trending topics and get rewarded for authentic perspectives
+          Record candid conversations on trending topics and get rewarded for
+          authentic perspectives
         </p>
       </div>
 
@@ -167,18 +219,28 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
       {/* Mission Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div className="voisss-card text-center">
-          <div className="text-2xl font-bold text-white mb-1">{missions.length}</div>
+          <div className="text-2xl font-bold text-white mb-1">
+            {missions.length}
+          </div>
           <div className="text-sm text-gray-400">Active Missions</div>
         </div>
         <div className="voisss-card text-center">
           <div className="text-2xl font-bold text-[#7C5DFA] mb-1">
-            {missions.reduce((sum: number, m: Mission) => sum + (m.baseReward || 0), 0)}
+            {missions.reduce(
+              (sum: number, m: Mission) => sum + (m.baseReward || 0),
+              0
+            )}
           </div>
-          <div className="text-sm text-gray-400">Total {getTokenDisplaySymbol()} Rewards</div>
+          <div className="text-sm text-gray-400">
+            Total {getTokenDisplaySymbol()} Rewards
+          </div>
         </div>
         <div className="voisss-card text-center">
           <div className="text-2xl font-bold text-green-400 mb-1">
-            {missions.reduce((sum: number, m: Mission) => sum + m.currentParticipants, 0)}
+            {missions.reduce(
+              (sum: number, m: Mission) => sum + m.currentParticipants,
+              0
+            )}
           </div>
           <div className="text-sm text-gray-400">Active Participants</div>
         </div>
@@ -190,12 +252,22 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
           <div className="flex items-center gap-3 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
             <div className="w-6 h-6 text-yellow-400">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
               </svg>
             </div>
             <div>
-              <p className="text-yellow-400 font-medium">Connect Wallet to Accept Missions</p>
-              <p className="text-yellow-300/80 text-sm">You can browse missions, but you'll need to connect your wallet to accept them and earn rewards.</p>
+              <p className="text-yellow-400 font-medium">
+                Connect Wallet to Accept Missions
+              </p>
+              <p className="text-yellow-300/80 text-sm">
+                You can browse missions, but you&apos;ll need to connect your
+                wallet to accept them and earn rewards.
+              </p>
             </div>
           </div>
         </div>
@@ -205,11 +277,23 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
       {missions.length === 0 ? (
         <div className="voisss-card text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-500/20 rounded-full mb-4">
-            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <svg
+              className="w-8 h-8 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
             </svg>
           </div>
-          <h3 className="text-xl font-semibold text-white mb-2">No Missions Found</h3>
+          <h3 className="text-xl font-semibold text-white mb-2">
+            No Missions Found
+          </h3>
           <p className="text-gray-400 mb-4">
             No active missions available at the moment.
           </p>
@@ -225,26 +309,28 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
         </div>
       ) : (
         <div className="space-y-8">
-           {/* Featured / Platform Missions */}
-           {platformMissions.length > 0 && (
+          {/* Featured / Platform Missions */}
+          {platformMissions.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-4 px-1">
                 <span className="text-2xl">🌟</span>
-                <h2 className="text-xl font-bold text-white">Featured Missions</h2>
+                <h2 className="text-xl font-bold text-white">
+                  Featured Missions
+                </h2>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {platformMissions.map((mission: Mission) => (
-                   <MissionCard
-                     key={mission.id}
-                     mission={mission}
-                     onAccept={() => handleMissionAccept(mission)}
-                     isConnected={isConnected || false}
-                     isAccepted={acceptedMissionIds.has(mission.id)}
-                     userTier={userTier}
-                     userBalance={userBalance ?? undefined}
-                     balanceStatus={balanceStatus}
-                   />
-                 ))}
+                  <MissionCard
+                    key={mission.id}
+                    mission={mission}
+                    onAccept={() => handleMissionAccept(mission)}
+                    isConnected={isConnected || false}
+                    isAccepted={acceptedMissionIds.has(mission.id)}
+                    userTier={userTier}
+                    userBalance={userBalance ?? undefined}
+                    balanceStatus={balanceStatus}
+                  />
+                ))}
               </div>
             </div>
           )}
@@ -253,12 +339,16 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
           <div>
             <div className="flex items-center gap-2 mb-4 px-1">
               <span className="text-2xl">👥</span>
-              <h2 className="text-xl font-bold text-white">Community Missions</h2>
+              <h2 className="text-xl font-bold text-white">
+                Community Missions
+              </h2>
             </div>
             {communityMissions.length === 0 ? (
-               <div className="text-center py-8 bg-[#1A1A1A] rounded-xl border border-[#2A2A2A] border-dashed">
-                <p className="text-gray-400">No community missions yet. Be the first to create one!</p>
-               </div>
+              <div className="text-center py-8 bg-[#1A1A1A] rounded-xl border border-[#2A2A2A] border-dashed">
+                <p className="text-gray-400">
+                  No community missions yet. Be the first to create one!
+                </p>
+              </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {communityMissions.map((mission: Mission) => (
@@ -271,11 +361,11 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
                     userTier={userTier}
                     userBalance={userBalance ?? undefined}
                     balanceStatus={balanceStatus}
-                    />
-                    ))}
-                    </div>
-                    )}
-                    </div>
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -285,11 +375,12 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
           Ready to Start Earning?
         </h3>
         <p className="text-gray-400 mb-6">
-          Accept a mission, record authentic conversations, and earn {getTokenDisplaySymbol()} for sharing real-world perspectives.
+          Accept a mission, record authentic conversations, and earn{" "}
+          {getTokenDisplaySymbol()} for sharing real-world perspectives.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <button
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             className="px-6 py-3 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white font-semibold rounded-xl hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-200"
           >
             Browse Missions

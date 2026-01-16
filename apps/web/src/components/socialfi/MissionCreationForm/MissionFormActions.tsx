@@ -1,13 +1,11 @@
 "use client";
 
 import React from "react";
-import { PLATFORM_CONFIG, getTokenDisplaySymbol } from "@voisss/shared/config/platform";
 
 interface MissionFormActionsProps {
   isLoading: boolean;
   isError: boolean;
   error: string | null;
-  onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
 }
 
@@ -15,18 +13,14 @@ export default function MissionFormActions({
   isLoading,
   isError,
   error,
-  onSubmit,
   onCancel,
 }: MissionFormActionsProps) {
   return (
     <>
-
-
       {/* Submit Actions */}
       <div className="flex gap-3">
         <button
           type="submit"
-          onClick={onSubmit}
           disabled={isLoading}
           className="flex-1 py-3 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white font-semibold rounded-xl hover:from-[#6B4CE6] hover:to-[#8B7AFF] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
