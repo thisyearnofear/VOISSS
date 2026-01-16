@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, http } from 'viem';
 import { base } from 'viem/chains';
-import { VOISSS_TOKEN_ACCESS, getTierForBalance } from '@voisss/shared/config/tokenAccess';
+import { VOISSS_TOKEN_ACCESS, getTierForBalance, getTokenExplorerUrl } from '@voisss/shared/config/tokenAccess';
 
 /**
  * POST /api/user/token-balance
@@ -37,9 +37,13 @@ const ERC20_ABI = [
 ] as const;
 
 export async function POST(request: NextRequest) {
+  let tokenAddress: string | undefined;
+  let address: string | undefined;
+  
   try {
     const body: TokenBalanceRequest = await request.json();
-    const { address, tokenAddress, chainId } = body;
+    address = body.address;
+    tokenAddress = body.tokenAddress;
 
     // Validate address
     if (!address || !address.startsWith('0x') || address.length !== 42) {
@@ -97,12 +101,29 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[token-balance] Error:', error);
     
-    // Return user-friendly error
-    const message = error instanceof Error ? error.message : 'Failed to fetch token balance';
+    // NEW: Return fallback options for graceful degradation
+    const queryTokenAddress = (tokenAddress || 
+      process.env.NEXT_PUBLIC_VOISSS_TOKEN_ADDRESS) as `0x${string}`;
     
     return NextResponse.json(
-      { error: message },
-      { status: 500 }
+      {
+        error: 'Unable to fetch token balance',
+        balanceStatus: 'fallback',
+        fallbackOptions: [
+          {
+            type: 'manual_verify',
+            label: 'Check on BaseScan',
+            description: 'View your balance directly on the blockchain explorer',
+            url: `${getTokenExplorerUrl('voisss')}?a=${address}`,
+          },
+          {
+            type: 'retry',
+            label: 'Retry Now',
+            description: 'Retry the balance check',
+          },
+        ],
+      },
+      { status: 502 } // Service temporarily unavailable
     );
   }
 }

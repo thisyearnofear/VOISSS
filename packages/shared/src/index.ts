@@ -31,7 +31,10 @@ export * from './services/database-service';
 export * from './services/localStorage-database';
 export * from './services/asyncStorage-database';
 export * from './services/cross-platform-storage';
-export * from './services/persistent-mission-service';
+// Note: persistent-mission-service factory uses pg adapter which is server-only
+// To use: import { createMissionService } from '@voisss/shared/services/persistent-mission-service'
+// Avoid importing from main index to prevent pg from being bundled in browser
+// export * from './services/persistent-mission-service';
 // Export Farcaster service conditionally for server-side only
 // export * from './services/farcaster-social';
 

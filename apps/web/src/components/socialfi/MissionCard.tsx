@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Mission } from "@voisss/shared/types/socialfi";
 import { getTokenDisplaySymbol } from "@voisss/shared/config/platform";
+import { TokenTier, TOKEN_METADATA, getTokenBuyUrl, formatTokenBalance, getMinBalanceForTier } from "@voisss/shared/config/tokenAccess";
 
 interface MissionCardProps {
   mission: Mission;
@@ -10,6 +11,10 @@ interface MissionCardProps {
   isConnected: boolean;
   isAccepted?: boolean;
   className?: string;
+  // NEW: Token access info
+  userTier?: TokenTier;
+  userBalance?: bigint;
+  balanceStatus?: 'loading' | 'success' | 'stale' | 'fallback' | 'error';
 }
 
 // Difficulty color helper
@@ -31,7 +36,10 @@ export default function MissionCard({
   onAccept,
   isConnected,
   isAccepted = false,
-  className = ""
+  className = "",
+  userTier = 'none',
+  userBalance = 0n,
+  balanceStatus = 'success'
 }: MissionCardProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);
@@ -68,7 +76,25 @@ export default function MissionCard({
     return `${seconds}s`;
   };
 
+  // NEW: Determine tier eligibility
+  const getEligibility = () => {
+    const requiredTier = mission.requiredTier || 'basic';
+    const tierOrder: TokenTier[] = ['none', 'basic', 'pro', 'premium'];
+    const userTierIndex = tierOrder.indexOf(userTier);
+    const requiredTierIndex = tierOrder.indexOf(requiredTier);
+    const isEligible = userTierIndex >= requiredTierIndex;
+    
+    let tokenGap = 0n;
+    if (!isEligible && userBalance) {
+      const tierMinBalance = getMinBalanceForTier(requiredTier);
+      const gap = tierMinBalance - userBalance;
+      tokenGap = gap > 0n ? gap : 0n;
+    }
+    
+    return { requiredTier, isEligible, tokenGap };
+  };
 
+  const { requiredTier, isEligible, tokenGap } = getEligibility();
 
   return (
     <div className={`voisss-card group hover:border-[#7C5DFA]/30 transition-all duration-300 ${className} ${isAccepted ? 'border-indigo-500/40 bg-indigo-500/5' : ''}`}>
@@ -126,13 +152,50 @@ export default function MissionCard({
         </div>
       </div>
 
+      {/* NEW: Eligibility indicator */}
+      {isConnected && (
+        <div className={`mt-4 p-3 rounded-lg text-sm space-y-2 ${
+          isEligible 
+            ? 'bg-green-500/10 border border-green-500/20' 
+            : 'bg-red-500/10 border border-red-500/20'
+        }`}>
+          <div className="flex items-center justify-between">
+            <span className={isEligible ? 'text-green-300' : 'text-red-300'}>
+              {isEligible ? '✓ Eligible' : `⚠️ Requires ${requiredTier}`}
+            </span>
+            {balanceStatus === 'loading' && (
+              <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+            )}
+            {balanceStatus === 'stale' && (
+              <span className="text-xs text-yellow-300">(data outdated)</span>
+            )}
+          </div>
+          
+          {!isEligible && tokenGap > 0n && (
+            <div className="flex items-center justify-between text-xs">
+              <span>Need {formatTokenBalance(tokenGap)} more</span>
+              <a 
+                href={getTokenBuyUrl('voisss')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#7C5DFA] hover:underline font-semibold"
+              >
+                Get Tokens →
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Action Button */}
       <button
         onClick={handleAccept}
-        disabled={!isConnected || isAccepting}
-        className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
+        disabled={!isConnected || (isConnected && !isEligible && mission.requiredTier) || isAccepting}
+        className={`mt-3 w-full py-3 px-4 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
           !isConnected
             ? "bg-gray-500/20 text-gray-400 cursor-not-allowed"
+            : isConnected && !isEligible && mission.requiredTier
+              ? "bg-gray-500/20 text-gray-400 cursor-not-allowed"
             : isAccepted 
               ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-600/30"
               : "bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white hover:from-[#6B4CE6] hover:to-[#8B7AFF] hover:scale-[1.02]"
@@ -145,6 +208,8 @@ export default function MissionCard({
           </>
         ) : !isConnected ? (
           "Connect Wallet to Accept"
+        ) : !isEligible && mission.requiredTier ? (
+          "Insufficient Tier"
         ) : isAccepted ? (
           <>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

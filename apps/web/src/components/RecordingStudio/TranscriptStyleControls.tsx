@@ -17,6 +17,7 @@ export interface TranscriptStyle {
   };
   animation: TranscriptAnimation;
   density: TranscriptDensity;
+  fontSize: number;
 }
 
 export const TRANSCRIPT_FONTS: { label: string; value: TranscriptFont; className: string }[] = [
@@ -188,6 +189,27 @@ export function TranscriptStyleControls({ style, onChange }: TranscriptStyleCont
               <span className="font-semibold uppercase tracking-tighter">{item.label}</span>
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* 5. Font Size */}
+      <div className="space-y-2 pt-2">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Font Size</label>
+          <span className="text-xs text-gray-500 font-medium">{style.fontSize}px</span>
+        </div>
+        <input
+          type="range"
+          min="36"
+          max="120"
+          step="4"
+          value={style.fontSize}
+          onChange={(e) => onChange({ ...style, fontSize: parseInt(e.target.value) })}
+          className="w-full h-2 bg-[#1A1A1A] rounded-lg appearance-none cursor-pointer accent-white"
+        />
+        <div className="flex justify-between text-[10px] text-gray-500">
+          <span>Small</span>
+          <span>Large</span>
         </div>
       </div>
     </div>

@@ -107,23 +107,23 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const slides = renderCarouselSlidesAsSvg({ transcript, template: brandedTemplate });
-       const payload = {
-         jobId,
-         status: 'complete',
-         kind: body.kind,
-         templateId: template.id,
-         transcriptId: transcript.id,
-         format: 'svg',
-         slides,
-         branding: body.userAddress ? {
-           userAddress: body.userAddress,
-           fid: body.fid,
-           templateId: body.brandingTemplateId,
-         } : null,
-       };
-       cacheSet(cacheKey, payload);
-       return NextResponse.json({ ok: true, ...payload });
+      const slides = renderCarouselSlidesAsSvg({ transcript, template: brandedTemplate, style: body.style });
+        const payload = {
+          jobId,
+          status: 'complete',
+          kind: body.kind,
+          templateId: template.id,
+          transcriptId: transcript.id,
+          format: 'svg',
+          slides,
+          branding: body.userAddress ? {
+            userAddress: body.userAddress,
+            fid: body.fid,
+            templateId: body.brandingTemplateId,
+          } : null,
+        };
+        cacheSet(cacheKey, payload);
+        return NextResponse.json({ ok: true, ...payload });
       }
 
       if (body.kind === 'mp3' || body.kind === 'mp4') {

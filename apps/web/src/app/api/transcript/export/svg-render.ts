@@ -32,8 +32,9 @@ export function renderCarouselSlidesAsSvg(params: {
   transcript: TimedTranscript;
   template: TranscriptTemplate;
   maxSlides?: number;
+  style?: any;
 }): Array<{ filename: string; svg: string }> {
-  const { transcript, template, maxSlides = 8 } = params;
+  const { transcript, template, maxSlides = 8, style } = params;
 
   const dim = DIMENSIONS[template.aspect];
   const pages = buildTranscriptPages({
@@ -55,7 +56,7 @@ export function renderCarouselSlidesAsSvg(params: {
         : '';
 
     const fontFamily = esc(template.typography.fontFamily);
-    const fontSize = template.typography.fontSizePx;
+    const fontSize = style?.fontSize || template.typography.fontSizePx;
     const lineHeightPx = Math.round(fontSize * template.typography.lineHeight);
 
     const x = template.layout.paddingPx;

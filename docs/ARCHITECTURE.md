@@ -153,14 +153,35 @@ voisss/
 - Reward distribution: 70% $papajams (future 30% $voisss split planned)
 - Milestone-based: 50% submission, 30% quality, 20% featured
 
+### Mission UX Enhancements (Token Discovery & Eligibility)
+
+**Completed Enhancement**: Mission board now provides transparent token information and mission eligibility indication.
+
+#### Features
+- **Token Contract Discovery**: Users can access VOISSS & PAPAJAMS contract addresses via collapsible panel in mission filters
+- **Mission Eligibility**: Visual indicator (green/eligible, red/insufficient tier) in each mission card
+- **Graceful Error Handling**: Balance check failures provide recovery options (manual verification, retry)
+- **Direct Purchase Links**: One-click paths to Uniswap for token acquisition
+
+#### Implementation Details
+- **Config**: `packages/shared/src/config/tokenAccess.ts` - TOKEN_METADATA centralized
+- **Hook Enhancement**: `packages/shared/src/hooks/useTokenAccess.ts` - balanceStatus state + fallback handling
+- **API Enhancement**: `apps/web/src/app/api/user/token-balance/route.ts` - fallback response options
+- **UI Components**: 
+  - `MissionCard.tsx` - Eligibility calculation & display
+  - `MissionFilters.tsx` - Token info collapsible section
+  - `MissionBoard.tsx` - Token data flow integration
+
 ## 🎯 Current Focus & Roadmap
 
-### ✅ **Current: Token Access System & Creator Economy**
+### ✅ **Current: Mission UX & Creator Economy**
 - **Completed**: $voisss token access tiers and burn actions (holding-first model)
 - **Completed**: Unified `useTokenAccess()` hook replacing scattered balance checks
 - **Completed**: Studio modes mapped to token tiers (ghost/pro/vip)
 - **Completed**: Token burn service for premium outputs (video export, NFT mint)
 - **Completed**: Mission system with $papajams creator requirements
+- **Completed**: Mission card eligibility UI with tier checking and token gap calculation
+- **Completed**: Mission board token discovery and eligibility indication
 - **In Progress**: Backend mission persistence (Supabase integration)
 - **In Progress**: Integrate $voisss token contract calls (currently mocked)
 - **Upcoming**: Auto-expiration cron job and reward claim mechanisms

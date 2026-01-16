@@ -37,6 +37,16 @@ export interface UseTokenAccessResult {
   error: Error | null;
   lastUpdated: Date | null;
 
+  // NEW: Balance check status for UI feedback
+  balanceStatus: 'loading' | 'success' | 'stale' | 'fallback' | 'error';
+  
+  // NEW: Info about why balance check failed (if applicable)
+  fallbackInfo?: {
+    type: 'cached' | 'manual_verify' | 'retry';
+    message: string;
+    url?: string;
+  };
+
   // Queries
   meetsMinimum(tier: TokenTier): boolean;
   canAccess(feature: string): boolean;
@@ -80,21 +90,29 @@ export function useTokenAccess(options: UseTokenAccessOptions = {}): UseTokenAcc
   const [error, setError] = useState<Error | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [hasPapaJamsToken, setHasPapaJamsToken] = useState(false);
+  
+  // NEW: Balance check status tracking
+  const [lastSuccessfulFetch, setLastSuccessfulFetch] = useState<Date | null>(null);
+  const [balanceStatus, setBalanceStatus] = useState<'loading' | 'success' | 'stale' | 'fallback' | 'error'>('loading');
+  const [fallbackInfo, setFallbackInfo] = useState<any>(undefined);
 
   /**
    * Fetch token balance from API endpoint
    * Web uses /api/user/token-balance, mobile uses fetch
+   * Enhanced with fallback handling and graceful degradation
    */
   const refreshBalance = useCallback(async () => {
     if (!address) {
       setBalance(null);
       setError(null);
+      setBalanceStatus('loading');
       return;
     }
 
     try {
       setIsLoading(true);
       setError(null);
+      setBalanceStatus('loading');
 
       // Use unified balance endpoint
       const response = await fetch('/api/user/token-balance', {
@@ -103,14 +121,32 @@ export function useTokenAccess(options: UseTokenAccessOptions = {}): UseTokenAcc
         body: JSON.stringify({ address, tokenAddress, chainId }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
+        // NEW: Check if API provided fallback options
+        if (data.fallbackOptions) {
+          setBalanceStatus('fallback');
+          setFallbackInfo({
+            type: data.fallbackOptions[0]?.type || 'manual_verify',
+            message: data.error || 'Balance check temporarily unavailable',
+            url: data.fallbackOptions[0]?.url,
+          });
+          
+          // Don't throw - keep existing balance and mark as fallback
+          setIsLoading(false);
+          return;
+        }
+
         throw new Error(`Balance fetch failed: ${response.statusText}`);
       }
 
-      const data = await response.json();
       const balanceBigInt = BigInt(data.balance || '0');
       setBalance(balanceBigInt);
       setLastUpdated(new Date());
+      setLastSuccessfulFetch(new Date());
+      setBalanceStatus('success');
+      setFallbackInfo(undefined);
 
       // Check PapaJams token if address provided
       if (address) {
@@ -119,11 +155,25 @@ export function useTokenAccess(options: UseTokenAccessOptions = {}): UseTokenAcc
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to fetch balance');
       setError(error);
+      
+      // NEW: Check if we have recent successful data (use cache)
+      if (lastSuccessfulFetch && Date.now() - lastSuccessfulFetch.getTime() < 5 * 60 * 1000) {
+        // Mark as stale but keep the balance
+        setBalanceStatus('stale');
+        setFallbackInfo({
+          type: 'retry',
+          message: 'Using cached balance (data may be outdated)',
+          url: undefined,
+        });
+      } else {
+        setBalanceStatus('error');
+      }
+      
       console.error('[useTokenAccess] Error:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [address, tokenAddress, chainId]);
+  }, [address, tokenAddress, chainId, lastSuccessfulFetch]);
 
   /**
    * Check PapaJams token holdings
@@ -224,6 +274,8 @@ export function useTokenAccess(options: UseTokenAccessOptions = {}): UseTokenAcc
     isLoading,
     error,
     lastUpdated,
+    balanceStatus,
+    fallbackInfo,
 
     // Queries
     meetsMinimum,

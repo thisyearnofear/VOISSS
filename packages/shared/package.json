@@ -15,8 +15,8 @@
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --external zod --external react --external @neynar/nodejs-sdk --external starknet --external @react-native-async-storage/async-storage --external wagmi/connectors --external viem --external wagmi && npm run build:native",
-    "build:native": "tsup src/index.native.ts --format cjs,esm --external zod --external react --external @neynar/nodejs-sdk --external starknet --external @react-native-async-storage/async-storage --external wagmi/connectors --external viem --external wagmi",
+    "build": "tsup src/index.ts --format cjs,esm --dts --external zod --external react --external @neynar/nodejs-sdk --external starknet --external @react-native-async-storage/async-storage --external wagmi/connectors --external viem --external wagmi --external pg && npm run build:native",
+    "build:native": "tsup src/index.native.ts --format cjs,esm --external zod --external react --external @neynar/nodejs-sdk --external starknet --external @react-native-async-storage/async-storage --external wagmi/connectors --external viem --external wagmi --external pg",
     "dev": "tsup src/index.ts --format cjs,esm --watch --dts",
     "lint": "eslint src/",
     "clean": "rm -rf dist"

@@ -88,6 +88,11 @@ const nextConfig = {
       'fs': false,
       'path': false,
       'crypto': false,
+      'pg': false,
+      'pg-native': false,
+      'dns': false,
+      'net': false,
+      'tls': false,
     };
 
     // Provide process polyfill for browser

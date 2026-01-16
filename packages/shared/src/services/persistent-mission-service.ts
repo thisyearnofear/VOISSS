@@ -24,7 +24,6 @@ import { MissionService } from './mission-service';
 import { DatabaseService, COLLECTIONS, DatabaseOperationError, DatabaseValidationError } from './database-service';
 import { createLocalStorageDatabase } from './localStorage-database';
 import { createInMemoryDatabase } from './memory-database';
-import { createPostgresDatabase } from './postgres-database';
 
 export class PersistentMissionService implements MissionService {
   private db: DatabaseService;
@@ -1014,7 +1013,14 @@ export function createMissionService(database?: DatabaseService): MissionService
   }
   
   if (process.env.DATABASE_URL) {
-    return new PersistentMissionService(createPostgresDatabase(process.env.DATABASE_URL));
+    // Lazy load postgres adapter only on server-side to avoid bundling in browser
+    try {
+      const { createPostgresDatabase } = require('./postgres-database');
+      return new PersistentMissionService(createPostgresDatabase(process.env.DATABASE_URL));
+    } catch (error) {
+      console.warn('PostgreSQL adapter not available, falling back to in-memory storage');
+      return new PersistentMissionService(createInMemoryDatabase());
+    }
   }
   
   return new PersistentMissionService(createInMemoryDatabase());

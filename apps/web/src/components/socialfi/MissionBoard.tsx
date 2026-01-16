@@ -6,6 +6,7 @@ import { Mission } from "@voisss/shared/types/socialfi";
 import { getTokenDisplaySymbol } from "@voisss/shared/config/platform";
 import { useBaseAccount } from "../../hooks/useBaseAccount";
 import { useMissions, useAcceptMission, useMissionStats, useUserMissions } from "../../hooks/queries/useMissions";
+import { useTokenAccess } from "@voisss/shared/hooks/useTokenAccess";
 import MissionCard from "./MissionCard";
 import MissionFilters from "./MissionFilters";
 import MissionCreationForm from "./MissionCreationForm";
@@ -21,6 +22,13 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"newest" | "reward" | "participants">("newest");
   const [showCreationForm, setShowCreationForm] = useState(false);
+
+  // NEW: Get token access info for mission eligibility display
+  const { tier: userTier, balance: userBalance, balanceStatus } = useTokenAccess({
+    address: isConnected ? address : undefined,
+    autoRefresh: true,
+    refreshInterval: 60000,
+  });
 
   // Use React Query hooks instead of useState
   const {
@@ -152,6 +160,8 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
         onSortChange={setSortBy}
         totalMissions={missions.length}
         filteredCount={missions.length}
+        userTier={userTier}
+        userBalance={userBalance}
       />
 
       {/* Mission Stats */}
@@ -224,14 +234,17 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {platformMissions.map((mission: Mission) => (
-                  <MissionCard
-                    key={mission.id}
-                    mission={mission}
-                    onAccept={() => handleMissionAccept(mission)}
-                    isConnected={isConnected || false}
-                    isAccepted={acceptedMissionIds.has(mission.id)}
-                  />
-                ))}
+                   <MissionCard
+                     key={mission.id}
+                     mission={mission}
+                     onAccept={() => handleMissionAccept(mission)}
+                     isConnected={isConnected || false}
+                     isAccepted={acceptedMissionIds.has(mission.id)}
+                     userTier={userTier}
+                     userBalance={userBalance}
+                     balanceStatus={balanceStatus}
+                   />
+                 ))}
               </div>
             </div>
           )}
@@ -255,6 +268,9 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
                     onAccept={() => handleMissionAccept(mission)}
                     isConnected={isConnected || false}
                     isAccepted={acceptedMissionIds.has(mission.id)}
+                    userTier={userTier}
+                    userBalance={userBalance}
+                    balanceStatus={balanceStatus}
                   />
                 ))}
               </div>

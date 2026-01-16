@@ -58,6 +58,9 @@ const DEFAULT_TEMPLATE = {
   },
 };
 
+// Default font size for transcription exports (in pixels)
+const DEFAULT_FONT_SIZE = 64;
+
 function hexToRgb(hex) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result ? {
@@ -91,6 +94,9 @@ function generateSvgFrame(segment, templateData, style, frameIdx, activeWordInde
         'Mono': '"DejaVu Sans Mono", monospace',
       };
       template.typography.fontFamily = FONT_MAP[style.fontFamily] || template.typography.fontFamily;
+    }
+    if (style.fontSize) {
+      template.typography.fontSizePx = style.fontSize;
     }
     if (style.theme) {
       if (style.theme.background) template.background.colors = [style.theme.background];

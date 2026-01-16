@@ -14,9 +14,9 @@ import { Mission } from "@voisss/shared/types/socialfi";
 import {
   createIPFSService,
   crossPlatformStorage,
-  useVersionLedger,
   AudioVersion,
 } from "@voisss/shared";
+import { useVersionLedger } from "@voisss/shared/hooks/useVersionLedger";
 import { SocialShare } from "@voisss/ui";
 import DubbingPanel from "./dubbing/DubbingPanel";
 import { VoiceRecordsABI } from "../contracts/VoiceRecordsABI";
@@ -70,7 +70,7 @@ interface SocialShareProps {
 interface SaveResult {
   type: string;
   success: boolean;
-  error: null;
+  error: string | null;
   ipfsHash: string;
   recording: ShareableRecording;
 }
@@ -339,23 +339,8 @@ export default function RecordingStudio({
   const resetRecordingStates = () => {
     setVoicesFree([]);
     setSelectedVoiceFree("");
-    setVariantBlobFree(null);
     setLoadingVoicesFree(false);
     setGeneratingFree(false);
-    setDubbedBlob(null);
-    setDubbedLanguage("");
-    setSelectedVersions({
-      original: true,
-      aiVoice: false,
-      dubbed: false,
-    });
-    setActiveForgeBlob(null);
-    setForgeDuration(0);
-    clearForgeBlob().catch(console.error);
-    if (activeForgeUrl) {
-      URL.revokeObjectURL(activeForgeUrl);
-      setActiveForgeUrl(null);
-    }
   };
 
   const handleApplyInsights = useCallback(
@@ -520,8 +505,7 @@ export default function RecordingStudio({
   const handleSaveSelectedVersions = useCallback(async () => {
     if (!audioBlob) return;
 
-    const versionsToSave =
-      Object.values(selectedVersions).filter(Boolean).length;
+    const versionsToSave = selectedVersionIds.size;
     if (versionsToSave === 0) {
       setToastType("error");
       setToastMessage("Please select at least one version to save");
@@ -718,18 +702,15 @@ export default function RecordingStudio({
       }
     } catch (error) {
       console.error("Error saving recordings:", error);
-      setToastType("error");
-      setToastMessage("Error saving recordings");
-    }
-  }, [
+       setToastType("error");
+       setToastMessage("Error saving recordings");
+      }
+      }, [
     audioBlob,
-    variantBlobFree,
-    dubbedBlob,
-    selectedVersions,
+    selectedVersionIds,
     recordingTitle,
     duration,
     selectedVoiceFree,
-    dubbedLanguage,
     canSaveRecording,
     userTier,
     remainingQuota.saves,

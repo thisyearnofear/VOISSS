@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createMissionService } from '@voisss/shared';
+import { createMissionService } from '@voisss/shared/services/persistent-mission-service';
 import { MissionResponse } from '@voisss/shared/types/socialfi';
 
 const missionService = createMissionService();

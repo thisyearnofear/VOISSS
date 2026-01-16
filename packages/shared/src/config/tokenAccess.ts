@@ -278,3 +278,58 @@ function getUserBadges(userProfile: {
 
   return badges;
 }
+
+/**
+ * Token metadata for UI discovery and external links
+ * Single source of truth for contract addresses and purchase links
+ */
+export interface TokenMetadata {
+  symbol: string;
+  name: string;
+  address: `0x${string}`;
+  decimals: number;
+  chainId: number;
+  chainName: string;
+}
+
+export const TOKEN_METADATA: Record<'voisss' | 'papajams', TokenMetadata> = {
+  voisss: {
+    symbol: 'VOISSS',
+    name: 'VOISSS Token',
+    address: (process.env.NEXT_PUBLIC_VOISSS_TOKEN_ADDRESS || '0x1c3174c2aea455f1efb088e4ca4ecb4ab52d1b07') as `0x${string}`,
+    decimals: 18,
+    chainId: 8453,
+    chainName: 'Base',
+  },
+  papajams: {
+    symbol: 'PAPAJAMS',
+    name: 'PapaJams Creator Token',
+    address: (process.env.NEXT_PUBLIC_PAPAJAMS_TOKEN_ADDRESS || '0x2e9be99b199c874bd403f1b70fcaa9f11f47b96c') as `0x${string}`,
+    decimals: 18,
+    chainId: 8453,
+    chainName: 'Base',
+  },
+};
+
+/**
+ * Get explorer link for token
+ */
+export function getTokenExplorerUrl(tokenKey: 'voisss' | 'papajams'): string {
+  const meta = TOKEN_METADATA[tokenKey];
+  return `https://basescan.org/token/${meta.address}`;
+}
+
+/**
+ * Get Uniswap swap link for token
+ */
+export function getTokenBuyUrl(tokenKey: 'voisss' | 'papajams'): string {
+  const meta = TOKEN_METADATA[tokenKey];
+  return `https://app.uniswap.org/swap?outputCurrency=${meta.address}&chain=base`;
+}
+
+/**
+ * Get token address by key
+ */
+export function getTokenAddress(tokenKey: 'voisss' | 'papajams'): `0x${string}` {
+  return TOKEN_METADATA[tokenKey].address;
+}

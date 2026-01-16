@@ -50,6 +50,7 @@ export default function DubbingPanel({
     | "complete"
     | "error"
   >("preparing");
+  const [originalAudioBlob, setOriginalAudioBlob] = useState<Blob | null>(null);
   const [dubbedBlob, setDubbedBlob] = useState<Blob | null>(null);
   const [availableLanguages, setAvailableLanguages] = useState<LanguageInfo[]>(
     []
@@ -90,7 +91,8 @@ export default function DubbingPanel({
   }, [languagesData, selectedTargetLanguage]);
 
   const handleDubAudio = useCallback(async () => {
-    if (!audioBlob || !selectedTargetLanguage) return;
+    const activeVersion = versions.find(v => v.id === activeVersionId);
+    if (!activeVersion || !selectedTargetLanguage) return;
 
     // Check if user can use dubbing
     if (!canUseDubbing()) {
@@ -106,6 +108,7 @@ export default function DubbingPanel({
     setError("");
     setDubbingStage("preparing");
     setDubbingProgress("Preparing your audio for translation...");
+    setOriginalAudioBlob(activeVersion.blob);
 
     // Reset ref to track if we're still dubbing to avoid stale closures in timeouts
     stillDubbingRef.current = true;
@@ -162,12 +165,6 @@ export default function DubbingPanel({
           );
         }
       }, 45000); // 45 seconds total (15 more for generating stage)
-
-      // Get active version from ledger
-      const activeVersion = versions.find(v => v.id === activeVersionId);
-      if (!activeVersion) {
-        throw new Error('Active version not found');
-      }
 
       // Start the dubbing process (this will now actually call the API which may take time)
       const result = await dubAudio({
@@ -765,11 +762,11 @@ export default function DubbingPanel({
               onTimeout={() => setToastMessage(null)}
             />
 
-            {dubbedBlob && (
+            {dubbedBlob && originalAudioBlob && (
               <div className="mt-3 space-y-4">
                 {/* Audio Comparison Component */}
                 <AudioComparison
-                  originalAudio={audioBlob}
+                  originalAudio={originalAudioBlob}
                   dubbedAudio={dubbedBlob}
                   originalTranscript={transcript}
                   translatedTranscript={translatedTranscript}

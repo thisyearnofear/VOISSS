@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { TokenTier, TOKEN_METADATA, getTokenBuyUrl, getTokenExplorerUrl, formatTokenBalance } from "@voisss/shared/config/tokenAccess";
 
 interface MissionFiltersProps {
   selectedTopic: string;
@@ -11,6 +12,9 @@ interface MissionFiltersProps {
   onSortChange: (sort: "newest" | "reward" | "participants") => void;
   totalMissions: number;
   filteredCount: number;
+  // NEW: Token access info
+  userTier?: TokenTier;
+  userBalance?: bigint;
 }
 
 export default function MissionFilters({
@@ -22,7 +26,10 @@ export default function MissionFilters({
   onSortChange,
   totalMissions,
   filteredCount,
+  userTier = 'none',
+  userBalance = 0n,
 }: MissionFiltersProps) {
+  const [showTokenInfo, setShowTokenInfo] = useState(false);
   const topics = [
     { value: "all", label: "All Topics", icon: "🌐" },
     { value: "crypto", label: "Crypto & Web3", icon: "🪙" },
@@ -57,18 +64,110 @@ export default function MissionFilters({
             Showing {filteredCount} of {totalMissions} missions
           </p>
         </div>
-        {(selectedTopic !== "all" || selectedDifficulty !== "all") && (
+        <div className="flex gap-2 items-center">
+          {/* NEW: Token info toggle */}
           <button
-            onClick={() => {
-              onTopicChange("all");
-              onDifficultyChange("all");
-            }}
-            className="px-3 py-1.5 text-sm bg-[#2A2A2A] border border-[#3A3A3A] text-gray-400 hover:text-white hover:bg-[#3A3A3A] rounded-lg transition-colors"
+            onClick={() => setShowTokenInfo(!showTokenInfo)}
+            className="px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-1"
+            title="View token requirements and earn info"
           >
-            Clear Filters
+            <span>💰</span>
+            {userTier && userTier !== 'none' ? (
+              <span className="text-[#7C5DFA] text-xs uppercase font-semibold">{userTier}</span>
+            ) : (
+              <span className="text-gray-400 text-xs">Info</span>
+            )}
           </button>
-        )}
+          
+          {(selectedTopic !== "all" || selectedDifficulty !== "all") && (
+            <button
+              onClick={() => {
+                onTopicChange("all");
+                onDifficultyChange("all");
+              }}
+              className="px-3 py-1.5 text-sm bg-[#2A2A2A] border border-[#3A3A3A] text-gray-400 hover:text-white hover:bg-[#3A3A3A] rounded-lg transition-colors"
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* NEW: Collapsible token info section */}
+      {showTokenInfo && (
+        <div className="mb-6 p-4 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg space-y-3">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-semibold text-white">Token Info</h4>
+            <button
+              onClick={() => setShowTokenInfo(false)}
+              className="text-gray-400 hover:text-white text-sm"
+            >
+              ✕
+            </button>
+          </div>
+          
+          {/* Token cards */}
+          <div className="space-y-2">
+            {(['voisss', 'papajams'] as const).map((tokenKey) => {
+              const meta = TOKEN_METADATA[tokenKey];
+              const [copied, setCopied] = useState(false);
+              
+              const handleCopy = () => {
+                navigator.clipboard.writeText(meta.address);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              };
+              
+              return (
+                <div key={tokenKey} className="p-3 bg-[#2A2A2A]/50 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-white text-sm">{meta.name}</span>
+                    <button
+                      onClick={handleCopy}
+                      className="text-xs px-2 py-1 bg-[#3A3A3A] hover:bg-[#4A4A4A] text-gray-400 hover:text-gray-300 rounded transition-colors"
+                    >
+                      {copied ? '✓ Copied' : 'Copy'}
+                    </button>
+                  </div>
+                  <div className="text-xs text-gray-500 font-mono break-all mb-2">{meta.address}</div>
+                  <div className="flex gap-1 flex-wrap">
+                    <a
+                      href={getTokenBuyUrl(tokenKey)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs px-2 py-1 bg-[#7C5DFA]/20 hover:bg-[#7C5DFA]/30 text-[#7C5DFA] rounded transition-colors font-semibold"
+                    >
+                      Buy
+                    </a>
+                    <a
+                      href={getTokenExplorerUrl(tokenKey)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs px-2 py-1 bg-[#3A3A3A] hover:bg-[#4A4A4A] text-gray-400 rounded transition-colors"
+                    >
+                      View
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Current tier display */}
+          {userTier && userTier !== 'none' && (
+            <div className="pt-3 border-t border-[#3A3A3A]">
+              <p className="text-xs text-gray-400">
+                Your tier: <span className="text-[#7C5DFA] font-semibold uppercase">{userTier}</span>
+              </p>
+              {userBalance && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {formatTokenBalance(userBalance)} VOISSS held
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="space-y-6">
         {/* Topic Filter */}
