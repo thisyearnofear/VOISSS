@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, http } from 'viem';
 import { base } from 'viem/chains';
-import { createMissionService } from '@voisss/shared/services/persistent-mission-service';
+import { createMissionService } from '@voisss/shared/server';
 import { PLATFORM_CONFIG, meetsCreatorRequirements } from '@voisss/shared/config/platform';
 import { getTierForBalance, VOISSS_TOKEN_ACCESS } from '@voisss/shared/config/tokenAccess';
 import { Mission, QualityCriteria } from '@voisss/shared/types/socialfi';

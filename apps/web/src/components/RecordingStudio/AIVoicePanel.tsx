@@ -47,6 +47,11 @@ export default function AIVoicePanel({
 }: AIVoicePanelProps) {
   const [selectedVoiceId, setSelectedVoiceId] = useState('');
 
+  // Find the generated AI voice version for playback
+  const generatedAIVersion = versions.find(v => 
+    v.parentVersionId === activeVersionId && v.source.startsWith('aiVoice-')
+  );
+
   const handleLoadVoices = async () => {
     if (!isLoadingVoicesFree && voicesFree.length === 0) {
       onLoadingVoicesFreeChange(true);
@@ -212,10 +217,10 @@ export default function AIVoicePanel({
                   <p className="text-green-400 text-sm font-medium">AI Voice Ready!</p>
                 </div>
                 <audio
-                  src={URL.createObjectURL(variantBlobFree)}
-                  controls
-                  className="w-full"
-                  style={{ height: '32px' }}
+                   src={generatedAIVersion ? URL.createObjectURL(generatedAIVersion.blob) : undefined}
+                   controls
+                   className="w-full"
+                   style={{ height: '32px' }}
                 />
               </div>
             )}
