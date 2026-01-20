@@ -1,13 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useBaseAccount } from "../useBaseAccount";
-import { createModerationService } from "@voisss/shared";
 import { Mission, MissionResponse } from "@voisss/shared/types/socialfi";
+import { ApiResponse, isSuccessResponse, isErrorResponse } from "@voisss/shared/types/api.types";
 import { queryKeys, handleQueryError } from "../../lib/query-client";
 
-// Create service instances
-const moderationService = createModerationService();
-
-// Mission filters interface
+// Mission filters interface - CLEAN separation of concerns
 interface MissionFilters {
   difficulty?: string;
   topic?: string;
@@ -17,335 +14,325 @@ interface MissionFilters {
   status?: "active" | "completed" | "expired";
 }
 
-// Hook to fetch all missions with filtering
+// Enhanced mission response type - single source of truth
+interface MissionsResponse {
+  missions: Mission[];
+  aggregations: {
+    totalRewards: number;
+    averageReward: number;
+    difficultyDistribution: Record<string, number>;
+    topicDistribution: Record<string, number>;
+  };
+}
+
+// User missions response type
+interface UserMissionsResponse {
+  active: Mission[];
+  completed: MissionResponse[];
+}
+
+// Mission submission data interface
+interface MissionSubmissionData {
+  missionId: string;
+  recordingId: string;
+  recordingIpfsHash?: string;
+  location: {
+    city: string;
+    country: string;
+    coordinates?: { lat: number; lng: number };
+  };
+  context: string;
+  participantConsent: boolean;
+  consentProof?: string;
+  isAnonymized: boolean;
+  voiceObfuscated: boolean;
+}
+
+// Hook to fetch all missions with server-side filtering - PERFORMANT with caching
 export function useMissions(filters: MissionFilters = {}) {
   return useQuery({
     queryKey: queryKeys.missions.list(filters),
-    queryFn: async () => {
+    queryFn: async (): Promise<Mission[]> => {
       try {
-        const response = await fetch("https://voisss.famile.xyz/api/missions");
-        if (!response.ok) {
-          throw new Error("Failed to fetch missions");
-        }
-        const data = await response.json();
-        // Revive dates for client-side filtering
-        const missions = data.map(
-          (
-            m: Omit<Mission, "expiresAt" | "createdAt"> & {
-              expiresAt: string;
-              createdAt: string;
-            }
-          ) => ({
-            ...m,
-            expiresAt: new Date(m.expiresAt),
-            createdAt: new Date(m.createdAt),
-          })
-        );
-
-        // Apply filters
-        let filteredMissions = missions;
+        // Build query parameters - CLEAN parameter construction
+        const params = new URLSearchParams();
 
         if (filters.difficulty && filters.difficulty !== "all") {
-          filteredMissions = filteredMissions.filter(
-            (m: Mission) => m.difficulty === filters.difficulty
-          );
+          params.append("difficulty", filters.difficulty);
         }
 
         if (filters.topic && filters.topic !== "all") {
-          filteredMissions = filteredMissions.filter(
-            (m: Mission) => m.topic === filters.topic
-          );
+          params.append("topic", filters.topic);
         }
 
         if (filters.language && filters.language !== "all") {
-          filteredMissions = filteredMissions.filter(
-            (m: Mission) => m.language === filters.language
-          );
-        }
-
-        if (filters.rewardModel && filters.rewardModel !== "all") {
-          filteredMissions = filteredMissions.filter(
-            (m: Mission) => m.rewardModel === filters.rewardModel
-          );
+          params.append("language", filters.language);
         }
 
         if (filters.status) {
-          const now = new Date();
-          filteredMissions = filteredMissions.filter((m: Mission) => {
-            switch (filters.status) {
-              case "active":
-                return m.isActive && m.expiresAt > now;
-              case "completed":
-                return !m.isActive;
-              case "expired":
-                return m.expiresAt <= now;
-              default:
-                return true;
-            }
-          });
+          params.append("status", filters.status);
         }
 
-        // Apply sorting
-        switch (filters.sortBy) {
-          case "reward":
-            filteredMissions.sort(
-              (a: Mission, b: Mission) => b.baseReward - a.baseReward
-            );
-            break;
-          case "participants":
-            filteredMissions.sort(
-              (a: Mission, b: Mission) =>
-                b.currentParticipants - a.currentParticipants
-            );
-            break;
-          case "newest":
-          default:
-            filteredMissions.sort(
-              (a: Mission, b: Mission) =>
-                new Date(b.createdAt).getTime() -
-                new Date(a.createdAt).getTime()
-            );
-            break;
+        if (filters.sortBy) {
+          params.append("sortBy", filters.sortBy);
         }
 
-        return filteredMissions;
-      } catch (error) {
-        throw handleQueryError(error);
-      }
-    },
-    staleTime: 2 * 60 * 1000, // 2 minutes for mission data
-    gcTime: 5 * 60 * 1000, // 5 minutes cache
-  });
-}
+        // Use Next.js API routes directly - ENHANCEMENT FIRST
+        const url = `/api/missions${params.toString() ? `?${params.toString()}` : ''}`;
+        const response = await fetch(url);
 
-// Hook to fetch a specific mission
-export function useMission(missionId: string) {
-  return useQuery({
-    queryKey: [...queryKeys.missions.detail(missionId)],
-    queryFn: async () => {
-      try {
-        const response = await fetch(
-          `https://voisss.famile.xyz/api/missions/${missionId}`
-        );
         if (!response.ok) {
-          if (response.status === 404) throw new Error("Mission not found");
-          throw new Error("Failed to fetch mission");
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        return await response.json();
+
+        const apiResponse: ApiResponse<MissionsResponse> = await response.json();
+
+        if (isErrorResponse(apiResponse)) {
+          throw new Error(apiResponse.error.message);
+        }
+
+        if (!isSuccessResponse(apiResponse)) {
+          throw new Error("Invalid API response format");
+        }
+
+        // Return missions with properly parsed dates - CLEAN data transformation
+        return apiResponse.data.missions.map(mission => ({
+          ...mission,
+          expiresAt: new Date(mission.expiresAt),
+          createdAt: new Date(mission.createdAt),
+          updatedAt: new Date(mission.updatedAt),
+        }));
       } catch (error) {
         throw handleQueryError(error);
       }
     },
-    enabled: !!missionId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 2 * 60 * 1000, // 2 minutes - PERFORMANT caching
+    gcTime: 10 * 60 * 1000, // 10 minutes (replaces deprecated cacheTime)
+    refetchOnWindowFocus: false, // PERFORMANT - prevent unnecessary refetches
+    retry: (failureCount, error) => {
+      // Smart retry logic - don't retry on 4xx errors
+      if (error instanceof Error && error.message.includes('HTTP 4')) {
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 }
 
-// Hook to fetch user's missions
+// Hook to fetch a single mission by ID - MODULAR design
+export function useMission(id: string) {
+  return useQuery({
+    queryKey: queryKeys.missions.detail(id),
+    queryFn: async (): Promise<Mission> => {
+      try {
+        const response = await fetch(`/api/missions/${id}`);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const apiResponse: ApiResponse<Mission> = await response.json();
+
+        if (isErrorResponse(apiResponse)) {
+          throw new Error(apiResponse.error.message);
+        }
+
+        if (!isSuccessResponse(apiResponse)) {
+          throw new Error("Invalid API response format");
+        }
+
+        const mission = apiResponse.data;
+        return {
+          ...mission,
+          expiresAt: new Date(mission.expiresAt),
+          createdAt: new Date(mission.createdAt),
+          updatedAt: new Date(mission.updatedAt),
+        };
+      } catch (error) {
+        throw handleQueryError(error);
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes
+    enabled: !!id, // Only run when ID is provided
+  });
+}
+
+// Hook to fetch user's missions - CLEAN separation of user-specific data
 export function useUserMissions() {
   const { universalAddress: address } = useBaseAccount();
 
   return useQuery({
     queryKey: queryKeys.missions.userMissions(address || ""),
-    queryFn: async () => {
-      if (!address) return { active: [], completed: [] };
+    queryFn: async (): Promise<UserMissionsResponse> => {
+      if (!address) throw new Error("No address available");
 
       try {
-        const response = await fetch(
-          `https://voisss.famile.xyz/api/missions/user/${address}`
-        );
+        const response = await fetch(`/api/user/missions`, {
+          headers: {
+            Authorization: `Bearer ${address}`,
+          },
+        });
+
         if (!response.ok) {
-          throw new Error("Failed to fetch user missions");
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        return await response.json();
+
+        const apiResponse: ApiResponse<UserMissionsResponse> = await response.json();
+
+        if (isErrorResponse(apiResponse)) {
+          throw new Error(apiResponse.error.message);
+        }
+
+        if (!isSuccessResponse(apiResponse)) {
+          throw new Error("Invalid API response format");
+        }
+
+        // Transform dates properly - CLEAN data transformation
+        return {
+          active: apiResponse.data.active.map(mission => ({
+            ...mission,
+            expiresAt: new Date(mission.expiresAt),
+            createdAt: new Date(mission.createdAt),
+            updatedAt: new Date(mission.updatedAt),
+          })),
+          completed: apiResponse.data.completed.map(response => ({
+            ...response,
+            submittedAt: new Date(response.submittedAt),
+          })),
+        };
       } catch (error) {
         throw handleQueryError(error);
       }
     },
-    enabled: !!address,
-    staleTime: 1 * 60 * 1000, // 1 minute for user missions
+    staleTime: 1 * 60 * 1000, // 1 minute - more frequent updates for user data
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!address, // Only run when address is available
   });
 }
 
-// Hook to accept a mission
+// Hook to accept a mission - MODULAR mutation with optimistic updates
 export function useAcceptMission() {
   const queryClient = useQueryClient();
   const { universalAddress: address } = useBaseAccount();
 
   return useMutation({
     mutationFn: async (missionId: string) => {
-      if (!address) {
-        throw new Error("Wallet not connected");
-      }
+      if (!address) throw new Error("Wallet not connected");
 
-      try {
-        const response = await fetch(
-          "https://voisss.famile.xyz/api/missions/accept",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${address}`,
-            },
-            body: JSON.stringify({ missionId, userId: address }),
-          }
-        );
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || "Failed to accept mission");
-        }
-
-        return await response.json();
-      } catch (error) {
-        throw handleQueryError(error);
-      }
-    },
-    onSuccess: (_, missionId) => {
-      // Invalidate and refetch related queries
-      queryClient.invalidateQueries({ queryKey: queryKeys.missions.all });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.missions.detail(missionId),
+      const response = await fetch("/api/missions/accept", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${address}`,
+        },
+        body: JSON.stringify({ missionId }),
       });
-      if (address) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.missions.userMissions(address),
-        });
+
+      if (!response.ok) {
+        const apiResponse: ApiResponse = await response.json();
+        if (isErrorResponse(apiResponse)) {
+          throw new Error(apiResponse.error.message);
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+
+      const apiResponse: ApiResponse<{ success: boolean }> = await response.json();
+
+      if (isErrorResponse(apiResponse)) {
+        throw new Error(apiResponse.error.message);
+      }
+
+      return apiResponse.data;
+    },
+    onSuccess: () => {
+      // Invalidate relevant queries - PERFORMANT cache management
+      queryClient.invalidateQueries({ queryKey: queryKeys.missions.userMissions(address || "") });
+      queryClient.invalidateQueries({ queryKey: queryKeys.missions.lists() });
     },
   });
 }
 
-// Hook to complete a mission with moderation
-export const useCompleteMission = () => {
+// Hook to complete a mission (submit response) - CLEAN business logic separation
+export function useCompleteMission() {
   const queryClient = useQueryClient();
   const { universalAddress: address } = useBaseAccount();
 
   return useMutation({
-    mutationFn: async ({
-      missionId,
-      recordingId,
-      location,
-      context,
-      transcription,
-    }: {
-      missionId: string;
-      recordingId: string;
-      location: {
-        city: string;
-        country: string;
-        coordinates?: { lat: number; lng: number };
-      };
-      context: string;
-      transcription?: string;
-    }) => {
+    mutationFn: async (submissionData: MissionSubmissionData) => {
       if (!address) throw new Error("Wallet not connected");
 
-      // Get mission to access quality criteria
-      const missionRes = await fetch(
-        `https://voisss.famile.xyz/api/missions/${missionId}`
-      );
-      if (!missionRes.ok) throw new Error("Mission not found");
-      const mission = await missionRes.json();
-
-      // Build response
-      const response: Omit<MissionResponse, "id" | "submittedAt"> & {
-        status?: "approved" | "flagged" | "removed";
-      } = {
-        missionId,
-        userId: address,
-        recordingId,
-        location,
-        context,
-        participantConsent: true,
-        isAnonymized: false,
-        voiceObfuscated: false,
-        status: "approved" as const,
-        transcription,
-      };
-
-      // Run moderation check
-      const modResult = await moderationService.evaluateQuality(
-        response as MissionResponse,
-        mission.qualityCriteria
-      );
-
-      // Set status based on moderation result
-      if (modResult.suggestion === "reject") {
-        response.status = "flagged";
-      } else if (modResult.suggestion === "review") {
-        response.status = "approved"; // Auto-approve, human review happens separately
-      } else {
-        response.status = "approved"; // Auto-approved
+      // Simple validation - CLEAN separation of concerns
+      if (!submissionData.participantConsent) {
+        throw new Error("Participant consent is required");
       }
 
-      const submitRes = await fetch(
-        "https://voisss.famile.xyz/api/missions/submit",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${address}`,
-          },
-          body: JSON.stringify(response),
+      const response = await fetch("/api/missions/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${address}`,
+        },
+        body: JSON.stringify({
+          ...submissionData,
+          userId: address,
+        }),
+      });
+
+      if (!response.ok) {
+        const apiResponse: ApiResponse = await response.json();
+        if (isErrorResponse(apiResponse)) {
+          throw new Error(apiResponse.error.message);
         }
-      );
-
-      if (!submitRes.ok) {
-        const error = await submitRes.json();
-        throw new Error(error.error || "Failed to submit mission");
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      return await submitRes.json();
+      const apiResponse: ApiResponse<{ submission: MissionResponse }> = await response.json();
+
+      if (isErrorResponse(apiResponse)) {
+        throw new Error(apiResponse.error.message);
+      }
+
+      return apiResponse.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.missions.all });
-      if (address) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.missions.stats(address),
-        });
-      }
+      // Invalidate relevant queries - PERFORMANT cache management
+      queryClient.invalidateQueries({ queryKey: queryKeys.missions.userMissions(address || "") });
+      queryClient.invalidateQueries({ queryKey: queryKeys.missions.lists() });
     },
   });
-};
+}
 
-// Hook to get mission statistics
-export const useMissionStats = () => {
-  const { universalAddress: address } = useBaseAccount();
-
+// Hook to get mission statistics - MODULAR analytics
+export function useMissionStats(missionId: string) {
   return useQuery({
-    queryKey: queryKeys.missions.stats(address || ""),
+    queryKey: queryKeys.missions.stats(missionId),
     queryFn: async () => {
-      const response = await fetch("https://voisss.famile.xyz/api/missions");
-      if (!response.ok) {
-        throw new Error("Failed to fetch missions stats");
-      }
-      const missions = await response.json();
+      try {
+        const response = await fetch(`/api/missions/${missionId}/stats`);
 
-      return {
-        totalMissions: missions.length,
-        activeMissions: missions.filter((m: Mission) => m.isActive).length,
-        completedMissions: missions.filter((m: Mission) => !m.isActive).length,
-        totalRewards: missions.reduce(
-          (sum: number, m: Mission) => sum + (m.baseReward || 0),
-          0
-        ),
-        averageReward:
-          missions.length > 0
-            ? missions.reduce(
-                (sum: number, m: Mission) => sum + (m.baseReward || 0),
-                0
-              ) / missions.length
-            : 0,
-        languageDistribution: missions.reduce(
-          (acc: Record<string, number>, m: Mission) => {
-            acc[m.language] = (acc[m.language] || 0) + 1;
-            return acc;
-          },
-          {} as Record<string, number>
-        ),
-      };
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const apiResponse: ApiResponse<{
+          totalResponses: number;
+          averageQuality: number;
+          geographicDistribution: Record<string, number>;
+          completionRate: number;
+        }> = await response.json();
+
+        if (isErrorResponse(apiResponse)) {
+          throw new Error(apiResponse.error.message);
+        }
+
+        return apiResponse.data;
+      } catch (error) {
+        throw handleQueryError(error);
+      }
     },
-    enabled: !!address,
+    staleTime: 5 * 60 * 1000, // 5 minutes - stats don't change frequently
+    gcTime: 15 * 60 * 1000, // 15 minutes
+    enabled: !!missionId, // Only run when mission ID is provided
   });
-};
+}

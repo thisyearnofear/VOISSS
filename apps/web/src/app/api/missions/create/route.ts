@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createPublicClient, http } from "viem";
-import { base } from "viem/chains";
 import { getMissionService } from "@voisss/shared/server";
+import { getTokenAccessService } from "@voisss/shared/services/token";
 import {
-  PLATFORM_CONFIG,
-  meetsCreatorRequirements,
-} from "@voisss/shared/config/platform";
-import { getTierForBalance } from "@voisss/shared/config/tokenAccess";
+  createSuccessResponse,
+  createErrorResponse,
+  createValidationErrorResponse,
+  API_ERROR_CODES,
+  type ApiResponse,
+} from "@voisss/shared/types/api.types";
 import { QualityCriteria } from "@voisss/shared/types/socialfi";
 
 const missionService = getMissionService();
+const tokenAccessService = getTokenAccessService();
 
 // Base reward by difficulty
 const REWARD_BY_DIFFICULTY = {
@@ -17,68 +19,6 @@ const REWARD_BY_DIFFICULTY = {
   medium: 25,
   hard: 50,
 };
-
-// ERC20 ABI for balanceOf
-const ERC20_ABI = [
-  {
-    type: "function",
-    name: "balanceOf",
-    inputs: [{ type: "address" }],
-    outputs: [{ type: "uint256" }],
-    stateMutability: "view",
-  },
-] as const;
-
-// RPC providers with fallbacks
-const RPC_PROVIDERS = [
-  process.env.BASE_RPC_URL || "https://mainnet.base.org",
-  "https://base.llamarpc.com",
-];
-
-async function fetchBalanceWithRetry(
-  tokenAddress: `0x${string}`,
-  userAddress: `0x${string}`,
-  maxRetries: number = 2
-): Promise<bigint> {
-  let lastError: Error | null = null;
-
-  for (const rpcUrl of RPC_PROVIDERS) {
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        const publicClient = createPublicClient({
-          chain: base,
-          transport: http(rpcUrl, { timeout: 10000 }),
-        });
-
-        const balance = await Promise.race([
-          publicClient.readContract({
-            address: tokenAddress,
-            abi: ERC20_ABI,
-            functionName: "balanceOf",
-            args: [userAddress],
-          }),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("RPC timeout")), 10000)
-          ),
-        ]);
-
-        return balance;
-      } catch (error) {
-        lastError = error as Error;
-        console.warn(
-          `[missions-create] RPC attempt failed: ${(error as Error).message}`
-        );
-        if (attempt < maxRetries) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, 1000 * (attempt + 1))
-          );
-        }
-      }
-    }
-  }
-
-  throw lastError || new Error("All RPC providers failed");
-}
 
 /**
  * POST /api/missions/create
@@ -110,84 +50,103 @@ interface CreateMissionRequest {
   qualityCriteria?: QualityCriteria;
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse<ApiResponse>> {
+  const startTime = Date.now();
+
   try {
     // Extract address from Bearer token
     const authHeader = request.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        createErrorResponse(
+          API_ERROR_CODES.UNAUTHORIZED,
+          "Authorization header required"
+        ),
+        { status: 401 }
+      );
     }
 
     const userAddress = authHeader.substring(7);
     if (!userAddress?.startsWith("0x") || userAddress.length !== 42) {
-      return NextResponse.json({ error: "Invalid address" }, { status: 401 });
-    }
-
-    // Validate either-token requirement (at least $papajams OR $voisss required)
-    const papajamsAddress = PLATFORM_CONFIG.papajamsToken.address;
-    const voisssAddress = process.env
-      .NEXT_PUBLIC_VOISSS_TOKEN_ADDRESS as `0x${string}`;
-
-    if (!voisssAddress) {
       return NextResponse.json(
-        { error: "Token configuration error" },
-        { status: 500 }
+        createErrorResponse(
+          API_ERROR_CODES.INVALID_TOKEN,
+          "Invalid wallet address format"
+        ),
+        { status: 401 }
       );
     }
 
-    // Fetch both balances with retry
-    let papajamsBalance: bigint;
-    let voisssBalance: bigint;
-
+    // Validate creator eligibility using consolidated service
+    let eligibilityResult;
     try {
-      [papajamsBalance, voisssBalance] = await Promise.all([
-        fetchBalanceWithRetry(papajamsAddress, userAddress as `0x${string}`),
-        fetchBalanceWithRetry(voisssAddress, userAddress as `0x${string}`),
-      ]);
+      eligibilityResult = await tokenAccessService.validateCreatorEligibility(userAddress);
     } catch (error) {
-      console.error("[missions-create] Failed to fetch token balances:", error);
+      console.error("[missions-create] Failed to validate eligibility:", error);
       return NextResponse.json(
-        {
-          error: "Unable to verify token requirements",
-          details: "Please ensure you have tokens on Base chain and try again",
-        },
+        createErrorResponse(
+          API_ERROR_CODES.SERVICE_UNAVAILABLE,
+          "Unable to verify token requirements",
+          { details: "Please ensure you have tokens on Base chain and try again" }
+        ),
         { status: 503 }
       );
     }
 
-    const meetsPapajamsRequirement = meetsCreatorRequirements(papajamsBalance);
-
-    const tier = getTierForBalance(voisssBalance);
-    const meetsVoisssRequirement = tier !== "none";
-
-    // At least one token requirement must be met
-    if (!meetsPapajamsRequirement && !meetsVoisssRequirement) {
+    if (!eligibilityResult.eligible) {
       return NextResponse.json(
-        {
-          error: "Insufficient token balance",
-          required: `Either ${PLATFORM_CONFIG.creatorRequirements.minTokenBalance} $papajams OR 10k $voisss (Basic tier minimum)`,
-          papajamsBalance: papajamsBalance.toString(),
-          voisssBalance: voisssBalance.toString(),
-        },
+        createErrorResponse(
+          API_ERROR_CODES.INSUFFICIENT_BALANCE,
+          eligibilityResult.reason || "Insufficient token balance",
+          {
+            requiredBalance: eligibilityResult.requiredBalance?.toString(),
+            currentBalance: eligibilityResult.currentBalance?.toString(),
+            recommendations: eligibilityResult.recommendations,
+          }
+        ),
         { status: 403 }
       );
     }
 
     // Parse and validate request
-    const body: CreateMissionRequest = await request.json();
+    let body: CreateMissionRequest;
+    try {
+      body = await request.json();
+    } catch (error) {
+      return NextResponse.json(
+        createErrorResponse(
+          API_ERROR_CODES.INVALID_FORMAT,
+          "Invalid JSON in request body"
+        ),
+        { status: 400 }
+      );
+    }
 
     // Validate required fields
-    if (
-      !body.title?.trim() ||
-      !body.description?.trim() ||
-      !body.difficulty ||
-      !body.targetDuration
-    ) {
+    if (!body.title?.trim()) {
       return NextResponse.json(
-        {
-          error:
-            "Missing required fields: title, description, difficulty, targetDuration",
-        },
+        createValidationErrorResponse("title", "Title is required"),
+        { status: 400 }
+      );
+    }
+
+    if (!body.description?.trim()) {
+      return NextResponse.json(
+        createValidationErrorResponse("description", "Description is required"),
+        { status: 400 }
+      );
+    }
+
+    if (!body.difficulty) {
+      return NextResponse.json(
+        createValidationErrorResponse("difficulty", "Difficulty is required"),
+        { status: 400 }
+      );
+    }
+
+    if (!body.targetDuration) {
+      return NextResponse.json(
+        createValidationErrorResponse("targetDuration", "Target duration is required"),
         { status: 400 }
       );
     }
@@ -195,7 +154,10 @@ export async function POST(request: NextRequest) {
     // Validate difficulty
     if (!["easy", "medium", "hard"].includes(body.difficulty)) {
       return NextResponse.json(
-        { error: "Invalid difficulty. Must be: easy, medium, or hard" },
+        createValidationErrorResponse(
+          "difficulty",
+          "Invalid difficulty. Must be: easy, medium, or hard"
+        ),
         { status: 400 }
       );
     }
@@ -203,17 +165,22 @@ export async function POST(request: NextRequest) {
     // Validate duration range
     if (body.targetDuration < 30 || body.targetDuration > 600) {
       return NextResponse.json(
-        { error: "Target duration must be between 30 and 600 seconds" },
+        createValidationErrorResponse(
+          "targetDuration",
+          "Target duration must be between 30 and 600 seconds"
+        ),
         { status: 400 }
       );
     }
 
     // Validate expiration
-    const expirationDays =
-      body.expirationDays || PLATFORM_CONFIG.missions.defaultExpirationDays;
+    const expirationDays = body.expirationDays || 14;
     if (expirationDays < 1 || expirationDays > 90) {
       return NextResponse.json(
-        { error: "Expiration must be between 1 and 90 days" },
+        createValidationErrorResponse(
+          "expirationDays",
+          "Expiration must be between 1 and 90 days"
+        ),
         { status: 400 }
       );
     }
@@ -238,17 +205,31 @@ export async function POST(request: NextRequest) {
       qualityCriteria: body.qualityCriteria,
       budgetAllocation: body.budgetAllocation,
       creatorStake: body.creatorStake,
-      isActive: PLATFORM_CONFIG.missions.autoPublish,
+      isActive: true, // Auto-publish for now
       createdBy: userAddress,
       expiresAt,
       autoExpire: true,
     });
 
-    return NextResponse.json({ success: true, mission }, { status: 201 });
+    const processingTime = Date.now() - startTime;
+
+    return NextResponse.json(
+      createSuccessResponse(
+        { mission },
+        { processingTime }
+      ),
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Mission creation error:", error);
-    const message =
-      error instanceof Error ? error.message : "Failed to create mission";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Failed to create mission";
+
+    return NextResponse.json(
+      createErrorResponse(
+        API_ERROR_CODES.INTERNAL_ERROR,
+        message
+      ),
+      { status: 500 }
+    );
   }
 }

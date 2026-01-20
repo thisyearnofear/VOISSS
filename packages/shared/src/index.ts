@@ -1,11 +1,15 @@
 // Shared types and utilities for VOISSS platform
 export * from './types';
 export * from './types/socialfi';
+export * from './types/api.types'; // New unified API types
 export type { Recording, VoiceRecording, Tag, MissionContext } from './types';
 export * from './constants/languages';
 export * from './types/audio';
 export * from './services/audio/ai/elevenlabs-service';
 export * from './starknet/index'; // Legacy export for backward compatibility
+
+// Token services - New consolidated token access
+export * from './services/token';
 
 // AI Services
 export * from './services/routeway-service';
