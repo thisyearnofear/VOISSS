@@ -19,8 +19,21 @@ const publicClient = createPublicClient({
 
 export async function GET(request: NextRequest) {
   try {
-    // Blockchain stats are public data - no authentication needed
-    // These endpoints are read-only queries from the public blockchain
+    // Validate authorization header if provided (optional, for security best practice)
+    // ElevenLabs can be configured to send a Bearer token via the "Secret" header type
+    const authHeader = request.headers.get('Authorization');
+    const expectedToken = process.env.ELEVENLABS_AGENT_TOKEN;
+
+    // If auth is configured, validate it
+    if (expectedToken && authHeader !== `Bearer ${expectedToken}`) {
+      console.warn('Invalid or missing authorization for blockchain-stats endpoint');
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Proceed with fetching stats from blockchain
 
     const contractAddress = process.env.NEXT_PUBLIC_VOICE_RECORDS_CONTRACT as `0x${string}`;
     if (!contractAddress) {

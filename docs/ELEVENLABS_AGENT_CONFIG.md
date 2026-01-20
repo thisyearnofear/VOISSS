@@ -74,8 +74,30 @@ When using tools, acknowledge their results naturally in conversation—don't me
 
 ## Webhook Tools Configuration
 
+### Setup: Create a Bearer Token Secret (Optional but Recommended)
+
+1. In your ElevenLabs agent settings, go to **Workspace Auth Connections**
+2. Click **Add Auth**
+3. Choose **Bearer Token**
+4. Create a secret name: `elevenlabs_agent_token`
+5. Generate a secure token: `openssl rand -base64 32`
+6. Save the token and keep it safe
+
 ### Tool 1: get_platform_stats
 
+**Via UI:**
+1. Go to **Tools** → **Add Tool** → **Webhook**
+2. **Name:** `get_platform_stats`
+3. **Description:** Retrieve current VOISSS platform statistics including total transformations, users, onchain recordings, storage used, and weekly activity. Use this when users ask about platform usage, activity, popularity, statistics, or how many people are using VOISSS.
+4. **URL:** `https://voisss.netlify.app/api/tools/platform-stats`
+5. **Method:** GET
+6. **Headers:**
+   - Click "Add header"
+   - **Name:** `Authorization`
+   - **Type:** Select **Secret** (from the dropdown)
+   - **Value:** Select your `elevenlabs_agent_token` secret
+
+**Or as JSON:**
 ```json
 {
   "type": "webhook",
@@ -87,7 +109,12 @@ When using tools, acknowledge their results naturally in conversation—don't me
     "path_params_schema": [],
     "query_params_schema": [],
     "request_body_schema": null,
-    "request_headers": [],
+    "request_headers": [
+      {
+        "key": "Authorization",
+        "value": "Bearer YOUR_SECURE_TOKEN_HERE"
+      }
+    ],
     "auth_connection": null
   },
   "response_timeout_secs": 15,
@@ -103,7 +130,7 @@ When using tools, acknowledge their results naturally in conversation—don't me
 }
 ```
 
-> **Note**: This endpoint is public (read-only statistics). No authentication required. The data returned is intended to be shared with users about platform activity.
+> **Note:** The Bearer token is optional. If you omit it, the endpoint will work as public read-only data. If you set `ELEVENLABS_AGENT_TOKEN` env var on your server, the endpoint will require the token.
 
 ## Environment Variables
 

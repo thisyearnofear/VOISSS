@@ -25,8 +25,21 @@ function getPool(): Pool {
 
 export async function GET(request: NextRequest) {
   try {
-    // Platform stats are public data - no authentication needed
-    // These endpoints are read-only and return public statistics
+    // Validate authorization header if provided (optional, for security best practice)
+    // ElevenLabs can be configured to send a Bearer token via the "Secret" header type
+    const authHeader = request.headers.get('Authorization');
+    const expectedToken = process.env.ELEVENLABS_AGENT_TOKEN;
+
+    // If auth is configured, validate it
+    if (expectedToken && authHeader !== `Bearer ${expectedToken}`) {
+      console.warn('Invalid or missing authorization for platform-stats endpoint');
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Proceed with fetching stats (public data if no token validation needed)
 
     // Fetch real-time statistics
     const [
