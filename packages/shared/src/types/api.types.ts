@@ -165,8 +165,8 @@ export function isErrorResponse(response: ApiResponse<any>): response is ApiResp
 
 // Query parameter types for consistent API interfaces
 export interface BaseQueryParams {
-    page?: number;
-    limit?: number;
+    page: number;
+    limit: number;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
 }
