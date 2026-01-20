@@ -1,11 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Pool } from 'pg';
 
 /**
  * Platform Stats Tool - For ElevenLabs Agent
  * 
- * Returns current VOISSS platform statistics.
- * Used by the voice assistant to provide real-time platform metrics.
+ * Returns real-time VOISSS platform statistics from:
+ * - PostgreSQL: export jobs (transformations)
+ * - Base blockchain: voice records (total recordings, users)
  */
+
+// Initialize database connection pool
+let pool: Pool | null = null;
+
+function getPool(): Pool {
+  if (!pool) {
+    const databaseUrl = process.env.DATABASE_URL;
+    if (!databaseUrl) {
+      throw new Error('DATABASE_URL environment variable not set');
+    }
+    pool = new Pool({ connectionString: databaseUrl });
+  }
+  return pool;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,22 +45,31 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // TODO: Replace with actual data fetching from your database/contracts
-    // For now, return mock data with realistic statistics
+    // Fetch real-time statistics
+    const [
+      transformationStats,
+      blockchainStats,
+      this_week_stats
+    ] = await Promise.all([
+      fetchTransformationStats(),
+      fetchBlockchainStats(),
+      fetchThisWeekStats(),
+    ]);
+
     const platformStats = {
-      total_transformations: 1250,
-      total_users: 450,
-      storage_used_mb: 5240,
-      recordings_this_week: 180,
-      languages_supported: 29,
-      average_transformation_time_seconds: 12,
-      platform_uptime_percent: 99.8,
-      wallet_connections: 287,
+      total_transformations: transformationStats.completed_jobs,
+      total_users: blockchainStats.unique_users,
+      total_onchain_recordings: blockchainStats.total_recordings,
+      storage_used_mb: blockchainStats.estimated_storage_mb,
+      recordings_this_week: this_week_stats.weekly_transformations,
+      languages_supported: 29, // ElevenLabs supports 29 languages
+      average_transformation_time_seconds: transformationStats.avg_duration_ms ? Math.round(transformationStats.avg_duration_ms / 1000) : 0,
+      wallet_connections: blockchainStats.wallet_connections,
     };
 
     return NextResponse.json(platformStats, {
       headers: {
-        'Cache-Control': 'public, s-maxage=60', // Cache for 60 seconds
+        'Cache-Control': 'public, s-maxage=30', // Cache for 30 seconds for fresh data
       },
     });
   } catch (error) {
@@ -53,6 +78,112 @@ export async function GET(request: NextRequest) {
       { error: 'Failed to fetch platform statistics' },
       { status: 500 }
     );
+  }
+}
+
+/**
+ * Fetch transformation statistics from PostgreSQL
+ */
+async function fetchTransformationStats() {
+  const client = await getPool().connect();
+  try {
+    const result = await client.query(`
+      SELECT 
+        COUNT(*) FILTER (WHERE status = 'completed') as completed_jobs,
+        AVG(duration_ms) FILTER (WHERE status = 'completed' AND duration_ms IS NOT NULL) as avg_duration_ms
+      FROM export_jobs
+    `);
+
+    const row = result.rows[0];
+    return {
+      completed_jobs: parseInt(row.completed_jobs || '0'),
+      avg_duration_ms: parseFloat(row.avg_duration_ms || '0'),
+    };
+  } catch (err) {
+    console.error('Error fetching transformation stats:', err);
+    return { completed_jobs: 0, avg_duration_ms: 0 };
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Fetch blockchain statistics from Base contract
+ * Note: Requires a service to query the VoiceRecords contract
+ */
+async function fetchBlockchainStats() {
+  try {
+    // Query the blockchain stats endpoint
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.base.org';
+    const contractAddress = process.env.NEXT_PUBLIC_VOICE_RECORDS_CONTRACT;
+
+    if (!contractAddress) {
+      console.warn('VOICE_RECORDS_CONTRACT not configured');
+      return {
+        total_recordings: 0,
+        unique_users: 0,
+        wallet_connections: 0,
+        estimated_storage_mb: 0,
+      };
+    }
+
+    // This would typically call a service that queries the contract
+    // For now, we'll use a separate backend service if available
+    const statsResponse = await fetch(`${process.env.VOISSS_BACKEND_URL}/api/blockchain-stats`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${process.env.VOISSS_BACKEND_API_KEY}`,
+      },
+    }).catch(() => null);
+
+    if (statsResponse?.ok) {
+      const stats = await statsResponse.json();
+      return {
+        total_recordings: stats.total_recordings || 0,
+        unique_users: stats.unique_users || 0,
+        wallet_connections: stats.wallet_connections || 0,
+        estimated_storage_mb: (stats.total_recordings || 0) * 2.5, // Estimate ~2.5MB per recording
+      };
+    }
+
+    // Fallback: use only database stats
+    return {
+      total_recordings: 0,
+      unique_users: 0,
+      wallet_connections: 0,
+      estimated_storage_mb: 0,
+    };
+  } catch (err) {
+    console.error('Error fetching blockchain stats:', err);
+    return {
+      total_recordings: 0,
+      unique_users: 0,
+      wallet_connections: 0,
+      estimated_storage_mb: 0,
+    };
+  }
+}
+
+/**
+ * Fetch this week's transformation statistics
+ */
+async function fetchThisWeekStats() {
+  const client = await getPool().connect();
+  try {
+    const result = await client.query(`
+      SELECT COUNT(*) as weekly_count
+      FROM export_jobs
+      WHERE status = 'completed' 
+      AND completed_at >= NOW() - INTERVAL '7 days'
+    `);
+
+    const row = result.rows[0];
+    return { weekly_transformations: parseInt(row.weekly_count || '0') };
+  } catch (err) {
+    console.error('Error fetching weekly stats:', err);
+    return { weekly_transformations: 0 };
+  } finally {
+    client.release();
   }
 }
 
