@@ -1,17 +1,31 @@
-'use client';
+"use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { VoisssKaraokeLine } from './voisss-karaoke';
-import { TranscriptStyleControls, TranscriptStyle, TRANSCRIPT_THEMES, TRANSCRIPT_FONTS } from './TranscriptStyleControls';
-import ErrorBoundary from '../ErrorBoundary';
-import { buildTranscriptPages, findActiveWord, stableTranscriptId } from '@voisss/shared/utils/timed-transcript';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { VoisssKaraokeLine } from "./voisss-karaoke";
+import {
+  TranscriptStyleControls,
+  TranscriptStyle,
+  TRANSCRIPT_THEMES,
+} from "./TranscriptStyleControls";
+import ErrorBoundary from "../ErrorBoundary";
+import {
+  buildTranscriptPages,
+  findActiveWord,
+  stableTranscriptId,
+} from "@voisss/shared/utils/timed-transcript";
 import {
   DEFAULT_VOISSS_TEMPLATES,
   TimedTranscriptSchema,
   type TimedTranscript,
   type TranscriptTemplate,
-} from '@voisss/shared/types/transcript';
-import { useAudioPlaybackTime } from '../../hooks/useAudioPlaybackTime';
+} from "@voisss/shared/types/transcript";
+import { useAudioPlaybackTime } from "../../hooks/useAudioPlaybackTime";
 
 function ms(seconds: number) {
   return Math.max(0, Math.round(seconds * 1000));
@@ -22,13 +36,13 @@ function createRoughTimedTranscript(params: {
   durationSeconds: number;
   language?: string;
 }): TimedTranscript {
-  const { text, durationSeconds, language = 'en' } = params;
+  const { text, durationSeconds, language = "en" } = params;
   const cleaned = text.trim();
   const sentences = cleaned.length
     ? cleaned
-      .split(/(?<=[.!?])\s+/)
-      .map(s => s.trim())
-      .filter(Boolean)
+        .split(/(?<=[.!?])\s+/)
+        .map((s) => s.trim())
+        .filter(Boolean)
     : [];
 
   const segCount = Math.max(1, sentences.length);
@@ -42,7 +56,7 @@ function createRoughTimedTranscript(params: {
 
     const words = segText
       .split(/\s+/)
-      .map(w => w.trim())
+      .map((w) => w.trim())
       .filter(Boolean);
 
     const wordCount = Math.max(1, words.length);
@@ -55,7 +69,8 @@ function createRoughTimedTranscript(params: {
       text: segText,
       words: words.map((word, wi) => {
         const wStart = startMs + wi * wordMs;
-        const wEnd = wi === wordCount - 1 ? endMs : startMs + (wi + 1) * wordMs - 1;
+        const wEnd =
+          wi === wordCount - 1 ? endMs : startMs + (wi + 1) * wordMs - 1;
         return { word, startMs: wStart, endMs: wEnd, confidence: 0.2 };
       }),
     };
@@ -63,7 +78,11 @@ function createRoughTimedTranscript(params: {
 
   const id = stableTranscriptId({
     language,
-    segments: segments.map((s) => ({ startMs: s.startMs, endMs: s.endMs, text: s.text })),
+    segments: segments.map((s) => ({
+      startMs: s.startMs,
+      endMs: s.endMs,
+      text: s.text,
+    })),
   });
 
   return TimedTranscriptSchema.parse({
@@ -71,13 +90,14 @@ function createRoughTimedTranscript(params: {
     language,
     text: cleaned,
     segments,
-    provider: 'rough',
+    provider: "rough",
     createdAt: new Date().toISOString(),
   });
 }
 
 function formatTemplateLabel(t: TranscriptTemplate) {
-  const aspect = t.aspect === 'portrait' ? '9:16' : t.aspect === 'square' ? '1:1' : '16:9';
+  const aspect =
+    t.aspect === "portrait" ? "9:16" : t.aspect === "square" ? "1:1" : "16:9";
   return `${t.name} (${aspect})`;
 }
 
@@ -95,7 +115,7 @@ export default function TranscriptComposer(props: {
     audioBlob,
     initialTemplateId,
     autoFocus,
-    languageHint = 'en'
+    languageHint = "en",
   } = props;
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -104,7 +124,10 @@ export default function TranscriptComposer(props: {
   // Validate template ID with fallback chain
   const getDefaultTemplateId = (): string => {
     // First try explicitly passed template
-    if (initialTemplateId && DEFAULT_VOISSS_TEMPLATES.some((t) => t.id === initialTemplateId)) {
+    if (
+      initialTemplateId &&
+      DEFAULT_VOISSS_TEMPLATES.some((t) => t.id === initialTemplateId)
+    ) {
       return initialTemplateId;
     }
     // Then try first template in list
@@ -112,17 +135,17 @@ export default function TranscriptComposer(props: {
       return DEFAULT_VOISSS_TEMPLATES[0].id;
     }
     // Last resort: hardcoded fallback (should never reach this)
-    return 'voisss-pulse-portrait';
+    return "voisss-pulse-portrait";
   };
 
   const [templateId, setTemplateId] = useState(getDefaultTemplateId());
 
   // Initialize style with defaults
   const [style, setStyle] = useState<TranscriptStyle>({
-    fontFamily: 'Sans',
+    fontFamily: "Sans",
     theme: TRANSCRIPT_THEMES[0], // Default Voisss theme
-    animation: 'cut',
-    density: 'classic',
+    animation: "cut",
+    density: "classic",
     fontSize: 64,
   });
 
@@ -142,25 +165,33 @@ export default function TranscriptComposer(props: {
   }, [playbackRate]);
 
   const template = useMemo(() => {
-    return DEFAULT_VOISSS_TEMPLATES.find((t: TranscriptTemplate) => t.id === templateId) ?? DEFAULT_VOISSS_TEMPLATES[0];
+    return (
+      DEFAULT_VOISSS_TEMPLATES.find(
+        (t: TranscriptTemplate) => t.id === templateId
+      ) ?? DEFAULT_VOISSS_TEMPLATES[0]
+    );
   }, [templateId]);
 
-  const STORAGE_KEY = 'voisss:transcript_composer:v1';
+  const STORAGE_KEY = "voisss:transcript_composer:v1";
 
-  const [rawText, setRawText] = useState('');
-  const [timedTranscript, setTimedTranscript] = useState<TimedTranscript | null>(null);
-  const [importJson, setImportJson] = useState('');
-  const [baselineTranscript, setBaselineTranscript] = useState<TimedTranscript | null>(null);
+  const [rawText, setRawText] = useState("");
+  const [timedTranscript, setTimedTranscript] =
+    useState<TimedTranscript | null>(null);
+  const [importJson, setImportJson] = useState("");
+  const [, setBaselineTranscript] = useState<TimedTranscript | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [shareLink, setShareLink] = useState<string | null>(null);
-  const [carouselSlides, setCarouselSlides] = useState<Array<{ filename: string; url: string }> | null>(null);
+  const [carouselSlides, setCarouselSlides] = useState<Array<{
+    filename: string;
+    url: string;
+  }> | null>(null);
 
   // Export job tracking
   interface ExportJob {
     jobId: string;
-    kind: 'mp3' | 'mp4';
-    status: 'pending' | 'processing' | 'completed' | 'failed';
+    kind: "mp3" | "mp4";
+    status: "pending" | "processing" | "completed" | "failed";
     progress?: number;
     outputUrl?: string;
     error?: string;
@@ -168,8 +199,9 @@ export default function TranscriptComposer(props: {
     createdAt?: string;
   }
   const [exportJobs, setExportJobs] = useState<ExportJob[]>([]);
-  const [userId, setUserId] = useState<string>('anonymous');
-  const [exportingKind, setExportingKind] = useState<'mp3' | 'mp4' | 'carousel' | null>(null);
+  const [exportingKind, setExportingKind] = useState<
+    "mp3" | "mp4" | "carousel" | null
+  >(null);
 
   // Checkpoint system for saving/restoring state
   interface Checkpoint {
@@ -186,7 +218,7 @@ export default function TranscriptComposer(props: {
   useEffect(() => {
     return () => {
       if (carouselSlides) {
-        carouselSlides.forEach(s => URL.revokeObjectURL(s.url));
+        carouselSlides.forEach((s) => URL.revokeObjectURL(s.url));
       }
     };
   }, [carouselSlides]);
@@ -210,7 +242,11 @@ export default function TranscriptComposer(props: {
         timedTranscript?: unknown;
         style?: Record<string, unknown>;
         syncOffsetMs?: number;
-        exportJobs?: Array<{ id: string; template: string; exportUrl?: string }>;
+        exportJobs?: Array<{
+          id: string;
+          template: string;
+          exportUrl?: string;
+        }>;
       }
       let data: StorageData | null = null;
       try {
@@ -230,17 +266,19 @@ export default function TranscriptComposer(props: {
       }
 
       // Validate stored template ID exists in current template list
-      if (typeof data?.templateId === 'string') {
-        const templateExists = DEFAULT_VOISSS_TEMPLATES.some((t) => t.id === data.templateId);
+      if (typeof data?.templateId === "string") {
+        const templateExists = DEFAULT_VOISSS_TEMPLATES.some(
+          (t) => t.id === data.templateId
+        );
         if (templateExists) {
           setTemplateId(data.templateId);
         }
         // If stored template doesn't exist in current list, use default (already set in useState)
       }
-      if (typeof data?.rawText === 'string') {
+      if (typeof data?.rawText === "string") {
         setRawText(data.rawText);
       }
-      if (typeof data?.importJson === 'string') {
+      if (typeof data?.importJson === "string") {
         setImportJson(data.importJson);
       }
 
@@ -250,23 +288,28 @@ export default function TranscriptComposer(props: {
         if (tt.success) {
           setTimedTranscript(tt.data);
           // Mark as accurate if provider indicates it's not rough
-          setIsAccurateTranscript(tt.data.provider !== 'rough');
+          setIsAccurateTranscript(tt.data.provider !== "rough");
         }
       }
 
       // Validate style shape (has required theme, fontFamily, animation)
-      if (data?.style && typeof data.style === 'object' && 'theme' in data.style && 'fontFamily' in data.style && 'animation' in data.style) {
+      if (
+        data?.style &&
+        typeof data.style === "object" &&
+        "theme" in data.style &&
+        "fontFamily" in data.style &&
+        "animation" in data.style
+      ) {
         setStyle(data.style as unknown as TranscriptStyle);
       }
 
       // Restore sync offset (optional, default to 0)
-      if (typeof data?.syncOffsetMs === 'number') {
+      if (typeof data?.syncOffsetMs === "number") {
         setSyncOffsetMs(Math.max(-2000, Math.min(2000, data.syncOffsetMs)));
       }
     } catch {
       // Silently ignore any other errors
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const normalizedDurationSeconds = useMemo(() => {
@@ -289,55 +332,58 @@ export default function TranscriptComposer(props: {
           syncOffsetMs,
         })
       );
-    } catch (err) {
+    } catch {
       // localStorage full or disabled; silently ignore
     }
   }, [templateId, rawText, importJson, timedTranscript, style, syncOffsetMs]);
 
   // Persistent User ID and Export Library
   useEffect(() => {
-    let uid = localStorage.getItem('voisss:user_id');
+    let uid = localStorage.getItem("voisss:user_id");
     if (!uid) {
       uid = `u_${Math.random().toString(36).substring(2, 11)}`;
-      localStorage.setItem('voisss:user_id', uid);
+      localStorage.setItem("voisss:user_id", uid);
     }
-    setUserId(uid);
 
     // Fetch existing jobs for this user
     const fetchUserJobs = async () => {
-      const backendUrl = process.env.NEXT_PUBLIC_VOISSS_PROCESSING_URL || 'https://voisss.famile.xyz';
+      const backendUrl =
+        process.env.NEXT_PUBLIC_VOISSS_PROCESSING_URL ||
+        "https://voisss.famile.xyz";
       try {
         const res = await fetch(`${backendUrl}/api/export/user/${uid}`);
         if (res.ok) {
-           interface JobResponse {
-             id: string;
-             kind: 'mp3' | 'mp4';
-             status: 'pending' | 'processing' | 'completed' | 'failed';
-             outputUrl?: string;
-             error_message?: string;
-             created_at: string;
-           }
-           const jobs = (await res.json()) as JobResponse[];
-           // Filter out very old failed jobs or map to our state
-           setExportJobs(jobs.map((j) => ({
-             jobId: j.id,
-             kind: j.kind,
-             status: j.status,
-             outputUrl: j.outputUrl,
-             error: j.error_message,
-             progress: j.status === 'completed' ? 100 : 0,
-             createdAt: j.created_at
-           })));
+          interface JobResponse {
+            id: string;
+            kind: "mp3" | "mp4";
+            status: "pending" | "processing" | "completed" | "failed";
+            outputUrl?: string;
+            error_message?: string;
+            created_at: string;
+          }
+          const jobs = (await res.json()) as JobResponse[];
+          // Filter out very old failed jobs or map to our state
+          setExportJobs(
+            jobs.map((j) => ({
+              jobId: j.id,
+              kind: j.kind,
+              status: j.status,
+              outputUrl: j.outputUrl,
+              error: j.error_message,
+              progress: j.status === "completed" ? 100 : 0,
+              createdAt: j.created_at,
+            }))
+          );
 
-           // Start polling for any active jobs discovered in history
-           jobs.forEach((j) => {
-             if (j.status === 'pending' || j.status === 'processing') {
+          // Start polling for any active jobs discovered in history
+          jobs.forEach((j) => {
+            if (j.status === "pending" || j.status === "processing") {
               pollExportStatus(j.id);
             }
           });
         }
-      } catch (err) {
-        console.error('Failed to fetch user jobs:', err);
+      } catch {
+        console.error("Failed to fetch user jobs");
       }
     };
 
@@ -357,8 +403,11 @@ export default function TranscriptComposer(props: {
     }
 
     // For rough transcripts: only regenerate if text meaningfully changed or duration is suspicious
-    const lastEndMs = timedTranscript?.segments?.[timedTranscript.segments.length - 1]?.endMs || 0;
-    const isSuspiciousDuration = lastEndMs > 100000 && normalizedDurationSeconds < 100; // e.g. stored 2000s when prop is 2s
+    const lastEndMs =
+      timedTranscript?.segments?.[timedTranscript.segments.length - 1]?.endMs ||
+      0;
+    const isSuspiciousDuration =
+      lastEndMs > 100000 && normalizedDurationSeconds < 100; // e.g. stored 2000s when prop is 2s
     const textDifferent = timedTranscript?.text !== trimmed;
 
     if (!textDifferent && !isSuspiciousDuration) {
@@ -371,18 +420,24 @@ export default function TranscriptComposer(props: {
       try {
         const tt = createRoughTimedTranscript({
           text: rawText,
-          durationSeconds: normalizedDurationSeconds
+          durationSeconds: normalizedDurationSeconds,
         });
         setTimedTranscript(tt);
         setIsAccurateTranscript(false);
-      } catch (e: any) {
-        setError(e?.message || 'Failed to create timed transcript');
+      } catch (e: unknown) {
+        setError(
+          e instanceof Error ? e.message : "Failed to create timed transcript"
+        );
       }
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rawText, normalizedDurationSeconds, isAccurateTranscript, timedTranscript]);
+  }, [
+    rawText,
+    normalizedDurationSeconds,
+    isAccurateTranscript,
+    timedTranscript,
+  ]);
 
   // Use robust audio playback time tracking (timeupdate + RAF interpolation)
   const handleTimeChange = useCallback((timeMs: number) => {
@@ -397,11 +452,11 @@ export default function TranscriptComposer(props: {
     if (!timedTranscript) return null;
     return {
       ...timedTranscript,
-      segments: timedTranscript.segments.map(seg => ({
+      segments: timedTranscript.segments.map((seg) => ({
         ...seg,
         startMs: Math.max(0, seg.startMs + syncOffsetMs),
         endMs: Math.max(0, seg.endMs + syncOffsetMs),
-        words: seg.words?.map(w => ({
+        words: seg.words?.map((w) => ({
           ...w,
           startMs: Math.max(0, w.startMs + syncOffsetMs),
           endMs: Math.max(0, w.endMs + syncOffsetMs),
@@ -413,7 +468,7 @@ export default function TranscriptComposer(props: {
   // LIVE JSON DISPLAY: Show calibrated transcript (with sync offset applied)
   // This updates in real-time as user adjusts the slider
   const displayedJson = useMemo(() => {
-    if (!calibratedTranscript) return '';
+    if (!calibratedTranscript) return "";
     return JSON.stringify(calibratedTranscript, null, 2);
   }, [calibratedTranscript]);
 
@@ -464,22 +519,32 @@ export default function TranscriptComposer(props: {
       const tt = createRoughTimedTranscript({
         text: rawText,
         durationSeconds: normalizedDurationSeconds,
-        language: language || languageHint
+        language: language || languageHint,
       });
       setTimedTranscript(tt);
       setIsAccurateTranscript(false); // Rough timing is not accurate
-    } catch (e: any) {
-      setError(e?.message || 'Failed to create timed transcript');
+    } catch (e: unknown) {
+      setError(
+        e instanceof Error ? e.message : "Failed to create timed transcript"
+      );
     }
   };
 
   // Helper: Detect if imported transcript has offset applied by comparing first segment timing
-  const detectOffsetFromImport = (imported: TimedTranscript, baseline: TimedTranscript | null): number => {
-    if (!baseline || imported.segments.length === 0 || baseline.segments.length === 0) {
+  const detectOffsetFromImport = (
+    imported: TimedTranscript,
+    baseline: TimedTranscript | null
+  ): number => {
+    if (
+      !baseline ||
+      imported.segments.length === 0 ||
+      baseline.segments.length === 0
+    ) {
       return 0;
     }
     // Compare first segment start times to infer offset
-    const detectedOffset = imported.segments[0].startMs - baseline.segments[0].startMs;
+    const detectedOffset =
+      imported.segments[0].startMs - baseline.segments[0].startMs;
     // Only consider it valid if within ±2000ms
     return Math.abs(detectedOffset) <= 2000 ? detectedOffset : 0;
   };
@@ -494,7 +559,7 @@ export default function TranscriptComposer(props: {
       syncOffsetMs,
       rawText,
     };
-    setCheckpoints([cp, ...checkpoints.slice(0, 4)]);  // Keep last 5
+    setCheckpoints([cp, ...checkpoints.slice(0, 4)]); // Keep last 5
     setError(`Saved checkpoint: ${cp.label}`);
   };
 
@@ -512,7 +577,9 @@ export default function TranscriptComposer(props: {
 
       if (!tt.success) {
         // Create a user-friendly summary of Zod errors
-        const issues = tt.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ');
+        const issues = tt.error.issues
+          .map((i) => `${i.path.join(".")}: ${i.message}`)
+          .join(", ");
         setError(`Invalid transcript format: ${issues}`);
         return;
       }
@@ -520,9 +587,11 @@ export default function TranscriptComposer(props: {
       // Store as baseline (unshifted timing)
       setBaselineTranscript(tt.data);
       setTimedTranscript(tt.data);
-      setRawText(tt.data.text || tt.data.segments.map(s => s.text).join(' '));
+      setRawText(tt.data.text || tt.data.segments.map((s) => s.text).join(" "));
       // Mark as accurate ONLY if it came from an accurate provider (not rough or undefined)
-      setIsAccurateTranscript(!!tt.data.provider && tt.data.provider !== 'rough');
+      setIsAccurateTranscript(
+        !!tt.data.provider && tt.data.provider !== "rough"
+      );
 
       // Try to detect if this JSON was pre-calibrated (offset already applied)
       // If we have a previous transcript, compare to detect offset
@@ -530,54 +599,76 @@ export default function TranscriptComposer(props: {
         const detectedOffset = detectOffsetFromImport(tt.data, timedTranscript);
         if (detectedOffset !== 0) {
           setSyncOffsetMs(detectedOffset);
-          setError(`Imported JSON detected with ${detectedOffset > 0 ? '+' : ''}${detectedOffset}ms offset. Slider adjusted.`);
+          setError(
+            `Imported JSON detected with ${
+              detectedOffset > 0 ? "+" : ""
+            }${detectedOffset}ms offset. Slider adjusted.`
+          );
         }
       } else {
         setSyncOffsetMs(0); // New import, reset slider
       }
-    } catch (e: any) {
-      setError(e instanceof SyntaxError ? 'Invalid JSON syntax' : (e?.message || 'Invalid transcript JSON'));
+    } catch (e: unknown) {
+      const message =
+        e instanceof Error ? e.message : "Invalid transcript JSON";
+      setError(e instanceof SyntaxError ? "Invalid JSON syntax" : message);
     }
   };
 
   // Poll export job status (Top-level within component)
   const pollExportStatus = async (jobId: string) => {
-    const backendUrl = process.env.NEXT_PUBLIC_VOISSS_PROCESSING_URL || 'https://voisss.famile.xyz';
+    const backendUrl =
+      process.env.NEXT_PUBLIC_VOISSS_PROCESSING_URL ||
+      "https://voisss.famile.xyz";
     const maxAttempts = 120; // 6 minutes (120 * 3s)
     let attempts = 0;
 
     const poll = async () => {
       if (attempts >= maxAttempts) {
-        setExportJobs(prev => prev.map(job =>
-          job.jobId === jobId ? { ...job, status: 'failed', error: 'Timeout' } : job
-        ));
+        setExportJobs((prev) =>
+          prev.map((job) =>
+            job.jobId === jobId
+              ? { ...job, status: "failed", error: "Timeout" }
+              : job
+          )
+        );
         return;
       }
 
       try {
         const res = await fetch(`${backendUrl}/api/export/${jobId}/status`);
-        if (!res.ok) throw new Error('Status check failed');
+        if (!res.ok) throw new Error("Status check failed");
 
         const data = await res.json();
 
-        setExportJobs(prev => prev.map(job =>
-          job.jobId === jobId ? {
-            ...job,
-            status: data.status,
-            outputUrl: data.outputUrl,
-            error: data.error,
-            progress: data.progress || (data.status === 'completed' ? 100 : job.progress || 0),
-          } : job
-        ));
+        setExportJobs((prev) =>
+          prev.map((job) =>
+            job.jobId === jobId
+              ? {
+                  ...job,
+                  status: data.status,
+                  outputUrl: data.outputUrl,
+                  error: data.error,
+                  progress:
+                    data.progress ||
+                    (data.status === "completed" ? 100 : job.progress || 0),
+                }
+              : job
+          )
+        );
 
-        if (data.status === 'pending' || data.status === 'processing') {
+        if (data.status === "pending" || data.status === "processing") {
           attempts++;
           setTimeout(poll, 3000); // Poll every 3 seconds (matched with our new faster backend)
         }
-      } catch (error) {
-        setExportJobs(prev => prev.map(job =>
-          job.jobId === jobId ? { ...job, status: 'failed', error: 'Connection error' } : job
-        ));
+      } catch {
+        setExportJobs((prev) =>
+          prev.map((job) =>
+            job.jobId === jobId
+              ? { ...job, status: "failed", error: "Connection error" }
+              : job
+          )
+        );
       }
     };
 
@@ -586,14 +677,15 @@ export default function TranscriptComposer(props: {
 
   const previewStyle: React.CSSProperties = template
     ? {
-      padding: template.layout.paddingPx,
-      borderRadius: 16,
-      minHeight: 340,
-      background: style.theme.background,
-      border: style.theme.id === 'blue-white' || style.theme.id === 'paper'
-        ? '1px solid rgba(0,0,0,0.1)'
-        : '1px solid rgba(255,255,255,0.06)',
-    }
+        padding: template.layout.paddingPx,
+        borderRadius: 16,
+        minHeight: 340,
+        background: style.theme.background,
+        border:
+          style.theme.id === "blue-white" || style.theme.id === "paper"
+            ? "1px solid rgba(0,0,0,0.1)"
+            : "1px solid rgba(255,255,255,0.06)",
+      }
     : {};
 
   return (
@@ -604,7 +696,10 @@ export default function TranscriptComposer(props: {
         if (!el) return;
         if (autoFocus) {
           // Defer to ensure layout is stable
-          setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+          setTimeout(
+            () => el.scrollIntoView({ behavior: "smooth", block: "start" }),
+            0
+          );
         }
       }}
     >
@@ -615,7 +710,8 @@ export default function TranscriptComposer(props: {
             <strong>Start here:</strong> Paste your transcript
           </p>
           <p className="text-xs text-gray-400 max-w-xl">
-            <strong>Better results:</strong> Import a word-timed JSON file for accurate karaoke sync
+            <strong>Better results:</strong> Import a word-timed JSON file for
+            accurate karaoke sync
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -626,7 +722,9 @@ export default function TranscriptComposer(props: {
             className="bg-[#2A2A2A] border border-[#3A3A3A] text-white rounded-lg px-3 py-2 text-sm"
           >
             {DEFAULT_VOISSS_TEMPLATES.map((t: TranscriptTemplate) => (
-              <option key={t.id} value={t.id}>{formatTemplateLabel(t)}</option>
+              <option key={t.id} value={t.id}>
+                {formatTemplateLabel(t)}
+              </option>
             ))}
           </select>
         </div>
@@ -635,41 +733,57 @@ export default function TranscriptComposer(props: {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Left: Preview */}
         <div className="space-y-3">
-          <div style={previewStyle} className={template?.background.type === 'gradient' ? 'voisss-animated-gradient' : undefined}>
+          <div
+            style={previewStyle}
+            className={
+              template?.background.type === "gradient"
+                ? "voisss-animated-gradient"
+                : undefined
+            }
+          >
             {!timedTranscript ? (
               <div className="text-gray-400 text-sm">
                 Add a transcript to preview.
               </div>
             ) : !template ? (
-              <div className="text-gray-400 text-sm">
-                No template selected.
-              </div>
+              <div className="text-gray-400 text-sm">No template selected.</div>
             ) : !activePage ? (
               <div className="text-gray-400 text-sm">
                 Press play to see karaoke highlighting.
               </div>
             ) : (
-              <ErrorBoundary fallback={
-                <div className="text-center p-8 bg-red-900/20 border border-red-500/30 rounded-xl">
-                  <p className="text-red-200 text-sm mb-2">Rendering Error</p>
-                  <p className="text-red-400/70 text-xs">The transcript format might be incompatible with this template.</p>
-                </div>
-              }>
+              <ErrorBoundary
+                fallback={
+                  <div className="text-center p-8 bg-red-900/20 border border-red-500/30 rounded-xl">
+                    <p className="text-red-200 text-sm mb-2">Rendering Error</p>
+                    <p className="text-red-400/70 text-xs">
+                      The transcript format might be incompatible with this
+                      template.
+                    </p>
+                  </div>
+                }
+              >
                 <div
                   style={{
-                    fontFamily: style.fontFamily === 'Sans' ? 'sans-serif' : style.fontFamily === 'Serif' ? 'serif' : 'monospace',
+                    fontFamily:
+                      style.fontFamily === "Sans"
+                        ? "sans-serif"
+                        : style.fontFamily === "Serif"
+                        ? "serif"
+                        : "monospace",
                     fontSize: template.typography.fontSizePx,
-                    fontWeight: template.typography.fontWeight as any,
+                    fontWeight: template.typography
+                      .fontWeight as React.CSSProperties["fontWeight"],
                     lineHeight: template.typography.lineHeight,
                     color: style.theme.textInactive,
-                    textAlign: 'center',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    textAlign: "center",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                     minHeight: 240,
-                    transition: 'opacity 200ms ease, transform 200ms ease',
+                    transition: "opacity 200ms ease, transform 200ms ease",
                     opacity: isTransitioning ? 0 : 1,
-                    transform: isTransitioning ? 'scale(0.98)' : 'scale(1)',
+                    transform: isTransitioning ? "scale(0.98)" : "scale(1)",
                   }}
                 >
                   <div key={transitionKey} className="w-full">
@@ -684,7 +798,9 @@ export default function TranscriptComposer(props: {
                         fontSizePx={template.typography.fontSizePx}
                       />
                     ) : (
-                      <div className="whitespace-pre-wrap">{activeSegment?.text}</div>
+                      <div className="whitespace-pre-wrap">
+                        {activeSegment?.text}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -693,11 +809,17 @@ export default function TranscriptComposer(props: {
           </div>
 
           <div className="flex items-center gap-3 p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl">
-            <audio ref={audioRef} controls src={previewUrl} className="flex-1 h-9" />
+            <audio
+              ref={audioRef}
+              controls
+              src={previewUrl}
+              className="flex-1 h-9"
+            />
             <button
               onClick={() => {
                 const rates = [0.75, 1, 1.25, 1.5, 2];
-                const next = rates[(rates.indexOf(playbackRate) + 1) % rates.length];
+                const next =
+                  rates[(rates.indexOf(playbackRate) + 1) % rates.length];
                 setPlaybackRate(next);
               }}
               className="h-9 px-3 rounded-lg bg-[#1A1A1A] border border-[#333] text-xs font-mono text-gray-300 hover:bg-[#2A2A2A] hover:border-gray-500 hover:text-white transition-colors min-w-[50px]"
@@ -709,7 +831,6 @@ export default function TranscriptComposer(props: {
 
           {/* Style Controls */}
           <div className="p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl">
-
             <TranscriptStyleControls style={style} onChange={setStyle} />
           </div>
 
@@ -717,12 +838,17 @@ export default function TranscriptComposer(props: {
           {timedTranscript && (
             <div className="p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl">
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Sync Calibration</h4>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${isAccurateTranscript
-                  ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                  : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
-                  }`}>
-                  {isAccurateTranscript ? 'Accurate' : 'Rough Timing'}
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  Sync Calibration
+                </h4>
+                <span
+                  className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                    isAccurateTranscript
+                      ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                      : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
+                  }`}
+                >
+                  {isAccurateTranscript ? "Accurate" : "Rough Timing"}
                 </span>
               </div>
 
@@ -735,20 +861,36 @@ export default function TranscriptComposer(props: {
                       max={maxOffsetMs}
                       step="10"
                       value={syncOffsetMs}
-                      onChange={(e) => setSyncOffsetMs(Math.max(-maxOffsetMs, Math.min(maxOffsetMs, Number(e.target.value))))}
+                      onChange={(e) =>
+                        setSyncOffsetMs(
+                          Math.max(
+                            -maxOffsetMs,
+                            Math.min(maxOffsetMs, Number(e.target.value))
+                          )
+                        )
+                      }
                       className="w-full h-2 bg-gradient-to-r from-[#1A1A1A] via-[#2A2A2A] to-[#1A1A1A] rounded-lg appearance-none cursor-pointer accent-[#FF006B] shadow-lg"
                       style={{
                         background: `linear-gradient(to right, #1A1A1A 0%, #2A2A2A 50%, #1A1A1A 100%)`,
-                        WebkitAppearance: 'slider-horizontal',
+                        WebkitAppearance: "slider-horizontal",
                       }}
-                      title={`Sync offset: ${syncOffsetMs > 0 ? '+' : ''}${syncOffsetMs}ms (range: ±${maxOffsetMs}ms)`}
+                      title={`Sync offset: ${
+                        syncOffsetMs > 0 ? "+" : ""
+                      }${syncOffsetMs}ms (range: ±${maxOffsetMs}ms)`}
                     />
                     <div className="flex justify-between text-[10px] text-gray-500 font-mono">
-                      <span>-{Math.floor(maxOffsetMs / 1000) || '0.5'}s</span>
-                      <span className={syncOffsetMs === 0 ? 'text-gray-400' : 'text-[#FF006B] font-bold text-xs'}>
-                        {syncOffsetMs > 0 ? '+' : ''}{syncOffsetMs}ms
+                      <span>-{Math.floor(maxOffsetMs / 1000) || "0.5"}s</span>
+                      <span
+                        className={
+                          syncOffsetMs === 0
+                            ? "text-gray-400"
+                            : "text-[#FF006B] font-bold text-xs"
+                        }
+                      >
+                        {syncOffsetMs > 0 ? "+" : ""}
+                        {syncOffsetMs}ms
                       </span>
-                      <span>+{Math.floor(maxOffsetMs / 1000) || '0.5'}s</span>
+                      <span>+{Math.floor(maxOffsetMs / 1000) || "0.5"}s</span>
                     </div>
                   </div>
                   <button
@@ -760,9 +902,18 @@ export default function TranscriptComposer(props: {
                 </div>
 
                 <p className="text-xs text-gray-500">
-                  {!isAccurateTranscript && 'Rough timing estimates word positions. Adjust offset if highlights don\'t match speech.'}
-                  {isAccurateTranscript && syncOffsetMs !== 0 && `Shifted by ${syncOffsetMs}ms. ${syncOffsetMs > 0 ? 'Highlights appear later' : 'Highlights appear earlier'}.`}
-                  {isAccurateTranscript && syncOffsetMs === 0 && 'Accurate timing — highlights should sync perfectly.'}
+                  {!isAccurateTranscript &&
+                    "Rough timing estimates word positions. Adjust offset if highlights don't match speech."}
+                  {isAccurateTranscript &&
+                    syncOffsetMs !== 0 &&
+                    `Shifted by ${syncOffsetMs}ms. ${
+                      syncOffsetMs > 0
+                        ? "Highlights appear later"
+                        : "Highlights appear earlier"
+                    }.`}
+                  {isAccurateTranscript &&
+                    syncOffsetMs === 0 &&
+                    "Accurate timing — highlights should sync perfectly."}
                 </p>
 
                 {/* Checkpoint Panel */}
@@ -782,7 +933,7 @@ export default function TranscriptComposer(props: {
                           title={new Date(cp.timestamp).toLocaleTimeString()}
                           className="text-[10px] px-2 py-1 bg-[#0F0F0F] border border-[#2A2A2A] text-gray-300 rounded hover:bg-[#1A1A1A] hover:border-[#444] transition-colors whitespace-nowrap"
                         >
-                          ↶ {cp.label.split(' ')[1]}
+                          ↶ {cp.label.split(" ")[1]}
                         </button>
                       ))}
                     </div>
@@ -802,7 +953,9 @@ export default function TranscriptComposer(props: {
         {/* Right: Edit / Import */}
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-white mb-2">Transcript text</label>
+            <label className="block text-sm font-medium text-white mb-2">
+              Transcript text
+            </label>
             <textarea
               value={rawText}
               onChange={(e) => setRawText(e.target.value)}
@@ -810,7 +963,9 @@ export default function TranscriptComposer(props: {
               className="voisss-form-textarea min-h-[140px]"
             />
             <p className="text-xs text-gray-500 mb-2">
-              <strong>Accuracy note:</strong> Rough timing uses duration to estimate word timing. For precise karaoke, import word-level timestamps.
+              <strong>Accuracy note:</strong> Rough timing uses duration to
+              estimate word timing. For precise karaoke, import word-level
+              timestamps.
             </p>
             <div className="flex flex-wrap gap-2 mt-2">
               <button
@@ -827,8 +982,13 @@ export default function TranscriptComposer(props: {
                   setError(null);
 
                   // Final safety check on total duration
-                  if (normalizedDurationSeconds > 60.5) { // Allow slight buffer
-                    setError(`Audio too long (${normalizedDurationSeconds.toFixed(1)}s). Maximum 60 seconds.`);
+                  if (normalizedDurationSeconds > 60.5) {
+                    // Allow slight buffer
+                    setError(
+                      `Audio too long (${normalizedDurationSeconds.toFixed(
+                        1
+                      )}s). Maximum 60 seconds.`
+                    );
                     return;
                   }
 
@@ -838,36 +998,51 @@ export default function TranscriptComposer(props: {
                     const maxSizeMB = 25;
                     const maxSizeBytes = maxSizeMB * 1024 * 1024;
                     if (audioBlob.size > maxSizeBytes) {
-                      setError(`Audio file too large (${(audioBlob.size / 1024 / 1024).toFixed(1)}MB). Max 25MB.`);
+                      setError(
+                        `Audio file too large (${(
+                          audioBlob.size /
+                          1024 /
+                          1024
+                        ).toFixed(1)}MB). Max 25MB.`
+                      );
                       return;
                     }
 
                     const form = new FormData();
-                    form.append('audio', audioBlob, 'recording.webm');
+                    form.append("audio", audioBlob, "recording.webm");
                     if (languageHint) {
-                      form.append('language', languageHint);
+                      form.append("language", languageHint);
                     }
-                    const res = await fetch('/api/transcript/transcribe', { method: 'POST', body: form, credentials: 'include' });
+                    const res = await fetch("/api/transcript/transcribe", {
+                      method: "POST",
+                      body: form,
+                      credentials: "include",
+                    });
                     const data = await res.json();
                     if (!res.ok) {
-                      setError(data.error || 'Transcription failed');
+                      setError(data.error || "Transcription failed");
                       return;
                     }
                     const tt = TimedTranscriptSchema.parse(data.transcript);
                     setTimedTranscript(tt);
-                    setRawText(tt.text || tt.segments.map((s) => s.text).join(' '));
+                    setRawText(
+                      tt.text || tt.segments.map((s) => s.text).join(" ")
+                    );
                     setIsAccurateTranscript(true);
-                  } catch (e: any) {
-                    setError(e?.message || 'Transcription failed');
+                  } catch (e: unknown) {
+                    setError(
+                      e instanceof Error ? e.message : "Transcription failed"
+                    );
                   } finally {
                     setIsTranscribing(false);
                   }
                 }}
                 disabled={isTranscribing || normalizedDurationSeconds <= 0}
-                className={`px-4 py-2 rounded-lg border text-white text-sm hover:bg-[#3A3A3A] flex items-center gap-2 ${autoFocus
-                  ? 'bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] border-transparent'
-                  : 'bg-[#2A2A2A] border-[#3A3A3A]'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`px-4 py-2 rounded-lg border text-white text-sm hover:bg-[#3A3A3A] flex items-center gap-2 ${
+                  autoFocus
+                    ? "bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] border-transparent"
+                    : "bg-[#2A2A2A] border-[#3A3A3A]"
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {isTranscribing ? (
                   <>
@@ -875,19 +1050,20 @@ export default function TranscriptComposer(props: {
                     Transcribing...
                   </>
                 ) : (
-                  'Transcribe audio (accurate)'
+                  "Transcribe audio (accurate)"
                 )}
               </button>
               {autoFocus && (
                 <div className="w-full text-xs text-[#C4B5FD] mt-1">
-                  Tip: For best karaoke timing, start with accurate transcription before editing.
+                  Tip: For best karaoke timing, start with accurate
+                  transcription before editing.
                 </div>
               )}
               <button
                 onClick={() => {
-                  setRawText('');
+                  setRawText("");
                   setTimedTranscript(null);
-                  setImportJson('');
+                  setImportJson("");
                   setError(null);
                   setIsAccurateTranscript(false);
                   setSyncOffsetMs(0);
@@ -902,7 +1078,12 @@ export default function TranscriptComposer(props: {
           <div>
             <label className="block text-sm font-medium text-white mb-2">
               Import or View Calibrated JSON
-              {syncOffsetMs !== 0 && <span className="text-[#00D9FF] ml-2">(current offset: {syncOffsetMs > 0 ? '+' : ''}{syncOffsetMs}ms)</span>}
+              {syncOffsetMs !== 0 && (
+                <span className="text-[#00D9FF] ml-2">
+                  (current offset: {syncOffsetMs > 0 ? "+" : ""}
+                  {syncOffsetMs}ms)
+                </span>
+              )}
             </label>
             <textarea
               value={importJson || displayedJson}
@@ -922,7 +1103,7 @@ export default function TranscriptComposer(props: {
                 <button
                   onClick={async () => {
                     await navigator.clipboard.writeText(displayedJson);
-                    setError('Copied calibrated JSON to clipboard');
+                    setError("Copied calibrated JSON to clipboard");
                   }}
                   className="px-4 py-2 rounded-lg bg-[#2A2A2A] border border-[#3A3A3A] text-white text-sm hover:bg-[#3A3A3A]"
                 >
@@ -935,7 +1116,8 @@ export default function TranscriptComposer(props: {
           <div className="p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl">
             <div className="text-sm text-white font-medium mb-2">Export</div>
             <div className="text-xs text-gray-400 mb-3">
-              These actions are wired to lightweight API stubs now, so we can ship UI without bundling heavy video tooling.
+              These actions are wired to lightweight API stubs now, so we can
+              ship UI without bundling heavy video tooling.
             </div>
             <div className="flex flex-wrap gap-2">
               <button
@@ -943,20 +1125,24 @@ export default function TranscriptComposer(props: {
                 onClick={async () => {
                   if (!calibratedTranscript || !template) return;
                   setError(null);
-                  const res = await fetch('/api/transcript/share-link', {
-                    method: 'POST',
-                    headers: { 'content-type': 'application/json' },
-                    body: JSON.stringify({ transcript: calibratedTranscript, templateId: template.id, style }),
-                    credentials: 'include',
+                  const res = await fetch("/api/transcript/share-link", {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({
+                      transcript: calibratedTranscript,
+                      templateId: template.id,
+                      style,
+                    }),
+                    credentials: "include",
                   });
                   const data = await res.json();
                   if (!res.ok) {
-                    setError(data.error || 'Failed to create share link');
+                    setError(data.error || "Failed to create share link");
                     return;
                   }
                   setShareLink(data.url);
                   await navigator.clipboard.writeText(data.url);
-                  setError('Copied share link to clipboard');
+                  setError("Copied share link to clipboard");
                 }}
                 className="px-4 py-2 rounded-lg bg-[#2A2A2A] border border-[#3A3A3A] text-white text-sm hover:bg-[#3A3A3A] disabled:opacity-50"
               >
@@ -975,7 +1161,7 @@ export default function TranscriptComposer(props: {
                     <button
                       onClick={async () => {
                         await navigator.clipboard.writeText(shareLink);
-                        setError('Copied share link to clipboard');
+                        setError("Copied share link to clipboard");
                       }}
                       className="px-3 py-2 rounded-lg bg-[#2A2A2A] border border-[#3A3A3A] text-white text-xs hover:bg-[#3A3A3A]"
                     >
@@ -990,36 +1176,40 @@ export default function TranscriptComposer(props: {
                   if (!calibratedTranscript || !template) return;
                   setError(null);
                   try {
-                    const res = await fetch('/api/transcript/export', {
-                       method: 'POST',
-                       headers: { 'content-type': 'application/json' },
-                       body: JSON.stringify({
-                         kind: 'mp3',
-                         templateId: template.id,
-                         transcript: calibratedTranscript,
-                         audioBlob: Array.from(new Uint8Array(await audioBlob.arrayBuffer())),
-                       }),
-                       credentials: 'include',
-                     });
+                    const res = await fetch("/api/transcript/export", {
+                      method: "POST",
+                      headers: { "content-type": "application/json" },
+                      body: JSON.stringify({
+                        kind: "mp3",
+                        templateId: template.id,
+                        transcript: calibratedTranscript,
+                        audioBlob: Array.from(
+                          new Uint8Array(await audioBlob.arrayBuffer())
+                        ),
+                      }),
+                      credentials: "include",
+                    });
                     const data = await res.json();
                     if (!res.ok) {
-                      setError(data.error || 'Audio export failed');
+                      setError(data.error || "Audio export failed");
                       return;
                     }
                     // Start tracking the job
                     const newJob: ExportJob = {
                       jobId: data.jobId,
-                      kind: 'mp3',
-                      status: 'pending',
+                      kind: "mp3",
+                      status: "pending",
                       estimatedSeconds: data.estimatedSeconds || 60,
                     };
-                    setExportJobs(prev => [newJob, ...prev]);
+                    setExportJobs((prev) => [newJob, ...prev]);
                     setError(`Audio export started: ${data.jobId}`);
 
                     // Start polling for status
                     pollExportStatus(data.jobId);
-                  } catch (e: any) {
-                    setError(e?.message || 'Audio export failed');
+                  } catch (e: unknown) {
+                    setError(
+                      e instanceof Error ? e.message : "Audio export failed"
+                    );
                   }
                 }}
                 className="px-4 py-2 rounded-lg bg-[#2A2A2A] border border-[#3A3A3A] text-white text-sm hover:bg-[#3A3A3A] disabled:opacity-50"
@@ -1031,55 +1221,60 @@ export default function TranscriptComposer(props: {
                 onClick={async () => {
                   if (!calibratedTranscript || !template) return;
                   setError(null);
-                  setExportingKind('mp4');
+                  setExportingKind("mp4");
                   try {
-                    const res = await fetch('/api/transcript/export', {
-                      method: 'POST',
-                      headers: { 'content-type': 'application/json' },
+                    const res = await fetch("/api/transcript/export", {
+                      method: "POST",
+                      headers: { "content-type": "application/json" },
                       body: JSON.stringify({
-                        kind: 'mp4',
+                        kind: "mp4",
                         templateId: template.id,
                         transcript: calibratedTranscript,
                         style,
-                        audioBlob: Array.from(new Uint8Array(await audioBlob.arrayBuffer())),
+                        audioBlob: Array.from(
+                          new Uint8Array(await audioBlob.arrayBuffer())
+                        ),
                       }),
                     });
                     const data = await res.json();
                     if (!res.ok) {
-                      setError(data.error || 'Video export failed');
+                      setError(data.error || "Video export failed");
                       setExportingKind(null);
                       return;
                     }
                     // Start tracking the job
                     const newJob: ExportJob = {
                       jobId: data.jobId,
-                      kind: 'mp4',
-                      status: 'pending',
+                      kind: "mp4",
+                      status: "pending",
                       estimatedSeconds: data.estimatedSeconds || 300,
                     };
-                    setExportJobs(prev => [newJob, ...prev]);
+                    setExportJobs((prev) => [newJob, ...prev]);
                     setError(null);
                     setExportingKind(null);
 
                     // Start polling for status
                     pollExportStatus(data.jobId);
-                  } catch (e: any) {
-                    setError(e?.message || 'Video export failed');
+                  } catch (e: unknown) {
+                    setError(
+                      e instanceof Error ? e.message : "Video export failed"
+                    );
                     setExportingKind(null);
                   }
                 }}
-                className={`px-4 py-2 rounded-lg text-white text-sm font-medium transition-all ${exportingKind === 'mp4'
-                  ? 'bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] opacity-60 cursor-wait'
-                  : 'bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] hover:from-[#6B4CE6] hover:to-[#8B7AFF]'
-                  } disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
+                className={`px-4 py-2 rounded-lg text-white text-sm font-medium transition-all ${
+                  exportingKind === "mp4"
+                    ? "bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] opacity-60 cursor-wait"
+                    : "bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] hover:from-[#6B4CE6] hover:to-[#8B7AFF]"
+                } disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
               >
-                {exportingKind === 'mp4' ? (
+                {exportingKind === "mp4" ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     Exporting...
                   </>
                 ) : (
-                  'Export Video (MP4)'
+                  "Export Video (MP4)"
                 )}
               </button>
               <button
@@ -1087,48 +1282,63 @@ export default function TranscriptComposer(props: {
                 onClick={async () => {
                   if (!calibratedTranscript || !template) return;
                   setError(null);
-                  setExportingKind('carousel');
+                  setExportingKind("carousel");
                   try {
-                    const res = await fetch('/api/transcript/export', {
-                      method: 'POST',
-                      headers: { 'content-type': 'application/json' },
-                      body: JSON.stringify({ kind: 'carousel', templateId: template.id, transcript: calibratedTranscript, style }),
+                    const res = await fetch("/api/transcript/export", {
+                      method: "POST",
+                      headers: { "content-type": "application/json" },
+                      body: JSON.stringify({
+                        kind: "carousel",
+                        templateId: template.id,
+                        transcript: calibratedTranscript,
+                        style,
+                      }),
                     });
                     const data = await res.json();
                     if (!res.ok) {
-                      setError(data.error || 'Carousel export failed');
+                      setError(data.error || "Carousel export failed");
                       setExportingKind(null);
                       return;
                     }
                     if (data.slides && Array.isArray(data.slides)) {
                       // Revoke old URLs before setting new ones
-                      if (carouselSlides) carouselSlides.forEach(s => URL.revokeObjectURL(s.url));
+                      if (carouselSlides)
+                        carouselSlides.forEach((s) =>
+                          URL.revokeObjectURL(s.url)
+                        );
 
-                      const slidesWithUrls = data.slides.map((s: { filename: string; svg: string }) => ({
-                        filename: s.filename,
-                        url: URL.createObjectURL(new Blob([s.svg], { type: 'image/svg+xml' }))
-                      }));
+                      const slidesWithUrls = data.slides.map(
+                        (s: { filename: string; svg: string }) => ({
+                          filename: s.filename,
+                          url: URL.createObjectURL(
+                            new Blob([s.svg], { type: "image/svg+xml" })
+                          ),
+                        })
+                      );
                       setCarouselSlides(slidesWithUrls);
                     }
                     setError(null);
                     setExportingKind(null);
-                  } catch (e: any) {
-                    setError(e?.message || 'Carousel export failed');
+                  } catch (e: unknown) {
+                    setError(
+                      e instanceof Error ? e.message : "Carousel export failed"
+                    );
                     setExportingKind(null);
                   }
                 }}
-                className={`px-4 py-2 rounded-lg border text-white text-sm transition-all ${exportingKind === 'carousel'
-                  ? 'bg-[#2A2A2A] border-[#3A3A3A] opacity-60 cursor-wait'
-                  : 'bg-[#2A2A2A] border-[#3A3A3A] hover:bg-[#3A3A3A]'
-                  } disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
+                className={`px-4 py-2 rounded-lg border text-white text-sm transition-all ${
+                  exportingKind === "carousel"
+                    ? "bg-[#2A2A2A] border-[#3A3A3A] opacity-60 cursor-wait"
+                    : "bg-[#2A2A2A] border-[#3A3A3A] hover:bg-[#3A3A3A]"
+                } disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
               >
-                {exportingKind === 'carousel' ? (
+                {exportingKind === "carousel" ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     Exporting...
                   </>
                 ) : (
-                  'Export carousel'
+                  "Export carousel"
                 )}
               </button>
             </div>
@@ -1136,24 +1346,39 @@ export default function TranscriptComposer(props: {
             {/* Active Jobs Tracker */}
             {exportJobs.length > 0 && (
               <div className="mt-4 p-3 rounded-xl bg-[#111111] border border-[#2A2A2A] space-y-2">
-                <div className="text-xs text-gray-400 font-medium">Active Exports</div>
+                <div className="text-xs text-gray-400 font-medium">
+                  Active Exports
+                </div>
                 {exportJobs.map((job) => (
-                  <div key={job.jobId} className="flex items-center justify-between gap-3 bg-[#1A1A1A] p-2 rounded-lg border border-[#2A2A2A]">
+                  <div
+                    key={job.jobId}
+                    className="flex items-center justify-between gap-3 bg-[#1A1A1A] p-2 rounded-lg border border-[#2A2A2A]"
+                  >
                     <div className="flex flex-col min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-white font-medium truncate uppercase">{job.kind}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full uppercase font-bold
-                          ${job.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                            job.status === 'failed' ? 'bg-red-500/20 text-red-400' :
-                              'bg-blue-500/20 text-blue-400 animate-pulse'}`}>
+                        <span className="text-xs text-white font-medium truncate uppercase">
+                          {job.kind}
+                        </span>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.5 rounded-full uppercase font-bold
+                          ${
+                            job.status === "completed"
+                              ? "bg-green-500/20 text-green-400"
+                              : job.status === "failed"
+                              ? "bg-red-500/20 text-red-400"
+                              : "bg-blue-500/20 text-blue-400 animate-pulse"
+                          }`}
+                        >
                           {job.status}
                         </span>
                       </div>
-                      <div className="text-[10px] text-gray-500 truncate max-w-[200px]">{job.jobId}</div>
+                      <div className="text-[10px] text-gray-500 truncate max-w-[200px]">
+                        {job.jobId}
+                      </div>
                     </div>
 
                     <div>
-                      {job.status === 'completed' && job.outputUrl ? (
+                      {job.status === "completed" && job.outputUrl ? (
                         <a
                           href={job.outputUrl}
                           download
@@ -1163,8 +1388,10 @@ export default function TranscriptComposer(props: {
                         >
                           Download
                         </a>
-                      ) : job.status === 'failed' ? (
-                        <span className="text-[10px] text-red-500">{job.error || 'Failed'}</span>
+                      ) : job.status === "failed" ? (
+                        <span className="text-[10px] text-red-500">
+                          {job.error || "Failed"}
+                        </span>
                       ) : (
                         <div className="flex flex-col items-end gap-1">
                           <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -1174,7 +1401,7 @@ export default function TranscriptComposer(props: {
                             />
                           </div>
                           <span className="text-[8px] text-blue-400 font-mono">
-                            {job.progress ? `${job.progress}%` : 'init...'}
+                            {job.progress ? `${job.progress}%` : "init..."}
                           </span>
                         </div>
                       )}
@@ -1186,11 +1413,18 @@ export default function TranscriptComposer(props: {
 
             {carouselSlides && carouselSlides.length > 0 && (
               <div className="mt-3 p-3 rounded-xl bg-[#111111] border border-[#2A2A2A]">
-                <div className="text-xs text-gray-400 mb-2">Carousel slides (SVG)</div>
+                <div className="text-xs text-gray-400 mb-2">
+                  Carousel slides (SVG)
+                </div>
                 <div className="flex flex-col gap-2">
                   {carouselSlides.map((s) => (
-                    <div key={s.filename} className="flex items-center justify-between gap-2">
-                      <div className="text-xs text-gray-300 truncate">{s.filename}</div>
+                    <div
+                      key={s.filename}
+                      className="flex items-center justify-between gap-2"
+                    >
+                      <div className="text-xs text-gray-300 truncate">
+                        {s.filename}
+                      </div>
                       <a
                         className="px-3 py-2 rounded-lg bg-[#2A2A2A] border border-[#3A3A3A] text-white text-xs hover:bg-[#3A3A3A]"
                         href={s.url}
@@ -1224,12 +1458,22 @@ function VoisssKaraokePreview(props: {
   fontSizePx: number;
   containerHeight?: number; // Optional height override
 }) {
-  const { lines, segmentWords, activeWordIndex, currentTimeMs, style, fontSizePx, containerHeight = 240 } = props;
+  const {
+    lines,
+    segmentWords,
+    activeWordIndex,
+    currentTimeMs,
+    style,
+    fontSizePx,
+    containerHeight = 240,
+  } = props;
 
   const lineData = useMemo(() => {
     let cursor = 0;
     return lines.map((line) => {
-      const tokenCount = line.trim().length ? line.trim().split(/\s+/).length : 0;
+      const tokenCount = line.trim().length
+        ? line.trim().split(/\s+/).length
+        : 0;
       const words = segmentWords.slice(cursor, cursor + tokenCount);
       const startCursor = cursor;
       cursor += tokenCount;
@@ -1258,16 +1502,20 @@ function VoisssKaraokePreview(props: {
   let translateY = (containerHeight - totalContentHeight) / 2;
 
   if (shouldScroll && activeLineIndex >= 0) {
-    translateY = (containerHeight / 2) - (activeLineIndex * estLineHeight) - (estLineHeight / 2);
+    translateY =
+      containerHeight / 2 - activeLineIndex * estLineHeight - estLineHeight / 2;
   }
 
   return (
-    <div className="w-full relative overflow-hidden" style={{ height: containerHeight }}>
+    <div
+      className="w-full relative overflow-hidden"
+      style={{ height: containerHeight }}
+    >
       <div
         className="transition-transform duration-700 ease-out flex flex-col items-center"
         style={{
           transform: `translateY(${translateY}px)`,
-          transitionTimingFunction: 'cubic-bezier(0.23, 1, 0.32, 1)'
+          transitionTimingFunction: "cubic-bezier(0.23, 1, 0.32, 1)",
         }}
       >
         {lineData.map((data, li) => {
@@ -1275,9 +1523,16 @@ function VoisssKaraokePreview(props: {
           const localActive = activeWordIndex - startCursor;
           const isActiveLine = li === activeLineIndex;
 
-          const activeWord = localActive >= 0 && localActive < words.length ? words[localActive] : undefined;
-          const durationMs = activeWord ? Math.max(1, activeWord.endMs - activeWord.startMs) : 1;
-          const activeFill = activeWord ? clamp01((currentTimeMs - activeWord.startMs) / durationMs) : null;
+          const activeWord =
+            localActive >= 0 && localActive < words.length
+              ? words[localActive]
+              : undefined;
+          const durationMs = activeWord
+            ? Math.max(1, activeWord.endMs - activeWord.startMs)
+            : 1;
+          const activeFill = activeWord
+            ? clamp01((currentTimeMs - activeWord.startMs) / durationMs)
+            : null;
 
           return (
             <div
@@ -1286,14 +1541,15 @@ function VoisssKaraokePreview(props: {
                 height: estLineHeight,
                 fontSize: Math.round(fontSizePx * 0.92),
                 opacity: activeLineIndex === -1 || isActiveLine ? 1 : 0.4,
-                scale: isActiveLine ? '1.08' : '1',
-                filter: isActiveLine ? 'blur(0px)' : 'blur(0.5px)',
-                transition: 'opacity 0.6s ease, scale 0.6s ease, filter 0.6s ease',
+                scale: isActiveLine ? "1.08" : "1",
+                filter: isActiveLine ? "blur(0px)" : "blur(0.5px)",
+                transition:
+                  "opacity 0.6s ease, scale 0.6s ease, filter 0.6s ease",
               }}
               className="flex items-center justify-center w-full origin-center"
             >
               <VoisssKaraokeLine
-                words={words as any}
+                words={words || []}
                 activeWordIndex={localActive}
                 activeFill={activeFill}
                 highlightColor={style.theme.textActive}

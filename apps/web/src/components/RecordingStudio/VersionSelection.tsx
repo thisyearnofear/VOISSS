@@ -1,26 +1,32 @@
-import React, { useState } from 'react';
-import { AudioVersion } from '@voisss/shared';
-import { ChevronRight, Trash2, Zap } from 'lucide-react';
-import VersionComparison from './VersionComparison';
+import React, { useState } from "react";
+import { AudioVersion } from "@voisss/shared";
+import { Trash2, Zap, Mic, Globe, FileText } from "lucide-react";
+import VersionComparison from "./VersionComparison";
 
 interface VersionSelectionProps {
   versions: AudioVersion[];
+  activeVersionId: string;
   selectedVersionIds: Set<string>;
   userTier: string;
   remainingQuota: { saves: number };
-  onSelectedVersionIdsChange: (updater: (prev: Set<string>) => Set<string>) => void;
-  onSelectForForge: (versionId: string) => void;
+  onSelectedVersionIdsChange: (
+    updater: (prev: Set<string>) => Set<string>
+  ) => void;
+  onSetActive: (versionId: string) => void;
   onDeleteVersion: (versionId: string) => void;
+  onOpenTool: (tool: "voice" | "dub" | "script", versionId: string) => void;
 }
 
 export default function VersionSelection({
   versions,
+  activeVersionId,
   selectedVersionIds,
   userTier,
   remainingQuota,
   onSelectedVersionIdsChange,
-  onSelectForForge,
+  onSetActive,
   onDeleteVersion,
+  onOpenTool,
 }: VersionSelectionProps) {
   const [showComparison, setShowComparison] = useState(false);
 
@@ -37,23 +43,26 @@ export default function VersionSelection({
   };
 
   const getVersionIcon = (source: string): string => {
-    if (source === 'original') return '🎙️';
-    if (source.startsWith('aiVoice-')) return '✨';
-    if (source.startsWith('dub-')) return '🌍';
-    return '🔗';
+    if (source === "original") return "🎙️";
+    if (source.startsWith("aiVoice-")) return "✨";
+    if (source.startsWith("dub-")) return "🌍";
+    return "🔗";
   };
 
   const getVersionTypeColor = (source: string): string => {
-    if (source === 'original') return 'bg-blue-500/20 border-blue-500/30 text-blue-300';
-    if (source.startsWith('aiVoice-')) return 'bg-purple-500/20 border-purple-500/30 text-purple-300';
-    if (source.startsWith('dub-')) return 'bg-green-500/20 border-green-500/30 text-green-300';
-    return 'bg-yellow-500/20 border-yellow-500/30 text-yellow-300';
+    if (source === "original")
+      return "bg-blue-500/20 border-blue-500/30 text-blue-300";
+    if (source.startsWith("aiVoice-"))
+      return "bg-purple-500/20 border-purple-500/30 text-purple-300";
+    if (source.startsWith("dub-"))
+      return "bg-green-500/20 border-green-500/30 text-green-300";
+    return "bg-yellow-500/20 border-yellow-500/30 text-yellow-300";
   };
 
   const getParentVersion = (versionId: string): AudioVersion | undefined => {
-    const version = versions.find(v => v.id === versionId);
+    const version = versions.find((v) => v.id === versionId);
     if (!version?.parentVersionId) return undefined;
-    return versions.find(v => v.id === version.parentVersionId);
+    return versions.find((v) => v.id === version.parentVersionId);
   };
 
   return (
@@ -61,16 +70,28 @@ export default function VersionSelection({
       <div className="flex items-center justify-between">
         <div>
           <h4 className="text-white font-semibold mb-1 flex items-center gap-2">
-            <svg className="w-4 h-4 text-[#7C5DFA]" fill="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="w-4 h-4 text-[#7C5DFA]"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
             </svg>
             Audio Versions ({versions.length})
           </h4>
-          <p className="text-gray-400 text-xs">Select versions to save to Base/IPFS</p>
+          <p className="text-gray-400 text-xs">
+            Select versions to save to Base/IPFS
+          </p>
         </div>
-        {userTier === 'free' && (
+        {userTier === "free" && (
           <div className="text-right text-xs">
-            <span className={selectedVersionIds.size > remainingQuota.saves ? 'text-red-400' : 'text-green-400'}>
+            <span
+              className={
+                selectedVersionIds.size > remainingQuota.saves
+                  ? "text-red-400"
+                  : "text-green-400"
+              }
+            >
               {selectedVersionIds.size} of {remainingQuota.saves} saves
             </span>
           </div>
@@ -81,16 +102,20 @@ export default function VersionSelection({
       <div className="space-y-2 max-h-96 overflow-y-auto lg:max-h-full">
         {versions.map((version) => {
           const isSelected = selectedVersionIds.has(version.id);
+          const isActive = version.id === activeVersionId;
           const parent = getParentVersion(version.id);
-          const canDelete = version.id !== 'v0'; // Can't delete original
+          const canDelete = version.id !== "v0"; // Can't delete original
 
           return (
             <div
               key={version.id}
-              className={`p-3 rounded-lg border transition-all ${
-                isSelected
-                  ? 'bg-[#2A2A2A] border-[#3A3A3A]'
-                  : 'bg-[#0F0F0F] border-[#1A1A1A]'
+              onClick={() => onSetActive(version.id)}
+              className={`p-3 rounded-lg border transition-all cursor-pointer relative ${
+                isActive
+                  ? "bg-[#1F1F1F] border-[#7C5DFA] ring-1 ring-[#7C5DFA]/50"
+                  : isSelected
+                  ? "bg-[#2A2A2A] border-[#3A3A3A]"
+                  : "bg-[#0F0F0F] border-[#1A1A1A] hover:border-[#333]"
               }`}
             >
               {/* Header Row - Stack on mobile */}
@@ -98,6 +123,7 @@ export default function VersionSelection({
                 <input
                   type="checkbox"
                   checked={isSelected}
+                  onClick={(e) => e.stopPropagation()}
                   onChange={() => toggleVersionSelection(version.id)}
                   className="w-5 h-5 rounded border-gray-600 text-[#7C5DFA] focus:ring-[#7C5DFA] focus:ring-offset-gray-900"
                 />
@@ -105,28 +131,48 @@ export default function VersionSelection({
                 {/* Version Info - Mobile responsive */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap animate-in fade-in slide-in-from-left-4 duration-300">
-                    <span className="text-lg">{getVersionIcon(version.source)}</span>
-                    <span className="text-white font-medium truncate">{version.label}</span>
-                    <span className={`text-xs px-2 py-1 rounded border hidden sm:inline-block ${getVersionTypeColor(version.source)}`}>
-                      {version.source === 'original' ? 'Original' : 
-                       version.source.startsWith('aiVoice-') ? 'Voice Transform' :
-                       version.source.startsWith('dub-') ? 'Dubbed' : 'Chain'}
+                    <span className="text-lg">
+                      {getVersionIcon(version.source)}
+                    </span>
+                    <span className="text-white font-medium truncate">
+                      {version.label}
+                    </span>
+                    <span
+                      className={`text-xs px-2 py-1 rounded border hidden sm:inline-block ${getVersionTypeColor(
+                        version.source
+                      )}`}
+                    >
+                      {version.source === "original"
+                        ? "Original"
+                        : version.source.startsWith("aiVoice-")
+                        ? "Voice Transform"
+                        : version.source.startsWith("dub-")
+                        ? "Dubbed"
+                        : "Chain"}
                     </span>
                   </div>
 
                   {/* Metadata - responsive layout */}
                   <div className="text-xs text-gray-400 mt-1 flex gap-3 flex-wrap sm:gap-4">
                     <span>{(version.metadata.duration || 0).toFixed(1)}s</span>
-                    <span className="hidden sm:inline">{(version.metadata.size / 1024).toFixed(0)} KB</span>
-                    {version.metadata.language && <span>🌍 {version.metadata.language}</span>}
-                    {version.metadata.voiceName && <span>✨ {version.metadata.voiceName}</span>}
+                    <span className="hidden sm:inline">
+                      {(version.metadata.size / 1024).toFixed(0)} KB
+                    </span>
+                    {version.metadata.language && (
+                      <span>🌍 {version.metadata.language}</span>
+                    )}
+                    {version.metadata.voiceName && (
+                      <span>✨ {version.metadata.voiceName}</span>
+                    )}
                   </div>
 
                   {/* Parent Link */}
                   {parent && (
                     <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                       <span>from:</span>
-                      <span>{getVersionIcon(parent.source)} {parent.label}</span>
+                      <span>
+                        {getVersionIcon(parent.source)} {parent.label}
+                      </span>
                     </div>
                   )}
 
@@ -140,7 +186,8 @@ export default function VersionSelection({
                             <span className="px-2 py-0.5 bg-[#2A2A2A] rounded-full text-[10px]">
                               {step}
                             </span>
-                            {idx < version.metadata.transformChain.length - 1 && (
+                            {idx <
+                              version.metadata.transformChain.length - 1 && (
                               <span>→</span>
                             )}
                           </React.Fragment>
@@ -151,19 +198,46 @@ export default function VersionSelection({
                 </div>
 
                 {/* Action Buttons - responsive */}
-                <div className="flex items-center gap-2 sm:ml-auto w-full sm:w-auto mt-2 sm:mt-0">
-                  <button
-                    onClick={() => onSelectForForge(version.id)}
-                    className="flex-1 sm:flex-none px-3 py-1.5 rounded bg-[#2A2A2A] hover:bg-[#3A3A3A] text-xs text-white transition-colors flex items-center justify-center sm:justify-start gap-1"
-                    title="Open in Studio Forge"
-                  >
-                    <span className="hidden sm:inline">Forge</span>
-                    <ChevronRight className="w-3 h-3" />
-                  </button>
+                <div className="flex items-center gap-2 sm:ml-auto w-full sm:w-auto mt-3 sm:mt-0 border-t sm:border-t-0 border-[#2A2A2A] pt-2 sm:pt-0">
+                  <div className="flex bg-[#0A0A0A] rounded-lg p-0.5 border border-[#2A2A2A] shadow-sm">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenTool("voice", version.id);
+                      }}
+                      className="p-1.5 hover:bg-[#2A2A2A] rounded text-gray-400 hover:text-white transition-colors"
+                      title="Transform Voice"
+                    >
+                      <Mic className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenTool("dub", version.id);
+                      }}
+                      className="p-1.5 hover:bg-[#2A2A2A] rounded text-gray-400 hover:text-white transition-colors"
+                      title="Dub into another language"
+                    >
+                      <Globe className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenTool("script", version.id);
+                      }}
+                      className="p-1.5 hover:bg-[#2A2A2A] rounded text-gray-400 hover:text-white transition-colors"
+                      title="Transcribe & Edit"
+                    >
+                      <FileText className="w-4 h-4" />
+                    </button>
+                  </div>
 
                   {canDelete && (
                     <button
-                      onClick={() => onDeleteVersion(version.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteVersion(version.id);
+                      }}
                       className="p-1.5 rounded hover:bg-red-900/20 text-red-400 transition-colors"
                       title="Delete version and descendants"
                     >
@@ -182,13 +256,17 @@ export default function VersionSelection({
         <div className="p-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg text-sm space-y-1">
           <div className="flex justify-between text-gray-400">
             <span>Selected for saving:</span>
-            <span className="text-white font-medium">{selectedVersionIds.size} of {versions.length}</span>
+            <span className="text-white font-medium">
+              {selectedVersionIds.size} of {versions.length}
+            </span>
           </div>
-          {userTier === 'free' && selectedVersionIds.size > remainingQuota.saves && (
-            <div className="text-red-400 text-xs">
-              ⚠️ Exceeds remaining saves ({remainingQuota.saves}). Upgrade to save more versions.
-            </div>
-          )}
+          {userTier === "free" &&
+            selectedVersionIds.size > remainingQuota.saves && (
+              <div className="text-red-400 text-xs">
+                ⚠️ Exceeds remaining saves ({remainingQuota.saves}). Upgrade to
+                save more versions.
+              </div>
+            )}
         </div>
       )}
 

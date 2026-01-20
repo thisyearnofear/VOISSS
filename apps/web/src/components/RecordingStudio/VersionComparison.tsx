@@ -1,32 +1,57 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Volume2, SkipBack, SkipForward } from 'lucide-react';
-import { AudioVersion } from '@voisss/shared';
+import React, { useState, useRef, useEffect } from "react";
+import { Play, Pause, Volume2 } from "lucide-react";
+import { AudioVersion } from "@voisss/shared";
 
 interface VersionComparisonProps {
   versions: AudioVersion[];
   onClose: () => void;
 }
 
-interface ComparisonPair {
-  versionA: AudioVersion;
-  versionB: AudioVersion;
-}
+export default function VersionComparison({
+  versions,
+  onClose,
+}: VersionComparisonProps) {
+  const [selectedA, setSelectedA] = useState<string>(versions[0]?.id || "");
+  const [selectedB, setSelectedB] = useState<string>(
+    versions[Math.min(1, versions.length - 1)]?.id || ""
+  );
 
-export default function VersionComparison({ versions, onClose }: VersionComparisonProps) {
-  const [selectedA, setSelectedA] = useState<string>(versions[0]?.id || '');
-  const [selectedB, setSelectedB] = useState<string>(versions[Math.min(1, versions.length - 1)]?.id || '');
-  
   const [isPlayingA, setIsPlayingA] = useState(false);
   const [isPlayingB, setIsPlayingB] = useState(false);
-  
+
   const [currentTimeA, setCurrentTimeA] = useState(0);
   const [currentTimeB, setCurrentTimeB] = useState(0);
-  
+
   const audioRefA = useRef<HTMLAudioElement>(null);
   const audioRefB = useRef<HTMLAudioElement>(null);
 
-  const versionA = versions.find(v => v.id === selectedA);
-  const versionB = versions.find(v => v.id === selectedB);
+  const versionA = versions.find((v) => v.id === selectedA);
+  const versionB = versions.find((v) => v.id === selectedB);
+
+  const [urlA, setUrlA] = useState<string | undefined>();
+  const [urlB, setUrlB] = useState<string | undefined>();
+
+  // Manage URL A lifecycle
+  useEffect(() => {
+    if (!versionA) {
+      setUrlA(undefined);
+      return;
+    }
+    const url = URL.createObjectURL(versionA.blob);
+    setUrlA(url);
+    return () => URL.revokeObjectURL(url);
+  }, [versionA]);
+
+  // Manage URL B lifecycle
+  useEffect(() => {
+    if (!versionB) {
+      setUrlB(undefined);
+      return;
+    }
+    const url = URL.createObjectURL(versionB.blob);
+    setUrlB(url);
+    return () => URL.revokeObjectURL(url);
+  }, [versionB]);
 
   // Handle play/pause sync
   const handlePlayA = () => {
@@ -36,7 +61,7 @@ export default function VersionComparison({ versions, onClose }: VersionComparis
         setIsPlayingA(false);
       } else {
         audioRefA.current.play().catch(() => {
-          console.error('Failed to play audio A');
+          console.error("Failed to play audio A");
         });
         setIsPlayingA(true);
       }
@@ -50,7 +75,7 @@ export default function VersionComparison({ versions, onClose }: VersionComparis
         setIsPlayingB(false);
       } else {
         audioRefB.current.play().catch(() => {
-          console.error('Failed to play audio B');
+          console.error("Failed to play audio B");
         });
         setIsPlayingB(true);
       }
@@ -66,22 +91,26 @@ export default function VersionComparison({ versions, onClose }: VersionComparis
     const handleEndB = () => setIsPlayingB(false);
 
     if (audioA) {
-      audioA.addEventListener('ended', handleEndA);
-      audioA.addEventListener('timeupdate', () => setCurrentTimeA(audioA.currentTime));
+      audioA.addEventListener("ended", handleEndA);
+      audioA.addEventListener("timeupdate", () =>
+        setCurrentTimeA(audioA.currentTime)
+      );
     }
     if (audioB) {
-      audioB.addEventListener('ended', handleEndB);
-      audioB.addEventListener('timeupdate', () => setCurrentTimeB(audioB.currentTime));
+      audioB.addEventListener("ended", handleEndB);
+      audioB.addEventListener("timeupdate", () =>
+        setCurrentTimeB(audioB.currentTime)
+      );
     }
 
     return () => {
       if (audioA) {
-        audioA.removeEventListener('ended', handleEndA);
-        audioA.removeEventListener('timeupdate', () => {});
+        audioA.removeEventListener("ended", handleEndA);
+        audioA.removeEventListener("timeupdate", () => {});
       }
       if (audioB) {
-        audioB.removeEventListener('ended', handleEndB);
-        audioB.removeEventListener('timeupdate', () => {});
+        audioB.removeEventListener("ended", handleEndB);
+        audioB.removeEventListener("timeupdate", () => {});
       }
     };
   }, []);
@@ -89,7 +118,7 @@ export default function VersionComparison({ versions, onClose }: VersionComparis
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   const getProgressPercent = (current: number, duration: number): number => {
@@ -117,7 +146,9 @@ export default function VersionComparison({ versions, onClose }: VersionComparis
         {/* Version Selectors */}
         <div className="grid grid-cols-2 gap-4 p-4 border-b border-[#2A2A2A]">
           <div>
-            <label className="text-xs uppercase text-gray-400 mb-2 block">Version A</label>
+            <label className="text-xs uppercase text-gray-400 mb-2 block">
+              Version A
+            </label>
             <select
               value={selectedA}
               onChange={(e) => setSelectedA(e.target.value)}
@@ -131,7 +162,9 @@ export default function VersionComparison({ versions, onClose }: VersionComparis
             </select>
           </div>
           <div>
-            <label className="text-xs uppercase text-gray-400 mb-2 block">Version B</label>
+            <label className="text-xs uppercase text-gray-400 mb-2 block">
+              Version B
+            </label>
             <select
               value={selectedB}
               onChange={(e) => setSelectedB(e.target.value)}
@@ -163,7 +196,9 @@ export default function VersionComparison({ versions, onClose }: VersionComparis
               </button>
               <div className="flex-1">
                 <p className="text-white font-medium">{versionA.label}</p>
-                <p className="text-xs text-gray-400">{versionA.metadata.duration.toFixed(1)}s</p>
+                <p className="text-xs text-gray-400">
+                  {versionA.metadata.duration.toFixed(1)}s
+                </p>
               </div>
               <Volume2 className="w-4 h-4 text-gray-400" />
             </div>
@@ -174,7 +209,10 @@ export default function VersionComparison({ versions, onClose }: VersionComparis
                 <div
                   className="h-full bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] transition-all"
                   style={{
-                    width: `${getProgressPercent(currentTimeA, versionA.metadata.duration)}%`,
+                    width: `${getProgressPercent(
+                      currentTimeA,
+                      versionA.metadata.duration
+                    )}%`,
                   }}
                 />
               </div>
@@ -184,17 +222,15 @@ export default function VersionComparison({ versions, onClose }: VersionComparis
               </div>
             </div>
 
-            <audio
-              ref={audioRefA}
-              src={URL.createObjectURL(versionA.blob)}
-              className="hidden"
-            />
+            <audio ref={audioRefA} src={urlA} className="hidden" />
           </div>
 
           {/* VS Divider */}
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-[#2A2A2A]" />
-            <span className="text-xs font-bold uppercase text-gray-500">VS</span>
+            <span className="text-xs font-bold uppercase text-gray-500">
+              VS
+            </span>
             <div className="flex-1 h-px bg-[#2A2A2A]" />
           </div>
 
@@ -213,7 +249,9 @@ export default function VersionComparison({ versions, onClose }: VersionComparis
               </button>
               <div className="flex-1">
                 <p className="text-white font-medium">{versionB.label}</p>
-                <p className="text-xs text-gray-400">{versionB.metadata.duration.toFixed(1)}s</p>
+                <p className="text-xs text-gray-400">
+                  {versionB.metadata.duration.toFixed(1)}s
+                </p>
               </div>
               <Volume2 className="w-4 h-4 text-gray-400" />
             </div>
@@ -224,7 +262,10 @@ export default function VersionComparison({ versions, onClose }: VersionComparis
                 <div
                   className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all"
                   style={{
-                    width: `${getProgressPercent(currentTimeB, versionB.metadata.duration)}%`,
+                    width: `${getProgressPercent(
+                      currentTimeB,
+                      versionB.metadata.duration
+                    )}%`,
                   }}
                 />
               </div>
@@ -234,11 +275,7 @@ export default function VersionComparison({ versions, onClose }: VersionComparis
               </div>
             </div>
 
-            <audio
-              ref={audioRefB}
-              src={URL.createObjectURL(versionB.blob)}
-              className="hidden"
-            />
+            <audio ref={audioRefB} src={urlB} className="hidden" />
           </div>
         </div>
 
@@ -249,8 +286,12 @@ export default function VersionComparison({ versions, onClose }: VersionComparis
               <p className="text-gray-400 text-xs mb-1">Version A Info</p>
               <div className="space-y-1 text-gray-300">
                 <p>Source: {versionA.source}</p>
-                {versionA.metadata.language && <p>Language: {versionA.metadata.language}</p>}
-                {versionA.metadata.voiceName && <p>Voice: {versionA.metadata.voiceName}</p>}
+                {versionA.metadata.language && (
+                  <p>Language: {versionA.metadata.language}</p>
+                )}
+                {versionA.metadata.voiceName && (
+                  <p>Voice: {versionA.metadata.voiceName}</p>
+                )}
                 <p>Size: {(versionA.metadata.size / 1024).toFixed(0)} KB</p>
               </div>
             </div>
@@ -258,8 +299,12 @@ export default function VersionComparison({ versions, onClose }: VersionComparis
               <p className="text-gray-400 text-xs mb-1">Version B Info</p>
               <div className="space-y-1 text-gray-300">
                 <p>Source: {versionB.source}</p>
-                {versionB.metadata.language && <p>Language: {versionB.metadata.language}</p>}
-                {versionB.metadata.voiceName && <p>Voice: {versionB.metadata.voiceName}</p>}
+                {versionB.metadata.language && (
+                  <p>Language: {versionB.metadata.language}</p>
+                )}
+                {versionB.metadata.voiceName && (
+                  <p>Voice: {versionB.metadata.voiceName}</p>
+                )}
                 <p>Size: {(versionB.metadata.size / 1024).toFixed(0)} KB</p>
               </div>
             </div>

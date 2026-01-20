@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useBase } from "../app/providers";
 import { useBaseAccount } from "../hooks/useBaseAccount";
@@ -232,32 +232,25 @@ export default function RecordingStudio({
   const { activeMode } = useStudioSettings(universalAddress);
 
   // Studio workflow phases
-  type StudioPhase = "recording" | "laboratory" | "forge";
-  const [studioPhase, setStudioPhase] = useState<StudioPhase>("recording");
+  // Studio Hub State
+  const [activeTool, setActiveTool] = useState<
+    "voice" | "dub" | "script" | "insights" | null
+  >(null);
 
-  // Forge phase state (derived from active version)
-  const [activeForgeUrl, setActiveForgeUrl] = useState<string | null>(null);
-  const [forgeDuration, setForgeDuration] = useState(0);
+  // Memoize active version URL to prevent re-renders
+  const activePreviewUrl = useMemo(() => {
+    if (!activeVersion?.blob) return null;
+    return URL.createObjectURL(activeVersion.blob);
+  }, [activeVersion?.blob]);
 
+  // Cleanup active version URL
   useEffect(() => {
-    const initForge = async () => {
-      if (activeVersion?.blob) {
-        const url = URL.createObjectURL(activeVersion.blob);
-        setActiveForgeUrl(url);
-
-        // Accurate duration recalculation
-        const dur = await getBlobDuration(activeVersion.blob);
-        if (dur > 0) setForgeDuration(dur);
-        else setForgeDuration(activeVersion.metadata.duration || 0);
-
-        // Persist to indexedDB
-        saveForgeBlob(activeVersion.blob).catch(console.error);
-
-        return () => URL.revokeObjectURL(url);
+    return () => {
+      if (activePreviewUrl) {
+        URL.revokeObjectURL(activePreviewUrl);
       }
     };
-    initForge();
-  }, [activeVersion, activeVersion?.blob]);
+  }, [activePreviewUrl]);
 
   // Restore persistence on mount (restore active version if in Forge)
   useEffect(() => {
@@ -270,7 +263,7 @@ export default function RecordingStudio({
           [...versions].reverse().find((v) => v.id !== "v0");
         if (matchingVersion) {
           setActiveVersion(matchingVersion.id);
-          setStudioPhase("forge");
+          setActiveTool("script");
         }
       }
     };
@@ -343,7 +336,6 @@ export default function RecordingStudio({
     try {
       const blob = await stopRecording();
       if (blob) {
-        setStudioPhase("laboratory");
         resetRecordingStates();
       }
     } catch (error) {
@@ -363,7 +355,7 @@ export default function RecordingStudio({
 
   const handleCancelRecording = useCallback(() => {
     cancelRecording();
-    setStudioPhase("recording");
+    setActiveTool(null);
     setRecordingTitle("");
     setRecordingDescription("");
     setRecordingTags([]);
@@ -550,6 +542,19 @@ export default function RecordingStudio({
       }
     },
     [contractAddress, ipfsService, duration, setToastType, setToastMessage]
+  );
+
+  const handleOpenTool = useCallback(
+    (tool: "voice" | "dub" | "script" | "insights", versionId: string) => {
+      const version = getVersion(versionId);
+      if (!version) {
+        console.error(`Version ${versionId} not found`);
+        return;
+      }
+      setActiveVersion(versionId);
+      setActiveTool(tool);
+    },
+    [getVersion, setActiveVersion]
   );
 
   // Main save handler
@@ -759,7 +764,7 @@ export default function RecordingStudio({
         // Prioritize: Most recent non-original version for Forge
         const versionToForge =
           [...selectedVersionIds].reverse().find((id) => id !== "v0") || "v0";
-        handleSelectForForge(versionToForge);
+        handleOpenTool("script", versionToForge);
       }
     } catch (error) {
       console.error("Error saving recordings:", error);
@@ -771,7 +776,6 @@ export default function RecordingStudio({
     selectedVersionIds,
     recordingTitle,
     duration,
-    selectedVoiceFree,
     canSaveRecording,
     userTier,
     remainingQuota.saves,
@@ -785,20 +789,13 @@ export default function RecordingStudio({
     isConnected,
     hasSubAccount,
     signIn,
+    completeMissionMutation,
+    getVersion,
+    handleOpenTool,
+    mission,
+    missionId,
+    saveRecordingWithGas,
   ]);
-
-  const handleSelectForForge = useCallback(
-    async (versionId: string) => {
-      const version = getVersion(versionId);
-      if (!version) {
-        console.error(`Version ${versionId} not found`);
-        return;
-      }
-      setActiveVersion(versionId);
-      setStudioPhase("forge");
-    },
-    [getVersion, setActiveVersion]
-  );
 
   return (
     <div className="max-w-2xl mx-auto voisss-card shadow-2xl">
@@ -846,8 +843,8 @@ export default function RecordingStudio({
         onCancelRecording={handleCancelRecording}
       />
 
-      {/* PHASE 2: LABORATORY (Alchemy & Anchor) */}
-      {studioPhase === "laboratory" && (
+      {/* PHASE 2: STUDIO HUB (Laboratory & Forge) */}
+      {!isRecording && audioBlob && (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="text-center py-6 border-b border-[#2A2A2A]">
             <h3 className="text-2xl font-black text-white tracking-tight uppercase">
@@ -858,36 +855,12 @@ export default function RecordingStudio({
             </p>
           </div>
 
-          {/* Workflow Roadmap */}
-          <div className="flex items-center justify-center gap-4 px-4 py-2 bg-[#0F0F0F] rounded-full w-fit mx-auto border border-[#2A2A2A] text-xs font-bold uppercase tracking-widest">
-            <div className="flex items-center gap-2 text-gray-500">
-              <span className="w-5 h-5 rounded-full border border-gray-500 flex items-center justify-center text-[10px]">
-                1
-              </span>
-              Recording
-            </div>
-            <div className="w-4 h-[1px] bg-[#2A2A2A]" />
-            <div className="flex items-center gap-2 text-[#7C5DFA]">
-              <span className="w-5 h-5 rounded-full bg-[#7C5DFA] text-white flex items-center justify-center text-[10px]">
-                2
-              </span>
-              Alchemy & Anchor
-            </div>
-            <div className="w-4 h-[1px] bg-[#2A2A2A]" />
-            <div className="flex items-center gap-2 text-gray-500 opacity-60">
-              <span className="w-5 h-5 rounded-full border border-gray-500 flex items-center justify-center text-[10px]">
-                3
-              </span>
-              Studio Forge (Transcribe & Style)
-            </div>
-          </div>
-
           {/* Top Section: Analysis & Metadata */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
             <div className="md:col-span-3 space-y-6">
               <AudioPreview
-                previewUrl={previewUrl}
-                audioBlob={audioBlob}
+                previewUrl={activePreviewUrl || previewUrl}
+                audioBlob={activeVersion?.blob || audioBlob}
                 formatFileSize={formatFileSize}
               />
             </div>
@@ -910,76 +883,99 @@ export default function RecordingStudio({
             </div>
           </div>
 
-          {/* Main Section: Alchemy Suite (Spacious) */}
-          <div className="space-y-10 py-8 border-t border-[#2A2A2A]">
-            <div>
-              <h4 className="text-xl font-bold text-white mb-6 px-2 flex items-center gap-3">
-                <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C5DFA] to-[#9C88FF] flex items-center justify-center text-sm">
-                  1
-                </span>
-                Voice Alchemy
-              </h4>
-              <AIVoicePanel
-                voicesFree={voicesFree}
-                selectedVoiceFree={selectedVoiceFree}
-                isLoadingVoicesFree={isLoadingVoicesFree}
-                isGeneratingFree={isGeneratingFree}
-                canUseAIVoice={canUseAIVoice}
-                versions={versions}
-                activeVersionId={activeVersionId}
-                userTier={userTier}
-                remainingQuota={remainingQuota}
-                WEEKLY_AI_VOICE_LIMIT={
-                  useFreemiumStore.getState().WEEKLY_AI_VOICE_LIMIT
-                }
-                onVoicesFreeChange={setVoicesFree}
-                onSelectedVoiceFreeChange={setSelectedVoiceFree}
-                onLoadingVoicesFreeChange={setLoadingVoicesFree}
-                onGeneratingFreeChange={setGeneratingFree}
-                onIncrementAIVoiceUsage={incrementAIVoiceUsage}
-                onToastMessage={setToastMessage}
-                onToastType={setToastType}
-                onAddVersion={addVersion}
-                onSetSelectedVersionIds={setSelectedVersionIds}
-              />
-            </div>
-
-            <div>
-              <h4 className="text-xl font-bold text-white mb-6 px-2 flex items-center gap-3">
-                <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-sm">
-                  2
-                </span>
-                Global Dubbing
-              </h4>
-              <DubbingPanel
-                versions={versions}
-                activeVersionId={activeVersionId}
-                onAddVersion={addVersion}
-                onDubbingComplete={(dubbedBlob, language, sourceVersionId) => {
-                  setSelectedVersionIds((prev) => {
-                    const updated = new Set(prev);
-                    // Find the new version by checking for most recent dub version
-                    const newVersionIds = versions.map((v) => v.id);
-                    const lastId = newVersionIds[newVersionIds.length - 1];
-                    if (lastId) updated.add(lastId);
-                    return updated;
-                  });
-                }}
-              />
-            </div>
-          </div>
-
           <div className="border-t border-[#2A2A2A] pt-6">
             <VersionSelection
               versions={versions}
+              activeVersionId={activeVersionId}
               selectedVersionIds={selectedVersionIds}
               userTier={userTier}
               remainingQuota={remainingQuota}
               onSelectedVersionIdsChange={setSelectedVersionIds}
-              onSelectForForge={handleSelectForForge}
+              onSetActive={setActiveVersion}
               onDeleteVersion={deleteVersion}
+              onOpenTool={handleOpenTool}
             />
+          </div>
 
+          {/* Active Tool Panel */}
+          {activeTool && (
+            <div className="py-8 border-t border-[#2A2A2A] animate-in slide-in-from-bottom-4 duration-300">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  {activeTool === "voice" && "✨ Voice Alchemy"}
+                  {activeTool === "dub" && "🌍 Global Dubbing"}
+                  {activeTool === "script" && "📝 Transcript & Forge"}
+                  {activeTool === "insights" && "🧠 Gemini Insights"}
+                </h3>
+                <button
+                  onClick={() => setActiveTool(null)}
+                  className="text-sm text-gray-400 hover:text-white"
+                >
+                  Close Panel
+                </button>
+              </div>
+
+              {activeTool === "voice" && (
+                <AIVoicePanel
+                  voicesFree={voicesFree}
+                  selectedVoiceFree={selectedVoiceFree}
+                  isLoadingVoicesFree={isLoadingVoicesFree}
+                  isGeneratingFree={isGeneratingFree}
+                  canUseAIVoice={canUseAIVoice}
+                  versions={versions}
+                  activeVersionId={activeVersionId}
+                  userTier={userTier}
+                  remainingQuota={remainingQuota}
+                  WEEKLY_AI_VOICE_LIMIT={
+                    useFreemiumStore.getState().WEEKLY_AI_VOICE_LIMIT
+                  }
+                  onVoicesFreeChange={setVoicesFree}
+                  onSelectedVoiceFreeChange={setSelectedVoiceFree}
+                  onLoadingVoicesFreeChange={setLoadingVoicesFree}
+                  onGeneratingFreeChange={setGeneratingFree}
+                  onIncrementAIVoiceUsage={incrementAIVoiceUsage}
+                  onToastMessage={setToastMessage}
+                  onToastType={setToastType}
+                  onAddVersion={addVersion}
+                  onSetSelectedVersionIds={setSelectedVersionIds}
+                />
+              )}
+
+              {activeTool === "dub" && (
+                <DubbingPanel
+                  versions={versions}
+                  activeVersionId={activeVersionId}
+                  onAddVersion={addVersion}
+                  onDubbingComplete={(
+                    dubbedBlob,
+                    language,
+                    sourceVersionId
+                  ) => {
+                    setSelectedVersionIds((prev) => {
+                      const updated = new Set(prev);
+                      const newVersionIds = versions.map((v) => v.id);
+                      const lastId = newVersionIds[newVersionIds.length - 1];
+                      if (lastId) updated.add(lastId);
+                      return updated;
+                    });
+                  }}
+                />
+              )}
+
+              {activeTool === "script" && activeVersion && (
+                <TranscriptComposer
+                  previewUrl={activePreviewUrl || ""}
+                  durationSeconds={activeVersion.metadata.duration}
+                  audioBlob={activeVersion.blob}
+                  initialTemplateId={initialTranscriptTemplateId}
+                  autoFocus={true}
+                  languageHint={activeVersion.metadata.language || "en"}
+                />
+              )}
+            </div>
+          )}
+
+          <div className="border-t border-[#2A2A2A] pt-6">
             <ActionButtons
               recordingTitle={recordingTitle}
               isDirectSaving={isDirectSaving}
@@ -1002,83 +998,17 @@ export default function RecordingStudio({
               </p>
             )}
 
-            <button
-              onClick={() => {
-                setActiveVersion("v0");
-                setStudioPhase("forge");
-              }}
-              className="w-full mt-4 py-3 text-xs text-gray-400 hover:text-white transition-colors"
-            >
-              Skip to Studio (Forge) without saving
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* PHASE 3: FORGE (Transcription & Export) */}
-      {studioPhase === "forge" && activeForgeUrl && (
-        <div className="space-y-6 animate-in fade-in zoom-in-95 duration-500">
-          <div className="flex items-center justify-between border-b border-[#2A2A2A] pb-4">
-            <div>
-              <h3 className="text-xl font-bold text-white">Studio Forge</h3>
-              <p className="text-xs text-gray-400">
-                Design and export your final assets
-              </p>
+            <div className="p-4 mt-6 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl flex items-center justify-between">
+              <p className="text-sm text-gray-400">Ready to start fresh?</p>
+              <button
+                onClick={() => {
+                  cancelRecording();
+                }}
+                className="px-4 py-2 rounded-lg bg-red-900/20 text-red-400 text-sm border border-red-900/30 hover:bg-red-900/30 transition-all"
+              >
+                New Project
+              </button>
             </div>
-
-            {/* Workflow Roadmap (Small version for header) */}
-            <div className="hidden md:flex items-center gap-3 px-3 py-1.5 bg-[#0F0F0F] rounded-full border border-[#2A2A2A] text-[9px] font-bold uppercase tracking-widest">
-              <div className="flex items-center gap-1.5 text-green-500">
-                <Check className="w-3 h-3" /> Recording
-              </div>
-              <div className="w-3 h-[1px] bg-[#2A2A2A]" />
-              <div className="flex items-center gap-1.5 text-green-500">
-                <Check className="w-3 h-3" /> Alchemy
-              </div>
-              <div className="w-3 h-[1px] bg-[#2A2A2A]" />
-              <div className="flex items-center gap-1.5 text-[#7C5DFA]">
-                <span className="w-4 h-4 rounded-full bg-[#7C5DFA] text-white flex items-center justify-center text-[8px]">
-                  3
-                </span>
-                Forge
-              </div>
-            </div>
-            <button
-              onClick={() => setStudioPhase("laboratory")}
-              className="px-3 py-1.5 rounded-lg bg-[#2A2A2A] text-xs text-gray-300 hover:bg-[#3A3A3A] transition-colors"
-            >
-              ← Back to Lab
-            </button>
-          </div>
-
-          <GeminiInsightsPanel
-            audioBlob={activeVersion?.blob || null}
-            onApplyInsights={handleApplyInsights}
-            isVisible={true}
-          />
-
-          {activeVersion && (
-            <TranscriptComposer
-              previewUrl={activeForgeUrl || ""}
-              durationSeconds={forgeDuration || activeVersion.metadata.duration}
-              audioBlob={activeVersion.blob}
-              initialTemplateId={initialTranscriptTemplateId}
-              autoFocus={initialMode === "transcript"}
-              languageHint={activeVersion.metadata.language || "en"}
-            />
-          )}
-
-          <div className="p-4 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl flex items-center justify-between">
-            <p className="text-sm text-gray-400">Ready to start fresh?</p>
-            <button
-              onClick={() => {
-                setStudioPhase("recording");
-                cancelRecording();
-              }}
-              className="px-4 py-2 rounded-lg bg-red-900/20 text-red-400 text-sm border border-red-900/30 hover:bg-red-900/30 transition-all"
-            >
-              New Project
-            </button>
           </div>
         </div>
       )}
