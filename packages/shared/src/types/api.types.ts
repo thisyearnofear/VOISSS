@@ -134,16 +134,16 @@ function generateRequestId(): string {
     return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-function isRetryableError(code: ApiErrorCode): boolean {
+function isRetryableError(code: string): boolean {
     const retryableCodes = [
         API_ERROR_CODES.INTERNAL_ERROR,
         API_ERROR_CODES.SERVICE_UNAVAILABLE,
         API_ERROR_CODES.NETWORK_ERROR,
     ];
-    return retryableCodes.includes(code);
+    return retryableCodes.includes(code as any);
 }
 
-function requiresUserAction(code: ApiErrorCode): boolean {
+function requiresUserAction(code: string): boolean {
     const userActionCodes = [
         API_ERROR_CODES.VALIDATION_FAILED,
         API_ERROR_CODES.MISSING_REQUIRED_FIELD,
@@ -151,7 +151,7 @@ function requiresUserAction(code: ApiErrorCode): boolean {
         API_ERROR_CODES.INSUFFICIENT_BALANCE,
         API_ERROR_CODES.UNAUTHORIZED,
     ];
-    return userActionCodes.includes(code);
+    return userActionCodes.includes(code as any);
 }
 
 // Type guards for response handling

@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: voisss-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: voisss
+      POSTGRES_USER: voisss_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-voisss_secure_password_change_me}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U voisss_user -d voisss"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Main API Service
+  voisss-api:
+    build:
+      context: ../../
+      dockerfile: services/voisss-backend/Dockerfile
+    container_name: voisss-api
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://voisss_user:${DB_PASSWORD:-voisss_secure_password_change_me}@postgres:5432/voisss
+      - EXPORT_PUBLIC_URL=https://voisss.famile.xyz
+    env_file: .env
+    ports:
+      - "5577:5577"
+    volumes:
+      - voisss-exports:/var/www/voisss-exports
+      - voisss-temp:/tmp/voisss-exports
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # Export Worker (Scale this as needed)
+  voisss-worker:
+    build:
+      context: ../../
+      dockerfile: services/voisss-backend/Dockerfile
+    container_name: voisss-worker
+    command: node src/workers/export-worker.js
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://voisss_user:${DB_PASSWORD:-voisss_secure_password_change_me}@postgres:5432/voisss
+      - WORKER_CONCURRENCY=2
+      - WORKER_ID=docker-worker
+    env_file: .env
+    volumes:
+      - voisss-exports:/var/www/voisss-exports
+      - voisss-temp:/tmp/voisss-exports
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # Redis for Job Queue
+  redis:
+    image: redis:7-alpine
+    container_name: voisss-redis
+    restart: always
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres-data:
+  voisss-exports:
+  voisss-temp:
+  redis-data:

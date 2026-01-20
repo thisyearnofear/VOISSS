@@ -270,8 +270,8 @@ export default function MissionCreationForm({
   // CLEAN: Memoized form validity check
   const isFormValid = useMemo(() => {
     return Object.keys(errors).length === 0 &&
-      formData.title.trim() &&
-      formData.description.trim();
+      formData.title.trim().length > 0 &&
+      formData.description.trim().length > 0;
   }, [errors, formData.title, formData.description]);
 
   // PERFORMANT: Optimized field change handler
@@ -387,14 +387,14 @@ export default function MissionCreationForm({
 
       <MissionFormActions
         isLoading={createMissionMutation.isPending}
-        isError={createMissionMutation.isError}
+        isError={Boolean(createMissionMutation.isError)}
         isValid={isFormValid}
         error={
           createMissionMutation.error instanceof Error
             ? createMissionMutation.error.message
             : null
         }
-        onCancel={onCancel || (() => { })}
+        onCancel={onCancel ?? (() => { })}
       />
     </form>
   );
