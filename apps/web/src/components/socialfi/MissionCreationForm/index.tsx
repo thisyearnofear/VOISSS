@@ -315,10 +315,7 @@ export default function MissionCreationForm({
   if (eligibilityStatus.loading || !eligibilityStatus.eligible) {
     return (
       <div className="voisss-card">
-        <EligibilityCheck
-          loading={eligibilityStatus.loading}
-          error={eligibilityStatus.error}
-        />
+        <EligibilityCheck />
       </div>
     );
   }
