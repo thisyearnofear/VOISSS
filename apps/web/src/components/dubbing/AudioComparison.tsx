@@ -22,9 +22,11 @@ export default function AudioComparison({
   const [isPlaying, setIsPlaying] = useState<'none' | 'original' | 'dubbed' | 'both'>('none');
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [showCelebration, setShowCelebration] = useState(true);
 
   const originalRef = useRef<HTMLAudioElement>(null);
   const dubbedRef = useRef<HTMLAudioElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Create object URLs using refs to avoid premature revocation
   const originalUrlRef = useRef<string | null>(null);
@@ -67,6 +69,25 @@ export default function AudioComparison({
       }
     };
   }, [originalAudio, dubbedAudio]);
+
+  // Auto-scroll to component and show celebration on mount
+  useEffect(() => {
+    // Small delay to ensure layout is complete
+    const timer = setTimeout(() => {
+      if (containerRef.current) {
+        containerRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }
+      // Hide celebration after 5 seconds
+      const celebrationTimer = setTimeout(() => {
+        setShowCelebration(false);
+      }, 5000);
+      return () => clearTimeout(celebrationTimer);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Audio elements are reloaded via the src updates in the main useEffect
 
@@ -231,9 +252,34 @@ export default function AudioComparison({
   }, [isPlaying]);
 
   return (
-    <div className={`bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-6 ${className}`}>
-      <div className="mb-6">
-        <h3 className="text-xl font-semibold text-white mb-2 flex items-center gap-2">
+    <div 
+      ref={containerRef}
+      className={`bg-[#1A1A1A] border rounded-xl p-4 sm:p-6 ${showCelebration ? 'border-[#7C5DFA] shadow-lg shadow-[#7C5DFA]/20 animate-pulse' : 'border-[#2A2A2A]'} ${className}`}
+    >
+      {/* Success Banner - Mobile Optimized */}
+      {showCelebration && (
+        <div className="mb-4 p-3 sm:p-4 bg-gradient-to-r from-green-600/20 to-[#7C5DFA]/20 border border-green-500/30 rounded-lg animate-fade-in">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="text-2xl sm:text-3xl">🎉</div>
+            <div className="flex-1">
+              <p className="text-green-400 font-semibold text-sm sm:text-base">Dubbing Complete!</p>
+              <p className="text-gray-300 text-xs sm:text-sm">🎧 Listen to your dubbed audio below</p>
+            </div>
+            <button
+              onClick={() => setShowCelebration(false)}
+              className="text-gray-400 hover:text-white transition-colors p-1"
+              aria-label="Dismiss"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="mb-4 sm:mb-6">
+        <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 flex items-center gap-2">
           <svg className="w-5 h-5 text-[#7C5DFA]" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
           </svg>
@@ -244,48 +290,61 @@ export default function AudioComparison({
         </p>
       </div>
 
-      {/* Playback Controls */}
-      <div className="flex flex-col gap-3 mb-6 md:flex-row">
+      {/* Playback Controls - Mobile Optimized */}
+      <div className="flex flex-col gap-2 sm:gap-3 mb-4 sm:mb-6 md:flex-row">
         <button
           onClick={() => handlePlayPause('original')}
-          className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+          className={`flex-1 px-3 sm:px-4 py-4 sm:py-3 min-h-[48px] rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 ${
             isPlaying === 'original'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
               : 'bg-[#2A2A2A] text-gray-300 hover:bg-[#3A3A2A]'
           }`}
         >
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M8 5v14l11-7z" />
+          <svg className="w-5 h-5 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 24 24">
+            {isPlaying === 'original' ? (
+              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+            ) : (
+              <path d="M8 5v14l11-7z" />
+            )}
           </svg>
-          {isPlaying === 'original' ? 'Pause Original' : 'Play Original'}
-        </button>
-
-        <button
-          onClick={() => handlePlayPause('both')}
-          className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
-            isPlaying === 'both'
-              ? 'bg-[#7C5DFA] text-white'
-              : 'bg-[#2A2A2A] text-gray-300 hover:bg-[#3A3A2A]'
-          }`}
-        >
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M8 5v14l11-7z" />
-          </svg>
-          {isPlaying === 'both' ? 'Pause Both' : 'Play Together'}
+          <span className="text-sm sm:text-base">{isPlaying === 'original' ? 'Pause Original' : 'Play Original'}</span>
         </button>
 
         <button
           onClick={() => handlePlayPause('dubbed')}
-          className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+          className={`flex-1 px-3 sm:px-4 py-4 sm:py-3 min-h-[48px] rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 ${
             isPlaying === 'dubbed'
-              ? 'bg-green-600 text-white'
+              ? 'bg-green-600 text-white shadow-lg shadow-green-600/30'
               : 'bg-[#2A2A2A] text-gray-300 hover:bg-[#3A3A2A]'
           }`}
         >
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M8 5v14l11-7z" />
+          <svg className="w-5 h-5 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 24 24">
+            {isPlaying === 'dubbed' ? (
+              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+            ) : (
+              <path d="M8 5v14l11-7z" />
+            )}
           </svg>
-          {isPlaying === 'dubbed' ? 'Pause Dubbed' : 'Play Dubbed'}
+          <span className="text-sm sm:text-base">{isPlaying === 'dubbed' ? 'Pause Dubbed' : 'Play Dubbed'}</span>
+        </button>
+
+        <button
+          onClick={() => handlePlayPause('both')}
+          className={`flex-1 px-3 sm:px-4 py-4 sm:py-3 min-h-[48px] rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 md:flex-[0.8] ${
+            isPlaying === 'both'
+              ? 'bg-[#7C5DFA] text-white shadow-lg shadow-[#7C5DFA]/30'
+              : 'bg-[#2A2A2A] text-gray-300 hover:bg-[#3A3A2A]'
+          }`}
+        >
+          <svg className="w-5 h-5 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 24 24">
+            {isPlaying === 'both' ? (
+              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+            ) : (
+              <path d="M8 5v14l11-7z" />
+            )}
+          </svg>
+          <span className="text-sm sm:text-base hidden sm:inline">{isPlaying === 'both' ? 'Pause Both' : 'Play Together'}</span>
+          <span className="text-sm sm:hidden">{isPlaying === 'both' ? 'Pause Both' : 'Both'}</span>
         </button>
       </div>
 

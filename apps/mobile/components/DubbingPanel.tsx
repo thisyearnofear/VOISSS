@@ -6,9 +6,11 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  ScrollView,
 } from "react-native";
 import { SUPPORTED_DUBBING_LANGUAGES } from "../types";
 import LanguageSelector from "./LanguageSelector";
+import { AudioPreviewPlayer } from "./AudioPreviewPlayer";
 import { colors } from "@voisss/ui";
 
 interface DubbingPanelProps {
@@ -25,6 +27,7 @@ export default function DubbingPanel({
   const [targetLanguage, setTargetLanguage] = useState("es"); // Default to Spanish
   const [isDubbing, setIsDubbing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [dubbedBlob, setDubbedBlob] = useState<Blob | null>(null);
 
   const handleDubAudio = async () => {
     if (isDubbing) return;
@@ -57,6 +60,7 @@ export default function DubbingPanel({
       // Small delay to show completion
       setTimeout(() => {
         setIsDubbing(false);
+        setDubbedBlob(result.dubbedAudio);
         onDubbingComplete(result.dubbedAudio, targetLanguage);
       }, 500);
     } catch (error) {
@@ -73,7 +77,7 @@ export default function DubbingPanel({
   );
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <Text style={styles.title}>Voice Dubbing</Text>
       <Text style={styles.description}>
         Transform your voice to another language with AI
@@ -122,16 +126,52 @@ export default function DubbingPanel({
           <View style={[styles.progressBar, { width: `${progress}%` }]} />
         </View>
       )}
-    </View>
+
+      {/* Audio Preview Section */}
+      {dubbedBlob && (
+        <View style={styles.previewSection}>
+          <Text style={styles.previewTitle}>🎉 Dubbing Complete!</Text>
+          <Text style={styles.previewSubtitle}>
+            Listen to your original and dubbed audio below
+          </Text>
+
+          {/* Original Audio */}
+          <View style={styles.previewItem}>
+            <Text style={styles.previewItemTitle}>Original Recording</Text>
+            <AudioPreviewPlayer
+              audioBlob={audioBlob}
+              title="Original"
+              subtitle="Your original voice recording"
+              showWaveform={false}
+            />
+          </View>
+
+          {/* Dubbed Audio */}
+          <View style={styles.previewItem}>
+            <Text style={styles.previewItemTitle}>
+              Dubbed ({selectedLanguageInfo?.flag} {selectedLanguageInfo?.name})
+            </Text>
+            <AudioPreviewPlayer
+              audioBlob={dubbedBlob}
+              title="Dubbed Audio"
+              subtitle={`Dubbed in ${selectedLanguageInfo?.name || targetLanguage}`}
+              showWaveform={false}
+            />
+          </View>
+        </View>
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
     backgroundColor: colors.dark.card,
     borderRadius: 16,
     marginVertical: 16,
+  },
+  contentContainer: {
+    padding: 20,
   },
   title: {
     fontSize: 24,
@@ -199,5 +239,33 @@ const styles = StyleSheet.create({
   progressBar: {
     height: "100%",
     backgroundColor: colors.dark.primary,
+  },
+  previewSection: {
+    marginTop: 24,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: colors.dark.border,
+  },
+  previewTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: colors.dark.text,
+    marginBottom: 4,
+    textAlign: "center",
+  },
+  previewSubtitle: {
+    fontSize: 14,
+    color: colors.dark.textSecondary,
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  previewItem: {
+    marginBottom: 16,
+  },
+  previewItemTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.dark.text,
+    marginBottom: 8,
   },
 });
