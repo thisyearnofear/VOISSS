@@ -27,8 +27,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
 
     // Parse query parameters
     const queryParams: MissionQueryParams = {
-      page: parseInt(searchParams.get('page') || '1'),
-      limit: Math.min(parseInt(searchParams.get('limit') || '20'), 100), // Max 100 per page
+      page: parseInt(searchParams.get('page') || '1', 10),
+      limit: Math.min(parseInt(searchParams.get('limit') || '20', 10), 100), // Max 100 per page
       difficulty: searchParams.getAll('difficulty').filter(Boolean),
       topics: searchParams.getAll('topic').filter(Boolean),
       languages: searchParams.getAll('language').filter(Boolean),
