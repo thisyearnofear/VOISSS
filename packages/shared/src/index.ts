@@ -1,8 +1,6 @@
 // Shared types and utilities for VOISSS platform
 export * from './types';
 export * from './types/socialfi';
-export * from './types/api.types'; // New unified API types
-export type { Recording, VoiceRecording, Tag, MissionContext } from './types';
 export * from './constants/languages';
 export * from './types/audio';
 export * from './services/audio/ai/elevenlabs-service';
