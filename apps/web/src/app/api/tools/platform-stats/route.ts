@@ -108,17 +108,12 @@ async function fetchTransformationStats() {
 }
 
 /**
- * Fetch blockchain statistics from Base contract
- * Note: Requires a service to query the VoiceRecords contract
+ * Fetch blockchain statistics from the blockchain-stats endpoint
  */
 async function fetchBlockchainStats() {
   try {
-    // Query the blockchain stats endpoint
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.base.org';
-    const contractAddress = process.env.NEXT_PUBLIC_VOICE_RECORDS_CONTRACT;
-
-    if (!contractAddress) {
-      console.warn('VOICE_RECORDS_CONTRACT not configured');
+    const token = process.env.ELEVENLABS_TOOL_SECRET_KEY;
+    if (!token) {
       return {
         total_recordings: 0,
         unique_users: 0,
@@ -127,26 +122,28 @@ async function fetchBlockchainStats() {
       };
     }
 
-    // This would typically call a service that queries the contract
-    // For now, we'll use a separate backend service if available
-    const statsResponse = await fetch(`${process.env.VOISSS_BACKEND_URL}/api/blockchain-stats`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${process.env.VOISSS_BACKEND_API_KEY}`,
-      },
-    }).catch(() => null);
+    // Call our own blockchain-stats endpoint
+    const response = await fetch(
+      `${process.env.NODE_ENV === 'production' ? 'https://voisss.netlify.app' : 'http://localhost:3000'}/api/tools/blockchain-stats`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    ).catch(() => null);
 
-    if (statsResponse?.ok) {
-      const stats = await statsResponse.json();
+    if (response?.ok) {
+      const stats = await response.json();
       return {
         total_recordings: stats.total_recordings || 0,
         unique_users: stats.unique_users || 0,
         wallet_connections: stats.wallet_connections || 0,
-        estimated_storage_mb: (stats.total_recordings || 0) * 2.5, // Estimate ~2.5MB per recording
+        estimated_storage_mb: stats.estimated_storage_mb || 0,
       };
     }
 
-    // Fallback: use only database stats
+    // Fallback if blockchain stats unavailable
     return {
       total_recordings: 0,
       unique_users: 0,
