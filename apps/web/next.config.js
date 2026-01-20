@@ -51,7 +51,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; connect-src 'self' https://api.cdp.coinbase.com https://api.coinbase.com https://cca-lite.coinbase.com https://chain-proxy.wallet.coinbase.com https://mainnet.base.org https://sepolia.base.org https://voisss.famile.xyz https://8453.rpc.thirdweb.com wss://www.walletlink.org https://www.walletlink.org wss://api.elevenlabs.io; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https://ipfs.io https://*.ipfs.dweb.link blob:; media-src 'self' blob:; frame-src 'self' https://verify.coinbase.com;",
+            value: "default-src 'self'; connect-src 'self' https://api.cdp.coinbase.com https://api.coinbase.com https://cca-lite.coinbase.com https://chain-proxy.wallet.coinbase.com https://mainnet.base.org https://sepolia.base.org https://voisss.famile.xyz https://8453.rpc.thirdweb.com wss://www.walletlink.org https://www.walletlink.org wss://api.elevenlabs.io; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com blob: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https://ipfs.io https://*.ipfs.dweb.link blob:; media-src 'self' blob:; frame-src 'self' https://verify.coinbase.com;",
           },
         ],
       },
