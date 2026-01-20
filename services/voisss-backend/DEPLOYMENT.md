@@ -72,6 +72,36 @@ npm install --production
 pm2 restart voisss-processing
 ```
 
+## PostgreSQL Setup (Required)
+
+The backend now requires PostgreSQL for mission storage. It's configured in `docker-compose.yml`:
+
+1. **On production server**, update `.env`:
+```bash
+DB_PASSWORD=your_strong_secure_password_here
+```
+
+2. **Start services with PostgreSQL**:
+```bash
+docker-compose up -d
+```
+
+This starts: PostgreSQL (5432), API (5577), Worker, and Redis (6379).
+
+3. **Verify PostgreSQL is running**:
+```bash
+docker exec voisss-postgres pg_isready -U voisss_user -d voisss
+```
+
+4. **For local development**, configure in `/apps/web/.env`:
+```
+DATABASE_URL=postgresql://voisss_user:your_password@your-production-server-ip:5432/voisss
+```
+
+The Next.js API routes will now use the remote PostgreSQL for mission persistence.
+
+---
+
 ## First-Time Server Setup
 
 ### 1. Create Deployment Directory
