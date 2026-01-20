@@ -629,7 +629,9 @@ export default function RecordingStudio({
             country: "Internet",
           },
           context: "Recording Studio",
-          transcription: recordingDescription, // Use summary as transcription placeholder if needed
+          participantConsent: true,
+          isAnonymized: false,
+          voiceObfuscated: false,
         });
 
         setToastType("success");
