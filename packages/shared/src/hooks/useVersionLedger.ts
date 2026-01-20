@@ -4,7 +4,7 @@
  * Replaces: scattered audioBlob, variantBlobFree, dubbedBlob, activeForgeBlob
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { AudioVersion, AudioVersionSource, VersionLedgerState } from '../types/audio-version';
 
 export function useVersionLedger(initialBlob: Blob | null, initialDuration: number) {
@@ -32,6 +32,42 @@ export function useVersionLedger(initialBlob: Blob | null, initialDuration: numb
       activeVersionId: 'v0',
     };
   });
+
+  // Sync with initialBlob changes (e.g. after a new recording is finished)
+  useEffect(() => {
+    if (!initialBlob) {
+      setState({ versions: [], activeVersionId: '' });
+      return;
+    }
+
+    setState(prev => {
+      // If v0 already exists and blob is the same, do nothing
+      const existingV0 = prev.versions.find(v => v.id === 'v0');
+      if (existingV0 && existingV0.blob === initialBlob) {
+        return prev;
+      }
+
+      const originalVersion: AudioVersion = {
+        id: 'v0',
+        label: 'Original',
+        source: 'original',
+        blob: initialBlob,
+        metadata: {
+          duration: initialDuration,
+          size: initialBlob.size,
+          createdAt: new Date().toISOString(),
+          transformChain: [],
+        },
+      };
+
+      // If we are replacing v0, we should probably clear other versions too
+      // since they are derived from the old v0
+      return {
+        versions: [originalVersion],
+        activeVersionId: 'v0',
+      };
+    });
+  }, [initialBlob, initialDuration]);
 
   /**
    * Add a new derived version (AI Voice, Dub, or Chain)
