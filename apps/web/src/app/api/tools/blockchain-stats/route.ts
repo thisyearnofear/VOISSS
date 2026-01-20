@@ -19,25 +19,8 @@ const publicClient = createPublicClient({
 
 export async function GET(request: NextRequest) {
   try {
-    // Validate authorization header
-    const authHeader = request.headers.get('Authorization');
-    const expectedToken = process.env.ELEVENLABS_TOOL_SECRET_KEY;
-
-    if (!expectedToken) {
-      console.warn('ELEVENLABS_TOOL_SECRET_KEY not configured');
-      return NextResponse.json(
-        { error: 'Tool not configured' },
-        { status: 500 }
-      );
-    }
-
-    if (!authHeader || authHeader !== `Bearer ${expectedToken}`) {
-      console.warn('Unauthorized blockchain stats access attempt');
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    // Blockchain stats are public data - no authentication needed
+    // These endpoints are read-only queries from the public blockchain
 
     const contractAddress = process.env.NEXT_PUBLIC_VOICE_RECORDS_CONTRACT as `0x${string}`;
     if (!contractAddress) {

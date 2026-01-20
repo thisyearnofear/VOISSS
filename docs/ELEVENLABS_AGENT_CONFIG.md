@@ -87,12 +87,7 @@ When using tools, acknowledge their results naturally in conversation—don't me
     "path_params_schema": [],
     "query_params_schema": [],
     "request_body_schema": null,
-    "request_headers": [
-      {
-        "key": "Authorization",
-        "value": "Bearer 89LN/XsQWVjTM7yIxouCRl+huDW5fkTsRAmRma5cagU="
-      }
-    ],
+    "request_headers": [],
     "auth_connection": null
   },
   "response_timeout_secs": 15,
@@ -107,6 +102,8 @@ When using tools, acknowledge their results naturally in conversation—don't me
   "execution_mode": "immediate"
 }
 ```
+
+> **Note**: This endpoint is public (read-only statistics). No authentication required. The data returned is intended to be shared with users about platform activity.
 
 ## Environment Variables
 

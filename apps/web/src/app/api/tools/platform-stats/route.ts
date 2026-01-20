@@ -25,25 +25,8 @@ function getPool(): Pool {
 
 export async function GET(request: NextRequest) {
   try {
-    // Validate authorization header
-    const authHeader = request.headers.get('Authorization');
-    const expectedToken = process.env.ELEVENLABS_TOOL_SECRET_KEY;
-
-    if (!expectedToken) {
-      console.warn('ELEVENLABS_TOOL_SECRET_KEY not configured');
-      return NextResponse.json(
-        { error: 'Tool not configured' },
-        { status: 500 }
-      );
-    }
-
-    if (!authHeader || authHeader !== `Bearer ${expectedToken}`) {
-      console.warn('Unauthorized tool access attempt');
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    // Platform stats are public data - no authentication needed
+    // These endpoints are read-only and return public statistics
 
     // Fetch real-time statistics
     const [
@@ -112,24 +95,11 @@ async function fetchTransformationStats() {
  */
 async function fetchBlockchainStats() {
   try {
-    const token = process.env.ELEVENLABS_TOOL_SECRET_KEY;
-    if (!token) {
-      return {
-        total_recordings: 0,
-        unique_users: 0,
-        wallet_connections: 0,
-        estimated_storage_mb: 0,
-      };
-    }
-
-    // Call our own blockchain-stats endpoint
+    // Call our own blockchain-stats endpoint (public endpoint, no auth needed)
     const response = await fetch(
       `${process.env.NODE_ENV === 'production' ? 'https://voisss.netlify.app' : 'http://localhost:3000'}/api/tools/blockchain-stats`,
       {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
       }
     ).catch(() => null);
 
