@@ -43,6 +43,8 @@ import {
   saveForgeBlob,
   getForgeBlob,
   clearForgeBlob,
+  saveVersionLedger,
+  getVersionLedger,
 } from "../lib/studio-db";
 
 interface RecordingStudioProps {
@@ -165,6 +167,25 @@ export default function RecordingStudio({
   const [recordingTags, setRecordingTags] = useState<string[]>([]);
   const [showSaveOptions, setShowSaveOptions] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [activeTool, setActiveTool] = useState<
+    "voice" | "dub" | "script" | "insights" | null
+  >(null);
+
+  // Persistence State
+  const [initialLedgerState, setInitialLedgerState] = useState<any>(null);
+
+  // Restore session
+  useEffect(() => {
+    getVersionLedger().then((state) => {
+      if (state) {
+        setInitialLedgerState(state);
+        // If restoring a session with versions, assume user wants to edit
+        if (state.versions.length > 0) {
+          setActiveTool("script");
+        }
+      }
+    });
+  }, []);
 
   // Initialize title with mission title if available
   useEffect(() => {
@@ -184,7 +205,12 @@ export default function RecordingStudio({
     setActiveVersion,
     deleteVersion,
     getTransformableVersions,
-  } = useVersionLedger(audioBlob, duration / 1000);
+  } = useVersionLedger(
+    audioBlob,
+    duration / 1000,
+    initialLedgerState,
+    saveVersionLedger
+  );
 
   // AI Voice state (for panel UI only)
   const [voicesFree, setVoicesFree] = useState<
@@ -233,9 +259,7 @@ export default function RecordingStudio({
 
   // Studio workflow phases
   // Studio Hub State
-  const [activeTool, setActiveTool] = useState<
-    "voice" | "dub" | "script" | "insights" | null
-  >(null);
+  // activeTool moved up for persistence access
 
   // Memoize active version URL to prevent re-renders
   const activePreviewUrl = useMemo(() => {
@@ -253,22 +277,7 @@ export default function RecordingStudio({
   }, [activePreviewUrl]);
 
   // Restore persistence on mount (restore active version if in Forge)
-  useEffect(() => {
-    const restore = async () => {
-      const savedBlob = await getForgeBlob();
-      if (savedBlob && versions.length > 0) {
-        // Find matching version by blob (fallback: use most recent non-original)
-        const matchingVersion =
-          versions.find((v) => v.blob === savedBlob) ||
-          [...versions].reverse().find((v) => v.id !== "v0");
-        if (matchingVersion) {
-          setActiveVersion(matchingVersion.id);
-          setActiveTool("script");
-        }
-      }
-    };
-    restore();
-  }, [versions, setActiveVersion]);
+  // Legacy forge persistence removal - handled by version ledger now
 
   // Core recording state
 
@@ -844,7 +853,7 @@ export default function RecordingStudio({
       />
 
       {/* PHASE 2: STUDIO HUB (Laboratory & Forge) */}
-      {!isRecording && audioBlob && (
+      {!isRecording && (audioBlob || versions.length > 0) && (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="text-center py-6 border-b border-[#2A2A2A]">
             <h3 className="text-2xl font-black text-white tracking-tight uppercase">
@@ -897,82 +906,91 @@ export default function RecordingStudio({
             />
           </div>
 
-          {/* Active Tool Panel */}
+          {/* Active Tool Panel (Tool Deck) */}
           {activeTool && (
-            <div className="py-8 border-t border-[#2A2A2A] animate-in slide-in-from-bottom-4 duration-300">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                  {activeTool === "voice" && "✨ Voice Alchemy"}
-                  {activeTool === "dub" && "🌍 Global Dubbing"}
-                  {activeTool === "script" && "📝 Transcript & Forge"}
-                  {activeTool === "insights" && "🧠 Gemini Insights"}
-                </h3>
-                <button
-                  onClick={() => setActiveTool(null)}
-                  className="text-sm text-gray-400 hover:text-white"
-                >
-                  Close Panel
-                </button>
+            <>
+              {/* Mobile Backdrop */}
+              <div
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden animate-in fade-in duration-300"
+                onClick={() => setActiveTool(null)}
+              />
+
+              <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#141414] border-t border-[#333] p-4 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)] max-h-[85vh] overflow-y-auto md:static md:bg-transparent md:border-t md:border-[#2A2A2A] md:p-0 md:py-8 md:shadow-none md:max-h-none md:overflow-visible md:rounded-none animate-in slide-in-from-bottom-full md:slide-in-from-bottom-4 duration-500 ease-out-expo">
+                <div className="flex items-center justify-between mb-6 sticky top-0 bg-[#141414] md:bg-transparent z-10 py-2 -mt-2 md:mt-0 md:py-0 border-b border-[#2A2A2A] md:border-none">
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    {activeTool === "voice" && "✨ Voice Alchemy"}
+                    {activeTool === "dub" && "🌍 Global Dubbing"}
+                    {activeTool === "script" && "📝 Transcript & Forge"}
+                    {activeTool === "insights" && "🧠 Gemini Insights"}
+                  </h3>
+                  <button
+                    onClick={() => setActiveTool(null)}
+                    className="p-2 bg-[#2A2A2A] rounded-full text-gray-400 hover:text-white hover:bg-[#333] transition-colors md:bg-transparent md:p-0 md:rounded-none md:text-sm"
+                  >
+                    <span className="hidden md:inline">Close Panel</span>
+                    <span className="md:hidden">✕</span>
+                  </button>
+                </div>
+
+                {activeTool === "voice" && (
+                  <AIVoicePanel
+                    voicesFree={voicesFree}
+                    selectedVoiceFree={selectedVoiceFree}
+                    isLoadingVoicesFree={isLoadingVoicesFree}
+                    isGeneratingFree={isGeneratingFree}
+                    canUseAIVoice={canUseAIVoice}
+                    versions={versions}
+                    activeVersionId={activeVersionId}
+                    userTier={userTier}
+                    remainingQuota={remainingQuota}
+                    WEEKLY_AI_VOICE_LIMIT={
+                      useFreemiumStore.getState().WEEKLY_AI_VOICE_LIMIT
+                    }
+                    onVoicesFreeChange={setVoicesFree}
+                    onSelectedVoiceFreeChange={setSelectedVoiceFree}
+                    onLoadingVoicesFreeChange={setLoadingVoicesFree}
+                    onGeneratingFreeChange={setGeneratingFree}
+                    onIncrementAIVoiceUsage={incrementAIVoiceUsage}
+                    onToastMessage={setToastMessage}
+                    onToastType={setToastType}
+                    onAddVersion={addVersion}
+                    onSetSelectedVersionIds={setSelectedVersionIds}
+                  />
+                )}
+
+                {activeTool === "dub" && (
+                  <DubbingPanel
+                    versions={versions}
+                    activeVersionId={activeVersionId}
+                    onAddVersion={addVersion}
+                    onDubbingComplete={(
+                      dubbedBlob,
+                      language,
+                      sourceVersionId
+                    ) => {
+                      setSelectedVersionIds((prev) => {
+                        const updated = new Set(prev);
+                        const newVersionIds = versions.map((v) => v.id);
+                        const lastId = newVersionIds[newVersionIds.length - 1];
+                        if (lastId) updated.add(lastId);
+                        return updated;
+                      });
+                    }}
+                  />
+                )}
+
+                {activeTool === "script" && activeVersion && (
+                  <TranscriptComposer
+                    previewUrl={activePreviewUrl || ""}
+                    durationSeconds={activeVersion.metadata.duration}
+                    audioBlob={activeVersion.blob}
+                    initialTemplateId={initialTranscriptTemplateId}
+                    autoFocus={true}
+                    languageHint={activeVersion.metadata.language || "en"}
+                  />
+                )}
               </div>
-
-              {activeTool === "voice" && (
-                <AIVoicePanel
-                  voicesFree={voicesFree}
-                  selectedVoiceFree={selectedVoiceFree}
-                  isLoadingVoicesFree={isLoadingVoicesFree}
-                  isGeneratingFree={isGeneratingFree}
-                  canUseAIVoice={canUseAIVoice}
-                  versions={versions}
-                  activeVersionId={activeVersionId}
-                  userTier={userTier}
-                  remainingQuota={remainingQuota}
-                  WEEKLY_AI_VOICE_LIMIT={
-                    useFreemiumStore.getState().WEEKLY_AI_VOICE_LIMIT
-                  }
-                  onVoicesFreeChange={setVoicesFree}
-                  onSelectedVoiceFreeChange={setSelectedVoiceFree}
-                  onLoadingVoicesFreeChange={setLoadingVoicesFree}
-                  onGeneratingFreeChange={setGeneratingFree}
-                  onIncrementAIVoiceUsage={incrementAIVoiceUsage}
-                  onToastMessage={setToastMessage}
-                  onToastType={setToastType}
-                  onAddVersion={addVersion}
-                  onSetSelectedVersionIds={setSelectedVersionIds}
-                />
-              )}
-
-              {activeTool === "dub" && (
-                <DubbingPanel
-                  versions={versions}
-                  activeVersionId={activeVersionId}
-                  onAddVersion={addVersion}
-                  onDubbingComplete={(
-                    dubbedBlob,
-                    language,
-                    sourceVersionId
-                  ) => {
-                    setSelectedVersionIds((prev) => {
-                      const updated = new Set(prev);
-                      const newVersionIds = versions.map((v) => v.id);
-                      const lastId = newVersionIds[newVersionIds.length - 1];
-                      if (lastId) updated.add(lastId);
-                      return updated;
-                    });
-                  }}
-                />
-              )}
-
-              {activeTool === "script" && activeVersion && (
-                <TranscriptComposer
-                  previewUrl={activePreviewUrl || ""}
-                  durationSeconds={activeVersion.metadata.duration}
-                  audioBlob={activeVersion.blob}
-                  initialTemplateId={initialTranscriptTemplateId}
-                  autoFocus={true}
-                  languageHint={activeVersion.metadata.language || "en"}
-                />
-              )}
-            </div>
+            </>
           )}
 
           <div className="border-t border-[#2A2A2A] pt-6">

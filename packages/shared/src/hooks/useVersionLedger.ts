@@ -4,20 +4,32 @@
  * Replaces: scattered audioBlob, variantBlobFree, dubbedBlob, activeForgeBlob
  */
 
-import { useState, useCallback, useEffect } from 'react';
-import { AudioVersion, AudioVersionSource, VersionLedgerState } from '../types/audio-version';
+import { useState, useCallback, useEffect, useRef } from "react";
+import {
+  AudioVersion,
+  AudioVersionSource,
+  VersionLedgerState,
+} from "../types/audio-version";
 
-export function useVersionLedger(initialBlob: Blob | null, initialDuration: number) {
+export function useVersionLedger(
+  initialBlob: Blob | null,
+  initialDuration: number,
+  initialState?: VersionLedgerState | null,
+  onStateChange?: (state: VersionLedgerState) => void
+) {
   const [state, setState] = useState<VersionLedgerState>(() => {
+    if (initialState) {
+      return initialState;
+    }
     if (!initialBlob) {
-      return { versions: [], activeVersionId: '' };
+      return { versions: [], activeVersionId: "" };
     }
 
     // Initialize with original recording
     const originalVersion: AudioVersion = {
-      id: 'v0',
-      label: 'Original',
-      source: 'original',
+      id: "v0",
+      label: "Original",
+      source: "original",
       blob: initialBlob,
       metadata: {
         duration: initialDuration,
@@ -29,28 +41,44 @@ export function useVersionLedger(initialBlob: Blob | null, initialDuration: numb
 
     return {
       versions: [originalVersion],
-      activeVersionId: 'v0',
+      activeVersionId: "v0",
     };
   });
 
+  const justRestored = useRef(!!initialState);
+
+  // Hydrate state if provided (e.g. from async storage)
+  useEffect(() => {
+    if (initialState) {
+      setState(initialState);
+      justRestored.current = true;
+    }
+  }, [initialState]);
+
   // Sync with initialBlob changes (e.g. after a new recording is finished)
   useEffect(() => {
+    if (justRestored.current) {
+      justRestored.current = false;
+      // If we just restored from state and initialBlob is null, don't clear state
+      if (!initialBlob) return;
+    }
+
     if (!initialBlob) {
-      setState({ versions: [], activeVersionId: '' });
+      setState({ versions: [], activeVersionId: "" });
       return;
     }
 
-    setState(prev => {
+    setState((prev) => {
       // If v0 already exists and blob is the same, do nothing
-      const existingV0 = prev.versions.find(v => v.id === 'v0');
+      const existingV0 = prev.versions.find((v) => v.id === "v0");
       if (existingV0 && existingV0.blob === initialBlob) {
         return prev;
       }
 
       const originalVersion: AudioVersion = {
-        id: 'v0',
-        label: 'Original',
-        source: 'original',
+        id: "v0",
+        label: "Original",
+        source: "original",
         blob: initialBlob,
         metadata: {
           duration: initialDuration,
@@ -64,10 +92,15 @@ export function useVersionLedger(initialBlob: Blob | null, initialDuration: numb
       // since they are derived from the old v0
       return {
         versions: [originalVersion],
-        activeVersionId: 'v0',
+        activeVersionId: "v0",
       };
     });
   }, [initialBlob, initialDuration]);
+
+  // Notify parent of state changes
+  useEffect(() => {
+    onStateChange?.(state);
+  }, [state, onStateChange]);
 
   /**
    * Add a new derived version (AI Voice, Dub, or Chain)
@@ -77,9 +110,11 @@ export function useVersionLedger(initialBlob: Blob | null, initialDuration: numb
       blob: Blob,
       source: AudioVersionSource,
       parentVersionId: string,
-      metadata: Partial<AudioVersion['metadata']>
+      metadata: Partial<AudioVersion["metadata"]>
     ): AudioVersion => {
-      const parentVersion = state.versions.find(v => v.id === parentVersionId);
+      const parentVersion = state.versions.find(
+        (v) => v.id === parentVersionId
+      );
       if (!parentVersion) {
         throw new Error(`Parent version ${parentVersionId} not found`);
       }
@@ -110,7 +145,7 @@ export function useVersionLedger(initialBlob: Blob | null, initialDuration: numb
         },
       };
 
-      setState(prev => ({
+      setState((prev) => ({
         versions: [...prev.versions, newVersion],
         activeVersionId: newVersion.id,
       }));
@@ -125,7 +160,7 @@ export function useVersionLedger(initialBlob: Blob | null, initialDuration: numb
    */
   const getVersion = useCallback(
     (versionId: string): AudioVersion | undefined => {
-      return state.versions.find(v => v.id === versionId);
+      return state.versions.find((v) => v.id === versionId);
     },
     [state.versions]
   );
@@ -133,36 +168,39 @@ export function useVersionLedger(initialBlob: Blob | null, initialDuration: numb
   /**
    * Set active version for Forge
    */
-  const setActiveVersion = useCallback((versionId: string) => {
-    const version = state.versions.find(v => v.id === versionId);
-    if (!version) {
-      throw new Error(`Version ${versionId} not found`);
-    }
-    setState(prev => ({ ...prev, activeVersionId: versionId }));
-  }, [state.versions]);
+  const setActiveVersion = useCallback(
+    (versionId: string) => {
+      const version = state.versions.find((v) => v.id === versionId);
+      if (!version) {
+        throw new Error(`Version ${versionId} not found`);
+      }
+      setState((prev) => ({ ...prev, activeVersionId: versionId }));
+    },
+    [state.versions]
+  );
 
   /**
    * Delete a version and its descendants
    */
   const deleteVersion = useCallback((versionId: string) => {
-    if (versionId === 'v0') {
-      throw new Error('Cannot delete original version');
+    if (versionId === "v0") {
+      throw new Error("Cannot delete original version");
     }
 
-    setState(prev => {
+    setState((prev) => {
       const toDelete = new Set<string>();
       const findDescendants = (id: string) => {
         toDelete.add(id);
         prev.versions
-          .filter(v => v.parentVersionId === id)
-          .forEach(v => findDescendants(v.id));
+          .filter((v) => v.parentVersionId === id)
+          .forEach((v) => findDescendants(v.id));
       };
 
       findDescendants(versionId);
 
-      const remaining = prev.versions.filter(v => !toDelete.has(v.id));
+      const remaining = prev.versions.filter((v) => !toDelete.has(v.id));
       const newActiveId = toDelete.has(prev.activeVersionId)
-        ? remaining[0]?.id ?? 'v0'
+        ? remaining[0]?.id ?? "v0"
         : prev.activeVersionId;
 
       return {
@@ -176,27 +214,30 @@ export function useVersionLedger(initialBlob: Blob | null, initialDuration: numb
    * Get versions that can be transformed (not chains, usually)
    */
   const getTransformableVersions = useCallback((): AudioVersion[] => {
-    return state.versions.filter(v => v.source !== 'chain');
+    return state.versions.filter((v) => v.source !== "chain");
   }, [state.versions]);
 
   /**
    * Get all descendants of a version
    */
-  const getDescendants = useCallback((versionId: string): AudioVersion[] => {
-    const descendants: AudioVersion[] = [];
-    const findChildren = (id: string) => {
-      const children = state.versions.filter(v => v.parentVersionId === id);
-      descendants.push(...children);
-      children.forEach(c => findChildren(c.id));
-    };
-    findChildren(versionId);
-    return descendants;
-  }, [state.versions]);
+  const getDescendants = useCallback(
+    (versionId: string): AudioVersion[] => {
+      const descendants: AudioVersion[] = [];
+      const findChildren = (id: string) => {
+        const children = state.versions.filter((v) => v.parentVersionId === id);
+        descendants.push(...children);
+        children.forEach((c) => findChildren(c.id));
+      };
+      findChildren(versionId);
+      return descendants;
+    },
+    [state.versions]
+  );
 
   return {
     // State
     versions: state.versions,
-    activeVersion: state.versions.find(v => v.id === state.activeVersionId),
+    activeVersion: state.versions.find((v) => v.id === state.activeVersionId),
     activeVersionId: state.activeVersionId,
 
     // Actions
@@ -217,19 +258,21 @@ function generateVersionId(): string {
 function generateLabel(
   source: AudioVersionSource,
   parentLabel: string,
-  metadata: Partial<AudioVersion['metadata']>
+  metadata: Partial<AudioVersion["metadata"]>
 ): string {
-  if (source === 'original') {
-    return 'Original';
+  if (source === "original") {
+    return "Original";
   }
 
-  if (source.startsWith('dub-')) {
+  if (source.startsWith("dub-")) {
     const lang = source.substring(4);
-    return metadata.language ? `${parentLabel} (${metadata.language})` : `${parentLabel} (Dubbed)`;
+    return metadata.language
+      ? `${parentLabel} (${metadata.language})`
+      : `${parentLabel} (Dubbed)`;
   }
 
-  if (source.startsWith('aiVoice-')) {
-    const voiceName = metadata.voiceName ?? 'AI Voice';
+  if (source.startsWith("aiVoice-")) {
+    const voiceName = metadata.voiceName ?? "AI Voice";
     return `${parentLabel} (${voiceName})`;
   }
 
@@ -238,12 +281,12 @@ function generateLabel(
 
 function formatChainEntry(
   source: AudioVersionSource,
-  metadata: Partial<AudioVersion['metadata']>
+  metadata: Partial<AudioVersion["metadata"]>
 ): string {
-  if (source.startsWith('dub-')) {
+  if (source.startsWith("dub-")) {
     return `dub:${source.substring(4)}`;
   }
-  if (source.startsWith('aiVoice-')) {
+  if (source.startsWith("aiVoice-")) {
     return `voice:${metadata.voiceId ?? source.substring(8)}`;
   }
   return source;
