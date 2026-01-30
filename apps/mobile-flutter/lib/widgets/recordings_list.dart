@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/recordings_provider.dart';
 import '../providers/starknet_provider.dart';
+import '../providers/butler_provider.dart';
+import '../screens/butler/butler_screen.dart';
 import '../models/recording.dart';
 
 class RecordingsList extends StatelessWidget {
@@ -74,6 +76,7 @@ class RecordingsList extends StatelessWidget {
                     onPlay: () => recordings.playRecording(recording.id),
                     onDelete: () => _showDeleteDialog(context, recording),
                     onStoreOnChain: () => _storeOnStarknet(context, recording),
+                    onAskButler: () => _askButlerAboutRecording(context, recording),
                   );
                 },
               ),
@@ -113,6 +116,18 @@ class RecordingsList extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _askButlerAboutRecording(BuildContext context, Recording recording) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ButlerScreen(
+          initialRecordingId: recording.id,
+          initialPrompt: 'Tell me about this recording "${recording.title}"',
+        ),
       ),
     );
   }
@@ -230,6 +245,7 @@ class RecordingTile extends StatelessWidget {
   final VoidCallback onPlay;
   final VoidCallback onDelete;
   final VoidCallback onStoreOnChain;
+  final VoidCallback onAskButler;
 
   const RecordingTile({
     super.key,
@@ -238,6 +254,7 @@ class RecordingTile extends StatelessWidget {
     required this.onPlay,
     required this.onDelete,
     required this.onStoreOnChain,
+    required this.onAskButler,
   });
 
   @override

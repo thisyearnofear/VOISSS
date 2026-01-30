@@ -1,0 +1,9 @@
+butler:
+  - health:
+  - chat:
+  - analyzeAudio:
+  - findRecordings:
+  - getInsights:
+  - getSuggestions:
+greeting:
+  - hello:

@@ -1,11 +1,9 @@
 name: voisss_flutter
-description: VOISSS Flutter mobile app with native Starknet integration using starknet.dart
+description: VOISSS Flutter Butler - AI Voice Assistant powered by Serverpod
 
-# The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: "none" # Remove this line if you wish to publish to pub.dev
+publish_to: "none"
 
-version: 1.0.0+1
+version: 2.0.0+1
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -15,15 +13,26 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Starknet integration
+  # Serverpod client (connects to your Hetzner backend)
+  serverpod_client: ^2.3.0
+  serverpod_flutter: ^2.3.0
+  
+  # Local Serverpod generated client for VOISSS Butler
+  voisss_butler_client:
+    path: packages/voisss_butler_client
+
+  # For web socket connections (real-time butler chat)
+  web_socket_channel: ^3.0.0
+
+  # Starknet integration (keep for blockchain features)
   starknet: ^0.1.2+1
   starknet_provider: ^0.1.1+2
-  # starknet_flutter: ^0.1.0  # Will add back after core integration works
 
   # UI and state management
   cupertino_icons: ^1.0.2
   provider: ^6.0.5
   shared_preferences: ^2.2.2
+  flutter_bloc: ^8.1.3
 
   # Audio recording and playback
   record: ^5.0.4
@@ -42,36 +51,32 @@ dependencies:
   # UI components
   flutter_svg: ^2.0.9
   cached_network_image: ^3.3.0
+  shimmer: ^3.0.0
+  flutter_markdown: ^0.6.18
 
   # Utilities
   intl: ^0.18.1
   uuid: ^4.1.0
+  equatable: ^2.0.5
+
+  # Audio visualization (for butler voice feedback)
+  audio_waveforms: ^1.0.4
+
+  # Speech to text (for voice commands to butler)
+  speech_to_text: ^6.6.0
+
+  # Text to speech (for butler responses)
+  flutter_tts: ^4.0.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
 
-# For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
-
-# The following section is specific to Flutter packages.
 flutter:
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/
     - assets/icons/
-
-  # To add custom fonts to your application, add a fonts section here,
-  # in this "flutter" section. Each entry in this list should have a
-  # "family" key with the font family name, and a "fonts" key with a
-  # list giving the asset and other descriptors for the font. For
-  # example:
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
+    - assets/animations/

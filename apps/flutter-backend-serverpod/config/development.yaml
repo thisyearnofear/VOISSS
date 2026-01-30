@@ -1,0 +1,38 @@
+# Development configuration for VOISSS Flutter Butler Server
+# Uses different ports to avoid conflicts with existing services
+
+apiServer:
+  port: 9090
+  publicHost: localhost
+  publicPort: 8090
+  publicScheme: http
+
+insightsServer:
+  port: 9091
+  publicHost: localhost
+  publicPort: 8091
+  publicScheme: http
+
+webServer:
+  port: 9092
+  publicHost: localhost
+  publicPort: 8092
+  publicScheme: http
+
+database:
+  host: localhost
+  port: 8093
+  name: voisss_butler
+  user: postgres
+
+redis:
+  enabled: false
+  host: localhost
+  port: 8094
+
+maxRequestSize: 52428800
+
+sessionLogs:
+  persistentEnabled: true
+  consoleEnabled: true
+  consoleLogFormat: text

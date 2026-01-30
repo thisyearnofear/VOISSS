@@ -1,0 +1,41 @@
+services:
+  voisss_butler_server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: voisss_butler_server
+    ports:
+      - 8090:8080
+      - 8091:8081
+      - 8092:8082
+    environment:
+      - RUNMODE=production
+      - VENICE_API_KEY=VENICE-INFERENCE-KEY-mcCcPvCoPTJyVhTxdZsKa4kpMH8soCyb2ObtK5HTvh
+    volumes:
+      - ./config:/app/config:ro
+    depends_on:
+      - voisss_butler_postgres
+    networks:
+      - voisss_butler_network
+    command: [dart, bin/main.dart, --apply-migrations]
+
+  voisss_butler_postgres:
+    image: postgres:16-alpine
+    container_name: voisss_butler_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: voisss_butler_password
+      POSTGRES_DB: voisss_butler
+    ports:
+      - 8093:5432
+    volumes:
+      - voisss_butler_postgres_data:/var/lib/postgresql/data
+    networks:
+      - voisss_butler_network
+
+volumes:
+  voisss_butler_postgres_data:
+
+networks:
+  voisss_butler_network:
+    driver: bridge
