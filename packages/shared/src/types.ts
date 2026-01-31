@@ -188,6 +188,11 @@ export const RecordingSchema = z.object({
   onChain: z.boolean().optional(),
   owner: z.string().optional(),
   isHidden: z.boolean().optional(),
+  // Agent-specific fields
+  isAgentContent: z.boolean().optional(),
+  category: z.enum(['defi', 'governance', 'alpha', 'memes', 'general']).optional(),
+  x402Price: z.string().optional(), // Price in wei as string
+  agentId: z.string().optional(), // Agent wallet address
   // Mobile-specific fields
   filePath: z.string().optional(),
   // Additional metadata
@@ -203,3 +208,56 @@ export const RecordingSchema = z.object({
 });
 
 export type Recording = z.infer<typeof RecordingSchema>;
+
+// Agent Types (EIP-8004 inspired)
+export const AgentCategorySchema = z.enum(['defi', 'governance', 'alpha', 'memes', 'general']);
+export type AgentCategory = z.infer<typeof AgentCategorySchema>;
+
+export const AgentProfileSchema = z.object({
+  agentAddress: z.string(),
+  metadataURI: z.string(), // IPFS or HTTPS link to agent config
+  name: z.string(),
+  categories: z.array(AgentCategorySchema),
+  registeredAt: z.union([z.date(), z.number()]),
+  isActive: z.boolean(),
+  x402Enabled: z.boolean(),
+});
+
+export type AgentProfile = z.infer<typeof AgentProfileSchema>;
+
+// Agent metadata stored on IPFS
+export const AgentMetadataSchema = z.object({
+  voiceId: z.string(), // ElevenLabs voice ID
+  categories: z.array(AgentCategorySchema),
+  pricing: z.object({
+    perNote: z.string(), // Price in ETH/USDC
+    subscription: z.string().optional(), // Monthly price
+  }),
+  x402Support: z.boolean(),
+  description: z.string(),
+  avatarUrl: z.string().optional(),
+});
+
+export type AgentMetadata = z.infer<typeof AgentMetadataSchema>;
+
+// Reputation/Feedback Types (EIP-8004 inspired)
+export const FeedbackSchema = z.object({
+  client: z.string(), // Address of feedback giver
+  value: z.number(), // Score value
+  valueDecimals: z.number(), // Decimal places
+  tag1: z.string(), // Category (e.g., "defi")
+  tag2: z.string(), // Quality signal (e.g., "accurate")
+  timestamp: z.union([z.date(), z.number()]),
+  isRevoked: z.boolean(),
+});
+
+export type Feedback = z.infer<typeof FeedbackSchema>;
+
+export const AgentReputationSchema = z.object({
+  agentId: z.string(),
+  averageScore: z.number(),
+  totalFeedback: z.number(),
+  categoryScores: z.record(z.number()), // { [category]: score }
+});
+
+export type AgentReputation = z.infer<typeof AgentReputationSchema>;

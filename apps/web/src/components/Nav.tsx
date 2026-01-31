@@ -83,34 +83,28 @@ export default function Nav() {
           <div className="flex items-center gap-6">
             <div className="hidden sm:flex items-center gap-6">
               <Link
-                href="/platform"
+                href="/studio"
                 className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
               >
-                Platform
+                Studio
               </Link>
               <Link
-                href="/features"
+                href="/agents"
                 className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
               >
-                Features
+                Agents
               </Link>
               <Link
                 href="/missions"
                 className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
               >
-                Missions
+                Conversations
               </Link>
               <Link
                 href="/help"
                 className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
               >
                 Help
-              </Link>
-              <Link
-                href="/studio?mode=transcript"
-                className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
-              >
-                Transcript
               </Link>
             </div>
 

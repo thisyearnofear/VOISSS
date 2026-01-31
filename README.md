@@ -18,7 +18,7 @@
 
 ## 🏗️ Architecture & Status
 
-**Web-First Strategy with Phased Mobile Rollout + Scroll Integration:**
+**Web-First Strategy with Phased Mobile Rollout + Multi-Chain Architecture:**
 
 - 🌐 **Web dApp** (Next.js + Base Account SDK) - **PRODUCTION READY** ✅
   - AI voice transformation & community features
@@ -32,10 +32,11 @@
   - Core features working, Scroll contracts integrated
   - 2-3 months to production readiness
 
-- 📱 **Flutter iOS** (Base Account SDK) - **ON HOLD** ⏸️
-  - Native iOS exploration paused
-  - Development is currently focused on Web and React Native
-  - Will be re-evaluated in the future
+- 📱 **Flutter Desktop/Mobile** (Serverpod + Venice AI) - **AI BUTLER LIVE** ✅
+  - AI-powered voice assistant via Serverpod backend
+  - Connects to https://butler.voisss.famile.xyz/
+  - No blockchain integration (Serverpod architecture)
+  - Working part of the ecosystem for AI interactions
 
 ## ✨ Key Features
 

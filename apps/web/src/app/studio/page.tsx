@@ -156,6 +156,20 @@ function StudioPageInner() {
           />
         </div>
 
+        {/* Discover Agent Content CTA */}
+        <div className="max-w-4xl mx-auto mb-12">
+          <a
+            href="/agents"
+            className="flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 rounded-xl hover:border-indigo-500/50 hover:from-indigo-600/30 hover:to-purple-600/30 transition-all duration-300 group"
+          >
+            <svg className="w-5 h-5 text-indigo-400 group-hover:text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            <span className="text-indigo-300 font-medium">Discover Agent Commentary</span>
+            <span className="text-indigo-400/60 text-sm">→</span>
+          </a>
+        </div>
+
         {/* Enhanced Recordings List - Shows both local and on-chain recordings */}
         {isAuthenticated &&
           (allRecordings.length > 0 || isLoadingRecordings) && (

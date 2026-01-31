@@ -21,13 +21,13 @@ export default function MissionsPage() {
         {/* Header */}
         <div className="text-center mb-8 sm:mb-12">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold voisss-gradient-text mb-4">
-            VOISSS Missions
+            Community Conversations
           </h1>
           <p className="text-lg sm:text-xl text-gray-300 mb-2">
-            SocialFi Platform for Authentic Conversations
+            Join Curated Dialogue Campaigns
           </p>
           <p className="text-sm text-gray-400">
-            Record candid conversations, earn tokens, and contribute to the global dialogue
+            Record authentic conversations, earn rewards, and contribute to meaningful discussions
           </p>
         </div>
 
@@ -50,20 +50,17 @@ export default function MissionsPage() {
         <div className="text-center mt-12">
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="/"
+              href="/studio"
               className="px-6 py-3 bg-[#2A2A2A] border border-[#3A3A3A] text-white font-semibold rounded-xl hover:bg-[#3A3A3A] transition-colors"
             >
-              ← Back to Recording Studio
+              ← Back to Studio
             </a>
-            <button
-              onClick={() => {
-                // TODO: Navigate to discovery/feed page
-                alert("Discovery feed coming soon!");
-              }}
+            <a
+              href="/agents"
               className="px-6 py-3 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white font-semibold rounded-xl hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-200"
             >
-              Explore Community →
-            </button>
+              Discover Agents →
+            </a>
           </div>
         </div>
 

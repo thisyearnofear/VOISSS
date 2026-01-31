@@ -328,10 +328,20 @@ export function useRecordingStats() {
             totalDuration: 0,
             withTransactionHash: 0,
             withIPFS: 0,
+            agentContent: 0,
+            byCategory: {} as Record<string, number>,
           };
         }
 
         const recordings: Recording[] = JSON.parse(stored);
+
+        // Count by category
+        const byCategory: Record<string, number> = {};
+        recordings.forEach(r => {
+          if (r.category) {
+            byCategory[r.category] = (byCategory[r.category] || 0) + 1;
+          }
+        });
 
         return {
           total: recordings.length,
@@ -340,6 +350,8 @@ export function useRecordingStats() {
           totalDuration: recordings.reduce((sum, r) => sum + r.duration, 0),
           withTransactionHash: recordings.filter(r => r.transactionHash).length,
           withIPFS: recordings.filter(r => r.ipfsHash).length,
+          agentContent: recordings.filter(r => r.isAgentContent).length,
+          byCategory,
         };
       } catch (error) {
         throw handleQueryError(error);
@@ -348,6 +360,55 @@ export function useRecordingStats() {
     enabled: !!address,
     staleTime: 1 * 60 * 1000, // 1 minute for stats
   });
+}
+
+// Hook to fetch recordings by category (for agent content discovery)
+export function useRecordingsByCategory(category?: string, onlyAgentContent: boolean = false) {
+  const { universalAddress: address } = useBaseAccount();
+
+  return useQuery({
+    queryKey: queryKeys.recordings.list(address || '', { category, onlyAgentContent }),
+    queryFn: async (): Promise<Recording[]> => {
+      if (!address) return [];
+
+      try {
+        const storageKey = `voisss_recordings_${address}`;
+        const stored = await crossPlatformStorage.getItem(storageKey);
+
+        if (!stored) return [];
+
+        let recordings: Recording[] = JSON.parse(stored);
+
+        // Filter by category if specified
+        if (category) {
+          recordings = recordings.filter(r => r.category === category);
+        }
+
+        // Filter by agent content if specified
+        if (onlyAgentContent) {
+          recordings = recordings.filter(r => r.isAgentContent);
+        }
+
+        // Only return public recordings for discovery
+        recordings = recordings.filter(r => r.isPublic);
+
+        return recordings.sort((a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      } catch (error) {
+        console.error('Failed to load recordings by category:', error);
+        return [];
+      }
+    },
+    enabled: !!address,
+    staleTime: 30 * 1000,
+    gcTime: 2 * 60 * 1000,
+  });
+}
+
+// Hook to fetch agent-authored recordings only
+export function useAgentRecordings() {
+  return useRecordingsByCategory(undefined, true);
 }
 
 // Hook to bulk operations on recordings

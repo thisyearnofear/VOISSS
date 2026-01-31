@@ -1,8 +1,8 @@
 # VOISSS Mobile App 📱
 
-> React Native mobile application for VOISSS voice recording platform, built with Expo 53 and Base chain integration
+> React Native mobile application for VOISSS voice recording platform, built with Expo 53 and Scroll Sepolia integration
 
-The mobile app provides a native, high-performance interface for recording, organizing, and sharing voice content on Base. Designed for iOS and Android with offline-first architecture.
+The mobile app provides a native, high-performance interface for recording, organizing, and sharing voice content on Scroll Sepolia. Designed for iOS and Android with offline-first architecture.
 
 ## ✅ **CURRENT STATUS: SCROLL INTEGRATION IN PROGRESS**
 
@@ -53,7 +53,7 @@ The mobile app provides a native, high-performance interface for recording, orga
 ## 🛠 Tech Stack
 
 - **Framework**: React Native with Expo 53
-- **Blockchain**: Base chain for mobile blockchain integration
+- **Blockchain**: Scroll Sepolia for mobile blockchain integration (VRF, Privacy)
 - **Navigation**: Expo Router for file-based routing
 - **Audio**: Expo AV for recording and playback
 - **Styling**: NativeWind (Tailwind for React Native)
@@ -85,13 +85,6 @@ The mobile app provides a native, high-performance interface for recording, orga
 - **Share Links**: Create time-limited share links for recordings
 - **Gas Savings**: 60-80% cheaper transactions vs Ethereum mainnet
 
-### Base Chain Integration
-
-- **Wallet Connection**: Connect with mobile wallets via Wagmi
-- **Recording Metadata**: Store on Base chain via Account SDK
-- **Ownership Verification**: Cryptographic proof of creation
-- **Cross-platform Sync**: Sync with web app via blockchain
-
 ## 📁 Project Structure
 
 ```
@@ -110,9 +103,11 @@ apps/mobile/
 └── package.json        # Mobile app dependencies
 ```
 
-## 🔗 Scroll & Base Integration
+## 🔗 Scroll Sepolia Integration
 
-### Scroll Sepolia Smart Contracts
+> **Note**: For a complete overview of blockchain usage across all VOISSS platforms, see [BLOCKCHAIN_INVENTORY.md](../../BLOCKCHAIN_INVENTORY.md).
+
+### Smart Contracts
 
 The app integrates with two key Scroll contracts:
 
@@ -227,6 +222,7 @@ The mobile app will automatically use these credentials to upload recordings to 
 
 - [Main Project README](../../README.md) - Project overview and setup
 - [Web App README](../web/README.md) - Web app documentation
+- [Blockchain Inventory](../../BLOCKCHAIN_INVENTORY.md) - Complete chain/platform mapping across VOISSS
 - [Scroll Deployment Guide](../../packages/contracts/SCROLL_SEPOLIA_DEPLOYED.md) - Contract details
 - [Scroll Documentation](https://scroll.io/docs) - Scroll network info
 - [Expo Documentation](https://docs.expo.dev/) - React Native framework

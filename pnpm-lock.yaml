@@ -37,6 +37,14 @@ importers:
         specifier: ^5.3.3
         version: 5.8.3
 
+  apps/flutter-backend: {}
+
+  apps/flutter-backend-serverpod:
+    dependencies:
+      '@google/generative-ai':
+        specifier: ^0.24.1
+        version: 0.24.1
+
   apps/mobile:
     dependencies:
       '@base-org/account':
@@ -3220,7 +3228,7 @@ packages:
       - supports-color
 
   /@google/generative-ai@0.24.1:
-    resolution: {integrity: sha512-MqO+MLfM6kjxcKoy0p1wRzG3b4ZZXtPI+z2IE26UogS2Cm/XHO+7gGRBh6gcJsOiIVoH93UwKvW4HdgiOZCy9Q==}
+    resolution: {integrity: sha512-MqO+MLfM6kjxcKoy0p1wRzG3b4ZZXtPI+z2IE26UogS2Cm/XHO+7gGRBh6gcJsOiIVoH93UwKvW4HdgiOZCy9Q==, tarball: https://registry.npmjs.org/@google/generative-ai/-/generative-ai-0.24.1.tgz}
     engines: {node: '>=18.0.0'}
     dev: false
 

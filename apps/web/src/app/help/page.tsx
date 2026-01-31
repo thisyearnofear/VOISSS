@@ -105,10 +105,10 @@ export default function HelpPage() {
               Transcript Composer
             </a>
             <a
-              href="/features"
+              href="/agents"
               className="px-4 py-2 rounded-lg bg-[#2A2A2A] border border-[#3A3A3A] text-white text-sm hover:bg-[#3A3A3A] text-center"
             >
-              Browse Features
+              Discover Agents
             </a>
           </div>
         </div>

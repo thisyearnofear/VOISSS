@@ -15,6 +15,7 @@ import {
   createIPFSService,
   crossPlatformStorage,
   AudioVersion,
+  AgentCategory,
 } from "@voisss/shared";
 import { useVersionLedger } from "@voisss/shared/hooks/useVersionLedger";
 import { SocialShare } from "@voisss/ui";
@@ -170,6 +171,11 @@ export default function RecordingStudio({
   const [activeTool, setActiveTool] = useState<
     "voice" | "dub" | "script" | "insights" | null
   >(null);
+
+  // Agent mode state
+  const [isAgentMode, setIsAgentMode] = useState(false);
+  const [agentCategory, setAgentCategory] = useState<AgentCategory>("general");
+  const [x402Price, setX402Price] = useState<string>("0");
 
   // Persistence State
   const [initialLedgerState, setInitialLedgerState] = useState<any>(null);
@@ -438,7 +444,7 @@ export default function RecordingStudio({
         duration: duration,
       });
 
-      // Prepare contract call data
+      // Prepare contract call data with agent mode support
       const callData = encodeFunctionData({
         abi: VoiceRecordsABI,
         functionName: "saveRecording",
@@ -450,6 +456,9 @@ export default function RecordingStudio({
             tags: metadata.tags,
           }),
           metadata.isPublic,
+          metadata.isAgentContent || false,
+          metadata.category || "",
+          metadata.x402Price ? BigInt(Math.floor(parseFloat(metadata.x402Price) * 1e18)) : BigInt(0),
         ],
       });
 
@@ -475,6 +484,9 @@ export default function RecordingStudio({
       duration,
       contractAddress,
       provider,
+      isAgentMode,
+      agentCategory,
+      x402Price,
     ]
   );
 
@@ -486,6 +498,9 @@ export default function RecordingStudio({
         description: string;
         isPublic: boolean;
         tags: string[];
+        isAgentContent?: boolean;
+        category?: string;
+        x402Price?: string;
       }
     ) => {
       if (!window.ethereum) {
@@ -531,6 +546,9 @@ export default function RecordingStudio({
               tags: metadata.tags,
             }),
             metadata.isPublic,
+            metadata.isAgentContent || false,
+            metadata.category || "",
+            metadata.x402Price ? BigInt(Math.floor(parseFloat(metadata.x402Price) * 1e18)) : BigInt(0),
           ],
         });
 
@@ -550,7 +568,7 @@ export default function RecordingStudio({
         setIsDirectSaving(false);
       }
     },
-    [contractAddress, ipfsService, duration, setToastType, setToastMessage]
+    [contractAddress, ipfsService, duration, setToastType, setToastMessage, isAgentMode, agentCategory, x402Price]
   );
 
   const handleOpenTool = useCallback(
@@ -632,6 +650,9 @@ export default function RecordingStudio({
             recordingDescription || `Mission submission for: ${mission.title}`,
           isPublic: true, // Missions are usually public
           tags: ["mission-submission", missionId, ...recordingTags],
+          isAgentContent: isAgentMode,
+          category: agentCategory,
+          x402Price: x402Price,
         });
 
         // Submit to mission service
@@ -705,6 +726,9 @@ export default function RecordingStudio({
               version.metadata.voiceId || "",
               ...recordingTags,
             ].filter(Boolean),
+            isAgentContent: isAgentMode,
+            category: agentCategory,
+            x402Price: x402Price,
           });
 
           results.push({
@@ -804,6 +828,9 @@ export default function RecordingStudio({
     mission,
     missionId,
     saveRecordingWithGas,
+    isAgentMode,
+    agentCategory,
+    x402Price,
   ]);
 
   return (
@@ -878,6 +905,12 @@ export default function RecordingStudio({
                 <RecordingTitle
                   recordingTitle={recordingTitle}
                   onTitleChange={setRecordingTitle}
+                  isAgentMode={isAgentMode}
+                  onAgentModeChange={setIsAgentMode}
+                  category={agentCategory}
+                  onCategoryChange={setAgentCategory}
+                  x402Price={x402Price}
+                  onX402PriceChange={setX402Price}
                 />
                 <AlchemyModeStatus
                   isConnected={isConnected}

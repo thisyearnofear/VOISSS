@@ -13,14 +13,14 @@ export default function Home() {
             Infinite Expression Beyond Recognition
           </p>
           <div className="flex justify-center gap-6 text-sm">
-            <a href="/platform" className="text-gray-400 hover:text-white transition-colors">
-              Platform
+            <a href="/studio" className="text-gray-400 hover:text-white transition-colors">
+              Record
             </a>
-            <a href="/features" className="text-gray-400 hover:text-white transition-colors">
-              Features
+            <a href="/agents" className="text-gray-400 hover:text-white transition-colors">
+              Discover
             </a>
             <a href="/missions" className="text-gray-400 hover:text-white transition-colors">
-              Missions
+              Conversations
             </a>
           </div>
         </div>
