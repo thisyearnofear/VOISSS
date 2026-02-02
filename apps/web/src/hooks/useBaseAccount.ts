@@ -19,6 +19,9 @@ interface UseBaseAccountReturn {
   connect: () => Promise<void>;
   disconnect: () => void;
 
+  // Signing
+  signTypedData: (typedData: any) => Promise<string>;
+
   // Sub Account state
   hasSubAccount: boolean;
   isCreatingSubAccount: boolean;
@@ -258,6 +261,25 @@ export function useBaseAccount(): UseBaseAccountReturn {
     await checkForSubAccount(universalAddress);
   }, [universalAddress, checkForSubAccount]);
 
+  // Sign typed data (EIP-712)
+  const signTypedData = useCallback(async (typedData: any): Promise<string> => {
+    if (!provider || !universalAddress) {
+      throw new Error("Not connected to wallet");
+    }
+
+    try {
+      const signature = await provider.request({
+        method: "eth_signTypedData_v4",
+        params: [universalAddress, JSON.stringify(typedData)],
+      }) as string;
+
+      return signature;
+    } catch (err) {
+      console.error("Failed to sign typed data:", err);
+      throw err instanceof Error ? err : new Error("Failed to sign");
+    }
+  }, [provider, universalAddress]);
+
   return {
     // Connection state
     isConnected: connectionState === "connected",
@@ -269,6 +291,9 @@ export function useBaseAccount(): UseBaseAccountReturn {
     // Actions
     connect,
     disconnect,
+
+    // Signing
+    signTypedData,
 
     // Sub Account state
     hasSubAccount,

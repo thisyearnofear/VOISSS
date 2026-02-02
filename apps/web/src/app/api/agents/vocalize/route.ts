@@ -64,7 +64,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
     const body = await req.json();
     const validatedRequest = VoiceGenerationRequestSchema.parse(body);
 
-    const { text, voiceId, agentAddress, options } = validatedRequest;
+    const { text, voiceId, agentAddress, options, maxDurationMs: requestMaxDurationMs } = validatedRequest;
     
     // Rate limiting check
     const identifier = agentAddress || getIdentifier(req);
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
 
     // Estimate and validate audio duration
     const estimatedDurationMs = Math.ceil(text.length / CHARS_PER_SECOND) * 1000;
-    const maxDurationMs = options?.maxDurationMs ?? AUDIO_CONFIG.MAX_DURATION_MS;
+    const maxDurationMs = requestMaxDurationMs ?? AUDIO_CONFIG.MAX_DURATION_MS;
 
     if (estimatedDurationMs > maxDurationMs) {
       return NextResponse.json({
