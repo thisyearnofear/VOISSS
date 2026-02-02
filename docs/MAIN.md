@@ -48,10 +48,10 @@ Add your keys to `.env.local`:
 # Required for deployment
 SPENDER_PRIVATE_KEY=your_private_key_here
 
-# Required for Base chain integration
+# Required for Base chain integration (Mainnet)
 NEXT_PUBLIC_SPENDER_ADDRESS=your_spender_address
-NEXT_PUBLIC_BASE_CHAIN_ID=84532
-NEXT_PUBLIC_BASE_RPC_URL=https://sepolia.base.org
+NEXT_PUBLIC_BASE_CHAIN_ID=8453
+NEXT_PUBLIC_BASE_RPC_URL=https://mainnet.base.org
 
 # Required for IPFS (existing)
 NEXT_PUBLIC_PINATA_API_KEY=your_pinata_key
@@ -61,11 +61,17 @@ NEXT_PUBLIC_PINATA_API_SECRET=your_pinata_secret
 NEXT_PUBLIC_ELEVENLABS_API_KEY=your_elevenlabs_key
 NEXT_PUBLIC_ELEVENLABS_AGENT_ID=your_agent_id # Optional: For official conversational AI
 
-# Token addresses
+# Contract addresses (Base Mainnet)
+NEXT_PUBLIC_AGENT_REGISTRY_ADDRESS=0xBE857DB4B4bD71a8bf8f50f950eecD7dDe68b85c
+NEXT_PUBLIC_USDC_ADDRESS=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
 NEXT_PUBLIC_VOISSS_TOKEN_ADDRESS=0x1c3174c2aea455f1efb088e4ca4ecb4ab52d1b07
 NEXT_PUBLIC_PAPAJAMS_TOKEN_ADDRESS=0x2e9be99b199c874bd403f1b70fcaa9f11f47b96c
 NEXT_PUBLIC_REWARD_TOKEN_ADDRESS=0x2e9be99b199c874bd403f1b70fcaa9f11f47b96c
 NEXT_PUBLIC_CREATOR_MIN_BALANCE=1000000000000000000000000
+
+# x402 Configuration
+NEXT_PUBLIC_X402_VERSION=2
+NEXT_PUBLIC_X402_CONTRACT_NAME=x402
 ```
 
 #### 4. Start Development
@@ -156,6 +162,15 @@ voisss/
 
 ### Deployed Smart Contracts
 
+#### Base Contracts (Live on Base Mainnet)
+
+| Contract | Address | Version | Purpose |
+|----------|---------|---------|---------|
+| AgentRegistry | `0xBE857DB4B4bD71a8bf8f50f950eecD7dDe68b85c` | v2.0.0 | Agent registration, USDC credit management |
+| USDC | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | - | Payment token for credits |
+| $VOISSS Token | `0x1c3174c2aea455f1efb088e4ca4ecb4ab52d1b07` | - | Access tiers and premium features |
+| $PAPAJAMS Token | `0x2e9be99b199c874bd403f1b70fcaa9f11f47b96c` | - | Creator rewards and mission staking |
+
 #### Scroll Contracts (Live on Scroll Sepolia)
 
 | Contract | Address | Purpose |
@@ -167,7 +182,7 @@ voisss/
 
 | Platform | Location | Primary Chain | Status | Purpose |
 |----------|----------|---------------|--------|---------|
-| **Web dApp** | `apps/web` | Base Sepolia | Production Ready | Recording storage, ownership, gasless transactions |
+| **Web dApp** | `apps/web` | Base Mainnet | Production Ready | Agent registry, USDC payments, voice generation |
 | **Mobile RN** | `apps/mobile` | Scroll Sepolia | In Progress | VRF randomness, privacy controls, access management |
 | **Flutter Butler** | `apps/mobile-flutter` | — | Live | AI assistant (no blockchain - Serverpod architecture) |
 
