@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
@@ -29,7 +29,7 @@ contract VoiceRecords is Ownable, Pausable, ReentrancyGuard {
     error Unauthorized();
     error InvalidInput();
     error StringTooLong();
-    error RecordingDeleted();
+    error RecordingIsDeleted();
     error PaymentRequired();
     error InvalidPrice();
 
@@ -265,7 +265,7 @@ contract VoiceRecords is Ownable, Pausable, ReentrancyGuard {
         
         if (recording.owner == address(0)) revert RecordingNotFound();
         if (recording.owner != msg.sender) revert NotOwner();
-        if (recording.isDeleted) revert RecordingDeleted();
+        if (recording.isDeleted) revert RecordingIsDeleted();
         if (bytes(title).length == 0 || bytes(title).length > MAX_TITLE_LENGTH) {
             revert InvalidInput();
         }
@@ -297,7 +297,7 @@ contract VoiceRecords is Ownable, Pausable, ReentrancyGuard {
         Recording storage recording = _recordings[recordingId];
         
         if (recording.owner != msg.sender) revert NotOwner();
-        if (recording.isDeleted) revert RecordingDeleted();
+        if (recording.isDeleted) revert RecordingIsDeleted();
         if (bytes(metadata).length > MAX_METADATA_LENGTH) {
             revert StringTooLong();
         }
@@ -320,7 +320,7 @@ contract VoiceRecords is Ownable, Pausable, ReentrancyGuard {
         Recording storage recording = _recordings[recordingId];
         
         if (recording.owner != msg.sender) revert NotOwner();
-        if (recording.isDeleted) revert RecordingDeleted();
+        if (recording.isDeleted) revert RecordingIsDeleted();
         if (bytes(newCategory).length > MAX_CATEGORY_LENGTH) {
             revert StringTooLong();
         }
@@ -355,7 +355,7 @@ contract VoiceRecords is Ownable, Pausable, ReentrancyGuard {
         Recording storage recording = _recordings[recordingId];
         
         if (recording.owner != msg.sender) revert NotOwner();
-        if (recording.isDeleted) revert RecordingDeleted();
+        if (recording.isDeleted) revert RecordingIsDeleted();
 
         recording.x402Price = newPrice;
         recording.lastModified = block.timestamp;
@@ -371,7 +371,7 @@ contract VoiceRecords is Ownable, Pausable, ReentrancyGuard {
         Recording storage recording = _recordings[recordingId];
         
         if (recording.owner != msg.sender) revert NotOwner();
-        if (recording.isDeleted) revert RecordingDeleted();
+        if (recording.isDeleted) revert RecordingIsDeleted();
 
         recording.isDeleted = true;
         recording.lastModified = block.timestamp;
@@ -398,7 +398,7 @@ contract VoiceRecords is Ownable, Pausable, ReentrancyGuard {
         Recording storage recording = _recordings[recordingId];
         
         if (recording.owner == address(0)) revert RecordingNotFound();
-        if (recording.isDeleted) revert RecordingDeleted();
+        if (recording.isDeleted) revert RecordingIsDeleted();
         if (recording.x402Price == 0) revert InvalidPrice();
         if (msg.value < recording.x402Price) revert PaymentRequired();
         if (hasAccess[recordingId][msg.sender]) revert InvalidInput(); // Already has access
@@ -435,7 +435,7 @@ contract VoiceRecords is Ownable, Pausable, ReentrancyGuard {
         Recording storage recording = _recordings[recordingId];
         
         if (recording.owner != msg.sender) revert NotOwner();
-        if (recording.isDeleted) revert RecordingDeleted();
+        if (recording.isDeleted) revert RecordingIsDeleted();
 
         hasAccess[recordingId][user] = true;
         emit AccessGranted(recordingId, user, 0);
@@ -463,7 +463,7 @@ contract VoiceRecords is Ownable, Pausable, ReentrancyGuard {
         Recording storage recording = _recordings[recordingId];
         
         if (recording.owner == address(0)) revert RecordingNotFound();
-        if (recording.isDeleted) revert RecordingDeleted();
+        if (recording.isDeleted) revert RecordingIsDeleted();
         
         // Check access for non-public recordings
         if (!recording.isPublic && !hasAccess[recordingId][msg.sender]) {

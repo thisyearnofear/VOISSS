@@ -1,0 +1,20 @@
+{
+  "network": "base",
+  "chainId": 8453,
+  "timestamp": "2026-02-02T14:57:00Z",
+  "contracts": {
+    "AgentRegistry": {
+      "address": "0x27793FB04A35142445dd08F908F3b884061Ea3FA",
+      "verification": "https://repo.sourcify.dev/8453/0x27793FB04A35142445dd08F908F3b884061Ea3FA"
+    },
+    "ReputationRegistry": {
+      "address": "0xA09094Cc126166deC8800a7Ada7a3BbDAA32B127",
+      "verification": "https://repo.sourcify.dev/8453/0xA09094Cc126166deC8800a7Ada7a3BbDAA32B127"
+    },
+    "VoiceRecords": {
+      "address": "0x32bd629fBD5096b37f1cAee011A7E481A09Ac54D",
+      "verification": "https://repo.sourcify.dev/8453/0x32bd629fBD5096b37f1cAee011A7E481A09Ac54D"
+    }
+  },
+  "env_template": "NEXT_PUBLIC_AGENT_REGISTRY_CONTRACT=0x27793FB04A35142445dd08F908F3b884061Ea3FA\nNEXT_PUBLIC_REPUTATION_REGISTRY_CONTRACT=0xA09094Cc126166deC8800a7Ada7a3BbDAA32B127\nNEXT_PUBLIC_VOICE_RECORDS_CONTRACT=0x32bd629fBD5096b37f1cAee011A7E481A09Ac54D"
+}

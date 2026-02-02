@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
@@ -29,7 +29,7 @@ contract AgentRegistry is Ownable, Pausable {
     error InvalidMetadata();
     error InvalidCategory();
     error TooManyCategories();
-    error AgentBanned();
+    error AgentIsBanned();
     error StringTooLong();
 
     struct AgentProfile {
@@ -71,14 +71,14 @@ contract AgentRegistry is Ownable, Pausable {
     
     event X402StatusChanged(address indexed agentAddress, bool enabled);
     
-    event AgentBanned(address indexed agentAddress, bool banned);
+    event AgentBanStatusChanged(address indexed agentAddress, bool banned);
 
     /**
      * @dev Modifier to check if caller is a registered agent
      */
     modifier onlyAgent() {
         if (agents[msg.sender].registeredAt == 0) revert AgentNotRegistered();
-        if (agents[msg.sender].isBanned) revert AgentBanned();
+        if (agents[msg.sender].isBanned) revert AgentIsBanned();
         _;
     }
 
@@ -285,7 +285,7 @@ contract AgentRegistry is Ownable, Pausable {
             activeAgents++;
         }
 
-        emit AgentBanned(agentAddress, banned);
+        emit AgentBanStatusChanged(agentAddress, banned);
     }
 
     /**

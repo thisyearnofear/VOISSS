@@ -17,7 +17,7 @@ async function main() {
   // Deploy ReputationRegistry
   console.log("\n2. Deploying ReputationRegistry...");
   const ReputationRegistry = await hre.ethers.getContractFactory("ReputationRegistry");
-  const reputationRegistry = await ReputationRegistry.deploy();
+  const reputationRegistry = await ReputationRegistry.deploy(deployer.address);
   await reputationRegistry.waitForDeployment();
   const reputationRegistryAddress = await reputationRegistry.getAddress();
   console.log("✅ ReputationRegistry deployed to:", reputationRegistryAddress);
