@@ -25,7 +25,7 @@
 
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useBaseAccount } from "./useBaseAccount";
 import { 
   PaymentQuote,
@@ -36,6 +36,124 @@ import {
   X402PaymentPayload,
   X402PaymentRequirements,
 } from "@voisss/shared";
+
+// ============================================================================
+// ERROR CLASSIFICATION
+// ============================================================================
+
+type ErrorCategory = 'retryable' | 'fatal' | 'insufficient_funds' | 'user_rejected';
+
+interface ClassifiedError {
+  error: Error;
+  category: ErrorCategory;
+  message: string;
+  shouldRetry: boolean;
+}
+
+function classifyError(error: unknown): ClassifiedError {
+  const err = error instanceof Error ? error : new Error(String(error));
+  const message = err.message.toLowerCase();
+  
+  // User rejected transaction
+  if (
+    message.includes('user rejected') ||
+    message.includes('user denied') ||
+    message.includes('cancelled') ||
+    message.includes('canceled')
+  ) {
+    return {
+      error: err,
+      category: 'user_rejected',
+      message: 'Transaction was rejected',
+      shouldRetry: false,
+    };
+  }
+  
+  // Insufficient funds
+  if (
+    message.includes('insufficient') ||
+    message.includes('not enough') ||
+    message.includes('balance too low')
+  ) {
+    return {
+      error: err,
+      category: 'insufficient_funds',
+      message: 'Insufficient balance for this transaction',
+      shouldRetry: false,
+    };
+  }
+  
+  // Retryable errors
+  if (
+    message.includes('network') ||
+    message.includes('timeout') ||
+    message.includes('rate limit') ||
+    message.includes('temporarily') ||
+    message.includes('retry')
+  ) {
+    return {
+      error: err,
+      category: 'retryable',
+      message: 'Network error. Please try again.',
+      shouldRetry: true,
+    };
+  }
+  
+  // Fatal errors
+  return {
+    error: err,
+    category: 'fatal',
+    message: err.message,
+    shouldRetry: false,
+  };
+}
+
+// ============================================================================
+// RETRY LOGIC
+// ============================================================================
+
+interface RetryConfig {
+  maxRetries: number;
+  baseDelay: number;
+  maxDelay: number;
+}
+
+const DEFAULT_RETRY_CONFIG: RetryConfig = {
+  maxRetries: 3,
+  baseDelay: 1000,
+  maxDelay: 10000,
+};
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  config: RetryConfig = DEFAULT_RETRY_CONFIG
+): Promise<T> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const classified = classifyError(error);
+      lastError = classified.error;
+      
+      // Don't retry if not retryable or last attempt
+      if (!classified.shouldRetry || attempt === config.maxRetries) {
+        throw classified.error;
+      }
+      
+      // Exponential backoff with jitter
+      const delay = Math.min(
+        config.baseDelay * Math.pow(2, attempt) + Math.random() * 1000,
+        config.maxDelay
+      );
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError;
+}
 
 // ============================================================================
 // TYPES

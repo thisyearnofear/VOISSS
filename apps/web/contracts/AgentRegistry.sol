@@ -4,6 +4,8 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title AgentRegistry
@@ -11,16 +13,29 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
  * Agents register with metadata URI pointing to their configuration (voice, categories, pricing).
  * 
  * @notice This contract manages agent registration, profiles, and categorization with enhanced
- * security features and gas optimizations.
+ * security features and gas optimizations. Uses USDC for credits (not ETH).
+ * 
+ * CHANGELOG:
+ * - v2.0.0: Migrated from ETH to USDC for credit balances
+ * - Added usdcLocked for pending transactions
+ * - Added totalSpent tracking
+ * - Added deposit/withdraw events with USDC
  */
 contract AgentRegistry is Ownable, Pausable {
     using EnumerableSet for EnumerableSet.AddressSet;
+    using SafeERC20 for IERC20;
 
     // Constants
     uint256 public constant MAX_CATEGORIES = 10;
     uint256 public constant MAX_CATEGORY_LENGTH = 32;
     uint256 public constant MAX_NAME_LENGTH = 64;
     uint256 public constant MAX_URI_LENGTH = 256;
+    
+    // USDC token contract (Base mainnet)
+    IERC20 public immutable usdcToken;
+    
+    // Version
+    string public constant VERSION = "2.0.0";
 
     // Custom Errors
     error NotAgent();
@@ -33,6 +48,9 @@ contract AgentRegistry is Ownable, Pausable {
     error StringTooLong();
     error InsufficientCredits();
     error CreditTransferFailed();
+    error InvalidAmount();
+    error USDCTransferFailed();
+    error NotAuthorizedService();
 
     enum ServiceTier { Managed, Verified, Sovereign }
 
@@ -45,7 +63,9 @@ contract AgentRegistry is Ownable, Pausable {
         bool x402Enabled;        // Whether agent accepts x402 payments
         bool isBanned;           // Admin can ban malicious agents
         ServiceTier tier;        // Managed | Verified | Sovereign
-        uint256 creditBalance;   // Prepaid credits for voice generation (wei)
+        uint256 usdcBalance;     // Prepaid credits in USDC (6 decimals)
+        uint256 usdcLocked;      // Pending transaction amount
+        uint256 totalSpent;      // Lifetime USDC spent
         address voiceProvider;   // Address of voice service (0x0 = VOISSS default)
     }
 
@@ -55,6 +75,12 @@ contract AgentRegistry is Ownable, Pausable {
     address[] public allAgents;
     uint256 public totalAgents;
     uint256 public activeAgents;
+    
+    // Authorized services that can deduct credits
+    mapping(address => bool) public authorizedServices;
+    
+    // Total USDC held by contract
+    uint256 public totalUSDCHeld;
 
     // Events
     event AgentRegistered(
@@ -89,6 +115,8 @@ contract AgentRegistry is Ownable, Pausable {
     event VoiceProviderChanged(address indexed agentAddress, address voiceProvider);
     
     event ServiceTierChanged(address indexed agentAddress, ServiceTier tier);
+    
+    event ServiceAuthorized(address indexed service, bool authorized);
 
     /**
      * @dev Modifier to check if caller is a registered agent
@@ -98,8 +126,19 @@ contract AgentRegistry is Ownable, Pausable {
         if (agents[msg.sender].isBanned) revert AgentIsBanned();
         _;
     }
+    
+    /**
+     * @dev Modifier to check if caller is an authorized service
+     */
+    modifier onlyAuthorizedService() {
+        if (!authorizedServices[msg.sender]) revert NotAuthorizedService();
+        _;
+    }
 
-    constructor() Ownable(msg.sender) {}
+    constructor(address _usdcToken) Ownable(msg.sender) {
+        if (_usdcToken == address(0)) revert InvalidMetadata();
+        usdcToken = IERC20(_usdcToken);
+    }
 
     /**
      * @notice Register as an agent on the VOISSS network
@@ -141,7 +180,9 @@ contract AgentRegistry is Ownable, Pausable {
         profile.x402Enabled = x402Enabled;
         profile.isBanned = false;
         profile.tier = ServiceTier.Managed;
-        profile.creditBalance = 0;
+        profile.usdcBalance = 0;
+        profile.usdcLocked = 0;
+        profile.totalSpent = 0;
         profile.voiceProvider = address(0);
 
         // Store categories
@@ -322,56 +363,118 @@ contract AgentRegistry is Ownable, Pausable {
         _unpause();
     }
 
-    // ============ Credit Management ============
+    // ============ Credit Management (USDC) ============
 
     /**
-     * @notice Deposit credits for voice generation (payable)
-     * @dev Agents prepay for voice generation services
+     * @notice Deposit USDC credits for voice generation
+     * @dev Agents must approve USDC transfer before calling
+     * @param amount Amount of USDC to deposit (6 decimals)
      */
-    function depositCredits() external payable onlyAgent {
-        if (msg.value == 0) revert InvalidMetadata();
+    function depositUSDC(uint256 amount) external onlyAgent {
+        if (amount == 0) revert InvalidAmount();
         
         AgentProfile storage profile = agents[msg.sender];
-        profile.creditBalance += msg.value;
         
-        emit CreditsDeposited(msg.sender, msg.value, profile.creditBalance);
+        // Transfer USDC from agent to contract
+        usdcToken.safeTransferFrom(msg.sender, address(this), amount);
+        
+        profile.usdcBalance += amount;
+        totalUSDCHeld += amount;
+        
+        emit CreditsDeposited(msg.sender, amount, profile.usdcBalance);
     }
 
     /**
-     * @notice Withdraw unused credits
-     * @param amount Amount to withdraw in wei
+     * @notice Withdraw unused USDC credits
+     * @param amount Amount to withdraw in USDC (6 decimals)
      */
-    function withdrawCredits(uint256 amount) external onlyAgent {
+    function withdrawUSDC(uint256 amount) external onlyAgent {
         AgentProfile storage profile = agents[msg.sender];
         
-        if (amount > profile.creditBalance) revert InsufficientCredits();
+        if (amount > profile.usdcBalance) revert InsufficientCredits();
         
-        profile.creditBalance -= amount;
+        profile.usdcBalance -= amount;
+        totalUSDCHeld -= amount;
         
-        (bool success, ) = payable(msg.sender).call{value: amount}("");
-        if (!success) revert CreditTransferFailed();
+        // Transfer USDC back to agent
+        usdcToken.safeTransfer(msg.sender, amount);
         
-        emit CreditsWithdrawn(msg.sender, amount, profile.creditBalance);
+        emit CreditsWithdrawn(msg.sender, amount, profile.usdcBalance);
     }
 
     /**
-     * @notice Deduct credits for service usage (called by authorized services)
+     * @notice Deduct credits for service usage (called by authorized services only)
      * @param agentAddress Address of the agent
-     * @param amount Amount to deduct
+     * @param amount Amount to deduct in USDC (6 decimals)
      * @param serviceName Name of the service using credits
      */
     function deductCredits(
         address agentAddress,
         uint256 amount,
         string calldata serviceName
-    ) external onlyAgent {
+    ) external onlyAuthorizedService whenNotPaused {
         AgentProfile storage profile = agents[agentAddress];
         
-        if (amount > profile.creditBalance) revert InsufficientCredits();
+        if (profile.registeredAt == 0) revert AgentNotRegistered();
+        if (profile.isBanned) revert AgentIsBanned();
+        if (!profile.isActive) revert AgentNotRegistered();
+        if (amount > profile.usdcBalance) revert InsufficientCredits();
         
-        profile.creditBalance -= amount;
+        profile.usdcBalance -= amount;
+        profile.totalSpent += amount;
+        totalUSDCHeld -= amount;
         
-        emit CreditsDeducted(agentAddress, amount, profile.creditBalance, serviceName);
+        // Transfer USDC to service or owner (depending on business logic)
+        // For now, USDC stays in contract and owner can withdraw
+        
+        emit CreditsDeducted(agentAddress, amount, profile.usdcBalance, serviceName);
+    }
+    
+    /**
+     * @notice Lock credits for pending transaction (called by authorized services)
+     * @param agentAddress Address of the agent
+     * @param amount Amount to lock
+     */
+    function lockCredits(address agentAddress, uint256 amount) external onlyAuthorizedService {
+        AgentProfile storage profile = agents[agentAddress];
+        
+        if (amount > profile.usdcBalance - profile.usdcLocked) revert InsufficientCredits();
+        
+        profile.usdcLocked += amount;
+    }
+    
+    /**
+     * @notice Unlock credits after transaction completes (called by authorized services)
+     * @param agentAddress Address of the agent
+     * @param amount Amount to unlock
+     */
+    function unlockCredits(address agentAddress, uint256 amount) external onlyAuthorizedService {
+        AgentProfile storage profile = agents[agentAddress];
+        
+        if (amount > profile.usdcLocked) revert InvalidAmount();
+        
+        profile.usdcLocked -= amount;
+    }
+    
+    /**
+     * @notice Confirm deduction of locked credits (called by authorized services)
+     * @param agentAddress Address of the agent
+     * @param amount Amount to confirm
+     * @param serviceName Name of the service
+     */
+    function confirmDeduction(
+        address agentAddress,
+        uint256 amount,
+        string calldata serviceName
+    ) external onlyAuthorizedService {
+        AgentProfile storage profile = agents[agentAddress];
+        
+        if (amount > profile.usdcLocked) revert InvalidAmount();
+        
+        profile.usdcLocked -= amount;
+        profile.totalSpent += amount;
+        
+        emit CreditsDeducted(agentAddress, amount, profile.usdcBalance, serviceName);
     }
 
     /**
@@ -395,6 +498,28 @@ contract AgentRegistry is Ownable, Pausable {
         profile.tier = newTier;
         emit ServiceTierChanged(agentAddress, newTier);
     }
+    
+    /**
+     * @notice Authorize or deauthorize a service to deduct credits
+     * @param service Address of the service
+     * @param authorized Whether the service is authorized
+     */
+    function setServiceAuthorization(address service, bool authorized) external onlyOwner {
+        authorizedServices[service] = authorized;
+        emit ServiceAuthorized(service, authorized);
+    }
+    
+    /**
+     * @notice Withdraw accumulated USDC (admin only)
+     * @param amount Amount to withdraw
+     * @param recipient Address to receive USDC
+     */
+    function withdrawAccumulatedUSDC(uint256 amount, address recipient) external onlyOwner {
+        if (recipient == address(0)) revert InvalidMetadata();
+        if (amount > usdcToken.balanceOf(address(this))) revert InsufficientCredits();
+        
+        usdcToken.safeTransfer(recipient, amount);
+    }
 
     // ============ View Functions ============
 
@@ -405,6 +530,16 @@ contract AgentRegistry is Ownable, Pausable {
      */
     function getAgent(address agentAddress) external view returns (AgentProfile memory) {
         return agents[agentAddress];
+    }
+    
+    /**
+     * @notice Get agent's available USDC balance (excluding locked)
+     * @param agentAddress Address of the agent
+     * @return Available balance in USDC (6 decimals)
+     */
+    function getAvailableUSDC(address agentAddress) external view returns (uint256) {
+        AgentProfile storage profile = agents[agentAddress];
+        return profile.usdcBalance - profile.usdcLocked;
     }
 
     /**

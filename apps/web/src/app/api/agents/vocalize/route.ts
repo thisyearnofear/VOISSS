@@ -11,6 +11,7 @@ import {
   parsePaymentHeader,
 } from "@voisss/shared";
 import { AUDIO_CONFIG } from "@voisss/shared/src/constants";
+import { rateLimiters, getIdentifier, getRateLimitHeaders } from "@/lib/rate-limit";
 
 // Use shared validation schema
 type VocalizeRequest = VoiceGenerationRequest;
@@ -59,11 +60,25 @@ const paymentRouter = getPaymentRouter({
  */
 export async function POST(req: NextRequest): Promise<NextResponse<VocalizeResponse>> {
   try {
-    // Parse and validate request
+    // Parse and validate request first (for rate limit identifier)
     const body = await req.json();
     const validatedRequest = VoiceGenerationRequestSchema.parse(body);
 
     const { text, voiceId, agentAddress, options } = validatedRequest;
+    
+    // Rate limiting check
+    const identifier = agentAddress || getIdentifier(req);
+    const rateLimitResult = await rateLimiters.voiceGeneration.check(identifier);
+    
+    if (!rateLimitResult.success) {
+      return NextResponse.json({
+        success: false,
+        error: 'Rate limit exceeded. Please try again later.',
+      }, { 
+        status: 429,
+        headers: getRateLimitHeaders(rateLimitResult),
+      });
+    }
 
     // Estimate and validate audio duration
     const estimatedDurationMs = Math.ceil(text.length / CHARS_PER_SECOND) * 1000;
