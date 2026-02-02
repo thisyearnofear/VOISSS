@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, Tags, DollarSign } from 'lucide-react';
+import { Bot, Tags, DollarSign, Lock } from 'lucide-react';
 import { AgentCategory } from '@voisss/shared/types';
 
 interface RecordingTitleProps {
@@ -12,6 +12,8 @@ interface RecordingTitleProps {
   onCategoryChange?: (category: AgentCategory) => void;
   x402Price?: string;
   onX402PriceChange?: (price: string) => void;
+  // Verification
+  isVerifiedAgent?: boolean;
 }
 
 const CATEGORIES: { value: AgentCategory; label: string; color: string }[] = [
@@ -31,6 +33,7 @@ export default function RecordingTitle({
   onCategoryChange,
   x402Price = '0',
   onX402PriceChange,
+  isVerifiedAgent = false,
 }: RecordingTitleProps) {
   return (
     <div className="space-y-4">
@@ -71,15 +74,19 @@ export default function RecordingTitle({
                 <span className="font-medium text-sm">Personal</span>
               </button>
               <button
-                onClick={() => onAgentModeChange(true)}
+                onClick={() => isVerifiedAgent && onAgentModeChange?.(true)}
+                disabled={!isVerifiedAgent}
                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-all duration-300 ${
                   isAgentMode
                     ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25'
-                    : 'text-gray-400 hover:text-indigo-300 hover:bg-[#252525]'
+                    : isVerifiedAgent
+                      ? 'text-gray-400 hover:text-indigo-300 hover:bg-[#252525]'
+                      : 'text-gray-600 cursor-not-allowed'
                 }`}
               >
                 <Bot className="w-4 h-4" />
                 <span className="font-medium text-sm">Agent Mode</span>
+                {!isVerifiedAgent && <Lock className="w-3 h-3" />}
                 {isAgentMode && (
                   <span className="ml-1 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                 )}
@@ -140,6 +147,12 @@ export default function RecordingTitle({
                 </div>
               )}
             </div>
+          )}
+          {!isVerifiedAgent && (
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              Agent Mode requires registration in the Agent Registry.{" "}
+              <a href="/agents" className="text-indigo-400 hover:text-indigo-300">Learn more</a>
+            </p>
           )}
         </div>
       )}

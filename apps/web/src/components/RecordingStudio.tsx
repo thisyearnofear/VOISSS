@@ -38,7 +38,7 @@ import AudioPreview from "./RecordingStudio/AudioPreview";
 import TranscriptComposer from "./RecordingStudio/TranscriptComposer";
 import ActionButtons from "./RecordingStudio/ActionButtons";
 import RecordingTitle from "./RecordingStudio/RecordingTitle";
-import GeminiInsightsPanel from "./RecordingStudio/GeminiInsightsPanel";
+import { useAgentVerification } from "../hooks/useAgentVerification";
 import {
   getBlobDuration,
   saveForgeBlob,
@@ -262,6 +262,9 @@ export default function RecordingStudio({
 
   // Studio Mastery Settings (Ghost / Pro / VIP)
   const { activeMode } = useStudioSettings(universalAddress);
+
+  // Agent verification
+  const { isVerifiedAgent } = useAgentVerification();
 
   // Studio workflow phases
   // Studio Hub State
@@ -911,6 +914,7 @@ export default function RecordingStudio({
                   onCategoryChange={setAgentCategory}
                   x402Price={x402Price}
                   onX402PriceChange={setX402Price}
+                  isVerifiedAgent={isVerifiedAgent}
                 />
                 <AlchemyModeStatus
                   isConnected={isConnected}

@@ -31,6 +31,10 @@ contract AgentRegistry is Ownable, Pausable {
     error TooManyCategories();
     error AgentIsBanned();
     error StringTooLong();
+    error InsufficientCredits();
+    error CreditTransferFailed();
+
+    enum ServiceTier { Managed, Verified, Sovereign }
 
     struct AgentProfile {
         string metadataURI;      // IPFS or HTTPS link to agent config JSON
@@ -40,6 +44,9 @@ contract AgentRegistry is Ownable, Pausable {
         bool isActive;
         bool x402Enabled;        // Whether agent accepts x402 payments
         bool isBanned;           // Admin can ban malicious agents
+        ServiceTier tier;        // Managed | Verified | Sovereign
+        uint256 creditBalance;   // Prepaid credits for voice generation (wei)
+        address voiceProvider;   // Address of voice service (0x0 = VOISSS default)
     }
 
     // State variables
@@ -72,6 +79,16 @@ contract AgentRegistry is Ownable, Pausable {
     event X402StatusChanged(address indexed agentAddress, bool enabled);
     
     event AgentBanStatusChanged(address indexed agentAddress, bool banned);
+    
+    event CreditsDeposited(address indexed agentAddress, uint256 amount, uint256 newBalance);
+    
+    event CreditsWithdrawn(address indexed agentAddress, uint256 amount, uint256 newBalance);
+    
+    event CreditsDeducted(address indexed agentAddress, uint256 amount, uint256 newBalance, string service);
+    
+    event VoiceProviderChanged(address indexed agentAddress, address voiceProvider);
+    
+    event ServiceTierChanged(address indexed agentAddress, ServiceTier tier);
 
     /**
      * @dev Modifier to check if caller is a registered agent
@@ -123,6 +140,9 @@ contract AgentRegistry is Ownable, Pausable {
         profile.isActive = true;
         profile.x402Enabled = x402Enabled;
         profile.isBanned = false;
+        profile.tier = ServiceTier.Managed;
+        profile.creditBalance = 0;
+        profile.voiceProvider = address(0);
 
         // Store categories
         uint256 length = categories.length;
@@ -300,6 +320,80 @@ contract AgentRegistry is Ownable, Pausable {
      */
     function unpause() external onlyOwner {
         _unpause();
+    }
+
+    // ============ Credit Management ============
+
+    /**
+     * @notice Deposit credits for voice generation (payable)
+     * @dev Agents prepay for voice generation services
+     */
+    function depositCredits() external payable onlyAgent {
+        if (msg.value == 0) revert InvalidMetadata();
+        
+        AgentProfile storage profile = agents[msg.sender];
+        profile.creditBalance += msg.value;
+        
+        emit CreditsDeposited(msg.sender, msg.value, profile.creditBalance);
+    }
+
+    /**
+     * @notice Withdraw unused credits
+     * @param amount Amount to withdraw in wei
+     */
+    function withdrawCredits(uint256 amount) external onlyAgent {
+        AgentProfile storage profile = agents[msg.sender];
+        
+        if (amount > profile.creditBalance) revert InsufficientCredits();
+        
+        profile.creditBalance -= amount;
+        
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        if (!success) revert CreditTransferFailed();
+        
+        emit CreditsWithdrawn(msg.sender, amount, profile.creditBalance);
+    }
+
+    /**
+     * @notice Deduct credits for service usage (called by authorized services)
+     * @param agentAddress Address of the agent
+     * @param amount Amount to deduct
+     * @param serviceName Name of the service using credits
+     */
+    function deductCredits(
+        address agentAddress,
+        uint256 amount,
+        string calldata serviceName
+    ) external onlyAgent {
+        AgentProfile storage profile = agents[agentAddress];
+        
+        if (amount > profile.creditBalance) revert InsufficientCredits();
+        
+        profile.creditBalance -= amount;
+        
+        emit CreditsDeducted(agentAddress, amount, profile.creditBalance, serviceName);
+    }
+
+    /**
+     * @notice Set voice provider address (for sovereign agents)
+     * @param provider Address of voice provider (0x0 for VOISSS default)
+     */
+    function setVoiceProvider(address provider) external onlyAgent {
+        agents[msg.sender].voiceProvider = provider;
+        emit VoiceProviderChanged(msg.sender, provider);
+    }
+
+    /**
+     * @notice Admin function to upgrade agent tier
+     * @param agentAddress Address of the agent
+     * @param newTier New service tier
+     */
+    function setServiceTier(address agentAddress, ServiceTier newTier) external onlyOwner {
+        AgentProfile storage profile = agents[agentAddress];
+        if (profile.registeredAt == 0) revert AgentNotRegistered();
+        
+        profile.tier = newTier;
+        emit ServiceTierChanged(agentAddress, newTier);
     }
 
     // ============ View Functions ============

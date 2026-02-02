@@ -213,6 +213,10 @@ export type Recording = z.infer<typeof RecordingSchema>;
 export const AgentCategorySchema = z.enum(['defi', 'governance', 'alpha', 'memes', 'general']);
 export type AgentCategory = z.infer<typeof AgentCategorySchema>;
 
+// Voice Provider Types (Agent Gateway Pattern) - moved up for proper declaration order
+export const ServiceTierSchema = z.enum(['Managed', 'Verified', 'Sovereign']);
+export type ServiceTier = z.infer<typeof ServiceTierSchema>;
+
 export const AgentProfileSchema = z.object({
   agentAddress: z.string(),
   metadataURI: z.string(), // IPFS or HTTPS link to agent config
@@ -221,6 +225,10 @@ export const AgentProfileSchema = z.object({
   registeredAt: z.union([z.date(), z.number()]),
   isActive: z.boolean(),
   x402Enabled: z.boolean(),
+  isBanned: z.boolean().default(false),
+  tier: ServiceTierSchema.default('Managed'),
+  creditBalance: z.number().default(0),
+  voiceProvider: z.string().default('0x0000000000000000000000000000000000000000'),
 });
 
 export type AgentProfile = z.infer<typeof AgentProfileSchema>;
@@ -261,3 +269,45 @@ export const AgentReputationSchema = z.object({
 });
 
 export type AgentReputation = z.infer<typeof AgentReputationSchema>;
+
+// Voice Provider Types (Agent Gateway Pattern) - continued
+export const VoiceGenerationRequestSchema = z.object({
+  text: z.string().min(1).max(5000),
+  voiceId: z.string(),
+  agentAddress: z.string(),
+  options: z.object({
+    model: z.string().default("eleven_multilingual_v2"),
+    stability: z.number().min(0).max(1).default(0.5),
+    similarity_boost: z.number().min(0).max(1).default(0.5),
+    autoSave: z.boolean().default(false),
+  }).optional().default({}),
+});
+
+export type VoiceGenerationRequest = z.infer<typeof VoiceGenerationRequestSchema>;
+
+export const VoiceGenerationResultSchema = z.object({
+  success: z.boolean(),
+  audioUrl: z.string().optional(),
+  contentHash: z.string().optional(),
+  cost: z.number().optional(),
+  characterCount: z.number().optional(),
+  creditBalance: z.number().optional(),
+  ipfsHash: z.string().optional(),
+  recordingId: z.string().optional(),
+  error: z.string().optional(),
+});
+
+export type VoiceGenerationResult = z.infer<typeof VoiceGenerationResultSchema>;
+
+export const AgentCreditInfoSchema = z.object({
+  agentAddress: z.string(),
+  name: z.string(),
+  creditBalance: z.number(),
+  tier: ServiceTierSchema,
+  voiceProvider: z.string(), // Contract address, 0x0 = VOISSS default
+  isActive: z.boolean(),
+  supportedVoices: z.array(z.string()),
+  costPerCharacter: z.number(),
+});
+
+export type AgentCreditInfo = z.infer<typeof AgentCreditInfoSchema>;
