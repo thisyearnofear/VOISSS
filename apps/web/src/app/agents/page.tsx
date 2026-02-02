@@ -189,7 +189,8 @@ export default function AgentDiscoveryPage() {
                     <X402Paywall
                       recordingId={recording.id}
                       title={recording.title}
-                      x402Price={recording.x402Price || "0"}
+                      service="voice_generation"
+                      quantity={1000}
                       receiver={recording.owner || ""}
                       onAccessGranted={() => setSelectedRecording(null)}
                     >
@@ -207,7 +208,7 @@ export default function AgentDiscoveryPage() {
                           tags: [
                             recording.category || "general",
                             ...(recording.x402Price && recording.x402Price !== "0" 
-                              ? [`� ${formatPrice(recording.x402Price)} ETH`] 
+                              ? [`💎 ${formatPrice(recording.x402Price)}`] 
                               : ["🆓 Free"]),
                             ...(recording.isAgentContent ? ["🤖 Agent"] : []),
                           ],
