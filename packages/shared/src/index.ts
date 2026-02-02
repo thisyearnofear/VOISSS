@@ -79,6 +79,9 @@ export * from './services/token-burn-service';
 // Note: useTokenAccess is a client-only hook and should be imported directly:
 // import { useTokenAccess } from '@voisss/shared/hooks/useTokenAccess'
 
+// Unified Payment System (server-safe)
+export * from './services/payment';
+
 // Note: Other hooks are NOT exported from main index to prevent bundling in server components
 // Client components should import directly:
 // import { useMemoryContext } from '@voisss/shared/hooks/useMemoryContext'

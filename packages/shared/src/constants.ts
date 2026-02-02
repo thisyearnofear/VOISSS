@@ -6,7 +6,7 @@ export const AUDIO_CONFIG = {
   BIT_RATES: [64000, 128000, 192000, 256000, 320000] as const,
   FORMATS: ['mp3', 'wav', 'aac', 'm4a'] as const,
   QUALITIES: ['low', 'medium', 'high', 'lossless'] as const,
-  MAX_DURATION: 3600, // 1 hour in seconds
+  MAX_DURATION_MS: 60 * 1000, // 60 seconds
   MAX_FILE_SIZE: 100 * 1024 * 1024, // 100MB
 } as const;
 
