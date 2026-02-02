@@ -1,9 +1,8 @@
-# 🚀 VOISSS Deployment Guide
+# VOISSS Deployment Guide
 
 ## Pre-Deployment Checklist
 
-### 1. Generate Spender Wallet
-
+### 1. Generate Spender Wallet (Web Platform)
 ```bash
 # Generate new wallet for production
 node -e "
@@ -15,12 +14,7 @@ console.log('📍 Address:', account.address);
 "
 ```
 
-**Save these values securely:**
-- `SPENDER_PRIVATE_KEY`: Store in password manager
-- `NEXT_PUBLIC_SPENDER_ADDRESS`: Can be public
-
 ### 2. Fund Spender Wallet
-
 ```bash
 # Send ETH to spender address for gas fees
 # Recommended: 0.5 - 1 ETH for production
@@ -29,127 +23,103 @@ console.log('📍 Address:', account.address);
 cast balance 0xYOUR_SPENDER_ADDRESS --rpc-url https://mainnet.base.org
 ```
 
-### 3. Update Environment Variables
+### 3. Environment Variables
+Ensure all required environment variables are set in your deployment platform.
 
-**Local (.env):**
+## Web Platform Deployment
+
+### Using Vercel:
 ```bash
-# Backend Spender Wallet
-SPENDER_PRIVATE_KEY=0x...
-NEXT_PUBLIC_SPENDER_ADDRESS=0x...
+# Install Vercel CLI
+npm install -g vercel
 
-# Base Chain
-BASE_RPC_URL=https://mainnet.base.org
-NEXT_PUBLIC_BASE_CHAIN_ID=8453
+# Deploy to staging
+vercel --env NODE_ENV=staging
 
-# Contract
-NEXT_PUBLIC_VOICE_RECORDS_CONTRACT=0x...
+# Deploy to production
+vercel --prod --env NODE_ENV=production
 ```
 
-**Production (Deployment Platform):**
-- Add all environment variables to Vercel/Netlify/etc
-- Ensure `SPENDER_PRIVATE_KEY` is marked as secret
-- Verify `NEXT_PUBLIC_*` variables are accessible to frontend
+### Required Environment Variables:
+```env
+# Base Chain Configuration
+NEXT_PUBLIC_BASE_CHAIN_ID=8453
+NEXT_PUBLIC_BASE_RPC_URL=https://mainnet.base.org
 
-## Deployment Steps
+# Contract Addresses
+NEXT_PUBLIC_VOISSS_TOKEN_ADDRESS=0x1c3174c2aea455f1efb088e4ca4ecb4ab52d1b07
+NEXT_PUBLIC_PAPAJAMS_TOKEN_ADDRESS=0x2e9be99b199c874bd403f1b70fcaa9f11f47b96c
 
-### 1. Build & Test Locally
+# Spender Wallet (Backend - DO NOT EXPOSE TO CLIENT)
+SPENDER_PRIVATE_KEY=your_private_key
+NEXT_PUBLIC_SPENDER_ADDRESS=0xspender_address
 
+# AI Services
+NEXT_PUBLIC_ELEVENLABS_API_KEY=your_api_key
+
+# IPFS
+NEXT_PUBLIC_PINATA_API_KEY=your_pinata_key
+NEXT_PUBLIC_PINATA_API_SECRET=your_pinata_secret
+```
+
+## Mobile Platform Deployment
+
+### Build for Production:
 ```bash
-# Install dependencies
-pnpm install
-
-# Build project
+cd apps/mobile
 pnpm build
 
-# Test locally
-pnpm dev
+# Deploy to Expo
+pnpm expo publish
 
-# Verify:
-# - Wallet connection works
-# - Permission grant flow works
-# - Gasless save works
-# - No console errors
+# Or build native binaries
+pnpm expo run:android  # Generate APK/IPA
+pnpm expo run:ios
 ```
 
-### 2. Deploy to Staging
-
-```bash
-# Deploy to staging environment
-git push staging main
-
-# Verify staging deployment:
-curl https://staging.your-domain.com/api/base/save-recording
-
-# Expected response:
-{
-  "status": "healthy",
-  "spenderAddress": "0x...",
-  "balance": "...",
-  "chain": "base",
-  "chainId": 8453
-}
+### Mobile Environment Variables:
+```env
+# Scroll Chain Configuration
+EXPO_PUBLIC_SCROLL_VRF_ADDRESS=0x50a0365A3BD6a3Ab4bC31544A955Ba4974Fc7208
+EXPO_PUBLIC_SCROLL_PRIVACY_ADDRESS=0x0abD2343311985Fd1e0159CE39792483b908C03a
+EXPO_PUBLIC_SCROLL_CHAIN_ID=534351
+EXPO_PUBLIC_SCROLL_RPC=https://sepolia-rpc.scroll.io/
 ```
 
-### 3. Test on Staging
+## Serverpod Backend Deployment (Flutter)
 
-**Manual Testing:**
-- [ ] Connect wallet
-- [ ] Grant spend permission
-- [ ] Record audio
-- [ ] Save recording (should be gasless)
-- [ ] Verify transaction on Basescan
-- [ ] Check spender wallet balance decreased
-
-**Automated Testing:**
+### Deploy to Production Server:
 ```bash
-# Run integration tests
-pnpm test:integration
+# SSH into production server
+ssh your-server
 
-# Test API endpoint
-curl -X POST https://staging.your-domain.com/api/base/save-recording \
-  -H "Content-Type: application/json" \
-  -d '{
-    "userAddress": "0x...",
-    "permissionHash": "0x...",
-    "ipfsHash": "Qm...",
-    "title": "Test Recording",
-    "isPublic": true
-  }'
-```
+# Navigate to Serverpod directory
+cd /path/to/voisss-butler-server
 
-### 4. Deploy to Production
+# Pull latest code
+git pull origin main
 
-```bash
-# Deploy to production
-git push production main
+# Install dependencies
+dart pub get
 
-# Or via deployment platform
-vercel --prod
-# or
-netlify deploy --prod
-```
+# Run migrations
+dart bin/main.dart --apply-migrations
 
-### 5. Verify Production
+# Restart services with Docker
+docker compose down
+docker compose up -d
 
-```bash
-# Check health endpoint
-curl https://your-domain.com/api/base/save-recording
-
-# Monitor logs
-vercel logs --follow
-# or
-netlify logs
+# Check logs
+docker logs -f voisss_butler_server
 ```
 
 ## Post-Deployment Monitoring
 
-### 1. Monitor Spender Wallet
-
-**Setup Monitoring:**
+### Monitor Spender Wallet (Web)
 ```typescript
 // Add to monitoring service (e.g., Datadog, Sentry)
-const balance = await spenderWallet.getBalance({
-  address: spenderWallet.account.address,
+const balance = await publicClient.getBalance({
+  address: '0xYOUR_SPENDER_ADDRESS' as `0x${string}`,
 });
 
 if (balance < parseEther("0.1")) {
@@ -157,221 +127,67 @@ if (balance < parseEther("0.1")) {
 }
 ```
 
-**Manual Check:**
+### Setup Alerts
+- Low balance notifications (< 0.1 ETH)
+- Failed transaction monitoring
+- API performance metrics
+- Uptime monitoring
+
+## Verification Steps
+
+### Web Platform:
 ```bash
-# Check balance daily
-cast balance 0xYOUR_SPENDER_ADDRESS --rpc-url https://mainnet.base.org
+# Check health endpoint
+curl https://your-domain.com/api/base/save-recording
+
+# Verify token balances
+curl https://your-domain.com/api/user/token-balance
 ```
 
-### 2. Setup Alerts
+### Mobile Platform:
+- Test with Expo Go app
+- Verify Scroll contract interactions
+- Check audio recording functionality
 
-**Low Balance Alert:**
-```typescript
-// Trigger when balance < 0.1 ETH
-if (balance < parseEther("0.1")) {
-  sendSlackAlert("Spender wallet needs funding");
-  sendEmailAlert("admin@your-domain.com");
-}
+### Serverpod Backend:
+```bash
+# Check health
+curl https://butler.your-domain.com/butler/health
+
+# Test AI endpoint
+curl -X POST "https://butler.your-domain.com/butler/chat?message=Hello"
 ```
-
-**Failed Transaction Alert:**
-```typescript
-// Track failed transactions
-if (txReceipt.status === 'reverted') {
-  logError("Transaction failed", { txHash, error });
-  incrementMetric("failed_transactions");
-}
-```
-
-### 3. Document for Team
-
-**Share with team:**
-- Spender wallet address (public)
-- How to check balance
-- How to fund wallet
-- Emergency contacts
-- Troubleshooting guide
-
-## Monitoring Dashboard
-
-### Key Metrics to Track
-
-1. **Spender Wallet Balance**
-   - Current balance
-   - Daily spend rate
-   - Estimated days remaining
-
-2. **Transaction Success Rate**
-   - Total transactions
-   - Successful transactions
-   - Failed transactions
-   - Average gas cost
-
-3. **Active Permissions**
-   - Total active permissions
-   - New permissions today
-   - Expired permissions
-
-4. **API Performance**
-   - Request count
-   - Average response time
-   - Error rate
 
 ## Rollback Plan
 
-### If Issues Occur
-
-1. **Immediate Actions:**
-   ```bash
-   # Revert to previous deployment
-   vercel rollback
-   # or
-   git revert HEAD
-   git push production main
-   ```
-
-2. **Disable Gasless Saves:**
-   ```typescript
-   // Temporary: Disable backend spender
-   // Set environment variable
-   DISABLE_GASLESS_SAVES=true
-
-   // Frontend will fall back to user-paid transactions
-   ```
-
-3. **Investigate:**
-   - Check spender wallet balance
-   - Review error logs
-   - Check transaction history
-   - Verify environment variables
+### If Issues Occur:
+1. Revert to previous deployment
+2. Temporarily disable gasless transactions if needed
+3. Check error logs and transaction history
+4. Verify environment variables
 
 ## Security Checklist
-
-- [ ] `SPENDER_PRIVATE_KEY` stored securely (not in git)
-- [ ] Environment variables set in deployment platform
-- [ ] Spender wallet funded with appropriate amount
-- [ ] Rate limiting enabled on API endpoints
-- [ ] Error logging configured
+- [ ] `SPENDER_PRIVATE_KEY` stored securely
+- [ ] Environment variables properly set
+- [ ] Spender wallet funded
+- [ ] Rate limiting enabled
+- [ ] Error logging configured (without sensitive data exposure)
 - [ ] Monitoring alerts setup
-- [ ] Team documented on procedures
-- [ ] Backup plan in place
 
-## Maintenance
+## Maintenance Schedule
 
-### Weekly Tasks
-- [ ] Check spender wallet balance
-- [ ] Review transaction success rate
-- [ ] Check for failed transactions
-- [ ] Review error logs
+### Daily:
+- Check spender wallet balance
+- Review error logs
+- Check uptime status
 
-### Monthly Tasks
-- [ ] Analyze gas costs
-- [ ] Review permission usage
-- [ ] Optimize gas usage if needed
-- [ ] Update documentation
+### Weekly:
+- Review transaction success rate
+- Check for failed transactions
+- Review user feedback
 
-### Quarterly Tasks
-- [ ] Rotate spender wallet keys
-- [ ] Review security practices
-- [ ] Update dependencies
-- [ ] Performance optimization
-
-## Emergency Contacts
-
-**Technical Issues:**
-- DevOps Lead: [contact]
-- Backend Lead: [contact]
-- On-call Engineer: [contact]
-
-**Financial Issues:**
-- Finance Team: [contact]
-- Wallet Manager: [contact]
-
-## Database Initialization (Docker + PostgreSQL)
-
-### Connection Authentication Issues
-
-When setting up PostgreSQL in Docker, external TCP connections with password authentication may fail even though the container is running. This is due to PostgreSQL's `pg_hba.conf` authentication rules.
-
-**Problem:**
-```bash
-# ❌ This will fail: "password authentication failed"
-DATABASE_URL=postgresql://postgres:password@localhost:5433/voisss
-node src/server.js
-```
-
-**Solution:**
-Use `docker exec` to run commands inside the container instead of connecting from the host:
-
-```bash
-# ✅ Create database
-docker exec postgres-indexer psql -U postgres -c "CREATE DATABASE voisss;"
-
-# ✅ Create tables
-docker exec postgres-indexer psql -U postgres voisss -c "CREATE TABLE export_jobs (...);"
-
-# ✅ Run migrations
-docker exec postgres-indexer psql -U postgres voisss -c "SELECT * FROM pg_tables;"
-```
-
-**Key Points:**
-- Always use `docker exec psql` for direct database operations
-- Individual `-c` commands are more reliable than heredoc pipes
-- For bulk SQL, create a script file and scp it to the server first
-- Inside the container, authentication rules are different (no password required)
-
-## Useful Commands
-
-```bash
-# Check spender balance
-cast balance 0xSPENDER_ADDRESS --rpc-url https://mainnet.base.org
-
-# Send ETH to spender
-cast send 0xSPENDER_ADDRESS --value 0.5ether --rpc-url https://mainnet.base.org
-
-# Check transaction
-cast tx 0xTX_HASH --rpc-url https://mainnet.base.org
-
-# View logs
-vercel logs --follow
-netlify logs
-
-# Check API health
-curl https://your-domain.com/api/base/save-recording
-
-# Test permission grant (frontend)
-# Open browser console and run:
-await window.ethereum.request({
-  method: 'eth_requestAccounts'
-});
-
-# Database operations
-docker exec postgres-indexer psql -U postgres DBNAME -c "SELECT * FROM table;"
-docker exec postgres-indexer psql -U postgres -c "CREATE DATABASE dbname;"
-```
-
-## Success Criteria
-
-✅ Spender wallet funded and operational
-✅ API health check returns "healthy"
-✅ Users can grant permissions
-✅ Gasless saves work without popups
-✅ Transactions confirmed on Basescan
-✅ Monitoring alerts configured
-✅ Team documented on procedures
-
-## Next Steps After Deployment
-
-1. Monitor for 24 hours
-2. Gather user feedback
-3. Analyze metrics
-4. Optimize if needed
-5. Document learnings
-6. Plan next iteration
-
----
-
-**Deployment Date:** _____________
-**Deployed By:** _____________
-**Verified By:** _____________
-**Status:** ⬜ Pending | ⬜ In Progress | ⬜ Complete
+### Monthly:
+- Analyze usage metrics
+- Review gas costs
+- Check token economics
+- Performance optimization

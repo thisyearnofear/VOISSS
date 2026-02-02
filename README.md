@@ -241,9 +241,12 @@ cd apps/web && npm run test:gasless
 
 ## 📚 Documentation
 
-- **[Getting Started](./docs/GETTING_STARTED.md)** - Quick setup and first run
+For comprehensive documentation, see the docs directory:
+
+- **[Quick Start](./docs/QUICKSTART.md)** - Essential setup and run instructions
 - **[Architecture](./docs/ARCHITECTURE.md)** - Technical implementation details
-- **[Deployment](./docs/DEPLOYMENT.md)** - Production deployment guide
+- **[Blockchain Integration](./docs/BLOCKCHAIN.md)** - Multi-chain setup and token systems
+- **[Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment instructions
 - **[Roadmap](./docs/ROADMAP.md)** - Future vision and development phases
 
 ## 📄 License
