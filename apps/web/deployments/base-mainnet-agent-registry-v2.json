@@ -1,0 +1,45 @@
+{
+  "network": "base-mainnet",
+  "chainId": 8453,
+  "contracts": {
+    "AgentRegistry": {
+      "address": "0xBE857DB4B4bD71a8bf8f50f950eecD7dDe68b85c",
+      "version": "2.0.0",
+      "deployedAt": "2025-02-02T17:45:00Z",
+      "deployer": "0x...",
+      "verification": "https://base.blockscout.com/address/0xBE857DB4B4bD71a8bf8f50f950eecD7dDe68b85c",
+      "changes": [
+        "Migrated from ETH to USDC for credit balances",
+        "Added usdcLocked for pending transactions",
+        "Added totalSpent for lifetime tracking",
+        "Added service authorization system",
+        "Added lock/unlock/confirm for atomic operations"
+      ],
+      "constructorArgs": [
+        "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+      ],
+      "dependencies": {
+        "USDC": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+      }
+    }
+  },
+  "configuration": {
+    "x402PayToAddress": "0xBE857DB4B4bD71a8bf8f50f950eecD7dDe68b85c",
+    "usdcDecimals": 6
+  },
+  "migrationNotes": {
+    "fromVersion": "1.0.0 (ETH-based)",
+    "toVersion": "2.0.0 (USDC-based)",
+    "breakingChanges": [
+      "Agent registrations do not migrate (agents must re-register)",
+      "Credit balances do not migrate (agents must re-deposit USDC)",
+      "Function signatures changed (ETH → USDC)"
+    ],
+    "requiredActions": [
+      "Update NEXT_PUBLIC_AGENT_REGISTRY_CONTRACT in .env.local",
+      "Update X402_PAY_TO_ADDRESS in .env.local",
+      "Authorize vocalize API service in new contract",
+      "Notify agents to re-register and deposit USDC"
+    ]
+  }
+}
