@@ -10,7 +10,7 @@ import {
   X402PaymentRequirements,
   parsePaymentHeader,
 } from "@voisss/shared";
-import { AUDIO_CONFIG } from "@voisss/shared/src/constants";
+import { AUDIO_CONFIG } from "@voisss/shared";
 import { rateLimiters, getIdentifier, getRateLimitHeaders } from "@/lib/rate-limit";
 
 // Use shared validation schema

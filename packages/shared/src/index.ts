@@ -73,6 +73,9 @@ export * from './utils/featureFlags';
 // Language constants and utilities
 export * from './constants/languages';
 
+// Platform constants (AUDIO_CONFIG, etc.)
+export * from './constants';
+
 // Token access configuration (server-safe)
 export * from './config/tokenAccess';
 export * from './services/token-burn-service';
