@@ -24,8 +24,8 @@ export const QualityRubricSchema = z.object({
   createdBy: z.string(),
   items: z.array(QualityScoreItemSchema), // e.g., [Engagement, Clarity, Authenticity]
   totalWeight: z.number(), // should be 100
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  createdAt: z.union([z.date(), z.string()]),
+  updatedAt: z.union([z.date(), z.string()]),
 });
 
 // Scoring result for a single submission
@@ -39,7 +39,7 @@ export const SubmissionScoreSchema = z.object({
     notes: z.string().optional(),
   })),
   overallScore: z.number().min(0).max(100), // weighted average
-  scoredAt: z.date(),
+  scoredAt: z.union([z.date(), z.string()]),
   notes: z.string().optional(), // general feedback
 });
 
@@ -54,8 +54,8 @@ export const RewardMappingSchema = z.object({
     voisssAmount: z.number().min(0), // platform portion
     description: z.string().optional(), // e.g., "Excellent - top tier"
   })),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  createdAt: z.union([z.date(), z.string()]),
+  updatedAt: z.union([z.date(), z.string()]),
 });
 
 export const MissionSchema = z.object({
@@ -65,14 +65,14 @@ export const MissionSchema = z.object({
   description: z.string(),
   difficulty: z.enum(['easy', 'medium', 'hard']),
   targetDuration: z.number(), // suggested clip length in seconds (30-600)
-  expiresAt: z.date(),
+  expiresAt: z.union([z.date(), z.string()]),
   locationBased: z.boolean().default(false), // true for taxi/local missions
 
   // Reward configuration
-  baseReward: z.number().min(1), // per submission, calculated from difficulty
+  baseReward: z.string(), // per submission, calculated from difficulty (string for precision)
   rewardModel: z.enum(['pool', 'flat_rate', 'performance']).default('pool'),
-  budgetAllocation: z.number().min(0).optional(), // total tokens allocated to mission
-  creatorStake: z.number().min(0).optional(), // tokens staked by creator for confidence
+  budgetAllocation: z.string().optional(), // total tokens allocated to mission (string for precision)
+  creatorStake: z.string().optional(), // tokens staked by creator for confidence (string for precision)
   curatorReward: z.number().min(0).max(100).default(5), // % of featured rewards to creator
   requiredTier: z.enum(['none', 'basic', 'pro', 'premium']).optional(), // minimum tier required to accept
 
@@ -84,9 +84,9 @@ export const MissionSchema = z.object({
   createdBy: z.string(), // creator address
   currentParticipants: z.number().default(0),
   isActive: z.boolean().default(true),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-  publishedAt: z.date().optional(),
+  createdAt: z.union([z.date(), z.string()]),
+  updatedAt: z.union([z.date(), z.string()]),
+  publishedAt: z.union([z.date(), z.string()]).optional(),
   autoExpire: z.boolean().default(true),
 
   // Submissions tracking
@@ -128,7 +128,7 @@ export const MissionResponseSchema = z.object({
   consentProof: z.string().optional(), // IPFS hash of consent recording/document
   isAnonymized: z.boolean(),
   voiceObfuscated: z.boolean(),
-  submittedAt: z.date(),
+  submittedAt: z.union([z.date(), z.string()]),
   status: z.enum(['approved', 'flagged', 'removed']).default('approved'), // Auto-approved on submission
   transcription: z.string().optional(),
   sentiment: z.enum(['positive', 'negative', 'neutral', 'mixed']).optional(),
@@ -142,9 +142,9 @@ export const MissionResponseSchema = z.object({
   }).optional(), // calculated from RewardMapping based on qualityScore
 
   // Moderation
-  flaggedAt: z.date().optional(),
+  flaggedAt: z.union([z.date(), z.string()]).optional(),
   flagReason: z.string().optional(), // why it was flagged/removed
-  removedAt: z.date().optional(),
+  removedAt: z.union([z.date(), z.string()]).optional(),
 });
 
 export type MissionResponse = z.infer<typeof MissionResponseSchema>;
@@ -169,7 +169,7 @@ export const HighlightReelSchema = z.object({
     role: z.enum(['creator', 'curator', 'platform']),
   })),
   mintedCoinId: z.string().optional(),
-  createdAt: z.date(),
+  createdAt: z.union([z.date(), z.string()]),
   isPublic: z.boolean(),
   tags: z.array(z.string()),
   geographicScope: z.string().optional(), // "global", "NYC", "Tokyo", etc.
@@ -201,11 +201,11 @@ export const ConsentRecordSchema = z.object({
   consentType: z.enum(['verbal', 'written', 'digital']),
   consentText: z.string(), // what they agreed to
   consentAudioHash: z.string().optional(), // IPFS hash of consent recording
-  timestamp: z.date(),
+  timestamp: z.union([z.date(), z.string()]),
   ipAddress: z.string().optional(),
   location: z.string().optional(),
   canRevoke: z.boolean(),
-  revokedAt: z.date().optional(),
+  revokedAt: z.union([z.date(), z.string()]).optional(),
   privacyLevel: z.enum(['public', 'anonymous', 'private']),
   dataRetentionPeriod: z.number().optional(), // days
 });
@@ -224,11 +224,11 @@ export const TopicInsightSchema = z.object({
   }),
   trendingKeywords: z.array(z.string()),
   timeSeriesData: z.array(z.object({
-    date: z.date(),
+    date: z.union([z.date(), z.string()]),
     recordingCount: z.number(),
     averageSentiment: z.number(),
   })),
-  lastUpdated: z.date(),
+  lastUpdated: z.union([z.date(), z.string()]),
 });
 
 export type TopicInsight = z.infer<typeof TopicInsightSchema>;
@@ -342,9 +342,9 @@ export const RewardRecordSchema = z.object({
   missionId: z.string(),
   responseId: z.string(), // MissionResponse ID
   milestone: MilestoneSchema,
-  amountInTokens: z.number(),
-  earnedAt: z.date(),
-  claimedAt: z.date().optional(),
+  amountInTokens: z.string(), // string for precision
+  earnedAt: z.union([z.date(), z.string()]),
+  claimedAt: z.union([z.date(), z.string()]).optional(),
   transactionHash: z.string().optional(),
   status: z.enum(['pending', 'claimed', 'failed']),
 });
@@ -358,10 +358,10 @@ export const MilestoneProgressSchema = z.object({
   responseId: z.string(),
   completedMilestones: z.array(MilestoneSchema),
   nextMilestone: MilestoneSchema.optional(),
-  totalEarned: z.number(),
+  totalEarned: z.string(), // string for precision
   qualityScore: z.number().optional(),
   isFeatured: z.boolean().default(false),
-  lastUpdated: z.date(),
+  lastUpdated: z.union([z.date(), z.string()]),
 });
 
 export type MilestoneProgress = z.infer<typeof MilestoneProgressSchema>;
@@ -370,13 +370,13 @@ export type MilestoneProgress = z.infer<typeof MilestoneProgressSchema>;
 export const RewardClaimSchema = z.object({
   id: z.string(),
   userId: z.string(),
-  totalAmount: z.number(),
+  totalAmount: z.string(), // string for precision
   rewardIds: z.array(z.string()),
-  claimedAt: z.date(),
+  claimedAt: z.union([z.date(), z.string()]),
   transactionHash: z.string().optional(),
   status: z.enum(['pending', 'success', 'failed']),
   retryCount: z.number().default(0),
-  lastRetryAt: z.date().optional(),
+  lastRetryAt: z.union([z.date(), z.string()]).optional(),
   error: z.string().optional(),
 });
 

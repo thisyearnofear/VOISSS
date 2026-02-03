@@ -7,7 +7,7 @@ import { AgentCreditInfo, ServiceTier } from '@voisss/shared';
 
 interface AgentCreditPanelProps {
     agentAddress?: string;
-    onCreditUpdate?: (newBalance: number) => void;
+    onCreditUpdate?: (newBalance: string) => void;
     className?: string;
 }
 
@@ -63,9 +63,10 @@ export default function AgentCreditPanel({
             // For now, simulate the deposit
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            const newBalance = (creditInfo?.creditBalance || 0) + parseFloat(depositAmount);
-            setCreditInfo(prev => prev ? { ...prev, creditBalance: newBalance } : null);
-            onCreditUpdate?.(newBalance);
+            const currentBalance = parseFloat(creditInfo?.creditBalance || '0');
+            const newBalance = currentBalance + parseFloat(depositAmount);
+            setCreditInfo(prev => prev ? { ...prev, creditBalance: newBalance.toString() } : null);
+            onCreditUpdate?.(newBalance.toString());
             setShowDepositModal(false);
             setDepositAmount('0.1');
         } catch (err) {
@@ -78,8 +79,9 @@ export default function AgentCreditPanel({
     const handleWithdraw = async () => {
         if (!targetAddress || !withdrawAmount) return;
 
+        const currentBalance = parseFloat(creditInfo?.creditBalance || '0');
         const amount = parseFloat(withdrawAmount);
-        if (amount > (creditInfo?.creditBalance || 0)) {
+        if (amount > currentBalance) {
             setError('Insufficient balance');
             return;
         }
@@ -89,9 +91,9 @@ export default function AgentCreditPanel({
             // TODO: Integrate with AgentRegistry contract
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            const newBalance = (creditInfo?.creditBalance || 0) - amount;
-            setCreditInfo(prev => prev ? { ...prev, creditBalance: newBalance } : null);
-            onCreditUpdate?.(newBalance);
+            const newBalance = currentBalance - amount;
+            setCreditInfo(prev => prev ? { ...prev, creditBalance: newBalance.toString() } : null);
+            onCreditUpdate?.(newBalance.toString());
             setShowWithdrawModal(false);
             setWithdrawAmount('0.05');
         } catch (err) {
@@ -173,10 +175,10 @@ export default function AgentCreditPanel({
                     {/* Balance Display */}
                     <div className="mb-4">
                         <div className="text-2xl font-bold text-white mb-1">
-                            {creditInfo.creditBalance.toFixed(4)} ETH
+                            {parseFloat(creditInfo.creditBalance).toFixed(4)} ETH
                         </div>
                         <div className="text-sm text-gray-400">
-                            ≈ {Math.floor(creditInfo.creditBalance / creditInfo.costPerCharacter).toLocaleString()} characters
+                            ≈ {Math.floor(parseFloat(creditInfo.creditBalance) / parseFloat(creditInfo.costPerCharacter)).toLocaleString()} characters
                         </div>
                     </div>
 
@@ -207,7 +209,7 @@ export default function AgentCreditPanel({
 
                         <button
                             onClick={() => setShowWithdrawModal(true)}
-                            disabled={loading || creditInfo.creditBalance <= 0}
+                            disabled={loading || parseFloat(creditInfo.creditBalance) <= 0}
                             className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
                         >
                             <Minus className="w-4 h-4" />
@@ -218,7 +220,7 @@ export default function AgentCreditPanel({
                     {/* Cost Info */}
                     <div className="text-xs text-gray-500 flex items-center gap-1">
                         <Zap className="w-3 h-3" />
-                        <span>{(creditInfo.costPerCharacter * 1000).toFixed(4)} ETH per 1K characters</span>
+                        <span>{(parseFloat(creditInfo.costPerCharacter) * 1000).toFixed(4)} ETH per 1K characters</span>
                     </div>
                 </>
             )}
@@ -241,7 +243,7 @@ export default function AgentCreditPanel({
                                 placeholder="0.1"
                             />
                             <div className="text-xs text-gray-500 mt-1">
-                                ≈ {Math.floor(parseFloat(depositAmount || '0') / (creditInfo?.costPerCharacter || 0.0001)).toLocaleString()} characters
+                                ≈ {Math.floor(parseFloat(depositAmount || '0') / parseFloat(creditInfo?.costPerCharacter || '0.0001')).toLocaleString()} characters
                             </div>
                         </div>
 
@@ -276,14 +278,14 @@ export default function AgentCreditPanel({
                                 type="number"
                                 step="0.001"
                                 min="0.001"
-                                max={creditInfo?.creditBalance || 0}
+                                max={parseFloat(creditInfo?.creditBalance || '0')}
                                 value={withdrawAmount}
                                 onChange={(e) => setWithdrawAmount(e.target.value)}
                                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
                                 placeholder="0.05"
                             />
                             <div className="text-xs text-gray-500 mt-1">
-                                Available: {creditInfo?.creditBalance.toFixed(4)} ETH
+                                Available: {parseFloat(creditInfo?.creditBalance || '0').toFixed(4)} ETH
                             </div>
                         </div>
 

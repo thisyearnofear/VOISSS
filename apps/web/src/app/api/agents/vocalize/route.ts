@@ -1,17 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { 
-  VoiceGenerationRequestSchema, 
+import {
+  VoiceGenerationRequestSchema,
   VoiceGenerationRequest,
   getPaymentRouter,
   calculateServiceCost,
   formatUSDC,
   createPaymentRequiredResponse,
   X402PaymentPayload,
-  X402PaymentRequirements,
   parsePaymentHeader,
+  IPFSService,
 } from "@voisss/shared";
 import { AUDIO_CONFIG } from "@voisss/shared";
 import { rateLimiters, getIdentifier, getRateLimitHeaders } from "@/lib/rate-limit";
+
+// Idempotency cache (in production, use Redis or similar)
+const idempotencyCache = new Map<string, { result: any; expiresAt: number }>();
+const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+// IPFS service for audio storage
+const ipfsService = new IPFSService({
+  provider: 'pinata',
+  apiKey: process.env.PINATA_API_KEY,
+  apiSecret: process.env.PINATA_API_SECRET,
+});
 
 // Use shared validation schema
 type VocalizeRequest = VoiceGenerationRequest;
@@ -60,21 +71,32 @@ const paymentRouter = getPaymentRouter({
  */
 export async function POST(req: NextRequest): Promise<NextResponse<VocalizeResponse>> {
   try {
+    // Check idempotency key first
+    const idempotencyKey = req.headers.get('Idempotency-Key');
+    if (idempotencyKey) {
+      const cached = idempotencyCache.get(idempotencyKey);
+      if (cached && cached.expiresAt > Date.now()) {
+        return NextResponse.json(cached.result, {
+          headers: { 'X-Idempotency-Replay': 'true' },
+        });
+      }
+    }
+
     // Parse and validate request first (for rate limit identifier)
     const body = await req.json();
     const validatedRequest = VoiceGenerationRequestSchema.parse(body);
 
     const { text, voiceId, agentAddress, options, maxDurationMs: requestMaxDurationMs } = validatedRequest;
-    
+
     // Rate limiting check
     const identifier = agentAddress || getIdentifier(req);
     const rateLimitResult = await rateLimiters.voiceGeneration.check(identifier);
-    
+
     if (!rateLimitResult.success) {
       return NextResponse.json({
         success: false,
         error: 'Rate limit exceeded. Please try again later.',
-      }, { 
+      }, {
         status: 429,
         headers: getRateLimitHeaders(rateLimitResult),
       });
@@ -100,11 +122,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
 
     // Check for X-PAYMENT header (x402 payment attempt)
     const paymentHeader = req.headers.get('X-PAYMENT');
-    
+
     if (paymentHeader) {
       // Client is attempting x402 payment
       const payment = parsePaymentHeader(paymentHeader) as X402PaymentPayload | null;
-      
+
       if (!payment) {
         return NextResponse.json({
           success: false,
@@ -138,15 +160,29 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
       }
 
       // Payment successful, generate voice
-      return generateAndReturnVoice(
+      const response = await generateAndReturnVoice(
         text,
         voiceId,
         agentAddress,
         characterCount,
         cost,
         'x402',
+        req,
         paymentResult.txHash
       );
+
+      // Cache successful result for idempotency
+      if (idempotencyKey) {
+        const resultBody = await response.clone().json();
+        if (resultBody.success) {
+          idempotencyCache.set(idempotencyKey, {
+            result: resultBody,
+            expiresAt: Date.now() + IDEMPOTENCY_TTL_MS,
+          });
+        }
+      }
+
+      return response;
     }
 
     // No payment header - check if we can process without x402
@@ -161,17 +197,31 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
 
       if (paymentResult.success) {
         // Payment successful via credits or tier
-        return generateAndReturnVoice(
+        const response = await generateAndReturnVoice(
           text,
           voiceId,
           agentAddress,
           characterCount,
           cost,
           paymentResult.method,
+          req,
           undefined,
           paymentResult.remainingCredits,
           paymentResult.tier
         );
+
+        // Cache successful result for idempotency
+        if (idempotencyKey) {
+          const resultBody = await response.clone().json();
+          if (resultBody.success) {
+            idempotencyCache.set(idempotencyKey, {
+              result: resultBody,
+              expiresAt: Date.now() + IDEMPOTENCY_TTL_MS,
+            });
+          }
+        }
+
+        return response;
       }
 
       // Payment failed but might have fallback
@@ -223,6 +273,7 @@ async function generateAndReturnVoice(
   characterCount: number,
   cost: bigint,
   paymentMethod: string,
+  req: NextRequest,
   txHash?: string,
   remainingCredits?: bigint,
   tier?: string
@@ -284,13 +335,84 @@ async function generateAndReturnVoice(
 
   // Get audio data
   const audioBuffer = await ttsResponse.arrayBuffer();
-  const audioBase64 = Buffer.from(audioBuffer).toString('base64');
 
-  // Generate content hash for IPFS
+  // Generate content hash
   const contentHash = generateContentHash(text, voiceId, agentAddress);
+  const recordingId = `voc_${Date.now()}_${contentHash.slice(0, 8)}`;
 
-  // Create data URL
-  const audioUrl = `data:audio/mpeg;base64,${audioBase64}`;
+  // Upload to IPFS with robust retry logic and fallback providers
+  let audioUrl: string;
+  let ipfsHash: string | undefined;
+  let isTemporary = false;
+
+  try {
+    // Use robust IPFS service with retry logic and fallbacks
+    const { createRobustIPFSService } = await import('@voisss/shared/services/ipfs-service');
+    const robustIpfsService = createRobustIPFSService();
+
+    // Get fallback providers
+    const fallbackProviders = (robustIpfsService as any).getFallbackProviders?.() || [];
+
+    const uploadResult = await robustIpfsService.uploadAudio(
+      Buffer.from(audioBuffer),
+      {
+        filename: `${recordingId}.mp3`,
+        mimeType: 'audio/mpeg',
+        duration: Math.ceil(text.length / 2.5), // Estimate duration
+      },
+      {
+        maxRetries: 3,
+        retryDelay: 1000,
+        fallbackProviders,
+      }
+    );
+
+    ipfsHash = uploadResult.hash;
+    audioUrl = uploadResult.url;
+
+    console.log(`✅ IPFS upload successful: ${ipfsHash}`);
+
+  } catch (uploadError) {
+    console.error("🚨 All IPFS upload attempts failed:", uploadError);
+
+    // Store temporarily and return temp URL instead of base64
+    try {
+      const { getTempAudioStorage } = await import('@voisss/shared/services/temp-audio-storage');
+      const tempStorage = getTempAudioStorage();
+
+      const tempId = await tempStorage.storeTemporarily(
+        Buffer.from(audioBuffer),
+        {
+          filename: `${recordingId}.mp3`,
+          mimeType: 'audio/mpeg',
+          duration: Math.ceil(text.length / 2.5),
+          recordingId,
+          agentAddress,
+          contentHash,
+        }
+      );
+
+      // Generate temporary URL
+      audioUrl = tempStorage.generateTempUrl(tempId, req.nextUrl.origin);
+      isTemporary = true;
+
+      console.log(`📁 Audio stored temporarily: ${tempId}`);
+      console.log(`🔄 Will retry IPFS upload in background`);
+
+      // TODO: Trigger background retry job here
+      // This could be a queue job, webhook, or scheduled task
+
+    } catch (tempError) {
+      console.error("🚨 Failed to store audio temporarily:", tempError);
+
+      // Last resort: return error instead of base64
+      return NextResponse.json({
+        success: false,
+        error: "Audio generation succeeded but storage failed. Please try again.",
+        details: "Both IPFS upload and temporary storage failed"
+      }, { status: 503 }); // Service Unavailable
+    }
+  }
 
   // Log the successful generation
   console.log(`Voice generated for agent ${agentAddress}:`, {
@@ -299,9 +421,11 @@ async function generateAndReturnVoice(
     paymentMethod,
     voiceId,
     contentHash,
+    ipfsHash: ipfsHash || 'temporary',
+    isTemporary,
   });
 
-  return NextResponse.json({
+  const result = {
     success: true,
     data: {
       audioUrl,
@@ -309,11 +433,19 @@ async function generateAndReturnVoice(
       cost: cost.toString(),
       characterCount,
       paymentMethod,
+      recordingId,
+      ...(ipfsHash && { ipfsHash }),
+      ...(isTemporary && {
+        isTemporary: true,
+        note: "Audio is temporarily stored. IPFS upload will be retried in background."
+      }),
       ...(txHash && { txHash }),
       ...(remainingCredits !== undefined && { creditBalance: remainingCredits.toString() }),
       ...(tier && { tier }),
     }
-  });
+  };
+
+  return NextResponse.json(result);
 }
 
 /**

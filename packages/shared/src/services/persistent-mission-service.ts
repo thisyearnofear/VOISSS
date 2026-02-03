@@ -60,7 +60,7 @@ export class PersistentMissionService implements MissionService {
         title: "Web3 Street Wisdom",
         description: "Ask people in your city what they really think about Web3 and cryptocurrency. Interview format: taxi, coffee shop, or street corner conversations.",
         difficulty: "easy",
-        baseReward: 10,
+        baseReward: "10",
         rewardModel: "pool",
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         locationBased: true,
@@ -80,7 +80,7 @@ export class PersistentMissionService implements MissionService {
         title: "Remote Work Reality Check",
         description: "Share your honest perspective on how remote work has changed your life. Any location, any setting where you can speak freely.",
         difficulty: "medium",
-        baseReward: 25,
+        baseReward: "25",
         rewardModel: "pool",
         expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
         locationBased: false,
@@ -100,7 +100,7 @@ export class PersistentMissionService implements MissionService {
         title: "Marriage in 2024",
         description: "Explore contemporary views on marriage and commitment. Deep, thoughtful conversation. Record in a comfortable, private setting.",
         difficulty: "hard",
-        baseReward: 50,
+        baseReward: "50",
         rewardModel: "pool",
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         locationBased: false,
@@ -120,7 +120,7 @@ export class PersistentMissionService implements MissionService {
         title: "AI: Excitement or Anxiety?",
         description: "How does AI make you feel? Document your genuine reactions and thoughts about AI's impact on work, creativity, and society.",
         difficulty: "medium",
-        baseReward: 25,
+        baseReward: "25",
         rewardModel: "pool",
         expiresAt: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000),
         locationBased: true,
@@ -140,7 +140,7 @@ export class PersistentMissionService implements MissionService {
         title: "Global Coffee Culture",
         description: "Visit a local cafe and capture a conversation about what coffee culture means in your city. Is it a social ritual or a fuel for work?",
         difficulty: "easy",
-        baseReward: 15,
+        baseReward: "15",
         rewardModel: "pool",
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         locationBased: true,
@@ -160,7 +160,7 @@ export class PersistentMissionService implements MissionService {
         title: "The Future of Education",
         description: "Interview a student or teacher about how they think learning will change in the next decade. Focus on digital vs. physical classrooms.",
         difficulty: "hard",
-        baseReward: 60,
+        baseReward: "60",
         rewardModel: "pool",
         expiresAt: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000),
         locationBased: false,
@@ -180,7 +180,7 @@ export class PersistentMissionService implements MissionService {
         title: "Mental Health in Tech",
         description: "A safe space to share perspectives on burnout, work-life balance, and the psychological impact of constant connectivity in the tech industry.",
         difficulty: "medium",
-        baseReward: 35,
+        baseReward: "35",
         rewardModel: "pool",
         expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
         locationBased: false,
@@ -233,8 +233,8 @@ export class PersistentMissionService implements MissionService {
       const allMissions = await this.db.getAll<Mission>(COLLECTIONS.MISSIONS);
 
       return allMissions
-        .filter(mission => mission.isActive && mission.expiresAt > now)
-        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        .filter(mission => mission.isActive && new Date(mission.expiresAt) > now)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } catch (error) {
       throw new DatabaseOperationError(
         'Failed to fetch active missions',
@@ -506,7 +506,7 @@ export class PersistentMissionService implements MissionService {
     }
 
     const template = templates[templateIndex];
-    const baseReward = template.difficulty === 'easy' ? 10 : template.difficulty === 'medium' ? 25 : 50;
+    const baseReward = template.difficulty === 'easy' ? '10' : template.difficulty === 'medium' ? '25' : '50';
 
     const missionData: Omit<Mission, 'id' | 'createdAt' | 'updatedAt' | 'currentParticipants'> = {
       title: customizations?.title || template.title,
@@ -606,7 +606,7 @@ export class PersistentMissionService implements MissionService {
   ): Promise<RewardRecord> {
     await this.ensureInitialized();
 
-    const amountInTokens = getRewardForMilestone(milestone);
+    const amountInTokens = String(getRewardForMilestone(milestone));
 
     const reward: RewardRecord = {
       id: `reward_${this.generateId()}`,
@@ -655,7 +655,7 @@ export class PersistentMissionService implements MissionService {
         completedMilestones: [],
         nextMilestone: 'submission' as const,
         isFeatured: false,
-        totalEarned: 0,
+        totalEarned: '0',
         lastUpdated: new Date(),
       };
 
@@ -746,7 +746,7 @@ export class PersistentMissionService implements MissionService {
         throw new Error('No valid rewards to claim');
       }
 
-      const totalAmount = allRewards.reduce((sum, r) => sum + r.amountInTokens, 0);
+      const totalAmount = allRewards.reduce((sum, r) => (BigInt(sum) + BigInt(r.amountInTokens)).toString(), '0');
 
       const claim: RewardClaim = {
         id: `claim_${this.generateId()}`,
@@ -779,9 +779,9 @@ export class PersistentMissionService implements MissionService {
   }
 
   async getCreatorEarnings(userId: string): Promise<{
-    totalEarned: number;
-    totalClaimed: number;
-    pendingRewards: number;
+    totalEarned: string;
+    totalClaimed: string;
+    pendingRewards: string;
     unclaimedCount: number;
   }> {
     await this.ensureInitialized();
@@ -789,13 +789,13 @@ export class PersistentMissionService implements MissionService {
     try {
       const userRewards = await this.db.getWhere<RewardRecord>('rewards', r => r.userId === userId);
 
-      const totalEarned = userRewards.reduce((sum, r) => sum + r.amountInTokens, 0);
+      const totalEarned = userRewards.reduce((sum, r) => (BigInt(sum) + BigInt(r.amountInTokens)).toString(), '0');
       const totalClaimed = userRewards
         .filter(r => r.status === 'claimed')
-        .reduce((sum, r) => sum + r.amountInTokens, 0);
+        .reduce((sum, r) => (BigInt(sum) + BigInt(r.amountInTokens)).toString(), '0');
       const pendingRewards = userRewards
         .filter(r => r.status === 'pending')
-        .reduce((sum, r) => sum + r.amountInTokens, 0);
+        .reduce((sum, r) => (BigInt(sum) + BigInt(r.amountInTokens)).toString(), '0');
       const unclaimedCount = userRewards.filter(r => r.status === 'pending').length;
 
       return {
@@ -843,30 +843,31 @@ export class PersistentMissionService implements MissionService {
     milestone: Milestone,
     qualityScore?: number,
     participantCount?: number
-  ): Promise<number> {
-    const baseReward = mission.baseReward || 25;
+  ): Promise<string> {
+    const baseReward = BigInt(mission.baseReward || '25');
 
     // Base amount for submission milestone
     if (milestone === 'submission') {
-      return baseReward;
+      return baseReward.toString();
     }
 
     // Quality approved: +20% bonus
     if (milestone === 'quality_approved') {
-      return Math.floor(baseReward * 1.2);
+      return ((baseReward * 120n) / 100n).toString();
     }
 
     // Featured: +50% bonus + curator reward consideration
     if (milestone === 'featured') {
-      const featuredBonus = Math.floor(baseReward * 1.5);
+      const featuredBonus = (baseReward * 150n) / 100n;
       // If creator staked tokens, apply 1.5x multiplier
-      if (mission.creatorStake && mission.creatorStake > 0) {
-        return Math.floor(featuredBonus * 1.5);
+      const stake = mission.creatorStake ? BigInt(mission.creatorStake) : 0n;
+      if (stake > 0n) {
+        return ((featuredBonus * 150n) / 100n).toString();
       }
-      return featuredBonus;
+      return featuredBonus.toString();
     }
 
-    return baseReward;
+    return baseReward.toString();
   }
 
   // Debug and maintenance methods

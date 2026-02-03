@@ -25,6 +25,7 @@ export * from './theme';
 
 // Services with explicit exports to avoid conflicts
 export * from './services/ipfs-service';
+export * from './services/temp-audio-storage';
 export * from './services/audio-converter';
 export * from './services/recording-service';
 export * from './services/mission-service';

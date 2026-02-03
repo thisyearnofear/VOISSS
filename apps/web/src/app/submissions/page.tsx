@@ -32,15 +32,17 @@ export default function SubmissionsGalleryPage() {
 
   // Sort submissions
   const sortedSubmissions = [...submissions].sort((a, b) => {
+    const aTime = new Date(a.submittedAt).getTime();
+    const bTime = new Date(b.submittedAt).getTime();
     switch (sortBy) {
       case "recent":
-        return b.submittedAt.getTime() - a.submittedAt.getTime();
+        return bTime - aTime;
       case "most-liked":
         // Sort by submission date when likes not available
-        return b.submittedAt.getTime() - a.submittedAt.getTime();
+        return bTime - aTime;
       case "trending":
         // Sort by submission date when engagement metrics not tracked
-        return b.submittedAt.getTime() - a.submittedAt.getTime();
+        return bTime - aTime;
       default:
         return 0;
     }

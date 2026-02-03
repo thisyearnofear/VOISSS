@@ -70,7 +70,7 @@ const MissionCard = React.memo<MissionCardProps>(({
 
   // PERFORMANT: Memoized expensive calculations
   const memoizedTimeRemaining = useMemo(() =>
-    formatTimeRemaining(mission.expiresAt),
+    formatTimeRemaining(new Date(mission.expiresAt)),
     [mission.expiresAt]
   );
 
@@ -219,8 +219,8 @@ const MissionCard = React.memo<MissionCardProps>(({
       {/* ENHANCEMENT FIRST: Enhanced eligibility indicator */}
       {isConnected && (
         <div className={`mt-4 p-3 rounded-lg text-sm space-y-2 ${eligibilityInfo.isEligible
-            ? 'bg-green-500/10 border border-green-500/20'
-            : 'bg-red-500/10 border border-red-500/20'
+          ? 'bg-green-500/10 border border-green-500/20'
+          : 'bg-red-500/10 border border-red-500/20'
           }`}>
           <div className="flex items-center justify-between">
             <span className={eligibilityInfo.isEligible ? 'text-green-300' : 'text-red-300'}>

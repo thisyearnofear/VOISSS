@@ -227,7 +227,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
         <div className="voisss-card text-center">
           <div className="text-2xl font-bold text-[#7C5DFA] mb-1">
             {missions.reduce(
-              (sum: number, m: Mission) => sum + (m.baseReward || 0),
+              (sum: number, m: Mission) => sum + parseFloat(m.baseReward || '0'),
               0
             )}
           </div>

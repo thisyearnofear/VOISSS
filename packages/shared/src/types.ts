@@ -8,11 +8,11 @@ export const MissionContextSchema = z.object({
   description: z.string(),
   topic: z.string(),
   difficulty: z.enum(['easy', 'medium', 'hard']),
-  reward: z.number(),
+  reward: z.string(), // Token amount as string to prevent precision loss
   targetDuration: z.number(),
   examples: z.array(z.string()),
   contextSuggestions: z.array(z.string()),
-  acceptedAt: z.date(),
+  acceptedAt: z.union([z.date(), z.string()]),
 });
 
 export type MissionContext = z.infer<typeof MissionContextSchema>;
@@ -27,15 +27,15 @@ export const VoiceRecordingSchema = z.object({
   format: z.enum(['mp3', 'wav', 'aac', 'm4a']),
   quality: z.enum(['low', 'medium', 'high', 'lossless']),
   tags: z.array(z.string()),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  createdAt: z.union([z.date(), z.string()]),
+  updatedAt: z.union([z.date(), z.string()]),
   isPublic: z.boolean(),
-  starknetTxHash: z.string().optional(), // Transaction hash for blockchain storage
+  txHash: z.string().optional(), // Transaction hash for blockchain storage
   ipfsHash: z.string().optional(), // IPFS hash for decentralized storage
   // Mission-related fields
   missionContext: MissionContextSchema.optional(), // Mission this recording was created for
   isCompleted: z.boolean().default(false), // Whether this recording completes a mission
-  completedAt: z.date().optional(), // When the mission was completed
+  completedAt: z.union([z.date(), z.string()]).optional(), // When the mission was completed
   location: z.object({
     city: z.string(),
     country: z.string(),
@@ -90,21 +90,12 @@ export const UserSchema = z.object({
   email: z.string().email(),
   displayName: z.string(),
   avatar: z.string().optional(),
-  starknetAddress: z.string().optional(),
-  createdAt: z.date(),
+  walletAddress: z.string().optional(),
+  createdAt: z.union([z.date(), z.string()]),
   isVerified: z.boolean(),
 });
 
 export type User = z.infer<typeof UserSchema>;
-
-// Starknet Integration Types
-export const StarknetContractSchema = z.object({
-  address: z.string(),
-  abi: z.array(z.any()),
-  network: z.enum(['mainnet', 'testnet', 'devnet']),
-});
-
-export type StarknetContract = z.infer<typeof StarknetContractSchema>;
 
 // API Response Types
 export const ApiResponseSchema = z.object({
@@ -228,7 +219,7 @@ export const AgentProfileSchema = z.object({
   x402Enabled: z.boolean(),
   isBanned: z.boolean().default(false),
   tier: ServiceTierSchema.default('Managed'),
-  creditBalance: z.number().default(0),
+  creditBalance: z.string().default('0'), // Token amount as string
   voiceProvider: z.string().default('0x0000000000000000000000000000000000000000'),
 });
 
@@ -291,9 +282,9 @@ export const VoiceGenerationResultSchema = z.object({
   success: z.boolean(),
   audioUrl: z.string().optional(),
   contentHash: z.string().optional(),
-  cost: z.number().optional(),
+  cost: z.string().optional(), // Token amount as string
   characterCount: z.number().optional(),
-  creditBalance: z.number().optional(),
+  creditBalance: z.string().optional(), // Token amount as string
   ipfsHash: z.string().optional(),
   recordingId: z.string().optional(),
   error: z.string().optional(),
@@ -304,12 +295,96 @@ export type VoiceGenerationResult = z.infer<typeof VoiceGenerationResultSchema>;
 export const AgentCreditInfoSchema = z.object({
   agentAddress: z.string(),
   name: z.string(),
-  creditBalance: z.number(),
+  creditBalance: z.string(), // Token amount as string
   tier: ServiceTierSchema,
   voiceProvider: z.string(), // Contract address, 0x0 = VOISSS default
   isActive: z.boolean(),
   supportedVoices: z.array(z.string()),
-  costPerCharacter: z.number(),
+  costPerCharacter: z.string(), // Token amount as string
 });
 
 export type AgentCreditInfo = z.infer<typeof AgentCreditInfoSchema>;
+
+// Agent API Types (OpenClaw integration)
+export const AgentThemeSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  difficulty: z.enum(['easy', 'medium', 'hard']),
+  targetDuration: z.number(),
+  language: z.string(),
+  topic: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  examples: z.array(z.string()).optional(),
+  contextSuggestions: z.array(z.string()).optional(),
+  baseReward: z.string(), // Token amount as string
+  expiresAt: z.string(),
+  isActive: z.boolean(),
+  currentParticipants: z.number(),
+  maxParticipants: z.number().optional(),
+});
+
+export type AgentTheme = z.infer<typeof AgentThemeSchema>;
+
+export const AgentSubmissionRequestSchema = z.object({
+  agentAddress: z.string(),
+  themeId: z.string(),
+  audioData: z.string(), // base64 encoded audio or IPFS hash
+  audioFormat: z.enum(['base64', 'ipfs']).default('base64'),
+  context: z.string().optional(), // e.g., "taxi", "coffee shop"
+  location: z.object({
+    city: z.string(),
+    country: z.string(),
+  }).optional(),
+  metadata: z.object({
+    voiceId: z.string().optional(),
+    generatedAt: z.string().optional(),
+    characterCount: z.number().optional(),
+  }).optional(),
+});
+
+export type AgentSubmissionRequest = z.infer<typeof AgentSubmissionRequestSchema>;
+
+export const AgentSubmissionResponseSchema = z.object({
+  success: z.boolean(),
+  submissionId: z.string().optional(),
+  recordingId: z.string().optional(),
+  ipfsHash: z.string().optional(),
+  status: z.enum(['approved', 'pending', 'rejected']).optional(),
+  reward: z.object({
+    eligible: z.boolean(),
+    estimatedAmount: z.string().optional(), // Token amount as string
+    currency: z.string().optional(),
+  }).optional(),
+  error: z.string().optional(),
+});
+
+export type AgentSubmissionResponse = z.infer<typeof AgentSubmissionResponseSchema>;
+
+export const AgentRegistrationRequestSchema = z.object({
+  agentAddress: z.string(),
+  name: z.string().min(1).max(100),
+  metadataURI: z.string().url().optional(),
+  categories: z.array(AgentCategorySchema).min(1),
+  x402Enabled: z.boolean().default(true),
+  description: z.string().max(500).optional(),
+  webhookUrl: z.string().url().optional(), // callback URL for async notifications
+});
+
+export type AgentRegistrationRequest = z.infer<typeof AgentRegistrationRequestSchema>;
+
+export const AgentRegistrationResponseSchema = z.object({
+  success: z.boolean(),
+  agentId: z.string().optional(),
+  apiKey: z.string().optional(), // for authenticated requests
+  tier: ServiceTierSchema.optional(),
+  error: z.string().optional(),
+});
+
+export type AgentRegistrationResponse = z.infer<typeof AgentRegistrationResponseSchema>;
+
+// Money utilities (all amounts as strings to prevent precision loss)
+export type USDCAmount = string; // USDC in 6 decimal wei as string
+export type TokenAmount = string; // Token amounts as string
+
+// parseUSDC and formatUSDC functions are exported from './services/payment'

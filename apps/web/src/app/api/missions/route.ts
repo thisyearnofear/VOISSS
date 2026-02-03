@@ -115,13 +115,13 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
     // Filter by reward range
     if (queryParams.minReward !== undefined) {
       filteredMissions = filteredMissions.filter(mission =>
-        mission.baseReward >= queryParams.minReward!
+        parseFloat(mission.baseReward) >= queryParams.minReward!
       );
     }
 
     if (queryParams.maxReward !== undefined) {
       filteredMissions = filteredMissions.filter(mission =>
-        mission.baseReward <= queryParams.maxReward!
+        parseFloat(mission.baseReward) <= queryParams.maxReward!
       );
     }
 
@@ -148,7 +148,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
 
       switch (queryParams.sortBy) {
         case 'reward':
-          comparison = a.baseReward - b.baseReward;
+          comparison = parseFloat(a.baseReward) - parseFloat(b.baseReward);
           break;
         case 'participants':
           comparison = a.currentParticipants - b.currentParticipants;
@@ -169,7 +169,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
     const paginatedMissions = filteredMissions.slice(offset, offset + queryParams.limit);
 
     // Calculate aggregations
-    const totalRewards = filteredMissions.reduce((sum, mission) => sum + mission.baseReward, 0);
+    const totalRewards = filteredMissions.reduce((sum, mission) => sum + parseFloat(mission.baseReward), 0);
     const averageReward = filteredMissions.length > 0 ? totalRewards / filteredMissions.length : 0;
 
     const difficultyDistribution = filteredMissions.reduce((acc, mission) => {

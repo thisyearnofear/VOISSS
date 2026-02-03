@@ -36,28 +36,83 @@ export class IPFSService {
   }
 
   /**
-   * Upload audio file to IPFS
+   * Upload audio file to IPFS with retry logic and multiple provider fallback
    */
   async uploadAudio(
     audioData: Blob | ArrayBuffer | Uint8Array,
+    metadata: AudioMetadata,
+    options: {
+      maxRetries?: number;
+      retryDelay?: number;
+      fallbackProviders?: IPFSConfig['provider'][];
+    } = {}
+  ): Promise<IPFSUploadResult> {
+    const { maxRetries = 3, retryDelay = 1000, fallbackProviders = [] } = options;
+
+    // Primary provider attempt with retries
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🔄 IPFS upload attempt ${attempt}/${maxRetries} using ${this.config.provider}`);
+
+        const result = await this.uploadToProvider(this.config.provider, audioData, metadata);
+
+        console.log(`✅ IPFS upload successful on attempt ${attempt}`);
+        return result;
+
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        console.warn(`❌ IPFS upload attempt ${attempt} failed:`, lastError.message);
+
+        if (attempt < maxRetries) {
+          const delay = retryDelay * Math.pow(2, attempt - 1); // Exponential backoff
+          console.log(`⏳ Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    // Try fallback providers if primary fails
+    for (const fallbackProvider of fallbackProviders) {
+      if (fallbackProvider === this.config.provider) continue; // Skip primary
+
+      try {
+        console.log(`🔄 Trying fallback provider: ${fallbackProvider}`);
+        const result = await this.uploadToProvider(fallbackProvider, audioData, metadata);
+        console.log(`✅ Fallback upload successful with ${fallbackProvider}`);
+        return result;
+
+      } catch (error) {
+        console.warn(`❌ Fallback provider ${fallbackProvider} failed:`, error);
+        lastError = error instanceof Error ? error : new Error(String(error));
+      }
+    }
+
+    // All attempts failed
+    console.error('🚨 All IPFS upload attempts failed:', lastError);
+    throw new Error(`Failed to upload to IPFS after ${maxRetries} retries and ${fallbackProviders.length} fallback providers: ${lastError?.message || 'Unknown error'}`);
+  }
+
+  /**
+   * Upload to a specific provider (extracted for retry logic)
+   */
+  private async uploadToProvider(
+    provider: IPFSConfig['provider'],
+    audioData: Blob | ArrayBuffer | Uint8Array,
     metadata: AudioMetadata
   ): Promise<IPFSUploadResult> {
-    try {
-      switch (this.config.provider) {
-        case 'pinata':
-          return await this.uploadToPinata(audioData, metadata);
-        case 'infura':
-          return await this.uploadToInfura(audioData, metadata);
-        case 'web3storage':
-          return await this.uploadToWeb3Storage(audioData, metadata);
-        case 'local':
-          return await this.uploadToLocalNode(audioData, metadata);
-        default:
-          throw new Error(`Unsupported IPFS provider: ${this.config.provider}`);
-      }
-    } catch (error) {
-      console.error('IPFS upload failed:', error);
-      throw new Error(`Failed to upload to IPFS: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    switch (provider) {
+      case 'pinata':
+        return await this.uploadToPinata(audioData, metadata);
+      case 'infura':
+        return await this.uploadToInfura(audioData, metadata);
+      case 'web3storage':
+        return await this.uploadToWeb3Storage(audioData, metadata);
+      case 'local':
+        return await this.uploadToLocalNode(audioData, metadata);
+      default:
+        throw new Error(`Unsupported IPFS provider: ${provider}`);
     }
   }
 
@@ -433,4 +488,34 @@ export function createIPFSService(): IPFSService {
   });
 
   return new IPFSService(config);
+}
+
+/**
+ * Create IPFS service with multiple fallback providers for maximum reliability
+ */
+export function createRobustIPFSService(): IPFSService {
+  const service = createIPFSService();
+
+  // Add method to get fallback providers based on available credentials
+  (service as any).getFallbackProviders = (): IPFSConfig['provider'][] => {
+    const fallbacks: IPFSConfig['provider'][] = [];
+
+    // Add Web3.Storage if we have a token
+    if (process.env.WEB3_STORAGE_TOKEN || process.env.NEXT_PUBLIC_WEB3_STORAGE_TOKEN) {
+      fallbacks.push('web3storage');
+    }
+
+    // Add Infura if we have credentials
+    if ((process.env.INFURA_PROJECT_ID || process.env.NEXT_PUBLIC_INFURA_PROJECT_ID) &&
+      (process.env.INFURA_PROJECT_SECRET || process.env.NEXT_PUBLIC_INFURA_PROJECT_SECRET)) {
+      fallbacks.push('infura');
+    }
+
+    // Always add local as last resort (though it may not work in production)
+    fallbacks.push('local');
+
+    return fallbacks;
+  };
+
+  return service;
 }

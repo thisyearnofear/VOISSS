@@ -186,7 +186,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     }
 
     // Calculate base reward from difficulty
-    const baseReward = REWARD_BY_DIFFICULTY[body.difficulty];
+    const baseReward = String(REWARD_BY_DIFFICULTY[body.difficulty]);
 
     // Calculate expiration date
     const expiresAt = new Date();
@@ -203,8 +203,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
       locationBased: body.locationBased || false,
       language: body.language || "en",
       qualityCriteria: body.qualityCriteria,
-      budgetAllocation: body.budgetAllocation,
-      creatorStake: body.creatorStake,
+      budgetAllocation: body.budgetAllocation !== undefined ? String(body.budgetAllocation) : undefined,
+      creatorStake: body.creatorStake !== undefined ? String(body.creatorStake) : undefined,
       isActive: true, // Auto-publish for now
       createdBy: userAddress,
       expiresAt,

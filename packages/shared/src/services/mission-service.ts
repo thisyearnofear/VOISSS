@@ -43,11 +43,11 @@ export interface MissionService {
   completeMilestone(userId: string, missionId: string, responseId: string, milestone: Milestone, qualityScore?: number): Promise<MilestoneProgress>;
   getUnclaimedRewards(userId: string): Promise<RewardRecord[]>;
   claimRewards(userId: string, rewardIds: string[]): Promise<RewardClaim>;
-  getCreatorEarnings(userId: string): Promise<{ totalEarned: number; totalClaimed: number; pendingRewards: number; unclaimedCount: number }>;
+  getCreatorEarnings(userId: string): Promise<{ totalEarned: string; totalClaimed: string; pendingRewards: string; unclaimedCount: number }>;
 
   // Moderation & Quality
   validateQualityCriteria(response: MissionResponse, criteria?: QualityCriteria): Promise<{ passed: boolean; reasons: string[] }>;
-  calculateRewardAmount(mission: Mission, milestone: Milestone, qualityScore?: number, participantCount?: number): Promise<number>;
+  calculateRewardAmount(mission: Mission, milestone: Milestone, qualityScore?: number, participantCount?: number): Promise<string>;
 
   // Analytics
   getMissionStats(missionId: string): Promise<{
