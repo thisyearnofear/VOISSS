@@ -243,9 +243,9 @@ cd apps/web && npm run test:gasless
 
 For comprehensive documentation, see the docs directory:
 
-- **[Quick Start](./docs/QUICKSTART.md)** - Essential setup and run instructions
-- **[Architecture](./docs/ARCHITECTURE.md)** - Technical implementation details
-- **[Blockchain Integration](./docs/BLOCKCHAIN.md)** - Multi-chain setup and token systems
+- **[Getting Started](./docs/GETTING_STARTED.md)** - Essential setup and run instructions
+- **[Architecture](./docs/ARCHITECTURE.md)** - Technical implementation details and system architecture
+- **[Blockchain Integration](./docs/BLOCKCHAIN_INTEGRATION.md)** - Multi-chain setup and token systems
 - **[Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment instructions
 - **[Roadmap](./docs/ROADMAP.md)** - Future vision and development phases
 

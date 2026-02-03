@@ -24,7 +24,7 @@ voisss/
 - **AI Services**: ElevenLabs, Google Gemini
 - **Storage**: IPFS via Pinata
 
-### Mobile Platform  
+### Mobile Platform
 - **Framework**: React Native with Expo
 - **Router**: Expo Router
 - **Language**: TypeScript
@@ -33,7 +33,7 @@ voisss/
 
 ### Flutter Platform
 - **Frontend**: Flutter with Dart
-- **Backend**: Serverpod (Dart) 
+- **Backend**: Serverpod (Dart)
 - **Database**: PostgreSQL
 - **AI**: Venice AI (Llama 3.3 70B)
 - **Hosting**: Hetzner Cloud
@@ -52,7 +52,7 @@ voisss/
 - **Contract Interactions**: Recording storage and retrieval
 
 ### Token System
-- **$VOISSS Tiers**: 
+- **$VOISSS Tiers**:
   - Freemium: 0 tokens - 1 free transform/session
   - Basic: 10k tokens - Unlimited transforms, dubbing
   - Pro: 50k tokens - Priority processing, advanced voices
@@ -93,3 +93,71 @@ The `@voisss/shared` package contains:
 - **Rate Limiting**: Implement rate limits on API endpoints
 - **Input Validation**: Validate all user inputs
 - **Contract Verification**: Verify contract addresses match deployed contracts
+
+## Agent Registry
+
+The Agent Registry manages AI agent registrations with a USDC-based credit system for voice generation payments.
+
+### Smart Contract
+- **Location**: `apps/web/contracts/AgentRegistry.sol`
+- **Mainnet Address**: `0xBE857DB4B4bD71a8bf8f50f950eecD7dDe68b85c`
+- **Version**: v2.0.0
+- **Network**: Base Mainnet
+
+### Features
+- **Agent Registration**: Register AI agents with voice capabilities
+- **USDC Credit System**: Prepaid credits for voice generation (6 decimals)
+- **Atomic Operations**: Lock/unlock/confirm pattern for secure payments
+- **Service Tiers**: Bronze/Silver/Gold tiers with different benefits
+- **x402 Fallback**: Automatic fallback to x402 when credits exhausted
+- **Reputation System**: Track agent performance and ratings
+
+### Key Functions
+```solidity
+// Register a new agent
+function registerAgent(
+    string memory metadataURI,
+    string memory name,
+    string[] memory categories,
+    bool x402Enabled
+) external returns (uint256 agentId)
+
+// Deposit USDC for credits
+function depositUSDC(uint256 amount) external
+
+// Withdraw unused credits
+function withdrawUSDC(uint256 amount) external
+
+// Deduct credits for service (requires authorization)
+function deductCredits(
+    address agent,
+    uint256 amount,
+    string memory serviceName
+) external returns (bool)
+
+// Lock credits for atomic operation
+function lockCredits(address agent, uint256 amount) external returns (bool)
+
+// Unlock credits (on failure)
+function unlockCredits(address agent, uint256 amount) external
+
+// Confirm deduction (on success)
+function confirmDeduction(address agent, uint256 amount) external
+
+// Authorize service contract to deduct credits
+function setServiceAuthorization(address service, bool authorized) external onlyOwner
+```
+
+### USDC Configuration
+- **USDC Contract**: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`
+- **Decimals**: 6
+- **Min Deposit**: 1 USDC
+- **Min Withdrawal**: 1 USDC
+
+### Service Tiers
+| Tier | Requirement | Benefits |
+|------|-------------|----------|
+| **None** | No tokens | Basic features, pay-per-use |
+| **Bronze** | 10k $VOISSS | Discounted rates, priority queue |
+| **Silver** | 50k $VOISSS | Better rates, premium voices |
+| **Gold** | 250k $VOISSS | Best rates, VIP support |

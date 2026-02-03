@@ -12,6 +12,7 @@ import {
 } from "@voisss/shared";
 import { AUDIO_CONFIG } from "@voisss/shared";
 import { rateLimiters, getIdentifier, getRateLimitHeaders } from "@/lib/rate-limit";
+import { getAgentVerificationService } from "@voisss/shared/services/agent-verification";
 
 // Idempotency cache (in production, use Redis or similar)
 const idempotencyCache = new Map<string, { result: any; expiresAt: number }>();
@@ -87,6 +88,40 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
     const validatedRequest = VoiceGenerationRequestSchema.parse(body);
 
     const { text, voiceId, agentAddress, options, maxDurationMs: requestMaxDurationMs } = validatedRequest;
+
+    // Agent verification (reverse CAPTCHA)
+    const agentProof = req.headers.get('X-Agent-Proof');
+    const skipVerification = req.headers.get('X-Skip-Agent-Verification') === 'true';
+
+    if (!skipVerification) {
+      const verificationService = getAgentVerificationService();
+      const headers: Record<string, string> = {};
+      req.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+
+      const verification = verificationService.verifyAgentBehavior({
+        userAgent: req.headers.get('user-agent') || undefined,
+        headers,
+        payload: body
+      });
+
+      // If confidence is low, require explicit agent proof
+      if (verification.confidence < 0.6 && !agentProof) {
+        return NextResponse.json({
+          success: false,
+          error: "Agent verification required",
+          details: {
+            reason: verification.reason,
+            confidence: verification.confidence,
+            instructions: "This endpoint is designed for AI agents. Please include X-Agent-Proof header or solve a verification challenge.",
+            challengeEndpoint: "/api/agents/verify"
+          }
+        }, { status: 403 });
+      }
+
+      console.log(`🤖 Agent verification: ${verification.isAgent ? 'PASS' : 'UNCERTAIN'} (confidence: ${verification.confidence.toFixed(2)})`);
+    }
 
     // Rate limiting check
     const identifier = agentAddress || getIdentifier(req);

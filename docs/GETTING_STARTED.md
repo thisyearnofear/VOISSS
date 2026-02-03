@@ -1,4 +1,6 @@
-# VOISSS - Decentralized AI Voice Platform
+# VOISSS - Getting Started Guide
+
+## Overview
 
 VOISSS is a decentralized AI-powered voice recording platform that transforms how we capture, organize, and share audio content. Built with a web-first strategy and phased mobile development.
 
@@ -34,7 +36,7 @@ NEXT_PUBLIC_VOISSS_TOKEN_ADDRESS=0x1c3174c2aea455f1efb088e4ca4ecb4ab52d1b07
 NEXT_PUBLIC_PAPAJAMS_TOKEN_ADDRESS=0x2e9be99b199c874bd403f1b70fcaa9f11f47b96c
 ```
 
-## 🏗️ Architecture
+## 🏗️ Architecture Overview
 
 ### Tech Stack
 - **Web**: Next.js 14, TypeScript, Tailwind, Base Account SDK
@@ -56,27 +58,6 @@ voisss/
 │   └── ui/           # Shared components
 ```
 
-## ⛓️ Blockchain Integration
-
-### Active Networks
-- **Base (Web)**: Gasless transactions via Sub Accounts
-  - Chain ID: 84532 (Sepolia), 8453 (Mainnet)
-  - Key feature: Zero gas costs for users
-
-- **Scroll (Mobile)**: VRF & Privacy features
-  - Contracts:
-    - ScrollVRF: `0x50a0365A3BD6a3Ab4bC31544A955Ba4974Fc7208`
-    - ScrollPrivacy: `0x0abD2343311985Fd1e0159CE39792483b908C03a`
-
-### Token System
-- **$VOISSS**: Access tiers (Freemium → Premium)
-  - Tiers: None (0), Basic (10k), Pro (50k), Premium (250k tokens)
-  - Features: Transforms, dubbing, priority processing, creator tools
-
-- **$PAPAJAMS**: Creator rewards
-  - Min. 1M tokens to create missions
-  - Reward split: 70% $papajams, 30% $voisss
-
 ## 📱 Platform Status
 
 | Platform | Status | Key Features |
@@ -84,31 +65,6 @@ voisss/
 | **Web** | ✅ Production Ready | Gasless txs, AI transformation, mission system |
 | **Mobile** | ⚠️ Functional, needs completion | Native recording, VRF, privacy |
 | **Flutter** | ✅ Live (AI Butler) | Serverpod backend, Venice AI |
-
-## 🚀 Deployment
-
-### Web Platform (Vercel/Netlify)
-1. Set environment variables
-2. Fund spender wallet with ETH for gas
-3. Deploy via platform of choice
-
-### Spender Wallet Setup
-```bash
-node -e "
-const { generatePrivateKey, privateKeyToAccount } = require('viem/accounts');
-const pk = generatePrivateKey();
-const account = privateKeyToAccount(pk);
-console.log('Private Key:', pk);
-console.log('Address:', account.address);
-"
-```
-
-### Mobile Platform
-```bash
-cd apps/mobile
-pnpm build
-pnpm expo publish  # or build native binaries
-```
 
 ## 🎯 Key Features
 
@@ -151,20 +107,6 @@ pnpm dev          # Development
 pnpm android      # Android build
 pnpm ios          # iOS build
 ```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push: `git push origin feature/amazing-feature`
-5. Open PR
-
-### Guidelines
-- Follow TypeScript best practices
-- Write tests for new features
-- Update documentation
-- Use conventional commits
 
 ## 🔗 Links
 
