@@ -13,6 +13,9 @@ import {
 import { AUDIO_CONFIG } from "@voisss/shared";
 import { rateLimiters, getIdentifier, getRateLimitHeaders } from "@/lib/rate-limit";
 import { getAgentVerificationService } from "@voisss/shared/services/agent-verification";
+import { getAgentRateLimiter } from "@voisss/shared/services/agent-rate-limiter";
+import { getAgentSecurityService } from "@voisss/shared/services/agent-security";
+import { getAgentEventHub, VOISSS_EVENT_TYPES } from "@voisss/shared/services/agent-event-hub";
 
 // Idempotency cache (in production, use Redis or similar)
 const idempotencyCache = new Map<string, { result: any; expiresAt: number }>();
@@ -71,6 +74,8 @@ const paymentRouter = getPaymentRouter({
  * 3. x402 USDC payment (fallback)
  */
 export async function POST(req: NextRequest): Promise<NextResponse<VocalizeResponse>> {
+  const requestStart = Date.now();
+
   try {
     // Check idempotency key first
     const idempotencyKey = req.headers.get('Idempotency-Key');
@@ -89,19 +94,25 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
 
     const { text, voiceId, agentAddress, options, maxDurationMs: requestMaxDurationMs } = validatedRequest;
 
-    // Agent verification (reverse CAPTCHA)
+    // Get agent identifier for security and rate limiting
+    const agentId = agentAddress || getIdentifier(req);
+    const userAgent = req.headers.get('user-agent') || undefined;
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || undefined;
+
+    // Collect headers for security analysis
+    const headers: Record<string, string> = {};
+    req.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+
+    // SECURITY LAYER 1: Agent Verification (reverse CAPTCHA)
     const agentProof = req.headers.get('X-Agent-Proof');
     const skipVerification = req.headers.get('X-Skip-Agent-Verification') === 'true';
 
     if (!skipVerification) {
       const verificationService = getAgentVerificationService();
-      const headers: Record<string, string> = {};
-      req.headers.forEach((value, key) => {
-        headers[key] = value;
-      });
-
       const verification = verificationService.verifyAgentBehavior({
-        userAgent: req.headers.get('user-agent') || undefined,
+        userAgent,
         headers,
         payload: body
       });
@@ -123,17 +134,101 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
       console.log(`🤖 Agent verification: ${verification.isAgent ? 'PASS' : 'UNCERTAIN'} (confidence: ${verification.confidence.toFixed(2)})`);
     }
 
-    // Rate limiting check
-    const identifier = agentAddress || getIdentifier(req);
-    const rateLimitResult = await rateLimiters.voiceGeneration.check(identifier);
+    // SECURITY LAYER 2: Comprehensive Security Check
+    const securityService = getAgentSecurityService();
+    const securityCheck = await securityService.securityCheck({
+      agentId,
+      userAgent,
+      headers,
+      path: req.nextUrl.pathname,
+      method: req.method,
+      payload: body,
+      ip,
+      timing: {
+        requestStart,
+        processingTime: Date.now() - requestStart
+      }
+    });
 
-    if (!rateLimitResult.success) {
+    if (!securityCheck.allowed) {
+      console.warn(`🚨 Security check failed for agent ${agentId}: ${securityCheck.reason}`);
+
+      // Publish security event
+      const eventHub = getAgentEventHub();
+      await eventHub.publish({
+        type: VOISSS_EVENT_TYPES.SECURITY_THREAT_DETECTED,
+        source: 'vocalize-api',
+        data: {
+          agentId,
+          reason: securityCheck.reason,
+          threatLevel: securityCheck.threatLevel,
+          actions: securityCheck.actions
+        },
+        metadata: {
+          priority: securityCheck.threatLevel === 'red' ? 'urgent' : 'high'
+        }
+      });
+
+      return NextResponse.json({
+        success: false,
+        error: securityCheck.reason || 'Security check failed',
+        threatLevel: securityCheck.threatLevel
+      }, { status: 403 });
+    }
+
+    // Determine agent tier based on security profile
+    const agentTier = determineAgentTier(securityCheck.profile, agentAddress);
+
+    // SECURITY LAYER 3: Advanced Rate Limiting
+    const rateLimiter = getAgentRateLimiter();
+    const characterCount = text.length;
+    const cost = calculateServiceCost('voice_generation', characterCount);
+
+    const rateLimitCheck = await rateLimiter.checkLimits(agentId, agentTier, {
+      cost,
+      characters: characterCount
+    });
+
+    if (!rateLimitCheck.allowed) {
+      console.warn(`⏱️ Rate limit exceeded for agent ${agentId}: ${rateLimitCheck.reason}`);
+
+      // Publish rate limit event
+      const eventHub = getAgentEventHub();
+      await eventHub.publish({
+        type: VOISSS_EVENT_TYPES.RATE_LIMIT_EXCEEDED,
+        source: 'vocalize-api',
+        data: {
+          agentId,
+          reason: rateLimitCheck.reason,
+          limits: rateLimitCheck.limits,
+          tier: agentTier
+        }
+      });
+
+      return NextResponse.json({
+        success: false,
+        error: rateLimitCheck.reason || 'Rate limit exceeded',
+        retryAfter: rateLimitCheck.retryAfter
+      }, {
+        status: 429,
+        headers: {
+          'Retry-After': rateLimitCheck.retryAfter?.toString() || '60',
+          ...rateLimitCheck.headers
+        }
+      });
+    }
+
+    // Legacy rate limiting check (keep for backward compatibility)
+    const identifier = agentAddress || getIdentifier(req);
+    const legacyRateLimitResult = await rateLimiters.voiceGeneration.check(identifier);
+
+    if (!legacyRateLimitResult.success) {
       return NextResponse.json({
         success: false,
         error: 'Rate limit exceeded. Please try again later.',
       }, {
         status: 429,
-        headers: getRateLimitHeaders(rateLimitResult),
+        headers: getRateLimitHeaders(legacyRateLimitResult),
       });
     }
 
@@ -148,9 +243,22 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
       }, { status: 400 });
     }
 
-    // Calculate cost
-    const characterCount = text.length;
-    const cost = calculateServiceCost('voice_generation', characterCount);
+    // Publish voice generation started event
+    const eventHub = getAgentEventHub();
+    const recordingId = `voc_${Date.now()}_${generateContentHash(text, voiceId, agentId).slice(0, 8)}`;
+
+    await eventHub.publish({
+      type: VOISSS_EVENT_TYPES.VOICE_GENERATION_STARTED,
+      source: 'vocalize-api',
+      data: {
+        recordingId,
+        agentId,
+        characterCount,
+        estimatedDurationMs,
+        voiceId,
+        tier: agentTier
+      }
+    });
 
     // Get payment quote
     const quote = await paymentRouter.getQuote(agentAddress, 'voice_generation', characterCount);
@@ -203,7 +311,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
         cost,
         'x402',
         req,
-        paymentResult.txHash
+        paymentResult.txHash,
+        undefined,
+        undefined,
+        recordingId,
+        agentTier
       );
 
       // Cache successful result for idempotency
@@ -242,7 +354,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
           req,
           undefined,
           paymentResult.remainingCredits,
-          paymentResult.tier
+          paymentResult.tier,
+          recordingId,
+          agentTier
         );
 
         // Cache successful result for idempotency
@@ -282,6 +396,24 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
   } catch (error: unknown) {
     console.error("Vocalize API error:", error);
 
+    // Publish error event
+    try {
+      const eventHub = getAgentEventHub();
+      await eventHub.publish({
+        type: VOISSS_EVENT_TYPES.VOICE_GENERATION_FAILED,
+        source: 'vocalize-api',
+        data: {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: Date.now()
+        },
+        metadata: {
+          priority: 'high'
+        }
+      });
+    } catch (eventError) {
+      console.error('Failed to publish error event:', eventError);
+    }
+
     // Handle Zod validation errors
     if (error && typeof error === 'object' && 'issues' in error) {
       const zodError = error as { issues: Array<{ message: string }> };
@@ -311,176 +443,272 @@ async function generateAndReturnVoice(
   req: NextRequest,
   txHash?: string,
   remainingCredits?: bigint,
-  tier?: string
+  tier?: string,
+  recordingId?: string,
+  agentTier?: keyof import('@voisss/shared/services/agent-rate-limiter').AgentTierLimits
 ): Promise<NextResponse<VocalizeResponse>> {
-  // Validate API key
-  const apiKey = process.env.ELEVENLABS_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({
-      success: false,
-      error: "Voice service not configured"
-    }, { status: 500 });
-  }
-
-  // Generate audio using ElevenLabs
-  const ttsResponse = await fetch(
-    `${ELEVEN_API_BASE}/text-to-speech/${voiceId}`,
-    {
-      method: "POST",
-      headers: {
-        Accept: "audio/mpeg",
-        "Content-Type": "application/json",
-        "xi-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        text: text,
-        model_id: "eleven_multilingual_v2",
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.5,
-        },
-      }),
-    }
-  );
-
-  if (!ttsResponse.ok) {
-    const errorText = await ttsResponse.text().catch(() => "");
-    console.error("ElevenLabs TTS Error:", {
-      status: ttsResponse.status,
-      statusText: ttsResponse.statusText,
-      responseText: errorText,
-      voiceId,
-      agentAddress,
-    });
-
-    let userFriendlyMessage = `Voice generation failed: ${ttsResponse.status}`;
-    if (errorText.includes("quota")) {
-      userFriendlyMessage = "Voice service quota exceeded. Please try again later.";
-    } else if (ttsResponse.status === 401) {
-      userFriendlyMessage = "Voice service authentication failed.";
-    } else if (ttsResponse.status === 422) {
-      userFriendlyMessage = "Invalid voice ID or text content.";
-    }
-
-    return NextResponse.json({
-      success: false,
-      error: userFriendlyMessage
-    }, { status: ttsResponse.status });
-  }
-
-  // Get audio data
-  const audioBuffer = await ttsResponse.arrayBuffer();
-
-  // Generate content hash
-  const contentHash = generateContentHash(text, voiceId, agentAddress);
-  const recordingId = `voc_${Date.now()}_${contentHash.slice(0, 8)}`;
-
-  // Upload to IPFS with robust retry logic and fallback providers
-  let audioUrl: string;
-  let ipfsHash: string | undefined;
-  let isTemporary = false;
+  const agentId = agentAddress || getIdentifier(req);
+  const eventHub = getAgentEventHub();
 
   try {
-    // Use robust IPFS service with retry logic and fallbacks
-    const { createRobustIPFSService } = await import('@voisss/shared/services/ipfs-service');
-    const robustIpfsService = createRobustIPFSService();
+    // Validate API key
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    if (!apiKey) {
+      await eventHub.publish({
+        type: VOISSS_EVENT_TYPES.VOICE_GENERATION_FAILED,
+        source: 'vocalize-api',
+        data: {
+          recordingId,
+          agentId,
+          error: 'Voice service not configured',
+          characterCount
+        },
+        metadata: { priority: 'high' }
+      });
 
-    // Get fallback providers
-    const fallbackProviders = (robustIpfsService as any).getFallbackProviders?.() || [];
+      return NextResponse.json({
+        success: false,
+        error: "Voice service not configured"
+      }, { status: 500 });
+    }
 
-    const uploadResult = await robustIpfsService.uploadAudio(
-      Buffer.from(audioBuffer),
+    // Generate audio using ElevenLabs
+    const ttsResponse = await fetch(
+      `${ELEVEN_API_BASE}/text-to-speech/${voiceId}`,
       {
-        filename: `${recordingId}.mp3`,
-        mimeType: 'audio/mpeg',
-        duration: Math.ceil(text.length / 2.5), // Estimate duration
-      },
-      {
-        maxRetries: 3,
-        retryDelay: 1000,
-        fallbackProviders,
+        method: "POST",
+        headers: {
+          Accept: "audio/mpeg",
+          "Content-Type": "application/json",
+          "xi-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          text: text,
+          model_id: "eleven_multilingual_v2",
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.5,
+          },
+        }),
       }
     );
 
-    ipfsHash = uploadResult.hash;
-    audioUrl = uploadResult.url;
+    if (!ttsResponse.ok) {
+      const errorText = await ttsResponse.text().catch(() => "");
+      console.error("ElevenLabs TTS Error:", {
+        status: ttsResponse.status,
+        statusText: ttsResponse.statusText,
+        responseText: errorText,
+        voiceId,
+        agentAddress,
+      });
 
-    console.log(`✅ IPFS upload successful: ${ipfsHash}`);
+      let userFriendlyMessage = `Voice generation failed: ${ttsResponse.status}`;
+      if (errorText.includes("quota")) {
+        userFriendlyMessage = "Voice service quota exceeded. Please try again later.";
+      } else if (ttsResponse.status === 401) {
+        userFriendlyMessage = "Voice service authentication failed.";
+      } else if (ttsResponse.status === 422) {
+        userFriendlyMessage = "Invalid voice ID or text content.";
+      }
 
-  } catch (uploadError) {
-    console.error("🚨 All IPFS upload attempts failed:", uploadError);
+      // Publish failure event
+      await eventHub.publish({
+        type: VOISSS_EVENT_TYPES.VOICE_GENERATION_FAILED,
+        source: 'vocalize-api',
+        data: {
+          recordingId,
+          agentId,
+          error: userFriendlyMessage,
+          characterCount,
+          voiceId,
+          elevenlabsStatus: ttsResponse.status
+        },
+        metadata: { priority: 'high' }
+      });
 
-    // Store temporarily and return temp URL instead of base64
+      return NextResponse.json({
+        success: false,
+        error: userFriendlyMessage
+      }, { status: ttsResponse.status });
+    }
+
+    // Get audio data
+    const audioBuffer = await ttsResponse.arrayBuffer();
+
+    // Generate content hash
+    const contentHash = generateContentHash(text, voiceId, agentId);
+    const finalRecordingId = recordingId || `voc_${Date.now()}_${contentHash.slice(0, 8)}`;
+
+    // Upload to IPFS with robust retry logic and fallback providers
+    let audioUrl: string;
+    let ipfsHash: string | undefined;
+    let isTemporary = false;
+
     try {
-      const { getTempAudioStorage } = await import('@voisss/shared/services/temp-audio-storage');
-      const tempStorage = getTempAudioStorage();
+      // Use robust IPFS service with retry logic and fallbacks
+      const { createRobustIPFSService } = await import('@voisss/shared/services/ipfs-service');
+      const robustIpfsService = createRobustIPFSService();
 
-      const tempId = await tempStorage.storeTemporarily(
+      // Get fallback providers
+      const fallbackProviders = (robustIpfsService as any).getFallbackProviders?.() || [];
+
+      const uploadResult = await robustIpfsService.uploadAudio(
         Buffer.from(audioBuffer),
         {
-          filename: `${recordingId}.mp3`,
+          filename: `${finalRecordingId}.mp3`,
           mimeType: 'audio/mpeg',
-          duration: Math.ceil(text.length / 2.5),
-          recordingId,
-          agentAddress,
-          contentHash,
+          duration: Math.ceil(text.length / 2.5), // Estimate duration
+        },
+        {
+          maxRetries: 3,
+          retryDelay: 1000,
+          fallbackProviders,
         }
       );
 
-      // Generate temporary URL
-      audioUrl = tempStorage.generateTempUrl(tempId, req.nextUrl.origin);
-      isTemporary = true;
+      ipfsHash = uploadResult.hash;
+      audioUrl = uploadResult.url;
 
-      console.log(`📁 Audio stored temporarily: ${tempId}`);
-      console.log(`🔄 Will retry IPFS upload in background`);
+      console.log(`✅ IPFS upload successful: ${ipfsHash}`);
 
-      // TODO: Trigger background retry job here
-      // This could be a queue job, webhook, or scheduled task
+    } catch (uploadError) {
+      console.error("🚨 All IPFS upload attempts failed:", uploadError);
 
-    } catch (tempError) {
-      console.error("🚨 Failed to store audio temporarily:", tempError);
+      // Store temporarily and return temp URL instead of base64
+      try {
+        const { getTempAudioStorage } = await import('@voisss/shared/services/temp-audio-storage');
+        const tempStorage = getTempAudioStorage();
 
-      // Last resort: return error instead of base64
-      return NextResponse.json({
-        success: false,
-        error: "Audio generation succeeded but storage failed. Please try again.",
-        details: "Both IPFS upload and temporary storage failed"
-      }, { status: 503 }); // Service Unavailable
+        const tempId = await tempStorage.storeTemporarily(
+          Buffer.from(audioBuffer),
+          {
+            filename: `${finalRecordingId}.mp3`,
+            mimeType: 'audio/mpeg',
+            duration: Math.ceil(text.length / 2.5),
+            recordingId: finalRecordingId,
+            agentAddress: agentId,
+            contentHash,
+          }
+        );
+
+        // Generate temporary URL
+        audioUrl = tempStorage.generateTempUrl(tempId, req.nextUrl.origin);
+        isTemporary = true;
+
+        console.log(`📁 Audio stored temporarily: ${tempId}`);
+        console.log(`🔄 Will retry IPFS upload in background`);
+
+        // TODO: Trigger background retry job here
+        // This could be a queue job, webhook, or scheduled task
+
+      } catch (tempError) {
+        console.error("🚨 Failed to store audio temporarily:", tempError);
+
+        // Publish failure event
+        await eventHub.publish({
+          type: VOISSS_EVENT_TYPES.VOICE_GENERATION_FAILED,
+          source: 'vocalize-api',
+          data: {
+            recordingId: finalRecordingId,
+            agentId,
+            error: 'Storage failed',
+            characterCount,
+            voiceId
+          },
+          metadata: { priority: 'high' }
+        });
+
+        // Last resort: return error instead of base64
+        return NextResponse.json({
+          success: false,
+          error: "Audio generation succeeded but storage failed. Please try again.",
+          details: "Both IPFS upload and temporary storage failed"
+        }, { status: 503 }); // Service Unavailable
+      }
     }
-  }
 
-  // Log the successful generation
-  console.log(`Voice generated for agent ${agentAddress}:`, {
-    characterCount,
-    cost: formatUSDC(cost),
-    paymentMethod,
-    voiceId,
-    contentHash,
-    ipfsHash: ipfsHash || 'temporary',
-    isTemporary,
-  });
-
-  const result = {
-    success: true,
-    data: {
-      audioUrl,
-      contentHash,
-      cost: cost.toString(),
+    // Log the successful generation
+    console.log(`Voice generated for agent ${agentId}:`, {
       characterCount,
+      cost: formatUSDC(cost),
       paymentMethod,
-      recordingId,
-      ...(ipfsHash && { ipfsHash }),
-      ...(isTemporary && {
-        isTemporary: true,
-        note: "Audio is temporarily stored. IPFS upload will be retried in background."
-      }),
-      ...(txHash && { txHash }),
-      ...(remainingCredits !== undefined && { creditBalance: remainingCredits.toString() }),
-      ...(tier && { tier }),
-    }
-  };
+      voiceId,
+      contentHash,
+      ipfsHash: ipfsHash || 'temporary',
+      isTemporary,
+      tier: agentTier,
+    });
 
-  return NextResponse.json(result);
+    // Publish success event
+    await eventHub.publish({
+      type: VOISSS_EVENT_TYPES.VOICE_GENERATION_COMPLETED,
+      source: 'vocalize-api',
+      data: {
+        recordingId: finalRecordingId,
+        agentId,
+        audioUrl,
+        contentHash,
+        characterCount,
+        cost: cost.toString(),
+        paymentMethod,
+        voiceId,
+        tier: agentTier,
+        ...(ipfsHash && { ipfsHash }),
+        ...(isTemporary && { isTemporary: true }),
+        ...(txHash && { txHash })
+      },
+      metadata: {
+        priority: 'normal',
+        tags: ['voice-generation', 'success']
+      }
+    });
+
+    const result = {
+      success: true,
+      data: {
+        audioUrl,
+        contentHash,
+        cost: cost.toString(),
+        characterCount,
+        paymentMethod,
+        recordingId: finalRecordingId,
+        ...(ipfsHash && { ipfsHash }),
+        ...(isTemporary && {
+          isTemporary: true,
+          note: "Audio is temporarily stored. IPFS upload will be retried in background."
+        }),
+        ...(txHash && { txHash }),
+        ...(remainingCredits !== undefined && { creditBalance: remainingCredits.toString() }),
+        ...(tier && { tier }),
+        ...(agentTier && { agentTier }),
+      }
+    };
+
+    return NextResponse.json(result);
+
+  } catch (error) {
+    console.error("Voice generation error:", error);
+
+    // Publish failure event
+    await eventHub.publish({
+      type: VOISSS_EVENT_TYPES.VOICE_GENERATION_FAILED,
+      source: 'vocalize-api',
+      data: {
+        recordingId,
+        agentId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        characterCount,
+        voiceId
+      },
+      metadata: { priority: 'high' }
+    });
+
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : "Voice generation failed"
+    }, { status: 500 });
+  }
 }
 
 /**
@@ -539,6 +767,32 @@ function generateContentHash(text: string, voiceId: string, agentAddress: string
   const crypto = require('crypto');
   const data = `${text}:${voiceId}:${agentAddress}:${Date.now()}`;
   return crypto.createHash('sha256').update(data).digest('hex');
+}
+
+/**
+ * Determine agent tier based on security profile and address
+ */
+function determineAgentTier(
+  profile: import('@voisss/shared/services/agent-security').AgentSecurityProfile,
+  agentAddress?: string
+): keyof import('@voisss/shared/services/agent-rate-limiter').AgentTierLimits {
+  // Premium tier: High trust score and reputation
+  if (profile.trustScore >= 80 && profile.reputation >= 800) {
+    return 'premium';
+  }
+
+  // Verified tier: Good trust score and reputation
+  if (profile.trustScore >= 60 && profile.reputation >= 400) {
+    return 'verified';
+  }
+
+  // Registered tier: Has wallet address
+  if (agentAddress && /^0x[a-fA-F0-9]{40}$/.test(agentAddress)) {
+    return 'registered';
+  }
+
+  // Default to unregistered
+  return 'unregistered';
 }
 
 // Import SERVICE_COSTS from payment module
