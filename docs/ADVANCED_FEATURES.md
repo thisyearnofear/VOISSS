@@ -38,9 +38,31 @@ The Agent Gateway Pattern enables external agents (like OpenClaw) to integrate w
 
 The PaymentRouter supports three payment methods in priority order:
 
-1. **Prepaid Credits (for Agents)**: Best for high-volume agents, predictable costs
-2. **Token-Gated Tier (for $VOISSS Holders)**: Best for regular users, community members
-3. **x402 USDC (Universal Fallback)**: Best for one-time users, external agents without credits
+1. **Prepaid Credits (for Agents)**: Best for high-volume agents, predictable costs. **$VOISSS holders get up to 50% discount.**
+2. **Token-Gated Tier (for $VOISSS Holders)**: Best for regular users, community members. Includes daily free quotas.
+3. **x402 USDC (Universal Fallback)**: Best for one-time users, external agents without credits. Supports tiered discounts for token holders.
+
+### 💎 Tiered Discount Model
+
+VOISSS implements a "Dual-Token Economic Flywheel" where the native token provides direct utility by reducing the USDC cost of services:
+
+| Tier | $VOISSS Stake | Service Discount | Benefits |
+|------|---------------|------------------|----------|
+| **None** | 0 | 0% | Pay-as-you-go |
+| **Basic** | 10k+ | 10% OFF | Standard priority |
+| **Pro** | 50k+ | 25% OFF | High priority |
+| **Premium** | 250k+ | 50% OFF | VIP Lane, Max priority |
+
+*Discounts are automatically applied to both prepaid credit deductions and x402 on-chain payments.*
+
+### ⚪ Whitelisting & Beta Access
+
+The platform supports whitelisting specific wallet addresses for **100% complimentary access**. This is used for:
+- Platform owners and core developers
+- Official system agents
+- Beta testers and strategic partners
+
+Whitelisted addresses bypass all payment requirements and are automatically routed to the "Tier" access path with a $0 cost.
 
 ### Service Tiers
 

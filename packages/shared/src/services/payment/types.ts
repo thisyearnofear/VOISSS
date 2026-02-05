@@ -43,6 +43,31 @@ export const USDC_ADDRESS = {
 // COST CONFIGURATION
 // ============================================================================
 
+// ============================================================================
+// TIERED PRICING & DISCOUNTS
+// ============================================================================
+
+/**
+ * Discounts applied to service costs based on token tier.
+ * Higher tiers get deeper discounts for services not already covered.
+ */
+export const TIER_DISCOUNTS: Record<TokenTier, number> = {
+  none: 0,        // 0% discount
+  basic: 0.1,     // 10% discount
+  pro: 0.25,      // 25% discount
+  premium: 0.5,   // 50% discount
+};
+
+/**
+ * Addresses whitelisted for free platform use (beta testers, owners, etc.)
+ * Returns 100% discount regardless of tier.
+ */
+export const WHITELISTED_ADDRESSES = new Set([
+  '0xBE857DB4B4bD71a8bf8f50f950eecD7dDe68b85c'.toLowerCase(), // Owner/Platform address
+  '0x1234567890123456789012345678901234567890'.toLowerCase(), // Test address
+  '0x55A5705453Ee82c742274154136Fce8149597058'.toLowerCase(), // New Whitelisted Address
+]);
+
 export interface ServiceCost {
   service: ServiceType;
   baseCost: bigint; // in USDC wei (6 decimals)
@@ -138,7 +163,9 @@ export interface PaymentResult {
   txHash?: string;
   remainingCredits?: bigint; // in USDC wei
   tier?: TokenTier;
-  cost: bigint; // in USDC wei
+  baseCost: bigint; // original cost before discount
+  cost: bigint; // actual cost paid (after discount)
+  discountApplied?: number; // decimal (0.25 = 25%)
   error?: string;
   fallbackAvailable?: boolean;
 }
@@ -146,8 +173,10 @@ export interface PaymentResult {
 export interface PaymentQuote {
   service: ServiceType;
   quantity: number;
-  estimatedCost: bigint; // in USDC wei
+  baseCost: bigint; // original cost before discount
+  estimatedCost: bigint; // actual cost after discount
   unitCost: bigint;
+  discountPercent: number; // percentage (25 = 25%)
   availableMethods: PaymentMethod[];
   recommendedMethod: PaymentMethod;
   // Method-specific details
@@ -212,8 +241,10 @@ export const PaymentRequestSchema = z.object({
 export const PaymentQuoteSchema = z.object({
   service: z.string(),
   quantity: z.number(),
+  baseCost: z.string(),
   estimatedCost: z.string(), // bigint as string
   unitCost: z.string(),
+  discountPercent: z.number(),
   availableMethods: z.array(z.enum(['credits', 'tier', 'x402', 'none'])),
   recommendedMethod: z.enum(['credits', 'tier', 'x402', 'none']),
   creditsAvailable: z.string().optional(),
@@ -230,10 +261,12 @@ export const PaymentQuoteSchema = z.object({
  */
 export function calculateServiceCost(
   service: ServiceType,
-  quantity: number
-): bigint {
+  quantity: number,
+  tier: TokenTier = 'none',
+  address?: string
+): { baseCost: bigint; discountedCost: bigint; discountPercent: number } {
   const config = SERVICE_COSTS[service];
-  if (!config) return 0n;
+  if (!config) return { baseCost: 0n, discountedCost: 0n, discountPercent: 0 };
 
   let cost = config.baseCost;
 
@@ -249,7 +282,25 @@ export function calculateServiceCost(
     cost = config.maxCost;
   }
 
-  return cost;
+  // Check whitelist first (100% discount)
+  if (address && WHITELISTED_ADDRESSES.has(address.toLowerCase())) {
+    return {
+      baseCost: cost,
+      discountedCost: 0n,
+      discountPercent: 100,
+    };
+  }
+
+  // Apply discount based on tier
+  const discountRate = TIER_DISCOUNTS[tier];
+  const discountAmount = (cost * BigInt(Math.floor(discountRate * 100))) / 100n;
+  const discountedCost = cost - discountAmount;
+
+  return {
+    baseCost: cost,
+    discountedCost,
+    discountPercent: Math.floor(discountRate * 100),
+  };
 }
 
 /**

@@ -174,29 +174,45 @@ export default function X402Paywall({
               <div className="text-center mb-6">
                 {quote?.recommendedMethod === 'tier' && hasTier ? (
                   <div className="text-2xl font-bold text-green-400">
-                    Included
+                    {quote.estimatedCost === 0n ? 'Whitelisted / Included' : 'Included'}
                     <span className="text-sm font-normal text-gray-400 ml-2">
-                      with {quote.currentTier} tier
+                      {quote.estimatedCost === 0n ? 'Free access' : `with ${quote.currentTier} tier`}
                     </span>
                   </div>
                 ) : quote?.recommendedMethod === 'credits' && hasCredits ? (
-                  <div className="text-2xl font-bold text-blue-400">
-                    Use Credits
-                    <span className="text-sm font-normal text-gray-400 ml-2">
-                      {formatUSDC(quote.estimatedCost)}
-                    </span>
+                  <div className="space-y-1">
+                    <div className="text-2xl font-bold text-blue-400">
+                      Use Credits
+                      <span className="text-sm font-normal text-gray-400 ml-2">
+                        {formatUSDC(quote.estimatedCost)}
+                      </span>
+                    </div>
+                    {quote.discountPercent > 0 && (
+                      <p className="text-xs text-green-400 font-medium">
+                        {quote.discountPercent}% Tier Discount Applied
+                        <span className="text-gray-500 line-through ml-1.5">{formatUSDC(quote.baseCost)}</span>
+                      </p>
+                    )}
                   </div>
                 ) : (
-                  <div className="text-3xl font-black text-white">
-                    {displayCost}
-                    <span className="text-lg font-normal text-gray-400 ml-1">USDC</span>
+                  <div className="space-y-1">
+                    <div className="text-3xl font-black text-white">
+                      {displayCost}
+                      <span className="text-lg font-normal text-gray-400 ml-1">USDC</span>
+                    </div>
+                    {quote && quote.discountPercent > 0 && (
+                      <p className="text-xs text-green-400 font-medium">
+                        {quote.discountPercent}% Tier Discount Applied
+                        <span className="text-gray-500 line-through ml-1.5">{formatUSDC(quote.baseCost)}</span>
+                      </p>
+                    )}
                   </div>
                 )}
                 
                 {/* Method indicator */}
                 <p className="text-xs text-gray-500 mt-1">
                   {quote?.recommendedMethod === 'tier' && hasTier
-                    ? 'Token-gated access'
+                    ? (quote.estimatedCost === 0n ? 'Complimentary access enabled' : 'Token-gated access')
                     : quote?.recommendedMethod === 'credits' && hasCredits
                     ? 'Deduct from prepaid credits'
                     : 'Pay via x402 protocol'}

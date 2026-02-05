@@ -106,8 +106,8 @@ export class AgentSecurityService {
             threats.push(...payloadThreats);
         }
 
-        // 5. Rate pattern analysis
-        const rateThreats = this.analyzeRatePatterns(profile);
+        // 5. Request pattern analysis
+        const rateThreats = this.analyzeRequestPatterns(request, profile);
         threats.push(...rateThreats);
 
         // 6. User-Agent analysis

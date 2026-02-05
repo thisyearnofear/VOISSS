@@ -182,10 +182,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
     // SECURITY LAYER 3: Advanced Rate Limiting
     const rateLimiter = getAgentRateLimiter();
     const characterCount = text.length;
-    const cost = calculateServiceCost('voice_generation', characterCount);
+    // For rate limiting, we use the base cost (before discounts) to prevent abuse of cheaper rates
+    const { baseCost: rateLimitCost } = calculateServiceCost('voice_generation', characterCount);
 
     const rateLimitCheck = await rateLimiter.checkLimits(agentId, agentTier, {
-      cost,
+      cost: rateLimitCost,
       characters: characterCount
     });
 
@@ -260,8 +261,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
       }
     });
 
-    // Get payment quote
+    // Get payment quote (this now includes tier-based discounts)
     const quote = await paymentRouter.getQuote(agentAddress, 'voice_generation', characterCount);
+    const actualCost = quote.estimatedCost;
 
     // Check for X-PAYMENT header (x402 payment attempt)
     const paymentHeader = req.headers.get('X-PAYMENT');
@@ -281,9 +283,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
       const x402Client = (await import('@voisss/shared')).getX402Client();
       const requirements = x402Client.createRequirements(
         `${req.nextUrl.origin}/api/agents/vocalize`,
-        formatUSDC(cost),
+        formatUSDC(actualCost),
         process.env.X402_PAY_TO_ADDRESS || '',
-        `Voice generation: ${characterCount} characters`
+        `Voice generation: ${characterCount} characters (Discount: ${quote.discountPercent}%)`
       );
 
       // Process x402 payment
@@ -308,14 +310,16 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
         voiceId,
         agentAddress,
         characterCount,
-        cost,
+        paymentResult.cost,
         'x402',
         req,
         paymentResult.txHash,
         undefined,
         undefined,
         recordingId,
-        agentTier
+        agentTier,
+        paymentResult.baseCost,
+        paymentResult.discountApplied
       );
 
       // Cache successful result for idempotency
@@ -349,14 +353,16 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
           voiceId,
           agentAddress,
           characterCount,
-          cost,
+          paymentResult.cost,
           paymentResult.method,
           req,
           undefined,
           paymentResult.remainingCredits,
           paymentResult.tier,
           recordingId,
-          agentTier
+          agentTier,
+          paymentResult.baseCost,
+          paymentResult.discountApplied
         );
 
         // Cache successful result for idempotency
@@ -386,12 +392,13 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
     const x402Client = (await import('@voisss/shared')).getX402Client();
     const requirements = x402Client.createRequirements(
       `${req.nextUrl.origin}/api/agents/vocalize`,
-      formatUSDC(cost),
+      formatUSDC(actualCost),
       process.env.X402_PAY_TO_ADDRESS || '',
-      `Voice generation: ${characterCount} characters`
+      `Voice generation: ${characterCount} characters (Discount: ${quote.discountPercent}%)`
     );
 
     return createPaymentRequiredResponse(requirements) as NextResponse<VocalizeResponse>;
+
 
   } catch (error: unknown) {
     console.error("Vocalize API error:", error);
@@ -445,7 +452,9 @@ async function generateAndReturnVoice(
   remainingCredits?: bigint,
   tier?: string,
   recordingId?: string,
-  agentTier?: keyof import('@voisss/shared/services/agent-rate-limiter').AgentTierLimits
+  agentTier?: keyof import('@voisss/shared/services/agent-rate-limiter').AgentTierLimits,
+  baseCost?: bigint,
+  discountApplied?: number
 ): Promise<NextResponse<VocalizeResponse>> {
   const agentId = agentAddress || getIdentifier(req);
   const eventHub = getAgentEventHub();
@@ -638,6 +647,7 @@ async function generateAndReturnVoice(
       ipfsHash: ipfsHash || 'temporary',
       isTemporary,
       tier: agentTier,
+      discount: discountApplied ? `${Math.floor(discountApplied * 100)}%` : 'none',
     });
 
     // Publish success event
@@ -651,6 +661,8 @@ async function generateAndReturnVoice(
         contentHash,
         characterCount,
         cost: cost.toString(),
+        baseCost: baseCost?.toString(),
+        discountApplied,
         paymentMethod,
         voiceId,
         tier: agentTier,
@@ -670,6 +682,8 @@ async function generateAndReturnVoice(
         audioUrl,
         contentHash,
         cost: cost.toString(),
+        baseCost: baseCost?.toString(),
+        discountApplied,
         characterCount,
         paymentMethod,
         recordingId: finalRecordingId,
@@ -745,7 +759,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         costPerCharacter: SERVICE_COSTS.voice_generation.unitCost?.toString() || '1',
         sampleCost: {
           characters: sampleChars,
+          baseUsdc: formatUSDC(quote.baseCost),
           usdc: formatUSDC(quote.estimatedCost),
+          discountPercent: quote.discountPercent,
           wei: quote.estimatedCost.toString(),
         },
         availablePaymentMethods: quote.availableMethods,

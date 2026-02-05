@@ -307,11 +307,16 @@ export function usePayments(options: UsePaymentsOptions): UsePaymentsState {
       }
 
       // Construct quote from response
+      const sampleWei = BigInt(data.data.sampleCost.wei);
+      const sampleBaseWei = BigInt(data.data.sampleCost.wei) * 100n / BigInt(100 - data.data.sampleCost.discountPercent);
+      
       const paymentQuote: PaymentQuote = {
         service,
         quantity,
-        estimatedCost: BigInt(data.data.sampleCost.wei) * BigInt(quantity) / 1000n,
+        baseCost: sampleBaseWei * BigInt(quantity) / 1000n,
+        estimatedCost: sampleWei * BigInt(quantity) / 1000n,
         unitCost: BigInt(data.data.costPerCharacter),
+        discountPercent: data.data.sampleCost.discountPercent,
         availableMethods: data.data.availablePaymentMethods,
         recommendedMethod: data.data.recommendedMethod,
         creditsAvailable: data.data.creditBalance ? BigInt(data.data.creditBalance) : undefined,
@@ -340,7 +345,7 @@ export function usePayments(options: UsePaymentsOptions): UsePaymentsState {
     if (!address) {
       const error = new Error("Wallet not connected");
       setError(error);
-      return { success: false, method: 'none', cost: 0n, error: error.message };
+      return { success: false, method: 'none', baseCost: 0n, cost: 0n, error: error.message };
     }
 
     setIsPaying(true);
@@ -381,18 +386,16 @@ export function usePayments(options: UsePaymentsOptions): UsePaymentsState {
           const data = await checkResponse.json();
           if (data.success) {
             // Already paid via credits/tier
-            setLastResult({
+            const result: PaymentResult = {
               success: true,
               method: data.data.paymentMethod as any,
+              baseCost: BigInt(data.data.baseCost || data.data.cost),
               cost: BigInt(data.data.cost),
-              txHash: data.data.txHash,
-            });
-            return {
-              success: true,
-              method: data.data.paymentMethod as any,
-              cost: BigInt(data.data.cost),
+              discountApplied: data.data.discountApplied,
               txHash: data.data.txHash,
             };
+            setLastResult(result);
+            return result;
           }
           throw new Error(data.error || 'Unexpected response');
         }
@@ -432,7 +435,9 @@ export function usePayments(options: UsePaymentsOptions): UsePaymentsState {
         const result: PaymentResult = {
           success: true,
           method: 'x402',
+          baseCost: BigInt(data.data.baseCost || data.data.cost),
           cost: BigInt(data.data.cost),
+          discountApplied: data.data.discountApplied,
           txHash: data.data.txHash,
         };
 
@@ -461,7 +466,9 @@ export function usePayments(options: UsePaymentsOptions): UsePaymentsState {
       const result: PaymentResult = {
         success: true,
         method: data.data.paymentMethod as any,
+        baseCost: BigInt(data.data.baseCost || data.data.cost),
         cost: BigInt(data.data.cost),
+        discountApplied: data.data.discountApplied,
         remainingCredits: data.data.creditBalance ? BigInt(data.data.creditBalance) : undefined,
         tier: data.data.tier,
       };
@@ -476,7 +483,8 @@ export function usePayments(options: UsePaymentsOptions): UsePaymentsState {
       const result: PaymentResult = {
         success: false,
         method: 'none',
-        cost: quote?.estimatedCost || calculateServiceCost(service, quantity),
+        baseCost: quote?.baseCost || 0n,
+        cost: quote?.estimatedCost || 0n,
         error: error.message,
       };
       

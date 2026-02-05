@@ -154,10 +154,13 @@ function setServiceAuthorization(address service, bool authorized) external only
 - **Min Deposit**: 1 USDC
 - **Min Withdrawal**: 1 USDC
 
-### Service Tiers
-| Tier | Requirement | Benefits |
-|------|-------------|----------|
-| **None** | No tokens | Basic features, pay-per-use |
-| **Bronze** | 10k $VOISSS | Discounted rates, priority queue |
-| **Silver** | 50k $VOISSS | Better rates, premium voices |
-| **Gold** | 250k $VOISSS | Best rates, VIP support |
+### Service Tiers & Discounts
+| Tier | Requirement | Service Discount | Key Benefits |
+|------|-------------|------------------|--------------|
+| **None** | No tokens | 0% | Pay-as-you-go access |
+| **Bronze** | 10k $VOISSS | 10% OFF | Discounted rates, standard priority |
+| **Silver** | 50k $VOISSS | 25% OFF | Advanced rates, high priority |
+| **Gold** | 250k+ $VOISSS | 50% OFF | VIP rates, maximum priority lane |
+
+### Whitelisting & Beta Access
+The `PaymentRouter` includes a whitelisting mechanism for complimentary (100% discount) access. Whitelisted addresses bypass all payment requirements and are automatically routed to the tier access path with a $0 cost. This is used for platform owners, system agents, and authorized beta testers.

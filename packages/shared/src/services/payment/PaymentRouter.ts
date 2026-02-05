@@ -211,7 +211,8 @@ export class PaymentRouter {
     service: ServiceType,
     quantity: number
   ): Promise<PaymentQuote> {
-    const estimatedCost = calculateServiceCost(service, quantity);
+    const tier = await this.getUserTier(userAddress);
+    const { baseCost, discountedCost, discountPercent } = calculateServiceCost(service, quantity, tier, userAddress);
     const config = await this.getServiceCostConfig(service);
 
     // Check all available methods
@@ -219,14 +220,13 @@ export class PaymentRouter {
     
     // 1. Check credits
     const credits = await this.getAvailableCredits(userAddress);
-    if (credits >= estimatedCost) {
+    if (credits >= discountedCost) {
       availableMethods.push('credits');
     }
 
-    // 2. Check tier
-    const tier = await this.getUserTier(userAddress);
+    // 2. Check tier coverage (free usage)
     const tierCovers = this.tierCoversService(tier, service, userAddress, quantity);
-    if (tierCovers) {
+    if (tierCovers || discountedCost === 0n) {
       availableMethods.push('tier');
     }
 
@@ -238,19 +238,22 @@ export class PaymentRouter {
       availableMethods,
       this.config.preference,
       credits,
-      estimatedCost
+      discountedCost,
+      userAddress
     );
 
     return {
       service,
       quantity,
-      estimatedCost,
+      baseCost,
+      estimatedCost: discountedCost,
       unitCost: config.unitCost ?? 0n,
+      discountPercent,
       availableMethods,
       recommendedMethod,
       creditsAvailable: credits,
       currentTier: tier,
-      tierCoversService: tierCovers,
+      tierCoversService: tierCovers || discountedCost === 0n,
     };
   }
 
@@ -263,24 +266,26 @@ export class PaymentRouter {
    */
   async process(request: PaymentRequest): Promise<PaymentResult> {
     const { userAddress, service, quantity } = request;
-    const cost = calculateServiceCost(service, quantity);
-
-    // Get quote to determine best method
+    
+    // Get quote to determine best method and discounted cost
     const quote = await this.getQuote(userAddress, service, quantity);
+    const cost = quote.estimatedCost;
 
     // Try methods in priority order
     switch (quote.recommendedMethod) {
       case 'credits':
-        return this.processCreditPayment(userAddress, cost);
+        return this.processCreditPayment(userAddress, quote.baseCost, cost, quote.discountPercent);
       
       case 'tier':
-        return this.processTierAccess(userAddress, service, quantity, cost);
+        return this.processTierAccess(userAddress, service, quantity, quote.baseCost);
       
       case 'x402':
         return {
           success: false,
           method: 'none',
+          baseCost: quote.baseCost,
           cost,
+          discountApplied: quote.discountPercent / 100,
           error: 'x402 payment requires client-side signing',
           fallbackAvailable: true,
         };
@@ -289,6 +294,7 @@ export class PaymentRouter {
         return {
           success: false,
           method: 'none',
+          baseCost: quote.baseCost,
           cost,
           error: 'No payment method available',
         };
@@ -306,7 +312,8 @@ export class PaymentRouter {
     payment: X402PaymentPayload,
     requirements: X402PaymentRequirements
   ): Promise<PaymentResult> {
-    const cost = calculateServiceCost(service, quantity);
+    const tier = await this.getUserTier(userAddress);
+    const { baseCost, discountedCost, discountPercent } = calculateServiceCost(service, quantity, tier, userAddress);
 
     // Verify payment with facilitator
     const verification = await this.x402Client.verifyPayment(payment, requirements);
@@ -315,7 +322,9 @@ export class PaymentRouter {
       return {
         success: false,
         method: 'x402',
-        cost,
+        baseCost,
+        cost: discountedCost,
+        discountApplied: discountPercent / 100,
         error: verification.error || 'Payment verification failed',
       };
     }
@@ -327,7 +336,9 @@ export class PaymentRouter {
       success: true,
       method: 'x402',
       txHash: verification.txHash,
-      cost,
+      baseCost,
+      cost: discountedCost,
+      discountApplied: discountPercent / 100,
     };
   }
 
@@ -377,8 +388,14 @@ export class PaymentRouter {
     available: PaymentMethod[],
     preference: PaymentPreference,
     creditsAvailable: bigint,
-    cost: bigint
+    cost: bigint,
+    address?: string
   ): PaymentMethod {
+    // If cost is 0 (whitelisted or tier covered), always prefer tier
+    if (cost === 0n && available.includes('tier')) {
+      return 'tier';
+    }
+
     switch (preference) {
       case 'credits_first':
         if (available.includes('credits')) return 'credits';
@@ -403,15 +420,19 @@ export class PaymentRouter {
 
   private async processCreditPayment(
     address: string,
-    cost: bigint
+    baseCost: bigint,
+    discountedCost: bigint,
+    discountPercent: number
   ): Promise<PaymentResult> {
-    const success = await creditStore.deductCredits(address, cost);
+    const success = await creditStore.deductCredits(address, discountedCost);
     
     if (!success) {
       return {
         success: false,
         method: 'credits',
-        cost,
+        baseCost,
+        cost: discountedCost,
+        discountApplied: discountPercent / 100,
         error: 'Insufficient credits',
         fallbackAvailable: true,
       };
@@ -422,7 +443,9 @@ export class PaymentRouter {
     return {
       success: true,
       method: 'credits',
-      cost,
+      baseCost,
+      cost: discountedCost,
+      discountApplied: discountPercent / 100,
       remainingCredits: remaining,
     };
   }
@@ -431,7 +454,7 @@ export class PaymentRouter {
     address: string,
     service: ServiceType,
     quantity: number,
-    cost: bigint
+    baseCost: bigint
   ): Promise<PaymentResult> {
     const tier = await this.getUserTier(address);
     
@@ -442,7 +465,9 @@ export class PaymentRouter {
       success: true,
       method: 'tier',
       tier,
+      baseCost,
       cost: 0n, // No direct cost for tier access
+      discountApplied: 1.0, // 100% discount
     };
   }
 
