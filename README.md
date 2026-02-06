@@ -11,14 +11,14 @@
 
 **🌐 Web App**: https://voisss.netlify.app/ ✅ **PRODUCTION READY**
 
-**🔗 Smart Contracts (Base Sepolia)** ✅ **DEPLOYED FOR WEB**
-- **BaseVoiceStorage**: Decentralized voice recording storage
-- **BaseUserRegistry**: User profiles and social features
-- **BaseAccessControl**: Privacy and permission management
+**🔗 Smart Contracts (Base Mainnet)** ✅ **DEPLOYED FOR WEB**
+- **AgentRegistry**: `0x27793FB04A35142445dd08F908F3b884061Ea3FA` (v1) / `0xBE857DB4B4bD71a8bf8f50f950eecD7dDe68b85c` (v2)
+- **ReputationRegistry**: `0xA09094Cc126166deC8800a7Ada7a3BbDAA32B127`
+- **VoiceRecords**: `0x32bd629fBD5096b37f1cAee011A7E481A09Ac54D`
 
 **📱 Mobile App Contracts (Scroll Sepolia)** 🔄 **IN DEVELOPMENT**
-- **ScrollVRF**: Fair randomness for voice selection (Mobile Only)
-- **ScrollPrivacy**: Private content storage with access control (Mobile Only)
+- **ScrollVRF**: `0x50a0365A3BD6a3Ab4bC31544A955Ba4974Fc7208` (Mobile Only)
+- **ScrollPrivacy**: `0x0abD2343311985Fd1e0159CE39792483b908C03a` (Mobile Only)
 
 ## ✨ Key Features
 
@@ -77,6 +77,7 @@ Comprehensive guides available in our docs directory:
 - **[Architecture](./docs/ARCHITECTURE.md)** - System architecture details
 - **[Agentic Integration](./docs/AGENT_INTEGRATION.md)** - AI assistant implementation
 - **[Blockchain Integration](./docs/BLOCKCHAIN_INTEGRATION.md)** - Multi-chain setup
+- **[Base Mainnet Contracts](./packages/contracts/BASE_MAINNET_DEPLOYED.md)** - Web app contract details
 - **[Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment
 
 ## 🤝 Contributing
