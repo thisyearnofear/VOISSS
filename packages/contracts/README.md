@@ -1,6 +1,6 @@
 # VOISSS Smart Contracts
 
-Starknet smart contracts for the VOISSS decentralized voice recording platform.
+Multi-chain smart contracts for the VOISSS decentralized voice recording platform.
 
 ## 📋 **Implementation Status**
 
@@ -35,7 +35,29 @@ Starknet smart contracts for the VOISSS decentralized voice recording platform.
 
 ### 🚀 **DEPLOYMENT STATUS**
 
-#### **Scroll Sepolia Testnet** ✅ **LIVE**
+#### **Base Sepolia Testnet** ✅ **FOR WEB APP**
+
+**Core Contracts:**
+- **BaseVoiceStorage**: Decentralized voice recording storage
+- **BaseUserRegistry**: User profiles and social features
+- **BaseAccessControl**: Privacy and permission management
+
+**Features:**
+- Gasless transactions via Base Account SDK
+- Optimized for desktop/laptop recording workflows
+- 99% lower gas fees compared to Ethereum mainnet
+
+**🎉 Base Deployment for Web App:**
+
+- **Network**: Base Sepolia Testnet
+- **RPC**: https://sepolia.base.org/
+- **Features**:
+  - ✅ Gasless transactions via Base Account SDK
+  - ✅ Full integration with web application
+  - ✅ Optimized for desktop/laptop recording workflows
+  - ✅ 99% lower gas fees compared to Ethereum mainnet
+
+#### **Scroll Sepolia Testnet** ✅ **FOR MOBILE APP**
 
 - ✅ **ScrollVRF**: `0x50a0365A3BD6a3Ab4bC31544A955Ba4974Fc7208`
 - ✅ **ScrollPrivacy**: `0x0abD2343311985Fd1e0159CE39792483b908C03a`
@@ -49,7 +71,7 @@ export const SCROLL_SEPOLIA_CONTRACTS = {
 };
 ```
 
-**🎉 Scroll Deployment Success:**
+**🎉 Scroll Deployment for Mobile App:**
 
 - **Network**: Scroll Sepolia Testnet
 - **Deployed**: December 13, 2025
@@ -57,7 +79,8 @@ export const SCROLL_SEPOLIA_CONTRACTS = {
 - **Features**:
   - ✅ ScrollVRF: Fair randomness for voice selection (blockhash-based entropy)
   - ✅ ScrollPrivacy: Private content with zk proof support and access control
-  - ✅ Both contracts verified and ready for integration
+  - ✅ Both contracts verified and ready for mobile integration
+  - ✅ Optimized for mobile recording workflows
   - ✅ 60-80% gas savings vs Ethereum mainnet
 
 #### **Starknet Sepolia Testnet** ✅ **LEGACY (Previous Network)**
@@ -66,17 +89,18 @@ export const SCROLL_SEPOLIA_CONTRACTS = {
 - ✅ **UserRegistry**: `0x52bb03f52e7c07d6f7053b0fc7c52c9e0c7d73ceb36fab93db3d7bbc578bb63`
 - ✅ **AccessControl**: `0x5db925a0dfe7ab9137121613ef66a32ceb48acbc9cc33091d804dd9feb983b5`
 
-**Note**: Starknet contracts remain deployed for reference but focus has shifted to Scroll for hackathon compliance.
+**Note**: Starknet contracts remain deployed for reference but focus has shifted to Base for web and Scroll for mobile.
 
 ### 🔗 **INTEGRATION STATUS**
 
-#### **✅ Web App Integration (Complete)**
+#### **✅ Web App Integration (Complete - Base)**
 
-- ✅ **StarknetRecordingStudio**: Full recording studio with wallet integration
-- ✅ **WalletConnector**: ArgentX/Braavos wallet connection
-- ✅ **Contract Service**: Ready for real contract interaction
+- ✅ **BaseRecordingStudio**: Full recording studio with wallet integration
+- ✅ **WalletConnector**: MetaMask and other EVM-compatible wallets
+- ✅ **Contract Service**: Ready for Base contract interaction
 - ✅ **UI/UX**: Professional recording interface with waveform visualization
 - ✅ **State Management**: Conditional rendering based on wallet connection
+- ✅ **Gasless Transactions**: Via Base Account SDK
 
 #### **✅ Flutter App Integration (Complete)**
 
@@ -87,17 +111,16 @@ export const SCROLL_SEPOLIA_CONTRACTS = {
 - ✅ **Network Switching**: Sepolia/Mainnet support
 - ✅ **State Persistence**: Wallet connection state saved locally
 
-#### **✅ Scroll Integration (In Progress)**
+#### **✅ Scroll Integration (In Progress - Mobile)**
 
-Scroll contracts deployed and ready for integration:
+Scroll contracts deployed and ready for mobile app integration:
 
 1. ✅ ScrollVRF deployed - Fair randomness for voice selection
 2. ✅ ScrollPrivacy deployed - Private content storage and access control
 3. 🔄 Mobile app integration in progress
-4. 🔄 Web app integration pending
-5. 🔄 End-to-end testing: recording → IPFS → Scroll
+4. 🔄 End-to-end testing: recording → IPFS → Scroll
 
-**Next Steps**:
+**Next Steps for Mobile**:
 - Integrate ScrollVRF for random voice style selection
 - Integrate ScrollPrivacy for private recording access control
 - Connect via Wagmi/viem for wallet interactions
