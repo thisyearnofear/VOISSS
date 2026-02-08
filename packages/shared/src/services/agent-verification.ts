@@ -4,6 +4,7 @@
  */
 
 import { createHash, randomBytes } from 'crypto';
+import { verifyMessage } from 'viem';
 
 export interface AgentChallenge {
     id: string;
@@ -140,6 +141,39 @@ export class AgentVerificationService {
             confidence,
             reason: reasons.join(', ') || 'Behavioral analysis inconclusive'
         };
+    }
+
+    async verifyAgentProof(
+        agentAddress: string,
+        proof: string,
+        timestamp: string
+    ): Promise<{ valid: boolean; reason: string }> {
+        const age = Date.now() - parseInt(timestamp, 10);
+        if (isNaN(age) || age > this.CHALLENGE_TTL) {
+            return { valid: false, reason: 'Proof timestamp expired or invalid' };
+        }
+
+        const message = AgentVerificationService.getProofMessage(agentAddress, timestamp);
+
+        try {
+            const recovered = await verifyMessage({
+                address: agentAddress as `0x${string}`,
+                message,
+                signature: proof as `0x${string}`,
+            });
+
+            if (!recovered) {
+                return { valid: false, reason: 'Signature does not match agent address' };
+            }
+
+            return { valid: true, reason: 'Agent proof verified' };
+        } catch {
+            return { valid: false, reason: 'Invalid signature format' };
+        }
+    }
+
+    static getProofMessage(agentAddress: string, timestamp: string): string {
+        return `VOISSS-Agent:${agentAddress.toLowerCase()}:${timestamp}`;
     }
 
     /**

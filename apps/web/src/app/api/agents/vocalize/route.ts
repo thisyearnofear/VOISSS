@@ -107,31 +107,52 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
 
     // SECURITY LAYER 1: Agent Verification (reverse CAPTCHA)
     const agentProof = req.headers.get('X-Agent-Proof');
-    const skipVerification = req.headers.get('X-Skip-Agent-Verification') === 'true';
+    const timestamp = req.headers.get('X-Agent-Timestamp');
+    const verificationService = getAgentVerificationService();
 
-    if (!skipVerification) {
-      const verificationService = getAgentVerificationService();
+    if (agentAddress && agentProof) {
+      const proofResult = await verificationService.verifyAgentProof(agentAddress, agentProof, timestamp || '');
+      if (proofResult.valid) {
+        console.log(`🤖 Agent verification: PASS via wallet proof (agent: ${agentAddress})`);
+      } else {
+        return NextResponse.json({
+          success: false,
+          error: "Agent proof verification failed",
+          details: {
+            reason: proofResult.reason,
+          }
+        }, { status: 403 });
+      }
+    } else {
       const verification = verificationService.verifyAgentBehavior({
         userAgent,
         headers,
         payload: body
       });
 
-      // If confidence is low, require explicit agent proof
-      if (verification.confidence < 0.6 && !agentProof) {
+      if (verification.confidence < 0.6) {
         return NextResponse.json({
           success: false,
           error: "Agent verification required",
           details: {
             reason: verification.reason,
             confidence: verification.confidence,
-            instructions: "This endpoint is designed for AI agents. Please include X-Agent-Proof header or solve a verification challenge.",
+            instructions: {
+              method: "Sign a proof message with your agent wallet and include it in the request headers.",
+              headers: {
+                "X-Agent-Proof": "<wallet_signature>",
+                "X-Agent-Timestamp": "<unix_ms_timestamp>"
+              },
+              messageFormat: "VOISSS-Agent:<your_agent_address_lowercase>:<timestamp_ms>",
+              example: `curl -X POST /api/agents/vocalize -H "X-Agent-Proof: 0x..." -H "X-Agent-Timestamp: ${Date.now()}" -H "Content-Type: application/json" -d '{"text":"hello","voiceId":"...","agentAddress":"0x..."}'`,
+              note: "Timestamp must be within 5 minutes of server time."
+            },
             challengeEndpoint: "/api/agents/verify"
           }
         }, { status: 403 });
       }
 
-      console.log(`🤖 Agent verification: ${verification.isAgent ? 'PASS' : 'UNCERTAIN'} (confidence: ${verification.confidence.toFixed(2)})`);
+      console.log(`🤖 Agent verification: ${verification.isAgent ? 'PASS' : 'UNCERTAIN'} via behavioral (confidence: ${verification.confidence.toFixed(2)})`);
     }
 
     // SECURITY LAYER 2: Comprehensive Security Check
