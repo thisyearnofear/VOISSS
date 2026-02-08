@@ -19,7 +19,8 @@ declare module 'viem' {
     getContract,
     encodeFunctionData,
     keccak256,
-    toHex
+    toHex,
+    verifyMessage
   } from 'viem';
   export { base, mainnet } from 'viem/chains';
 }

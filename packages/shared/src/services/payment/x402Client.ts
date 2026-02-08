@@ -168,6 +168,8 @@ export class X402Client {
     requirements: X402PaymentRequirements
   ): Promise<{ success: boolean; txHash?: string; error?: string }> {
     try {
+      const { signature, ...authorization } = payment;
+
       const response = await fetch(`${this.config.facilitatorUrl}/verify`, {
         method: 'POST',
         headers: {
@@ -175,7 +177,15 @@ export class X402Client {
         },
         body: JSON.stringify({
           x402Version: 1,
-          paymentPayload: { x402Version: 1, ...payment },
+          paymentPayload: {
+            x402Version: 1,
+            scheme: 'exact',
+            network: this.networkId,
+            payload: {
+              signature,
+              authorization,
+            },
+          },
           paymentRequirements: requirements,
         }),
       });
@@ -211,6 +221,8 @@ export class X402Client {
     requirements: X402PaymentRequirements
   ): Promise<{ valid: boolean; error?: string }> {
     try {
+      const { signature, ...authorization } = payment;
+
       const response = await fetch(`${this.config.facilitatorUrl}/validate`, {
         method: 'POST',
         headers: {
@@ -218,7 +230,15 @@ export class X402Client {
         },
         body: JSON.stringify({
           x402Version: 1,
-          paymentPayload: { x402Version: 1, ...payment },
+          paymentPayload: {
+            x402Version: 1,
+            scheme: 'exact',
+            network: this.networkId,
+            payload: {
+              signature,
+              authorization,
+            },
+          },
           paymentRequirements: requirements,
         }),
       });
