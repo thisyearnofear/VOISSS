@@ -175,8 +175,8 @@ export class X402Client {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          payment,
-          requirements,
+          paymentPayload: payment,
+          paymentRequirements: requirements,
         }),
       });
 
@@ -217,8 +217,8 @@ export class X402Client {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          payment,
-          requirements,
+          paymentPayload: payment,
+          paymentRequirements: requirements,
         }),
       });
 
