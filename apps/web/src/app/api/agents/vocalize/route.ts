@@ -296,7 +296,16 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
       if (!payment) {
         return NextResponse.json({
           success: false,
-          error: 'Invalid payment header'
+          error: 'Invalid payment header. X-PAYMENT must be JSON (or base64-encoded JSON) matching X402PaymentPayload.',
+          expectedFormat: {
+            signature: "0x...(EIP-712 TransferWithAuthorization signature)",
+            from: "0x...(your agent address)",
+            to: "0x...(payTo from 402 response)",
+            value: "100",
+            validAfter: "0",
+            validBefore: "9999999999",
+            nonce: "0x...(random 32-byte hex)"
+          }
         }, { status: 400 });
       }
 

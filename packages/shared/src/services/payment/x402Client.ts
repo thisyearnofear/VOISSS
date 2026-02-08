@@ -339,7 +339,11 @@ export function parsePaymentHeader(header: string | null): X402PaymentPayload | 
   try {
     return JSON.parse(header) as X402PaymentPayload;
   } catch {
-    return null;
+    try {
+      return JSON.parse(Buffer.from(header, 'base64').toString('utf-8')) as X402PaymentPayload;
+    } catch {
+      return null;
+    }
   }
 }
 
