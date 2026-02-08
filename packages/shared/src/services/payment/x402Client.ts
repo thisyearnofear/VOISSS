@@ -11,6 +11,8 @@
  * - Facilitator handles settlement
  */
 
+import { getAddress } from 'viem';
+
 // Types imported from payment module
 
 // ============================================================================
@@ -22,24 +24,24 @@ export const X402_CONSTANTS = {
   FACILITATOR_URL: 'https://facilitator.x402.rs',
   FACILITATOR_URL_TESTNET: 'https://x402.org/facilitator',
   CDP_FACILITATOR_URL: 'https://api.cdp.coinbase.com/platform/v2/x402',
-  
+
   // Networks (CAIP-2 format)
   NETWORK_BASE: 'eip155:8453',
   NETWORK_BASE_SEPOLIA: 'eip155:84532',
-  
+
   // USDC Contract Addresses
   USDC_BASE: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
   USDC_BASE_SEPOLIA: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
-  
+
   // EIP-712 Domain for USDC
   EIP712_NAME: 'USD Coin',
   EIP712_VERSION: '2',
-  
+
   // Headers
   PAYMENT_REQUIRED_HEADER: 'X-PAYMENT-REQUIRED',
   PAYMENT_HEADER: 'X-PAYMENT',
   PAYMENT_RESPONSE_HEADER: 'X-PAYMENT-RESPONSE',
-  
+
   // Status
   STATUS_PAYMENT_REQUIRED: 402,
 } as const;
@@ -105,8 +107,8 @@ export class X402Client {
    * Get USDC address for current network
    */
   get usdcAddress(): string {
-    return this.config.network === 'base' 
-      ? X402_CONSTANTS.USDC_BASE 
+    return this.config.network === 'base'
+      ? X402_CONSTANTS.USDC_BASE
       : X402_CONSTANTS.USDC_BASE_SEPOLIA;
   }
 
@@ -136,7 +138,19 @@ export class X402Client {
     if (!match) {
       throw new Error(`Invalid amount format: ${amount}`);
     }
-    
+
+    // Ensure payTo is checksummed properly
+    let checksummedPayTo = payTo;
+    try {
+      if (!payTo) throw new Error("PayTo address is empty");
+      // Trim whitespace and checksum
+      checksummedPayTo = getAddress(payTo.trim());
+    } catch (e) {
+      console.error(`Invalid payTo address format: "${payTo}"`, e);
+      // Fallback: throw error to fail fast if address is invalid
+      throw new Error(`Invalid payTo address format: ${payTo}`);
+    }
+
     const dollars = parseFloat(match[1]);
     const wei = Math.floor(dollars * 1_000_000); // USDC has 6 decimals
 
@@ -147,7 +161,7 @@ export class X402Client {
       resource: resourceUrl,
       description,
       mimeType: 'application/json',
-      payTo,
+      payTo: checksummedPayTo,
       maxTimeoutSeconds: this.config.maxTimeoutSeconds,
       asset: this.usdcAddress,
       extra: {
@@ -196,7 +210,7 @@ export class X402Client {
       }
 
       const result = await response.json();
-      
+
       return {
         success: result.success ?? result.isValid ?? true,
         txHash: result.txHash,
