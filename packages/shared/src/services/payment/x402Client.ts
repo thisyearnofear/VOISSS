@@ -19,8 +19,9 @@
 
 export const X402_CONSTANTS = {
   // Facilitator URLs
-  FACILITATOR_URL: 'https://x402.org/facilitator',
-  CDP_FACILITATOR_URL: 'https://facilitator.cdp.coinbase.com',
+  FACILITATOR_URL: 'https://facilitator.x402.rs',
+  FACILITATOR_URL_TESTNET: 'https://x402.org/facilitator',
+  CDP_FACILITATOR_URL: 'https://api.cdp.coinbase.com/platform/v2/x402',
   
   // Networks (CAIP-2 format)
   NETWORK_BASE: 'eip155:8453',
@@ -110,12 +111,10 @@ export class X402Client {
   }
 
   /**
-   * Get CAIP-2 network identifier
+   * Get network identifier for facilitator requests
    */
-  get caip2Network(): string {
-    return this.config.network === 'base'
-      ? X402_CONSTANTS.NETWORK_BASE
-      : X402_CONSTANTS.NETWORK_BASE_SEPOLIA;
+  get networkId(): string {
+    return this.config.network === 'base' ? 'base' : 'base-sepolia';
   }
 
   /**
@@ -143,7 +142,7 @@ export class X402Client {
 
     return {
       scheme: 'exact',
-      network: this.caip2Network,
+      network: this.networkId,
       maxAmountRequired: wei.toString(),
       resource: resourceUrl,
       description,
@@ -175,7 +174,8 @@ export class X402Client {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          paymentPayload: payment,
+          x402Version: 1,
+          paymentPayload: { x402Version: 1, ...payment },
           paymentRequirements: requirements,
         }),
       });
@@ -188,9 +188,9 @@ export class X402Client {
       const result = await response.json();
       
       return {
-        success: result.success ?? true,
+        success: result.success ?? result.isValid ?? true,
         txHash: result.txHash,
-        error: result.error,
+        error: result.error || result.invalidReason,
       };
     } catch (error) {
       return {
@@ -217,7 +217,8 @@ export class X402Client {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          paymentPayload: payment,
+          x402Version: 1,
+          paymentPayload: { x402Version: 1, ...payment },
           paymentRequirements: requirements,
         }),
       });
