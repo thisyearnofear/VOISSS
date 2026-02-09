@@ -94,6 +94,10 @@ SPENDER_PRIVATE_KEY=          # For gasless transactions
 PINATA_API_KEY=
 PINATA_API_SECRET=
 
+# CDP Facilitator (x402 payment verification)
+CDP_API_KEY_ID=               # Coinbase Developer Platform API key ID
+CDP_API_KEY_SECRET=           # Coinbase Developer Platform API key secret
+
 # Optional
 X402_PAY_TO_ADDRESS=          # x402 payment receiver
 ELEVENLABS_TOOL_SECRET_KEY=   # Webhook auth
@@ -104,7 +108,7 @@ ELEVENLABS_TOOL_SECRET_KEY=   # Webhook auth
 - **ElevenLabs**: Voice generation and transformation
 - **Base**: Gasless transactions via Sub Accounts
 - **IPFS/Pinata**: Decentralized audio storage
-- **x402**: Micropayments on Base (USDC)
+- **x402**: Micropayments on Base (USDC) via Coinbase CDP Facilitator
 
 ## Testing Agent Endpoints
 

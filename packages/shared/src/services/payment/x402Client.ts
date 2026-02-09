@@ -1,19 +1,18 @@
 /**
  * x402 Client Wrapper
  * 
- * Thin wrapper around the official x402 protocol client.
+ * Uses the Coinbase CDP Facilitator for payment verification and settlement.
  * USDC-only, Base-only - following x402 best practices.
  * 
  * Core Principles:
- * - Use official x402 client (don't reinvent)
+ * - CDP Facilitator (official Coinbase, v1+v2, free tier 1k tx/month)
  * - USDC only (protocol standard)
  * - Gasless transfers via EIP-3009
  * - Facilitator handles settlement
  */
 
 import { getAddress } from 'viem';
-
-// Types imported from payment module
+import { generateJwt } from '@coinbase/cdp-sdk/auth';
 
 // ============================================================================
 // X402 PROTOCOL CONSTANTS
@@ -21,13 +20,12 @@ import { getAddress } from 'viem';
 
 export const X402_CONSTANTS = {
   // Facilitator URLs
-  FACILITATOR_URL: 'https://facilitator.x402.rs',
-  FACILITATOR_URL_TESTNET: 'https://x402.org/facilitator',
   CDP_FACILITATOR_URL: 'https://api.cdp.coinbase.com/platform/v2/x402',
+  FACILITATOR_URL_TESTNET: 'https://x402.org/facilitator',
 
-  // Networks (CAIP-2 format)
-  NETWORK_BASE: 'eip155:8453',
-  NETWORK_BASE_SEPOLIA: 'eip155:84532',
+  // Networks
+  NETWORK_BASE: 'base',
+  NETWORK_BASE_SEPOLIA: 'base-sepolia',
 
   // USDC Contract Addresses
   USDC_BASE: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
@@ -54,18 +52,20 @@ export interface X402Config {
   facilitatorUrl: string;
   network: 'base' | 'base-sepolia';
   maxTimeoutSeconds: number;
+  cdpApiKeyId?: string;
+  cdpApiKeySecret?: string;
 }
 
 export interface X402PaymentRequirements {
   scheme: 'exact' | 'upto';
-  network: string; // CAIP-2
-  maxAmountRequired: string; // in token wei
+  network: string;
+  maxAmountRequired: string;
   resource: string;
   description: string;
   mimeType: string;
   payTo: string;
   maxTimeoutSeconds: number;
-  asset: string; // token contract address
+  asset: string;
   extra: {
     name: string;
     version: string;
@@ -87,9 +87,11 @@ export interface X402PaymentPayload {
 // ============================================================================
 
 export const DEFAULT_CONFIG: X402Config = {
-  facilitatorUrl: X402_CONSTANTS.FACILITATOR_URL,
+  facilitatorUrl: X402_CONSTANTS.CDP_FACILITATOR_URL,
   network: 'base',
   maxTimeoutSeconds: 60,
+  cdpApiKeyId: process.env.CDP_API_KEY_ID,
+  cdpApiKeySecret: process.env.CDP_API_KEY_SECRET,
 };
 
 // ============================================================================
@@ -103,32 +105,40 @@ export class X402Client {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
-  /**
-   * Get USDC address for current network
-   */
   get usdcAddress(): string {
     return this.config.network === 'base'
       ? X402_CONSTANTS.USDC_BASE
       : X402_CONSTANTS.USDC_BASE_SEPOLIA;
   }
 
-  /**
-   * Get network identifier for facilitator requests
-   */
   get networkId(): string {
     return this.config.network === 'base'
       ? X402_CONSTANTS.NETWORK_BASE
       : X402_CONSTANTS.NETWORK_BASE_SEPOLIA;
   }
 
-  /**
-   * Create payment requirements for a resource
-   * 
-   * @param resourceUrl - URL of the resource being paid for
-   * @param amount - Amount in USDC wei (bigint) or formatted string (e.g., "$0.01")
-   * @param payTo - Recipient address
-   * @param description - Optional description
-   */
+  private isCdpFacilitator(): boolean {
+    return this.config.facilitatorUrl.includes('api.cdp.coinbase.com');
+  }
+
+  private async getCdpAuthHeaders(method: string, path: string): Promise<Record<string, string>> {
+    if (!this.isCdpFacilitator()) return {};
+    if (!this.config.cdpApiKeyId || !this.config.cdpApiKeySecret) {
+      console.warn('CDP API keys not configured, requests may fail');
+      return {};
+    }
+
+    const jwt = await generateJwt({
+      apiKeyId: this.config.cdpApiKeyId,
+      apiKeySecret: this.config.cdpApiKeySecret,
+      requestMethod: method,
+      requestHost: 'api.cdp.coinbase.com',
+      requestPath: path,
+    });
+
+    return { 'Authorization': `Bearer ${jwt}` };
+  }
+
   createRequirements(
     resourceUrl: string,
     amount: string | bigint,
@@ -140,20 +150,14 @@ export class X402Client {
     if (typeof amount === 'bigint') {
       weiAsString = amount.toString();
     } else {
-      // Convert price string to USDC wei
       const match = amount.match(/\$?([\d.]+)/);
       if (!match) {
         throw new Error(`Invalid amount format: ${amount}`);
       }
-
       const dollars = parseFloat(match[1]);
-      // Use BigInt logic to avoid floating point errors if possible, 
-      // but parseFloat is standard for string inputs. 
-      // Better to trust the bigint input path.
       weiAsString = Math.floor(dollars * 1_000_000).toString();
     }
 
-    // Ensure payTo is checksummed properly
     const DEFAULT_PAY_TO = '0xA6a8736f18f383f1cc2d938576933E5eA7Df01A1';
     let targetPayTo = payTo;
 
@@ -164,11 +168,9 @@ export class X402Client {
 
     let checksummedPayTo = targetPayTo;
     try {
-      // Trim whitespace and checksum
       checksummedPayTo = getAddress(targetPayTo.trim());
     } catch (e) {
       console.error(`Invalid payTo address format: "${targetPayTo}"`, e);
-      // Fallback: use default if invalid
       checksummedPayTo = DEFAULT_PAY_TO;
     }
 
@@ -189,12 +191,6 @@ export class X402Client {
     };
   }
 
-  /**
-   * Verify a payment with the facilitator
-   * 
-   * @param payment - The signed payment payload
-   * @param requirements - Original payment requirements
-   */
   async verifyPayment(
     payment: X402PaymentPayload,
     requirements: X402PaymentRequirements
@@ -202,48 +198,26 @@ export class X402Client {
     const { signature, from, to, value, validAfter, validBefore, nonce } = payment;
 
     try {
+      const authHeaders = await this.getCdpAuthHeaders('POST', '/platform/v2/x402/verify');
+
       const response = await fetch(`${this.config.facilitatorUrl}/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...authHeaders,
         },
         body: JSON.stringify({
+          x402Version: 1,
           paymentPayload: {
-            x402Version: 2,
-            resource: {
-              url: requirements.resource,
-              description: requirements.description,
-              mimeType: requirements.mimeType,
-            },
-            accepted: {
-              scheme: requirements.scheme,
-              network: requirements.network,
-              amount: requirements.maxAmountRequired,
-              asset: requirements.asset,
-              payTo: requirements.payTo,
-              maxTimeoutSeconds: requirements.maxTimeoutSeconds,
-              extra: {
-                ...requirements.extra,
-                assetTransferMethod: 'eip3009',
-              },
-            },
+            x402Version: 1,
+            scheme: requirements.scheme,
+            network: requirements.network,
             payload: {
               signature,
               authorization: { from, to, value, validAfter, validBefore, nonce },
             },
           },
-          paymentRequirements: {
-            scheme: requirements.scheme,
-            network: requirements.network,
-            amount: requirements.maxAmountRequired,
-            asset: requirements.asset,
-            payTo: requirements.payTo,
-            maxTimeoutSeconds: requirements.maxTimeoutSeconds,
-            extra: {
-              ...requirements.extra,
-              assetTransferMethod: 'eip3009',
-            },
-          },
+          paymentRequirements: requirements,
         }),
       });
 
@@ -267,61 +241,32 @@ export class X402Client {
     }
   }
 
-  /**
-   * Check if a payment is valid without settling
-   * 
-   * @param payment - The signed payment payload
-   * @param requirements - Original payment requirements
-   */
   async validatePayment(
     payment: X402PaymentPayload,
     requirements: X402PaymentRequirements
   ): Promise<{ valid: boolean; error?: string }> {
     try {
       const { signature, from, to, value, validAfter, validBefore, nonce } = payment;
+      const authHeaders = await this.getCdpAuthHeaders('POST', '/platform/v2/x402/verify');
 
-      const response = await fetch(`${this.config.facilitatorUrl}/validate`, {
+      const response = await fetch(`${this.config.facilitatorUrl}/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...authHeaders,
         },
         body: JSON.stringify({
+          x402Version: 1,
           paymentPayload: {
-            x402Version: 2,
-            resource: {
-              url: requirements.resource,
-              description: requirements.description,
-              mimeType: requirements.mimeType,
-            },
-            accepted: {
-              scheme: requirements.scheme,
-              network: requirements.network,
-              amount: requirements.maxAmountRequired,
-              asset: requirements.asset,
-              payTo: requirements.payTo,
-              maxTimeoutSeconds: requirements.maxTimeoutSeconds,
-              extra: {
-                ...requirements.extra,
-                assetTransferMethod: 'eip3009',
-              },
-            },
+            x402Version: 1,
+            scheme: requirements.scheme,
+            network: requirements.network,
             payload: {
               signature,
               authorization: { from, to, value, validAfter, validBefore, nonce },
             },
           },
-          paymentRequirements: {
-            scheme: requirements.scheme,
-            network: requirements.network,
-            amount: requirements.maxAmountRequired,
-            asset: requirements.asset,
-            payTo: requirements.payTo,
-            maxTimeoutSeconds: requirements.maxTimeoutSeconds,
-            extra: {
-              ...requirements.extra,
-              assetTransferMethod: 'eip3009',
-            },
-          },
+          paymentRequirements: requirements,
         }),
       });
 
@@ -331,7 +276,7 @@ export class X402Client {
       }
 
       const result = await response.json();
-      return { valid: result.valid ?? true };
+      return { valid: result.isValid ?? result.valid ?? true };
     } catch (error) {
       return {
         valid: false,
@@ -340,16 +285,6 @@ export class X402Client {
     }
   }
 
-  /**
-   * Create EIP-712 typed data for signing
-   * 
-   * @param from - Payer address
-   * @param to - Recipient address
-   * @param value - Amount in USDC wei
-   * @param validAfter - Timestamp when valid (seconds)
-   * @param validBefore - Timestamp when expires (seconds)
-   * @param nonce - Unique nonce
-   */
   createTypedData(
     from: string,
     to: string,
@@ -395,15 +330,11 @@ export class X402Client {
     };
   }
 
-  /**
-   * Generate a random nonce for payment authorization
-   */
   generateNonce(): string {
     const bytes = new Uint8Array(32);
     if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
       crypto.getRandomValues(bytes);
     } else {
-      // Node.js fallback
       for (let i = 0; i < 32; i++) {
         bytes[i] = Math.floor(Math.random() * 256);
       }
@@ -416,9 +347,6 @@ export class X402Client {
 // SERVER-SIDE MIDDLEWARE HELPERS
 // ============================================================================
 
-/**
- * Create a 402 Payment Required response
- */
 export function createPaymentRequiredResponse(
   requirements: X402PaymentRequirements
 ): Response {
@@ -434,9 +362,6 @@ export function createPaymentRequiredResponse(
   );
 }
 
-/**
- * Parse payment from X-PAYMENT header
- */
 export function parsePaymentHeader(header: string | null): X402PaymentPayload | null {
   if (!header) return null;
   try {
@@ -450,9 +375,6 @@ export function parsePaymentHeader(header: string | null): X402PaymentPayload | 
   }
 }
 
-/**
- * Create a successful payment response with confirmation
- */
 export function createPaymentSuccessResponse(
   data: any,
   txHash: string
@@ -483,7 +405,6 @@ export function createX402Client(config?: Partial<X402Config>): X402Client {
   return new X402Client(config);
 }
 
-// Reset singleton (useful for testing)
 export function resetX402Client(): void {
   x402Client = null;
 }
