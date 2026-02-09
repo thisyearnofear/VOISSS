@@ -116,7 +116,9 @@ export class X402Client {
    * Get network identifier for facilitator requests
    */
   get networkId(): string {
-    return this.config.network;
+    return this.config.network === 'base'
+      ? X402_CONSTANTS.NETWORK_BASE
+      : X402_CONSTANTS.NETWORK_BASE_SEPOLIA;
   }
 
   /**
@@ -197,7 +199,7 @@ export class X402Client {
     payment: X402PaymentPayload,
     requirements: X402PaymentRequirements
   ): Promise<{ success: boolean; txHash?: string; error?: string }> {
-    const { signature, ...authorization } = payment;
+    const { signature, from, to, value, validAfter, validBefore, nonce } = payment;
 
     try {
       const response = await fetch(`${this.config.facilitatorUrl}/verify`, {
@@ -206,21 +208,42 @@ export class X402Client {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          x402Version: 1,
           paymentPayload: {
-            x402Version: 1,
+            x402Version: 2,
             resource: {
               url: requirements.resource,
               description: requirements.description,
               mimeType: requirements.mimeType,
             },
-            accepted: requirements,
+            accepted: {
+              scheme: requirements.scheme,
+              network: requirements.network,
+              amount: requirements.maxAmountRequired,
+              asset: requirements.asset,
+              payTo: requirements.payTo,
+              maxTimeoutSeconds: requirements.maxTimeoutSeconds,
+              extra: {
+                ...requirements.extra,
+                assetTransferMethod: 'eip3009',
+              },
+            },
             payload: {
               signature,
-              authorization,
+              authorization: { from, to, value, validAfter, validBefore, nonce },
             },
           },
-          paymentRequirements: requirements,
+          paymentRequirements: {
+            scheme: requirements.scheme,
+            network: requirements.network,
+            amount: requirements.maxAmountRequired,
+            asset: requirements.asset,
+            payTo: requirements.payTo,
+            maxTimeoutSeconds: requirements.maxTimeoutSeconds,
+            extra: {
+              ...requirements.extra,
+              assetTransferMethod: 'eip3009',
+            },
+          },
         }),
       });
 
@@ -255,7 +278,7 @@ export class X402Client {
     requirements: X402PaymentRequirements
   ): Promise<{ valid: boolean; error?: string }> {
     try {
-      const { signature, ...authorization } = payment;
+      const { signature, from, to, value, validAfter, validBefore, nonce } = payment;
 
       const response = await fetch(`${this.config.facilitatorUrl}/validate`, {
         method: 'POST',
@@ -263,21 +286,42 @@ export class X402Client {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          x402Version: 1,
           paymentPayload: {
-            x402Version: 1,
+            x402Version: 2,
             resource: {
               url: requirements.resource,
               description: requirements.description,
               mimeType: requirements.mimeType,
             },
-            accepted: requirements,
+            accepted: {
+              scheme: requirements.scheme,
+              network: requirements.network,
+              amount: requirements.maxAmountRequired,
+              asset: requirements.asset,
+              payTo: requirements.payTo,
+              maxTimeoutSeconds: requirements.maxTimeoutSeconds,
+              extra: {
+                ...requirements.extra,
+                assetTransferMethod: 'eip3009',
+              },
+            },
             payload: {
               signature,
-              authorization,
+              authorization: { from, to, value, validAfter, validBefore, nonce },
             },
           },
-          paymentRequirements: requirements,
+          paymentRequirements: {
+            scheme: requirements.scheme,
+            network: requirements.network,
+            amount: requirements.maxAmountRequired,
+            asset: requirements.asset,
+            payTo: requirements.payTo,
+            maxTimeoutSeconds: requirements.maxTimeoutSeconds,
+            extra: {
+              ...requirements.extra,
+              assetTransferMethod: 'eip3009',
+            },
+          },
         }),
       });
 

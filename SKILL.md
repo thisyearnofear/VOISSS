@@ -96,14 +96,52 @@ Use x402 protocol for pay-per-use without registration.
 
 ### 3. x402 Micropayments (Pay-per-use)
 - No registration required
-- Pay with USDC per request
-- Include `X-PAYMENT` header with signed transaction
+- Pay with USDC on Base via x402 protocol (v2, EIP-3009)
+- Network identifier: `eip155:8453` (Base mainnet)
+
+#### x402 Flow
+1. Send request without payment — receive `402` with `X-PAYMENT-REQUIRED` header containing requirements
+2. Sign an EIP-712 `TransferWithAuthorization` message using the requirements
+3. Retry the request with `X-PAYMENT` header containing the signed payload
+
+#### X-PAYMENT Header Format (x402 v2)
+The `X-PAYMENT` header must be a JSON object with this structure:
+```json
+{
+  "x402Version": 2,
+  "resource": {
+    "url": "/api/agents/vocalize",
+    "description": "Voice generation",
+    "mimeType": "application/json"
+  },
+  "accepted": {
+    "scheme": "exact",
+    "network": "eip155:8453",
+    "amount": "10000",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "payTo": "0x...",
+    "maxTimeoutSeconds": 60,
+    "extra": { "assetTransferMethod": "eip3009", "name": "USD Coin", "version": "2" }
+  },
+  "payload": {
+    "signature": "0x...",
+    "authorization": {
+      "from": "0xYourWallet",
+      "to": "0xPayTo",
+      "value": "10000",
+      "validAfter": "1740672089",
+      "validBefore": "1740672154",
+      "nonce": "0x..."
+    }
+  }
+}
+```
 
 ```bash
 # x402 Payment Example
 curl -X POST https://voisss.netlify.app/api/agents/vocalize \
   -H "Content-Type: application/json" \
-  -H "X-PAYMENT: x402_payment_data_here" \
+  -H "X-PAYMENT: <base64_or_json_encoded_payload_above>" \
   -d '{"text":"Hello world","voiceId":"21m00Tcm4TlvDq8ikWAM","agentAddress":"0x..."}'
 ```
 
@@ -166,15 +204,19 @@ Content-Type: application/json
 ```
 
 ### Payment Required (x402)
+HTTP 402 response includes an `X-PAYMENT-REQUIRED` header with payment requirements:
 ```json
 {
-  "success": false,
-  "error": "Payment required",
-  "paymentRequired": {
-    "amount": "1000000", // USDC wei
-    "currency": "USDC",
-    "reason": "Voice generation: 50 characters"
-  }
+  "scheme": "exact",
+  "network": "eip155:8453",
+  "maxAmountRequired": "10000",
+  "resource": "/api/agents/vocalize",
+  "description": "Voice generation",
+  "mimeType": "application/json",
+  "payTo": "0x...",
+  "maxTimeoutSeconds": 60,
+  "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "extra": { "name": "USD Coin", "version": "2" }
 }
 ```
 
