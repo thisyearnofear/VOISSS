@@ -211,10 +211,7 @@ export class X402Client {
             x402Version: 1,
             scheme: 'exact',
             network: this.networkId,
-            payload: {
-              signature,
-              authorization,
-            },
+            payload: payment,
           },
           paymentRequirements: requirements,
         }),
@@ -264,10 +261,7 @@ export class X402Client {
             x402Version: 1,
             scheme: 'exact',
             network: this.networkId,
-            payload: {
-              signature,
-              authorization,
-            },
+            payload: payment,
           },
           paymentRequirements: requirements,
         }),
