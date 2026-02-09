@@ -6,14 +6,58 @@ import {
 } from "@voisss/shared";
 import { rateLimiters, getIdentifier, getRateLimitHeaders } from "@/lib/rate-limit";
 import crypto from "crypto";
+import { promises as fs } from 'fs';
+import path from 'path';
 
-// In-memory agent registry (would be persisted in production)
-// This could be moved to shared services or a database
-const agentRegistry = new Map<string, AgentProfile>();
+// File-based persistence for development/ MVP
+const DB_PATH = path.join(process.cwd(), 'agent-registry.json');
+
+// In-memory cache
+let agentRegistry: Map<string, AgentProfile> | null = null;
+
+async function getRegistry(): Promise<Map<string, AgentProfile>> {
+  if (agentRegistry) return agentRegistry;
+
+  agentRegistry = new Map();
+
+  try {
+    const data = await fs.readFile(DB_PATH, 'utf-8');
+    const entries = JSON.parse(data);
+    agentRegistry = new Map(entries);
+
+    // Rehydrate Security Service
+    // This ensures that even after a restart, all known agents are trusted again
+    const { getAgentSecurityService } = await import("@voisss/shared/services/agent-security");
+    const securityService = getAgentSecurityService();
+
+    for (const [address, _] of agentRegistry) {
+      securityService.trustAgent(address);
+    }
+    console.log(`Rehydrated ${agentRegistry.size} agents from persistence.`);
+
+  } catch (error) {
+    // If file doesn't exist, start empty
+    if ((error as any).code !== 'ENOENT') {
+      console.warn('Failed to load agent registry:', error);
+    }
+  }
+
+  return agentRegistry;
+}
+
+async function saveRegistry() {
+  if (!agentRegistry) return;
+  try {
+    const data = JSON.stringify(Array.from(agentRegistry.entries()), null, 2);
+    await fs.writeFile(DB_PATH, data);
+  } catch (error) {
+    console.error('Failed to save agent registry:', error);
+  }
+}
 
 /**
  * POST /api/agents/register
- * 
+ *
  * Register a new agent for API access.
  * Creates an agent profile and returns an API key for authenticated requests.
  */
@@ -46,9 +90,12 @@ export async function POST(req: NextRequest): Promise<NextResponse<AgentRegistra
       });
     }
 
+    // Get registry with persistence
+    const registry = await getRegistry();
+
     // Check if agent already registered
-    if (agentRegistry.has(agentAddress)) {
-      const existing = agentRegistry.get(agentAddress)!;
+    if (registry.has(agentAddress)) {
+      const existing = registry.get(agentAddress)!;
       return NextResponse.json({
         success: true,
         agentId: agentAddress,
@@ -75,8 +122,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<AgentRegistra
       voiceProvider: '0x0000000000000000000000000000000000000000',
     };
 
-    // Store in registry
-    agentRegistry.set(agentAddress, profile);
+    // Store in registry and persist
+    registry.set(agentAddress, profile);
+    await saveRegistry();
 
     // Log registration
     console.log(`Agent registered: ${name} (${agentAddress})`, {
@@ -110,7 +158,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AgentRegistra
       const zodError = error as { issues: Array<{ message: string; path: string[] }> };
       return NextResponse.json({
         success: false,
-        error: `Validation error: ${zodError.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
+        error: `Validation error: ${zodError.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')} `,
       }, { status: 400 });
     }
 
@@ -138,7 +186,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       }, { status: 400 });
     }
 
-    const profile = agentRegistry.get(agentAddress);
+    const registry = await getRegistry();
+    const profile = registry.get(agentAddress);
 
     if (!profile) {
       return NextResponse.json({

@@ -116,9 +116,7 @@ export class X402Client {
    * Get network identifier for facilitator requests
    */
   get networkId(): string {
-    return this.config.network === 'base'
-      ? X402_CONSTANTS.NETWORK_BASE
-      : X402_CONSTANTS.NETWORK_BASE_SEPOLIA;
+    return this.config.network;
   }
 
   /**
