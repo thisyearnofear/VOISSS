@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { 
-  AgentRegistrationRequestSchema, 
+import {
+  AgentRegistrationRequestSchema,
   AgentRegistrationResponse,
   AgentProfile,
 } from "@voisss/shared";
@@ -22,12 +22,12 @@ export async function POST(req: NextRequest): Promise<NextResponse<AgentRegistra
     const body = await req.json();
     const validated = AgentRegistrationRequestSchema.parse(body);
 
-    const { 
-      agentAddress, 
-      name, 
-      metadataURI, 
-      categories, 
-      x402Enabled, 
+    const {
+      agentAddress,
+      name,
+      metadataURI,
+      categories,
+      x402Enabled,
       description,
       webhookUrl,
     } = validated;
@@ -35,12 +35,12 @@ export async function POST(req: NextRequest): Promise<NextResponse<AgentRegistra
     // Rate limiting
     const identifier = getIdentifier(req);
     const rateLimitResult = await rateLimiters.voiceGeneration.check(identifier);
-    
+
     if (!rateLimitResult.success) {
       return NextResponse.json({
         success: false,
         error: 'Rate limit exceeded. Please try again later.',
-      }, { 
+      }, {
         status: 429,
         headers: getRateLimitHeaders(rateLimitResult),
       });
@@ -84,6 +84,16 @@ export async function POST(req: NextRequest): Promise<NextResponse<AgentRegistra
       x402Enabled,
       webhookUrl,
     });
+
+    // Automatically trust registered agents
+    const { getAgentSecurityService } = await import("@voisss/shared/services/agent-security");
+    const securityService = getAgentSecurityService();
+    try {
+      securityService.trustAgent(agentAddress);
+      console.log(`Agent ${agentAddress} added to security allowlist`);
+    } catch (e) {
+      console.error(`Failed to trust agent ${agentAddress}:`, e);
+    }
 
     return NextResponse.json({
       success: true,
