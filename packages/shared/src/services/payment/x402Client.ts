@@ -209,9 +209,16 @@ export class X402Client {
           x402Version: 1,
           paymentPayload: {
             x402Version: 1,
-            scheme: 'exact',
-            network: this.networkId,
-            payload: payment,
+            resource: {
+              url: requirements.resource,
+              description: requirements.description,
+              mimeType: requirements.mimeType,
+            },
+            accepted: requirements,
+            payload: {
+              signature,
+              authorization,
+            },
           },
           paymentRequirements: requirements,
         }),
@@ -259,9 +266,16 @@ export class X402Client {
           x402Version: 1,
           paymentPayload: {
             x402Version: 1,
-            scheme: 'exact',
-            network: this.networkId,
-            payload: payment,
+            resource: {
+              url: requirements.resource,
+              description: requirements.description,
+              mimeType: requirements.mimeType,
+            },
+            accepted: requirements,
+            payload: {
+              signature,
+              authorization,
+            },
           },
           paymentRequirements: requirements,
         }),
