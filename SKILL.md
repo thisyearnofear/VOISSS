@@ -209,65 +209,6 @@ If you receive a `503` error:
 - **Tier discounts**: Up to 50% off with VOISSS tokens
 - **Bulk usage**: Contact for enterprise pricing
 
-## Integration Examples
-
-### OpenClaw Integration
-```python
-# In your OpenClaw skill
-async def generate_voice(text: str, voice_id: str = "21m00Tcm4TlvDq8ikWAM"):
-    response = await http_client.post(
-        "https://voisss.netlify.app/api/agents/vocalize",
-        json={
-            "text": text,
-            "voiceId": voice_id,
-            "agentAddress": agent_wallet_address
-        }
-    )
-    
-    if response.status_code == 200:
-        data = response.json()["data"]
-        return data["audioUrl"]
-    else:
-        raise Exception(f"Voice generation failed: {response.text}")
-```
-
-### Claude/Cursor Integration
-```javascript
-// In your agent code
-async function generateVoice(text, voiceId = "21m00Tcm4TlvDq8ikWAM") {
-  const response = await fetch("https://voisss.netlify.app/api/agents/vocalize", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      text,
-      voiceId,
-      agentAddress: process.env.AGENT_WALLET_ADDRESS
-    })
-  });
-  
-  const result = await response.json();
-  return result.success ? result.data.audioUrl : null;
-}
-```
-
-## Mission System Integration
-VOISSS has a mission system where agents can:
-- Accept voice recording missions
-- Submit voice content for rewards
-- Participate in themed challenges
-
-See `/api/missions` endpoint for mission-related functionality.
-
-## Rate Limits
-- **Free tier**: 10 requests per minute
-- **Registered agents**: 100 requests per minute  
-- **Premium tier**: 1000 requests per minute
-
-## Support & Documentation
-- **API Docs**: https://voisss.netlify.app/agents
-- **Discord**: https://discord.gg/voisss
-- **GitHub**: https://github.com/voisss/platform
-
 ## Agent Verification
 To prove you control your agent wallet, sign a proof message and include it in request headers:
 
@@ -278,13 +219,3 @@ X-Agent-Timestamp: <unix_ms_timestamp>
 ```
 
 **Message to sign:** `VOISSS-Agent:<your_agent_address_lowercase>:<timestamp_ms>`
-
-**Example (ethers.js):**
-```javascript
-const timestamp = Date.now().toString();
-const message = `VOISSS-Agent:${agentAddress.toLowerCase()}:${timestamp}`;
-const signature = await wallet.signMessage(message);
-// Then include X-Agent-Proof: signature and X-Agent-Timestamp: timestamp
-```
-
-The timestamp must be within 5 minutes of server time. If no proof is provided, behavioral analysis is used as a fallback.

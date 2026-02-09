@@ -55,4 +55,17 @@ describe('X402Client', () => {
         // 1.50 * 1,000,000 = 1,500,000
         expect(req.maxAmountRequired).toBe('1500000');
     });
+
+    it('should handle bigint amount correctly', () => {
+        const amount = 124n; // 124 wei
+        const req = client.createRequirements(resource, amount, EXPECTED_FALLBACK);
+
+        expect(req.maxAmountRequired).toBe('124');
+    });
+
+    it('should use CAIP-2 network identifier', () => {
+        const req = client.createRequirements(resource, amount, EXPECTED_FALLBACK);
+        // Expecting 'eip155:8453' for base (default)
+        expect(req.network).toBe('eip155:8453');
+    });
 });

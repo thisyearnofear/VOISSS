@@ -116,27 +116,41 @@ export class X402Client {
    * Get network identifier for facilitator requests
    */
   get networkId(): string {
-    return this.config.network === 'base' ? 'base' : 'base-sepolia';
+    return this.config.network === 'base'
+      ? X402_CONSTANTS.NETWORK_BASE
+      : X402_CONSTANTS.NETWORK_BASE_SEPOLIA;
   }
 
   /**
    * Create payment requirements for a resource
    * 
    * @param resourceUrl - URL of the resource being paid for
-   * @param amount - Amount in USDC (e.g., "$0.01")
+   * @param amount - Amount in USDC wei (bigint) or formatted string (e.g., "$0.01")
    * @param payTo - Recipient address
    * @param description - Optional description
    */
   createRequirements(
     resourceUrl: string,
-    amount: string,
+    amount: string | bigint,
     payTo: string,
     description: string = ''
   ): X402PaymentRequirements {
-    // Convert price string to USDC wei
-    const match = amount.match(/\$?([\d.]+)/);
-    if (!match) {
-      throw new Error(`Invalid amount format: ${amount}`);
+    let weiAsString: string;
+
+    if (typeof amount === 'bigint') {
+      weiAsString = amount.toString();
+    } else {
+      // Convert price string to USDC wei
+      const match = amount.match(/\$?([\d.]+)/);
+      if (!match) {
+        throw new Error(`Invalid amount format: ${amount}`);
+      }
+
+      const dollars = parseFloat(match[1]);
+      // Use BigInt logic to avoid floating point errors if possible, 
+      // but parseFloat is standard for string inputs. 
+      // Better to trust the bigint input path.
+      weiAsString = Math.floor(dollars * 1_000_000).toString();
     }
 
     // Ensure payTo is checksummed properly
@@ -158,13 +172,10 @@ export class X402Client {
       checksummedPayTo = DEFAULT_PAY_TO;
     }
 
-    const dollars = parseFloat(match[1]);
-    const wei = Math.floor(dollars * 1_000_000); // USDC has 6 decimals
-
     return {
       scheme: 'exact',
       network: this.networkId,
-      maxAmountRequired: wei.toString(),
+      maxAmountRequired: weiAsString,
       resource: resourceUrl,
       description,
       mimeType: 'application/json',
