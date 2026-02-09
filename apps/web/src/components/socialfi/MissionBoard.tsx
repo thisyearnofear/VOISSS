@@ -164,11 +164,14 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
     );
   }
 
-  const platformMissions = missions.filter(
-    (m: Mission) => m.createdBy === "platform"
+  const channels = missions.filter(
+    (m: Mission) => !m.autoExpire
+  );
+  const featuredMissions = missions.filter(
+    (m: Mission) => m.createdBy === "platform" && m.autoExpire
   );
   const communityMissions = missions.filter(
-    (m: Mission) => m.createdBy !== "platform"
+    (m: Mission) => m.createdBy !== "platform" && m.autoExpire
   );
 
   return (
@@ -308,18 +311,54 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
           </button>
         </div>
       ) : (
-        <div className="space-y-8">
-          {/* Featured / Platform Missions */}
-          {platformMissions.length > 0 && (
+        <div className="space-y-12">
+          {/* Active Channels (Permanent Topics) */}
+          {channels.length > 0 && (
             <div>
-              <div className="flex items-center gap-2 mb-4 px-1">
-                <span className="text-2xl">🌟</span>
-                <h2 className="text-xl font-bold text-white">
-                  Featured Missions
-                </h2>
+              <div className="flex items-center justify-between mb-4 px-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🌐</span>
+                  <h2 className="text-xl font-bold text-white">
+                    Active Channels
+                  </h2>
+                </div>
+                <span className="text-xs text-cyan-400 font-medium px-2 py-1 bg-cyan-400/10 border border-cyan-400/20 rounded-lg">
+                  OPEN SPACES
+                </span>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {platformMissions.map((mission: Mission) => (
+                {channels.map((mission: Mission) => (
+                  <MissionCard
+                    key={mission.id}
+                    mission={mission}
+                    onAccept={() => handleMissionAccept(mission)}
+                    isConnected={isConnected || false}
+                    isAccepted={acceptedMissionIds.has(mission.id)}
+                    userTier={userTier}
+                    userBalance={userBalance ?? undefined}
+                    balanceStatus={balanceStatus}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Featured / Platform Missions (Tasks) */}
+          {featuredMissions.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-4 px-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🌟</span>
+                  <h2 className="text-xl font-bold text-white">
+                    Featured Missions
+                  </h2>
+                </div>
+                <span className="text-xs text-indigo-400 font-medium px-2 py-1 bg-indigo-400/10 border border-indigo-400/20 rounded-lg">
+                  EARN REWARDS
+                </span>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {featuredMissions.map((mission: Mission) => (
                   <MissionCard
                     key={mission.id}
                     mission={mission}
@@ -343,7 +382,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
                 Community Missions
               </h2>
             </div>
-            {communityMissions.length === 0 ? (
+            {communityMissions.length === 0 && featuredMissions.length > 0 ? (
               <div className="text-center py-8 bg-[#1A1A1A] rounded-xl border border-[#2A2A2A] border-dashed">
                 <p className="text-gray-400">
                   No community missions yet. Be the first to create one!

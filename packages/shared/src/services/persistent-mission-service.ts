@@ -57,6 +57,26 @@ export class PersistentMissionService implements MissionService {
     // Create default missions for demo purposes
     const defaultMissions: Omit<Mission, 'id' | 'createdAt' | 'updatedAt' | 'currentParticipants'>[] = [
       {
+        title: "The Public Square",
+        description: "An open space for all voices. Share your daily thoughts, updates, agent logs, and stories with the community. No topic is off-limits.",
+        difficulty: "easy",
+        baseReward: "5",
+        rewardModel: "pool",
+        expiresAt: new Date(Date.now() + 365 * 10 * 24 * 60 * 60 * 1000), // Permanent (10 years)
+        locationBased: false,
+        isActive: true,
+        createdBy: "platform",
+        targetDuration: 300,
+        language: "en",
+        curatorReward: 0,
+        autoExpire: false, // Never expires
+        submissions: [],
+        qualityCriteria: {
+          audioMinScore: 10, // Minimal validation
+          transcriptionRequired: false,
+        },
+      },
+      {
         title: "Web3 Street Wisdom",
         description: "Ask people in your city what they really think about Web3 and cryptocurrency. Interview format: taxi, coffee shop, or street corner conversations.",
         difficulty: "easy",
@@ -219,7 +239,7 @@ export class PersistentMissionService implements MissionService {
       return crypto.randomUUID();
     }
     // Fallback for environments without crypto.randomUUID
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
       var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
       return v.toString(16);
     });
@@ -299,11 +319,11 @@ export class PersistentMissionService implements MissionService {
     try {
       const existing = await this.getMissionById(id);
       if (!existing) {
-         throw new DatabaseOperationError(`Mission ${id} not found`, COLLECTIONS.MISSIONS, 'updateMission');
+        throw new DatabaseOperationError(`Mission ${id} not found`, COLLECTIONS.MISSIONS, 'updateMission');
       }
 
       const updated = { ...existing, ...updates, updatedAt: new Date() };
-      
+
       // Partial validation could be complex, for now we assume updates are valid or rely on type safety
       // To be safe, we could validate the merged object
       const result = MissionSchema.safeParse(updated);
@@ -392,16 +412,16 @@ export class PersistentMissionService implements MissionService {
       }
 
       await this.db.set(COLLECTIONS.MISSION_RESPONSES, response.id, response);
-      
+
       // Update mission to include this submission ID
       const mission = await this.getMissionById(responseData.missionId);
       if (mission) {
-          const submissions = mission.submissions || [];
-          if (!submissions.includes(response.id)) {
-             await this.updateMission(mission.id, {
-                 submissions: [...submissions, response.id]
-             });
-          }
+        const submissions = mission.submissions || [];
+        if (!submissions.includes(response.id)) {
+          await this.updateMission(mission.id, {
+            submissions: [...submissions, response.id]
+          });
+        }
       }
 
       return response;
@@ -694,7 +714,7 @@ export class PersistentMissionService implements MissionService {
       // Update progress
       const milestoneSequence: Milestone[] = ['submission', 'quality_approved', 'featured'];
       const nextIndex = milestoneSequence.findIndex(m => !progress.completedMilestones.includes(m));
-      
+
       const consistentId = `prog_${userId}_${missionId}_${responseId}`.replace(/[^a-zA-Z0-9_]/g, '');
 
       const updatedProgress: MilestoneProgress = {
@@ -895,24 +915,24 @@ export class PersistentMissionService implements MissionService {
   async getSubmission(id: string): Promise<MissionResponse | null> {
     await this.ensureInitialized();
     try {
-        return await this.db.get<MissionResponse>(COLLECTIONS.MISSION_RESPONSES, id);
+      return await this.db.get<MissionResponse>(COLLECTIONS.MISSION_RESPONSES, id);
     } catch (error) {
-        throw new DatabaseOperationError(`Failed to get submission ${id}`, COLLECTIONS.MISSION_RESPONSES, 'getSubmission');
+      throw new DatabaseOperationError(`Failed to get submission ${id}`, COLLECTIONS.MISSION_RESPONSES, 'getSubmission');
     }
   }
 
   async getSubmissionsByMission(missionId: string, status?: MissionResponse['status']): Promise<MissionResponse[]> {
     await this.ensureInitialized();
     try {
-        const submissions = await this.db.getWhere<MissionResponse>(COLLECTIONS.MISSION_RESPONSES,
-            (r) => r.missionId === missionId
-        );
-        if (status) {
-            return submissions.filter(r => r.status === status);
-        }
-        return submissions;
+      const submissions = await this.db.getWhere<MissionResponse>(COLLECTIONS.MISSION_RESPONSES,
+        (r) => r.missionId === missionId
+      );
+      if (status) {
+        return submissions.filter(r => r.status === status);
+      }
+      return submissions;
     } catch (error) {
-        throw new DatabaseOperationError('Failed to get submissions by mission', COLLECTIONS.MISSION_RESPONSES, 'getSubmissionsByMission');
+      throw new DatabaseOperationError('Failed to get submissions by mission', COLLECTIONS.MISSION_RESPONSES, 'getSubmissionsByMission');
     }
   }
 
@@ -924,75 +944,75 @@ export class PersistentMissionService implements MissionService {
   }): Promise<MissionResponse[]> {
     await this.ensureInitialized();
     try {
-        let submissions = await this.db.getAll<MissionResponse>(COLLECTIONS.MISSION_RESPONSES);
+      let submissions = await this.db.getAll<MissionResponse>(COLLECTIONS.MISSION_RESPONSES);
 
-        if (filters?.status) {
-          submissions = submissions.filter(r => r.status === filters.status);
-        }
-        if (filters?.missionId) {
-          submissions = submissions.filter(r => r.missionId === filters.missionId);
-        }
-        if (filters?.userId) {
-          submissions = submissions.filter(r => r.userId === filters.userId);
-        }
-        if (filters?.after) {
-          const afterTime = filters.after.getTime();
-          submissions = submissions.filter(r => new Date(r.submittedAt).getTime() >= afterTime);
-        }
+      if (filters?.status) {
+        submissions = submissions.filter(r => r.status === filters.status);
+      }
+      if (filters?.missionId) {
+        submissions = submissions.filter(r => r.missionId === filters.missionId);
+      }
+      if (filters?.userId) {
+        submissions = submissions.filter(r => r.userId === filters.userId);
+      }
+      if (filters?.after) {
+        const afterTime = filters.after.getTime();
+        submissions = submissions.filter(r => new Date(r.submittedAt).getTime() >= afterTime);
+      }
 
-        // Sort by submission date, newest first
-        return submissions.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+      // Sort by submission date, newest first
+      return submissions.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
     } catch (error) {
-        throw new DatabaseOperationError('Failed to get all submissions', COLLECTIONS.MISSION_RESPONSES, 'getAllSubmissions');
+      throw new DatabaseOperationError('Failed to get all submissions', COLLECTIONS.MISSION_RESPONSES, 'getAllSubmissions');
     }
   }
 
   async flagSubmission(submissionId: string, reason: string): Promise<MissionResponse> {
     await this.ensureInitialized();
     try {
-        const submission = await this.getSubmission(submissionId);
-        if (!submission) {
-            throw new Error(`Submission ${submissionId} not found`);
-        }
+      const submission = await this.getSubmission(submissionId);
+      if (!submission) {
+        throw new Error(`Submission ${submissionId} not found`);
+      }
 
-        const updated = await this.db.update<MissionResponse>(COLLECTIONS.MISSION_RESPONSES, submissionId, {
-            status: 'flagged',
-            flaggedAt: new Date(),
-            flagReason: reason
-        });
-        
-        return updated;
+      const updated = await this.db.update<MissionResponse>(COLLECTIONS.MISSION_RESPONSES, submissionId, {
+        status: 'flagged',
+        flaggedAt: new Date(),
+        flagReason: reason
+      });
+
+      return updated;
     } catch (error) {
-        if (error instanceof DatabaseOperationError) throw error;
-        throw new DatabaseOperationError(`Failed to flag submission ${submissionId}`, COLLECTIONS.MISSION_RESPONSES, 'flagSubmission');
+      if (error instanceof DatabaseOperationError) throw error;
+      throw new DatabaseOperationError(`Failed to flag submission ${submissionId}`, COLLECTIONS.MISSION_RESPONSES, 'flagSubmission');
     }
   }
 
   async removeSubmission(submissionId: string, reason: string): Promise<MissionResponse> {
     await this.ensureInitialized();
     try {
-        const submission = await this.getSubmission(submissionId);
-        if (!submission) {
-            throw new Error(`Submission ${submissionId} not found`);
-        }
+      const submission = await this.getSubmission(submissionId);
+      if (!submission) {
+        throw new Error(`Submission ${submissionId} not found`);
+      }
 
-        const updated = await this.db.update<MissionResponse>(COLLECTIONS.MISSION_RESPONSES, submissionId, {
-            status: 'removed',
-            removedAt: new Date(),
-            flagReason: reason
-        });
+      const updated = await this.db.update<MissionResponse>(COLLECTIONS.MISSION_RESPONSES, submissionId, {
+        status: 'removed',
+        removedAt: new Date(),
+        flagReason: reason
+      });
 
-        // Remove from mission's submissions array
-        const mission = await this.getMissionById(submission.missionId);
-        if (mission && mission.submissions) {
-            const newSubmissions = mission.submissions.filter(id => id !== submissionId);
-            await this.updateMission(mission.id, { submissions: newSubmissions });
-        }
+      // Remove from mission's submissions array
+      const mission = await this.getMissionById(submission.missionId);
+      if (mission && mission.submissions) {
+        const newSubmissions = mission.submissions.filter(id => id !== submissionId);
+        await this.updateMission(mission.id, { submissions: newSubmissions });
+      }
 
-        return updated;
+      return updated;
     } catch (error) {
-        if (error instanceof DatabaseOperationError) throw error;
-        throw new DatabaseOperationError(`Failed to remove submission ${submissionId}`, COLLECTIONS.MISSION_RESPONSES, 'removeSubmission');
+      if (error instanceof DatabaseOperationError) throw error;
+      throw new DatabaseOperationError(`Failed to remove submission ${submissionId}`, COLLECTIONS.MISSION_RESPONSES, 'removeSubmission');
     }
   }
 

@@ -18,8 +18,13 @@ interface MissionCardProps {
 }
 
 // PERFORMANT: Memoized difficulty color helper - single source of truth
-const getDifficultyColor = (difficulty: string): string => {
-  switch (difficulty) {
+// PERFORMANT: Memoized difficulty/type color helper - single source of truth
+const getMissionTypeColor = (mission: Mission): string => {
+  if (!mission.autoExpire) {
+    return 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300';
+  }
+
+  switch (mission.difficulty) {
     case 'easy':
       return 'border-green-500/30 bg-green-500/10 text-green-300';
     case 'medium':
@@ -36,6 +41,8 @@ const formatTimeRemaining = (expiresAt: Date): string => {
   const now = new Date();
   const diff = expiresAt.getTime() - now.getTime();
 
+  // If > 1 year (approx), consider it permanent
+  if (diff > 31536000000) return "Permanent";
   if (diff <= 0) return "Expired";
 
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -79,10 +86,12 @@ const MissionCard = React.memo<MissionCardProps>(({
     [mission.targetDuration]
   );
 
-  const memoizedDifficultyColor = useMemo(() =>
-    getDifficultyColor(mission.difficulty),
-    [mission.difficulty]
+  const memoizedTypeColor = useMemo(() =>
+    getMissionTypeColor(mission),
+    [mission]
   );
+
+  const isChannel = !mission.autoExpire;
 
   // PERFORMANT: Memoized eligibility calculation - CLEAN business logic
   const eligibilityInfo = useMemo(() => {
@@ -162,7 +171,12 @@ const MissionCard = React.memo<MissionCardProps>(({
   }, [isConnected, eligibilityInfo.isEligible, mission.requiredTier, isAccepted, isAccepting]);
 
   return (
-    <div className={`voisss-card group hover:border-[#7C5DFA]/30 transition-all duration-300 ${className} ${isAccepted ? 'border-indigo-500/40 bg-indigo-500/5' : ''}`}>
+    <div className={`voisss-card group hover:scale-[1.01] transition-all duration-300 ${className} ${isAccepted
+        ? 'border-indigo-500/40 bg-indigo-500/5'
+        : isChannel
+          ? 'hover:border-cyan-500/50 hover:bg-cyan-500/5 border-gray-800'
+          : 'hover:border-[#7C5DFA]/30'
+      }`}>
       {/* Header - CLEAN layout structure */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
@@ -175,8 +189,8 @@ const MissionCard = React.memo<MissionCardProps>(({
 
           {/* CLEAN: Consolidated metadata badges */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`px-2 py-1 text-xs font-medium rounded-full border ${memoizedDifficultyColor}`}>
-              {mission.difficulty.toUpperCase()}
+            <span className={`px-2 py-1 text-xs font-medium rounded-full border ${memoizedTypeColor}`}>
+              {isChannel ? 'CHANNEL' : mission.difficulty.toUpperCase()}
             </span>
             <span className="text-xs text-gray-400">
               {memoizedDuration}
@@ -196,7 +210,7 @@ const MissionCard = React.memo<MissionCardProps>(({
 
         {/* PERFORMANT: Memoized reward display */}
         <div className="text-right ml-4 flex-shrink-0">
-          <div className="text-lg font-bold text-[#7C5DFA]">
+          <div className={`text-lg font-bold ${isChannel ? 'text-cyan-400' : 'text-[#7C5DFA]'}`}>
             {rewardDisplay}
           </div>
           <div className="text-xs text-gray-400">
