@@ -133,7 +133,7 @@ X-RateLimit-Characters-Remaining: 1500
 #### 1. **WebSocket (Real-time)**
 ```javascript
 // Agent connects to WebSocket
-const ws = new WebSocket('wss://voisss.com/api/agents/events/ws');
+const ws = new WebSocket('wss://voisss.netlify.app/api/agents/events/ws');
 ws.onmessage = (event) => {
   const voissEvent = JSON.parse(event.data);
   handleEvent(voissEvent);
@@ -143,7 +143,7 @@ ws.onmessage = (event) => {
 #### 2. **Webhook (Push)**
 ```javascript
 // Agent provides webhook URL
-await fetch('https://voisss.com/api/agents/events', {
+await fetch('https://voisss.netlify.app/api/agents/events', {
   method: 'POST',
   json: {
     agentId: 'my-agent',
@@ -159,7 +159,7 @@ await fetch('https://voisss.com/api/agents/events', {
 #### 3. **Polling (Fallback)**
 ```javascript
 // Efficient polling with since parameter
-const events = await fetch(`https://voisss.com/api/agents/events?agentId=my-agent&since=${lastEventTime}`);
+const events = await fetch(`https://voisss.netlify.app/api/agents/events?agentId=my-agent&since=${lastEventTime}`);
 ```
 
 ### Event Types
@@ -251,7 +251,7 @@ class VoissAgent:
     async def subscribe_to_events(self):
         # Subscribe via API
         subscription = await self.http_client.post(
-            'https://voisss.com/api/agents/events',
+            'https://voisss.netlify.app/api/agents/events',
             json={
                 'agentId': self.agent_id,
                 'eventTypes': [
@@ -267,7 +267,7 @@ class VoissAgent:
         
         # Connect WebSocket for real-time events
         self.ws = await websockets.connect(
-            f'wss://voisss.com/api/agents/events/ws?agentId={self.agent_id}'
+            f'wss://voisss.netlify.app/api/agents/events/ws?agentId={self.agent_id}'
         )
         
         # Listen for events
@@ -286,7 +286,7 @@ class VoissAgent:
     async def generate_voice_async(self, text):
         # Start voice generation
         response = await self.http_client.post(
-            'https://voisss.com/api/agents/vocalize',
+            'https://voisss.netlify.app/api/agents/vocalize',
             json={'text': text, 'agentId': self.agent_id}
         )
         

@@ -116,7 +116,7 @@ export default function HelpPage() {
         {/* Support Channels - Simplified */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
           <a
-            href="mailto:support@voisss.com"
+            href="mailto:support@voisss.netlify.app"
             className="voisss-card text-center hover:border-blue-500/50 transition-colors group"
           >
             <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-500/30 transition-colors">
@@ -125,7 +125,7 @@ export default function HelpPage() {
               </svg>
             </div>
             <h3 className="font-semibold text-white mb-1">Email</h3>
-            <p className="text-gray-400 text-sm">support@voisss.com</p>
+            <p className="text-gray-400 text-sm">support@voisss.netlify.app</p>
           </a>
 
           <a

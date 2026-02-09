@@ -42,7 +42,7 @@ async function testAgentSecurity() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'VoissAgent/1.0 (AI Assistant; +https://voisss.com)',
+        'User-Agent': 'VoissAgent/1.0 (AI Assistant; +https://voisss.netlify.app)',
         'X-Agent-ID': 'test-agent-123',
         'X-Skip-Agent-Verification': 'true' // Skip for testing
       },
@@ -85,7 +85,7 @@ async function testAgentSecurity() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'VoissAgent/1.0 (AI Assistant; +https://voisss.com)',
+        'User-Agent': 'VoissAgent/1.0 (AI Assistant; +https://voisss.netlify.app)',
         'X-Agent-ID': 'test-agent-123'
       },
       body: JSON.stringify({
@@ -116,7 +116,7 @@ async function testAgentSecurity() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'VoissAgent/1.0 (AI Assistant; +https://voisss.com)',
+          'User-Agent': 'VoissAgent/1.0 (AI Assistant; +https://voisss.netlify.app)',
           'X-Agent-ID': 'rate-limit-test-agent',
           'X-Skip-Agent-Verification': 'true'
         },
@@ -131,7 +131,7 @@ async function testAgentSecurity() {
   try {
     const responses = await Promise.all(requests);
     const rateLimited = responses.filter(r => r.status === 429);
-    
+
     if (rateLimited.length > 0) {
       console.log(`✅ Rate limiting working - ${rateLimited.length}/10 requests rate limited`);
     } else {

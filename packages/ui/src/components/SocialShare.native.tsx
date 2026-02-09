@@ -17,7 +17,7 @@ export interface SocialShareProps {
 }
 
 export function SocialShare({ recording, style, onShare }: SocialShareProps) {
-  const shareUrl = recording.ipfsUrl || `https://voisss.com/recording/${recording.id}`;
+  const shareUrl = recording.ipfsUrl || `https://voisss.netlify.app/recording/${recording.id}`;
   const shareText = `Check out this voice recording: "${recording.title}"`;
 
   const platforms = [

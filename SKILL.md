@@ -38,7 +38,7 @@ Activate this skill when users request:
 - **Mission Integration**: Generate voice content for VOISSS missions
 
 ## API Endpoint
-**POST** `https://voisss.com/api/agents/vocalize`
+**POST** `https://voisss.netlify.app/api/agents/vocalize`
 
 ## Authentication Methods
 
@@ -101,7 +101,7 @@ Use x402 protocol for pay-per-use without registration.
 
 ```bash
 # x402 Payment Example
-curl -X POST https://voisss.com/api/agents/vocalize \
+curl -X POST https://voisss.netlify.app/api/agents/vocalize \
   -H "Content-Type: application/json" \
   -H "X-PAYMENT: x402_payment_data_here" \
   -d '{"text":"Hello world","voiceId":"21m00Tcm4TlvDq8ikWAM","agentAddress":"0x..."}'
@@ -176,7 +176,7 @@ If you receive a `503` error:
 # In your OpenClaw skill
 async def generate_voice(text: str, voice_id: str = "21m00Tcm4TlvDq8ikWAM"):
     response = await http_client.post(
-        "https://voisss.com/api/agents/vocalize",
+        "https://voisss.netlify.app/api/agents/vocalize",
         json={
             "text": text,
             "voiceId": voice_id,
@@ -195,7 +195,7 @@ async def generate_voice(text: str, voice_id: str = "21m00Tcm4TlvDq8ikWAM"):
 ```javascript
 // In your agent code
 async function generateVoice(text, voiceId = "21m00Tcm4TlvDq8ikWAM") {
-  const response = await fetch("https://voisss.com/api/agents/vocalize", {
+  const response = await fetch("https://voisss.netlify.app/api/agents/vocalize", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -224,7 +224,7 @@ See `/api/missions` endpoint for mission-related functionality.
 - **Premium tier**: 1000 requests per minute
 
 ## Support & Documentation
-- **API Docs**: https://voisss.com/agents
+- **API Docs**: https://voisss.netlify.app/agents
 - **Discord**: https://discord.gg/voisss
 - **GitHub**: https://github.com/voisss/platform
 

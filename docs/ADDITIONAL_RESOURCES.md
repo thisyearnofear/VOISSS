@@ -85,7 +85,7 @@ class OpenClawVoiceAgent {
 
   constructor(agentAddress: string, voiceId: string) {
     this.voisss = new VoisssAgentClient(
-      'https://voisss.com', // or your VOISSS instance
+      'https://voisss.netlify.app', // or your VOISSS instance
       agentAddress
     );
     this.voiceId = voiceId;

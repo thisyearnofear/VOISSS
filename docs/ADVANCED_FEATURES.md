@@ -182,7 +182,7 @@ Uses **reverse CAPTCHA** to verify requests come from legitimate AI agents, not 
 # OpenClaw skill for VOISSS voice generation
 async def generate_voice(text: str, voice_id: str = "21m00Tcm4TlvDq8ikWAM"):
     response = await http_client.post(
-        "https://voisss.com/api/agents/vocalize",
+        "https://voisss.netlify.app/api/agents/vocalize",
         headers={
             "Content-Type": "application/json",
             "User-Agent": "OpenClaw/1.0 (AI Agent)",
@@ -206,7 +206,7 @@ async def generate_voice(text: str, voice_id: str = "21m00Tcm4TlvDq8ikWAM"):
 ```javascript
 // Claude skill integration
 async function generateVoice(text, voiceId = "21m00Tcm4TlvDq8ikWAM") {
-    const response = await fetch("https://voisss.com/api/agents/vocalize", {
+    const response = await fetch("https://voisss.netlify.app/api/agents/vocalize", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -229,7 +229,7 @@ async function generateVoice(text, voiceId = "21m00Tcm4TlvDq8ikWAM") {
 ```typescript
 // Cursor extension integration
 export class VoissVoiceProvider {
-    private apiUrl = 'https://voisss.com/api/agents/vocalize';
+    private apiUrl = 'https://voisss.netlify.app/api/agents/vocalize';
     
     async generateVoice(text: string, voiceId: string = "21m00Tcm4TlvDq8ikWAM") {
         const response = await fetch(this.apiUrl, {
@@ -256,7 +256,7 @@ export class VoissVoiceProvider {
 
 #### Basic Voice Generation Test
 ```bash
-curl -X POST https://voisss.com/api/agents/vocalize \
+curl -X POST https://voisss.netlify.app/api/agents/vocalize \
   -H "Content-Type: application/json" \
   -H "User-Agent: TestAgent/1.0 (AI Agent)" \
   -H "X-Agent-ID: test-agent-123" \
@@ -270,10 +270,10 @@ curl -X POST https://voisss.com/api/agents/vocalize \
 #### Agent Verification Test
 ```bash
 # Get verification challenge
-curl "https://voisss.com/api/agents/verify?difficulty=basic"
+curl "https://voisss.netlify.app/api/agents/verify?difficulty=basic"
 
 # Submit challenge solution
-curl -X POST https://voisss.com/api/agents/verify \
+curl -X POST https://voisss.netlify.app/api/agents/verify \
   -H "Content-Type: application/json" \
   -d '{
     "challengeId": "challenge_id_from_above",
@@ -284,14 +284,14 @@ curl -X POST https://voisss.com/api/agents/verify \
 #### Integration Health Check
 ```bash
 # Test with proper agent headers (should pass verification)
-curl -X POST https://voisss.com/api/agents/vocalize \
+curl -X POST https://voisss.netlify.app/api/agents/vocalize \
   -H "User-Agent: MyAgent/1.0 (AI Assistant)" \
   -H "X-Agent-ID: my-agent-v1" \
   -H "Content-Type: application/json" \
   -d '{"text":"Agent test","voiceId":"21m00Tcm4TlvDq8ikWAM","agentAddress":"0x..."}'
 
 # Test without agent headers (should require verification)
-curl -X POST https://voisss.com/api/agents/vocalize \
+curl -X POST https://voisss.netlify.app/api/agents/vocalize \
   -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
   -H "Content-Type: application/json" \
   -d '{"text":"Human test","voiceId":"21m00Tcm4TlvDq8ikWAM","agentAddress":"0x..."}'

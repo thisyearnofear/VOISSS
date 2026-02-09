@@ -85,7 +85,7 @@ const handleVoiceCommand = async (transcript) => {
 
 ### Proper Agent Identification
 ```http
-User-Agent: VOISSSAgent/1.0 (AI Assistant; +https://voisss.com)
+User-Agent: VOISSSAgent/1.0 (AI Assistant; +https://voisss.netlify.app)
 X-Agent-ID: unique-agent-instance-123
 X-Agent-Version: 1.0.0
 ```
@@ -150,7 +150,7 @@ The cost is dynamic based on valid usage:
 Send your voice generation request. Expect a `402 Payment Required` response.
 
 ```bash
-POST https://voisss.ai/api/agents/vocalize
+POST https://voisss.netlify.app/api/agents/vocalize
 Content-Type: application/json
 
 {
