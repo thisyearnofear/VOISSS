@@ -19,17 +19,16 @@ const voisssApiUrl = process.env.VOISSS_API_URL || 'https://voisss.netlify.app';
 
 const agentHandler = new X402AgentHandler(voisssApiUrl, network);
 
-console.log(`🤖 X402 Agent Helper (V2) started`);
+console.log(`🤖 X402 Agent Helper (Credits-Only) started`);
 console.log(`🔗 Network: ${network}`);
 console.log(`🎯 VOISSS API: ${voisssApiUrl}`);
-console.log(`💡 Agents provide their own keys - permissionless x402`);
+console.log(`🔒 SECURE: No private key handling - agents use pre-funded credits`);
 
 // Validation schemas
 const VoiceGenerationSchema = z.object({
   text: z.string().min(1).max(5000),
   voiceId: z.string().min(1),
   agentAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/).optional(),
-  agentPrivateKey: z.string().min(64).optional(),
   maxDurationMs: z.number().int().min(1000).max(60000).optional(),
   metadata: z.record(z.unknown()).optional(),
 });
@@ -59,9 +58,8 @@ app.get('/health', (req: Request, res: Response) => {
 /**
  * POST /voice/generate
  * 
- * Generate voice with automatic payment flow:
- * 1. First tries credits (if agent has deposited USDC to VOISSS)
- * 2. Falls back to x402 V2 if agent provides their privateKey
+ * Generate voice using pre-funded credits only.
+ * SECURE: No private key handling. Agents must pre-fund their VOISSS address.
  */
 app.post('/voice/generate', async (req: Request, res: Response) => {
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -78,25 +76,19 @@ app.post('/voice/generate', async (req: Request, res: Response) => {
       });
     }
 
-    const { agentPrivateKey, ...voiceRequest } = validationResult.data;
+    const voiceRequest = validationResult.data;
     
     console.log(`[${requestId}] 📝 Text: ${voiceRequest.text.length} chars, Voice: ${voiceRequest.voiceId}`);
-    
-    if (agentPrivateKey) {
-      console.log(`[${requestId}] 🔑 Agent provided private key for x402 V2 signing`);
-    } else {
-      console.log(`[${requestId}] 💳 Trying credits flow first (no key provided)`);
-    }
+    console.log(`[${requestId}] 💳 Using credits flow (secure - no key handling)`);
 
-    // Execute voice generation with automatic flow selection
-    const result = await agentHandler.generateVoice(voiceRequest, agentPrivateKey);
+    // Execute voice generation using credits only
+    const result = await agentHandler.generateVoice(voiceRequest);
 
     if (result.success) {
-      const flow = result.usedCredits ? '💳 credits' : '💰 x402 V2';
-      console.log(`[${requestId}] ✅ Success via ${flow}`);
+      console.log(`[${requestId}] ✅ Success via credits`);
       return res.json({
         success: true,
-        flow: result.usedCredits ? 'credits' : 'x402-v2',
+        flow: 'credits',
         data: result.response?.data,
       });
     } else {
@@ -104,7 +96,7 @@ app.post('/voice/generate', async (req: Request, res: Response) => {
       return res.status(402).json({
         success: false,
         error: result.error,
-        help: 'To use this endpoint, either: (1) Deposit USDC credits to your agent address on VOISSS first, or (2) Provide your agentPrivateKey for x402 V2 signing',
+        help: 'To use this endpoint, deposit USDC credits to your agent address on VOISSS first. No private key required.',
       });
     }
 
@@ -133,7 +125,6 @@ app.post('/voice/generate-and-submit', async (req: Request, res: Response) => {
     voiceId: z.string().min(1),
     missionId: z.string().min(1),
     agentAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
-    agentPrivateKey: z.string().min(64).optional(),
     location: z.object({
       city: z.string(),
       country: z.string(),
@@ -152,13 +143,12 @@ app.post('/voice/generate-and-submit', async (req: Request, res: Response) => {
       });
     }
 
-    const { missionId, agentAddress, agentPrivateKey, location, context, ...voiceRequest } = validationResult.data;
+    const { missionId, agentAddress, location, context, ...voiceRequest } = validationResult.data;
 
     // Step 1: Generate voice
     console.log(`[${requestId}] 🎙️ Step 1: Generating voice...`);
     const voiceResult = await agentHandler.generateVoice(
-      { ...voiceRequest, agentAddress },
-      agentPrivateKey
+      { ...voiceRequest, agentAddress }
     );
 
     if (!voiceResult.success || !voiceResult.response?.data?.recordingId) {
@@ -167,12 +157,12 @@ app.post('/voice/generate-and-submit', async (req: Request, res: Response) => {
         success: false,
         error: 'Voice generation failed',
         details: voiceResult.error,
-        help: 'Deposit USDC credits to your agent address, or provide agentPrivateKey for x402 payment',
+        help: 'Deposit USDC credits to your agent address on VOISSS first. No private key required.',
       });
     }
 
     console.log(`[${requestId}] ✅ Voice generated: ${voiceResult.response.data.recordingId}`);
-    console.log(`[${requestId}] 💳 Payment method: ${voiceResult.usedCredits ? 'credits' : 'x402-v2'}`);
+    console.log(`[${requestId}] 💳 Payment method: credits`);
 
     // Step 2: Submit to mission
     console.log(`[${requestId}] 📤 Step 2: Submitting to mission ${missionId}...`);
@@ -198,7 +188,7 @@ app.post('/voice/generate-and-submit', async (req: Request, res: Response) => {
 
     return res.json({
       success: true,
-      flow: voiceResult.usedCredits ? 'credits' : 'x402-v2',
+      flow: 'credits',
       voiceGeneration: voiceResult.response,
       submission: submitResult.submission,
     });
@@ -300,18 +290,19 @@ app.use((err: Error, req: Request, res: Response, next: Function) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`\n🚀 X402 Agent Helper V2 running on port ${PORT}`);
+  console.log(`\n🚀 X402 Agent Helper (Credits-Only) running on port ${PORT}`);
   console.log(`\n📚 Available endpoints:`);
-  console.log(`   POST /voice/generate         - Generate voice (credits or x402 V2)`);
+  console.log(`   POST /voice/generate         - Generate voice (credits only)`);
   console.log(`   POST /voice/generate-and-submit - Generate + submit to mission`);
   console.log(`   POST /missions/submit        - Submit recording to mission`);
   console.log(`   GET  /missions               - List available missions`);
   console.log(`   GET  /voices                 - List available voice IDs`);
   console.log(`   GET  /health                 - Health check`);
-  console.log(`\n💡 Payment flows:`);
-  console.log(`   💳 Credits: Deposit USDC to your agent address first (no signing)`);
-  console.log(`   💰 x402 V2: Provide agentPrivateKey (signs with your wallet)`);
-  console.log(`\n📝 Updated for x402 V2 (Feb 2026) - PAYMENT-SIGNATURE header\n`);
+  console.log(`\n🔒 SECURE: No private key handling`);
+  console.log(`\n💡 Payment flow:`);
+  console.log(`   💳 Credits: Deposit USDC to your agent address first`);
+  console.log(`      No signing required, no key exposure, no per-transaction gas`);
+  console.log(`\n📝 Agents must pre-fund their VOISSS address with USDC on Base\n`);
 });
 
 export default app;
