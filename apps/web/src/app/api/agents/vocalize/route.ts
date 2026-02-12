@@ -9,16 +9,45 @@ import {
   X402PaymentPayload,
   parsePaymentHeader,
   IPFSService,
+  AUDIO_CONFIG,
+  SERVICE_COSTS,
 } from "@voisss/shared";
-import { AUDIO_CONFIG } from "@voisss/shared";
-import { rateLimiters, getIdentifier, getRateLimitHeaders } from "@/lib/rate-limit";
+import { getIdentifier } from "@/lib/rate-limit";
 import { getAgentVerificationService } from "@voisss/shared/services/agent-verification";
-import { getAgentRateLimiter } from "@voisss/shared/services/agent-rate-limiter";
-import { getAgentSecurityService } from "@voisss/shared/services/agent-security";
+import { getAgentRateLimiter, AgentTierLimits } from "@voisss/shared/services/agent-rate-limiter";
+import { getAgentSecurityService, AgentSecurityProfile } from "@voisss/shared/services/agent-security";
 import { getAgentEventHub, VOISSS_EVENT_TYPES } from "@voisss/shared/services/agent-event-hub";
+import { createHash } from "crypto";
 
-// Idempotency cache (in production, use Redis or similar)
-const idempotencyCache = new Map<string, { result: any; expiresAt: number }>();
+// Idempotency cache with TTL cleanup
+class IdempotencyCache {
+  private cache = new Map<string, { result: any; expiresAt: number }>();
+  private lastCleanup = Date.now();
+  private readonly CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
+
+  get(key: string): { result: any; expiresAt: number } | undefined {
+    this.maybeCleanup();
+    return this.cache.get(key);
+  }
+
+  set(key: string, value: { result: any; expiresAt: number }): void {
+    this.cache.set(key, value);
+  }
+
+  private maybeCleanup(): void {
+    const now = Date.now();
+    if (now - this.lastCleanup < this.CLEANUP_INTERVAL) return;
+    
+    for (const [key, entry] of this.cache) {
+      if (entry.expiresAt < now) {
+        this.cache.delete(key);
+      }
+    }
+    this.lastCleanup = now;
+  }
+}
+
+const idempotencyCache = new IdempotencyCache();
 const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // IPFS service for audio storage
@@ -237,20 +266,6 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
           'Retry-After': rateLimitCheck.retryAfter?.toString() || '60',
           ...rateLimitCheck.headers
         }
-      });
-    }
-
-    // Legacy rate limiting check (keep for backward compatibility)
-    const identifier = agentAddress || getIdentifier(req);
-    const legacyRateLimitResult = await rateLimiters.voiceGeneration.check(identifier);
-
-    if (!legacyRateLimitResult.success) {
-      return NextResponse.json({
-        success: false,
-        error: 'Rate limit exceeded. Please try again later.',
-      }, {
-        status: 429,
-        headers: getRateLimitHeaders(legacyRateLimitResult),
       });
     }
 
@@ -840,9 +855,6 @@ function determineAgentTier(
   // Default to unregistered
   return 'unregistered';
 }
-
-// Import SERVICE_COSTS from payment module
-import { SERVICE_COSTS } from "@voisss/shared";
 
 // Export supported HTTP methods
 export const dynamic = 'force-dynamic';

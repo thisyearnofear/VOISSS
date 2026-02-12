@@ -1,52 +1,53 @@
 "use client";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
-import React, { useState, useCallback, useEffect, useMemo } from "react";
-import { useAuth } from "../contexts/AuthContext";
-import { useBase } from "../app/providers";
-import { useBaseAccount } from "../hooks/useBaseAccount";
-import { useWebAudioRecording } from "../hooks/useWebAudioRecording";
-import { useFreemiumStore } from "../store/freemiumStore";
-import { useMission, useCompleteMission } from "../hooks/queries/useMissions";
+import React, { useState, useCallback, useEffect, useMemo, Suspense } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useBase } from "@/app/providers";
+import { useBaseAccount } from "@/hooks/useBaseAccount";
+import { useWebAudioRecording } from "@/hooks/useWebAudioRecording";
+import { useFreemiumStore } from "@/store/freemiumStore";
+import { useMission, useCompleteMission } from "@/hooks/queries/useMissions";
 import { Mission } from "@voisss/shared/types/socialfi";
 import {
   createIPFSService,
-  crossPlatformStorage,
   AudioVersion,
   AgentCategory,
 } from "@voisss/shared";
 import { useVersionLedger } from "@voisss/shared/hooks/useVersionLedger";
 import { SocialShare } from "@voisss/ui";
-import DubbingPanel from "./dubbing/DubbingPanel";
-import { VoiceRecordsABI } from "../contracts/VoiceRecordsABI";
+import { VoiceRecordsABI } from "@/contracts/VoiceRecordsABI";
 import { createWalletClient, custom, encodeFunctionData } from "viem";
 import { base } from "viem/chains";
-import { Check, Zap, UserX, Crown } from "lucide-react";
+import { Zap, UserX, Crown } from "lucide-react";
 
-// Import modular components
-import RecordingControls from "./RecordingStudio/RecordingControls";
-import DurationDisplay from "./RecordingStudio/DurationDisplay";
-import WaveformVisualization from "./RecordingStudio/WaveformVisualization";
-import ToastNotification from "./RecordingStudio/ToastNotification";
-import AIVoicePanel from "./RecordingStudio/AIVoicePanel";
-import VersionSelection from "./RecordingStudio/VersionSelection";
-import AlchemyModeStatus from "./RecordingStudio/AlchemyModeStatus";
-import { useStudioSettings } from "../hooks/useStudioSettings";
-import AudioPreview from "./RecordingStudio/AudioPreview";
-import TranscriptComposer from "./RecordingStudio/TranscriptComposer";
-import ActionButtons from "./RecordingStudio/ActionButtons";
-import RecordingTitle from "./RecordingStudio/RecordingTitle";
-import { useAgentVerification } from "../hooks/useAgentVerification";
-import {
-  getBlobDuration,
-  saveForgeBlob,
-  getForgeBlob,
-  clearForgeBlob,
-  saveVersionLedger,
-  getVersionLedger,
-} from "../lib/studio-db";
+// Core components (eager loaded)
+import RecordingControls from "@/components/RecordingStudio/RecordingControls";
+import DurationDisplay from "@/components/RecordingStudio/DurationDisplay";
+import WaveformVisualization from "@/components/RecordingStudio/WaveformVisualization";
+import ToastNotification from "@/components/RecordingStudio/ToastNotification";
+import VersionSelection from "@/components/RecordingStudio/VersionSelection";
+import AlchemyModeStatus from "@/components/RecordingStudio/AlchemyModeStatus";
+import AudioPreview from "@/components/RecordingStudio/AudioPreview";
+import ActionButtons from "@/components/RecordingStudio/ActionButtons";
+import RecordingTitle from "@/components/RecordingStudio/RecordingTitle";
+import { useStudioSettings } from "@/hooks/useStudioSettings";
+import { useAgentVerification } from "@/hooks/useAgentVerification";
+import { saveVersionLedger, getVersionLedger } from "@/lib/studio-db";
+
+// Lazy load heavy components
+const AIVoicePanel = React.lazy(() => import("@/components/RecordingStudio/AIVoicePanel"));
+const DubbingPanel = React.lazy(() => import("@/components/dubbing/DubbingPanel"));
+const TranscriptComposer = React.lazy(() => import("@/components/RecordingStudio/TranscriptComposer"));
+
+// Loading fallback for lazy components
+const PanelLoadingFallback = () => (
+  <div className="flex items-center justify-center py-12">
+    <div className="animate-pulse flex flex-col items-center gap-3">
+      <div className="w-8 h-8 bg-indigo-500/20 rounded-full animate-spin border-2 border-indigo-500 border-t-transparent" />
+      <span className="text-sm text-gray-400">Loading tools...</span>
+    </div>
+  </div>
+);
 
 interface RecordingStudioProps {
   onRecordingComplete?: (audioBlob: Blob, duration: number) => void;
@@ -970,61 +971,67 @@ export default function RecordingStudio({
                 </div>
 
                 {activeTool === "voice" && (
-                  <AIVoicePanel
-                    voicesFree={voicesFree}
-                    selectedVoiceFree={selectedVoiceFree}
-                    isLoadingVoicesFree={isLoadingVoicesFree}
-                    isGeneratingFree={isGeneratingFree}
-                    canUseAIVoice={canUseAIVoice}
-                    versions={versions}
-                    activeVersionId={activeVersionId}
-                    userTier={userTier}
-                    remainingQuota={remainingQuota}
-                    WEEKLY_AI_VOICE_LIMIT={
-                      useFreemiumStore.getState().WEEKLY_AI_VOICE_LIMIT
-                    }
-                    onVoicesFreeChange={setVoicesFree}
-                    onSelectedVoiceFreeChange={setSelectedVoiceFree}
-                    onLoadingVoicesFreeChange={setLoadingVoicesFree}
-                    onGeneratingFreeChange={setGeneratingFree}
-                    onIncrementAIVoiceUsage={incrementAIVoiceUsage}
-                    onToastMessage={setToastMessage}
-                    onToastType={setToastType}
-                    onAddVersion={addVersion}
-                    onSetSelectedVersionIds={setSelectedVersionIds}
-                  />
+                  <Suspense fallback={<PanelLoadingFallback />}>
+                    <AIVoicePanel
+                      voicesFree={voicesFree}
+                      selectedVoiceFree={selectedVoiceFree}
+                      isLoadingVoicesFree={isLoadingVoicesFree}
+                      isGeneratingFree={isGeneratingFree}
+                      canUseAIVoice={canUseAIVoice}
+                      versions={versions}
+                      activeVersionId={activeVersionId}
+                      userTier={userTier}
+                      remainingQuota={remainingQuota}
+                      WEEKLY_AI_VOICE_LIMIT={
+                        useFreemiumStore.getState().WEEKLY_AI_VOICE_LIMIT
+                      }
+                      onVoicesFreeChange={setVoicesFree}
+                      onSelectedVoiceFreeChange={setSelectedVoiceFree}
+                      onLoadingVoicesFreeChange={setLoadingVoicesFree}
+                      onGeneratingFreeChange={setGeneratingFree}
+                      onIncrementAIVoiceUsage={incrementAIVoiceUsage}
+                      onToastMessage={setToastMessage}
+                      onToastType={setToastType}
+                      onAddVersion={addVersion}
+                      onSetSelectedVersionIds={setSelectedVersionIds}
+                    />
+                  </Suspense>
                 )}
 
                 {activeTool === "dub" && (
-                  <DubbingPanel
-                    versions={versions}
-                    activeVersionId={activeVersionId}
-                    onAddVersion={addVersion}
-                    onDubbingComplete={(
-                      dubbedBlob,
-                      language,
-                      sourceVersionId
-                    ) => {
-                      setSelectedVersionIds((prev) => {
-                        const updated = new Set(prev);
-                        const newVersionIds = versions.map((v) => v.id);
-                        const lastId = newVersionIds[newVersionIds.length - 1];
-                        if (lastId) updated.add(lastId);
-                        return updated;
-                      });
-                    }}
-                  />
+                  <Suspense fallback={<PanelLoadingFallback />}>
+                    <DubbingPanel
+                      versions={versions}
+                      activeVersionId={activeVersionId}
+                      onAddVersion={addVersion}
+                      onDubbingComplete={(
+                        dubbedBlob,
+                        language,
+                        sourceVersionId
+                      ) => {
+                        setSelectedVersionIds((prev) => {
+                          const updated = new Set(prev);
+                          const newVersionIds = versions.map((v) => v.id);
+                          const lastId = newVersionIds[newVersionIds.length - 1];
+                          if (lastId) updated.add(lastId);
+                          return updated;
+                        });
+                      }}
+                    />
+                  </Suspense>
                 )}
 
                 {activeTool === "script" && activeVersion && (
-                  <TranscriptComposer
-                    previewUrl={activePreviewUrl || ""}
-                    durationSeconds={activeVersion.metadata.duration}
-                    audioBlob={activeVersion.blob}
-                    initialTemplateId={initialTranscriptTemplateId}
-                    autoFocus={true}
-                    languageHint={activeVersion.metadata.language || "en"}
-                  />
+                  <Suspense fallback={<PanelLoadingFallback />}>
+                    <TranscriptComposer
+                      previewUrl={activePreviewUrl || ""}
+                      durationSeconds={activeVersion.metadata.duration}
+                      audioBlob={activeVersion.blob}
+                      initialTemplateId={initialTranscriptTemplateId}
+                      autoFocus={true}
+                      languageHint={activeVersion.metadata.language || "en"}
+                    />
+                  </Suspense>
                 )}
               </div>
             </>
