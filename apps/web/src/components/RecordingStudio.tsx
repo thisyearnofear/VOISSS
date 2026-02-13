@@ -462,7 +462,7 @@ export default function RecordingStudio({
           metadata.isPublic,
           metadata.isAgentContent || false,
           metadata.category || "",
-          metadata.x402Price ? BigInt(Math.floor(parseFloat(metadata.x402Price) * 1e18)) : BigInt(0),
+          metadata.x402Price ? BigInt(Math.floor(parseFloat(metadata.x402Price) * 1e6)) : BigInt(0),
         ],
       });
 
@@ -552,7 +552,7 @@ export default function RecordingStudio({
             metadata.isPublic,
             metadata.isAgentContent || false,
             metadata.category || "",
-            metadata.x402Price ? BigInt(Math.floor(parseFloat(metadata.x402Price) * 1e18)) : BigInt(0),
+            metadata.x402Price ? BigInt(Math.floor(parseFloat(metadata.x402Price) * 1e6)) : BigInt(0),
           ],
         });
 

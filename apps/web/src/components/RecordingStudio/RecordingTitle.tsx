@@ -127,19 +127,19 @@ export default function RecordingTitle({
                 <div>
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-400 mb-2">
                     <DollarSign className="w-4 h-4" />
-                    Access Price (ETH)
+                    Access Price (USDC)
                   </label>
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
                       min="0"
-                      step="0.001"
+                      step="0.01"
                       value={x402Price}
                       onChange={(e) => onX402PriceChange(e.target.value)}
                       placeholder="0.00"
                       className="flex-1 voisss-input bg-[#2A2A2A] border-[#3A3A3A] text-white placeholder-gray-500"
                     />
-                    <span className="text-sm text-gray-500">ETH</span>
+                    <span className="text-sm text-gray-500">USDC</span>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
                     Set to 0 for free access. x402 payments enable micropayments.
