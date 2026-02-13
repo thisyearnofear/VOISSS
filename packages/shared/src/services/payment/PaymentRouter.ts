@@ -427,13 +427,14 @@ export class PaymentRouter {
     const success = await creditStore.deductCredits(address, discountedCost);
     
     if (!success) {
+      const available = await this.getAvailableCredits(address);
       return {
         success: false,
         method: 'credits',
         baseCost,
         cost: discountedCost,
         discountApplied: discountPercent / 100,
-        error: 'Insufficient credits',
+        error: `Insufficient credits. Required: ${formatUSDC(discountedCost)}, Available: ${formatUSDC(available)}`,
         fallbackAvailable: true,
       };
     }

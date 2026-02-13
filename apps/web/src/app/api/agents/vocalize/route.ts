@@ -726,8 +726,10 @@ async function generateAndReturnVoice(
       data: {
         audioUrl,
         contentHash,
-        cost: cost.toString(),
-        baseCost: baseCost?.toString(),
+        cost: formatUSDC(cost),
+        costWei: cost.toString(),
+        baseCost: baseCost ? formatUSDC(baseCost) : undefined,
+        baseCostWei: baseCost?.toString(),
         discountApplied,
         characterCount,
         paymentMethod,
@@ -738,7 +740,10 @@ async function generateAndReturnVoice(
           note: "Audio is temporarily stored. IPFS upload will be retried in background."
         }),
         ...(txHash && { txHash }),
-        ...(remainingCredits !== undefined && { creditBalance: remainingCredits.toString() }),
+        ...(remainingCredits !== undefined && { 
+          creditBalance: formatUSDC(remainingCredits),
+          creditBalanceWei: remainingCredits.toString() 
+        }),
         ...(tier && { tier }),
         ...(agentTier && { agentTier }),
       }
@@ -799,15 +804,17 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       success: true,
       data: {
         agentAddress,
-        creditBalance: creditBalance.toString(),
+        creditBalance: formatUSDC(creditBalance),
+        creditBalanceWei: creditBalance.toString(),
         currentTier: quote.currentTier,
-        costPerCharacter: SERVICE_COSTS.voice_generation.unitCost?.toString() || '1',
+        costPerCharacter: formatUSDC(SERVICE_COSTS.voice_generation.unitCost || 0n),
         sampleCost: {
           characters: sampleChars,
           baseUsdc: formatUSDC(quote.baseCost),
           usdc: formatUSDC(quote.estimatedCost),
           discountPercent: quote.discountPercent,
           wei: quote.estimatedCost.toString(),
+          formatted: formatUSDC(quote.estimatedCost),
         },
         availablePaymentMethods: quote.availableMethods,
         recommendedMethod: quote.recommendedMethod,
