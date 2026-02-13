@@ -808,6 +808,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         creditBalanceWei: creditBalance.toString(),
         currentTier: quote.currentTier,
         costPerCharacter: formatUSDC(SERVICE_COSTS.voice_generation.unitCost || 0n),
+        costPerCharacterWei: (SERVICE_COSTS.voice_generation.unitCost || 0n).toString(),
         sampleCost: {
           characters: sampleChars,
           baseUsdc: formatUSDC(quote.baseCost),

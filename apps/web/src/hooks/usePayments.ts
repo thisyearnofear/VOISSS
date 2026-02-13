@@ -308,15 +308,25 @@ export function usePayments(options: UsePaymentsOptions): UsePaymentsState {
 
       // Construct quote from response
       const sampleWei = BigInt(data.data.sampleCost.wei);
-      const sampleBaseWei = BigInt(data.data.sampleCost.wei) * 100n / BigInt(100 - data.data.sampleCost.discountPercent);
+      // Avoid division by zero when discount is 100%
+      const discountPercent = data.data.sampleCost.discountPercent;
+      const sampleBaseWei = discountPercent === 100 
+        ? sampleWei 
+        : sampleWei * 100n / BigInt(100 - discountPercent);
+      
+      // Parse unitCost - it may be formatted string or undefined
+      let unitCost = 0n;
+      if (data.data.costPerCharacterWei) {
+        unitCost = BigInt(data.data.costPerCharacterWei);
+      }
       
       const paymentQuote: PaymentQuote = {
         service,
         quantity,
         baseCost: sampleBaseWei * BigInt(quantity) / 1000n,
         estimatedCost: sampleWei * BigInt(quantity) / 1000n,
-        unitCost: BigInt(data.data.costPerCharacter),
-        discountPercent: data.data.sampleCost.discountPercent,
+        unitCost,
+        discountPercent: discountPercent,
         availableMethods: data.data.availablePaymentMethods,
         recommendedMethod: data.data.recommendedMethod,
         creditsAvailable: data.data.creditBalance ? BigInt(data.data.creditBalance) : undefined,
@@ -389,8 +399,8 @@ export function usePayments(options: UsePaymentsOptions): UsePaymentsState {
             const result: PaymentResult = {
               success: true,
               method: data.data.paymentMethod as any,
-              baseCost: BigInt(data.data.baseCost || data.data.cost),
-              cost: BigInt(data.data.cost),
+              baseCost: BigInt(data.data.baseCostWei || data.data.costWei || '0'),
+              cost: BigInt(data.data.costWei || '0'),
               discountApplied: data.data.discountApplied,
               txHash: data.data.txHash,
             };
@@ -435,8 +445,8 @@ export function usePayments(options: UsePaymentsOptions): UsePaymentsState {
         const result: PaymentResult = {
           success: true,
           method: 'x402',
-          baseCost: BigInt(data.data.baseCost || data.data.cost),
-          cost: BigInt(data.data.cost),
+          baseCost: BigInt(data.data.baseCostWei || data.data.costWei || '0'),
+          cost: BigInt(data.data.costWei || '0'),
           discountApplied: data.data.discountApplied,
           txHash: data.data.txHash,
         };
@@ -466,10 +476,10 @@ export function usePayments(options: UsePaymentsOptions): UsePaymentsState {
       const result: PaymentResult = {
         success: true,
         method: data.data.paymentMethod as any,
-        baseCost: BigInt(data.data.baseCost || data.data.cost),
-        cost: BigInt(data.data.cost),
+        baseCost: BigInt(data.data.baseCostWei || data.data.costWei || '0'),
+        cost: BigInt(data.data.costWei || '0'),
         discountApplied: data.data.discountApplied,
-        remainingCredits: data.data.creditBalance ? BigInt(data.data.creditBalance) : undefined,
+        remainingCredits: data.data.creditBalanceWei ? BigInt(data.data.creditBalanceWei) : undefined,
         tier: data.data.tier,
       };
 
