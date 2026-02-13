@@ -149,13 +149,25 @@ export class X402Client {
 
     if (typeof amount === 'bigint') {
       weiAsString = amount.toString();
-    } else {
-      const match = amount.match(/\$?([\d.]+)/);
-      if (!match) {
-        throw new Error(`Invalid amount format: ${amount}`);
+    } else if (typeof amount === 'string') {
+      // If it's a pure numeric string (no $ and no .), assume it's already wei
+      if (/^\d+$/.test(amount)) {
+        weiAsString = amount;
+      } else {
+        // Handle currency strings like "$0.01" or "0.01"
+        const match = amount.match(/\$?([\d.]+)/);
+        if (!match) {
+          throw new Error(`Invalid amount format: ${amount}`);
+        }
+        
+        // Use a safer way to convert to wei than Math.floor(float * 1M)
+        const parts = match[1].split('.');
+        const whole = parts[0] || '0';
+        const fraction = (parts[1] || '').padEnd(6, '0').slice(0, 6);
+        weiAsString = (BigInt(whole) * 1_000_000n + BigInt(fraction)).toString();
       }
-      const dollars = parseFloat(match[1]);
-      weiAsString = Math.floor(dollars * 1_000_000).toString();
+    } else {
+      throw new Error(`Unsupported amount type: ${typeof amount}`);
     }
 
     const DEFAULT_PAY_TO = '0xA6a8736f18f383f1cc2d938576933E5eA7Df01A1';

@@ -328,7 +328,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
       const x402Client = (await import('@voisss/shared')).getX402Client();
       const requirements = x402Client.createRequirements(
         `${req.nextUrl.origin}/api/agents/vocalize`,
-        formatUSDC(actualCost),
+        actualCost,
         process.env.X402_PAY_TO_ADDRESS || '',
         `Voice generation: ${characterCount} characters (Discount: ${quote.discountPercent}%)`
       );
