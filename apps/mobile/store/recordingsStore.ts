@@ -2,7 +2,6 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Recording, RecordingFilter, Tag } from "../types";
-import { mockRecordings, mockTags } from "../mocks/recordings";
 import { getIPFSService, MobileIPFSService } from "../services/ipfsService";
 
 interface RecordingsState {
@@ -46,8 +45,8 @@ const defaultFilter: RecordingFilter = {
 export const useRecordingsStore = create<RecordingsState>()(
   persist(
     (set, get) => ({
-      recordings: mockRecordings, // Start with mock data
-      tags: mockTags, // Start with mock tags
+      recordings: [],
+      tags: [],
       filter: defaultFilter,
       currentRecordingId: null,
       isPlaying: false,

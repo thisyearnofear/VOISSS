@@ -26,12 +26,18 @@ export {
   type AgentCreditAccount,
   type PaymentPreference,
   type X402PaymentConfig,
+  type PartnerTier,
   
   // Constants
   USDC_DECIMALS,
   USDC_ADDRESS,
   SERVICE_COSTS,
   DEFAULT_X402_CONFIG,
+  TIER_DISCOUNTS,
+  PARTNER_DISCOUNTS,
+  PARTNER_TIER_THRESHOLDS,
+  PARTNER_WHITELIST,
+  WHITELISTED_ADDRESSES,
   PaymentRequestSchema,
   PaymentQuoteSchema,
   
@@ -40,6 +46,7 @@ export {
   formatUSDC,
   parseUSDC,
   priceStringToUSDC,
+  getPartnerTier,
 } from './types';
 
 // ============================================================================
@@ -75,3 +82,19 @@ export {
   resetPaymentRouter,
   type PaymentRouterConfig,
 } from './PaymentRouter';
+
+// ============================================================================
+// REDIS USAGE TRACKER
+// ============================================================================
+
+export {
+  RedisUsageTracker,
+  InMemoryUsageTracker,
+  getUsageTracker,
+  getFallbackTracker,
+  getTracker,
+  setUseRedis,
+  resetUsageTracker,
+  type UsageRecord,
+  type UsageStats,
+} from './RedisUsageTracker';

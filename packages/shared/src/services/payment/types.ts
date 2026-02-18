@@ -58,6 +58,51 @@ export const TIER_DISCOUNTS: Record<TokenTier, number> = {
   premium: 0.5,   // 50% discount
 };
 
+// ============================================================================
+// PARTNER PRICING TIERS (For High-Volume External Agents)
+// ============================================================================
+
+export type PartnerTier = 'none' | 'silver' | 'gold' | 'platinum';
+
+/**
+ * Partner tier pricing - volume-based discounts for external agents
+ * These are multiplicative with token tier discounts
+ */
+export const PARTNER_DISCOUNTS: Record<PartnerTier, number> = {
+  none: 0,        // 0% discount
+  silver: 0.15,  // 15% additional discount
+  gold: 0.30,    // 30% additional discount  
+  platinum: 0.50, // 50% additional discount
+};
+
+/**
+ * Monthly volume thresholds for partner tiers
+ */
+export const PARTNER_TIER_THRESHOLDS: Record<PartnerTier, { minVolume: bigint; maxVolume: bigint | null }> = {
+  none: { minVolume: 0n, maxVolume: 100n },            // < $100/mo
+  silver: { minVolume: 100n, maxVolume: 1000n },      // $100-$1000/mo
+  gold: { minVolume: 1000n, maxVolume: 10000n },      // $1000-$10k/mo
+  platinum: { minVolume: 10000n, maxVolume: null }, // $10k+/mo (no max)
+};
+
+/**
+ * Get partner tier based on monthly spending
+ */
+export function getPartnerTier(monthlySpentUSDC: bigint): PartnerTier {
+  if (monthlySpentUSDC >= PARTNER_TIER_THRESHOLDS.platinum.minVolume) return 'platinum';
+  if (monthlySpentUSDC >= PARTNER_TIER_THRESHOLDS.gold.minVolume) return 'gold';
+  if (monthlySpentUSDC >= PARTNER_TIER_THRESHOLDS.silver.minVolume) return 'silver';
+  return 'none';
+}
+
+/**
+ * Whitelisted partner addresses for immediate partner benefits
+ * These bypass volume requirements
+ */
+export const PARTNER_WHITELIST = new Set<string>([
+  // Add partner addresses here
+]);
+
 /**
  * Addresses whitelisted for free platform use (beta testers, owners, etc.)
  * Returns 100% discount regardless of tier.

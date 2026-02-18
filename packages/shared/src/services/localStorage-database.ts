@@ -1,8 +1,13 @@
 /**
- * localStorage Database Implementation
- * 
- * A simple but effective database implementation using browser localStorage.
- * Provides data persistence between sessions while maintaining performance.
+ * @internal — Web localStorage adapter for DatabaseService.
+ *
+ * ⚠️  Do NOT import this file directly.
+ * Use `cross-platform-storage` (the public API) instead:
+ *   import { crossPlatformStorage } from '@voisss/shared';
+ *
+ * This adapter is an implementation detail of the storage layer.
+ * Importing it directly creates platform-specific coupling and bypasses
+ * the unified caching and key-namespacing logic in crossPlatformStorage.
  */
 
 import { 

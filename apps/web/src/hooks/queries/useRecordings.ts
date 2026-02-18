@@ -47,13 +47,13 @@ export function useRecordings(showHidden: boolean = false) {
 async function fetchLocalRecordings(address: string, showHidden: boolean): Promise<Recording[]> {
   try {
     const storageKey = `voisss_recordings_${address}`;
-    const stored = await await crossPlatformStorage.getItem(storageKey);
+        const stored = await crossPlatformStorage.getItem(storageKey);
 
-    if (!stored) return [];
+        if (!stored) return [];
 
-    const recordings: Recording[] = JSON.parse(stored);
+        const recordings: Recording[] = JSON.parse(stored);
 
-    // Filter hidden recordings if needed
+        // Filter hidden recordings if needed
     const filteredRecordings = showHidden
       ? recordings
       : recordings.filter(r => !r.isHidden);
@@ -157,7 +157,7 @@ export function useRecording(recordingId: string): ReturnType<typeof useQuery<Re
 
       try {
         const storageKey = `voisss_recordings_${address}`;
-        const stored = await await crossPlatformStorage.getItem(storageKey);
+        const stored = await crossPlatformStorage.getItem(storageKey);
 
         if (!stored) return null;
 

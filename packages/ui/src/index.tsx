@@ -5,5 +5,4 @@ export * from "./components/RecordingCard";
 export * from "./components/SocialShare.native";
 export * from "./components/WalletConnector";
 export * from "./components/WaveformVisualization";
-export * from "./components/WaveformVisualizer";
 export * from "./types";

@@ -32,8 +32,9 @@ export * from './services/recording-service';
 export * from './services/mission-service';
 export * from './services/moderation-service';
 export * from './services/database-service';
-export * from './services/localStorage-database';
-export * from './services/asyncStorage-database';
+// cross-platform-storage is the single public storage API.
+// localStorage-database and asyncStorage-database are internal adapters —
+// import cross-platform-storage instead of using them directly.
 export * from './services/cross-platform-storage';
 // Note: persistent-mission-service factory uses pg adapter which is server-only
 // To use: import { createMissionService } from '@voisss/shared/services/persistent-mission-service'
@@ -80,6 +81,9 @@ export * from './constants';
 
 // Token access configuration (server-safe)
 export * from './config/tokenAccess';
+
+// Tier bridge — canonical mapping between TokenTier and UserTier (server-safe)
+export * from './utils/tierBridge';
 export * from './services/token-burn-service';
 // Note: useTokenAccess is a client-only hook and should be imported directly:
 // import { useTokenAccess } from '@voisss/shared/hooks/useTokenAccess'

@@ -5,19 +5,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useBase } from "@/app/providers";
 import { useBaseAccount } from "@/hooks/useBaseAccount";
 import { useWebAudioRecording } from "@/hooks/useWebAudioRecording";
-import { useFreemiumStore } from "@/store/freemiumStore";
+import { useFreemiumStore, useSyncUserTier } from "@/store/freemiumStore";
 import { useMission, useCompleteMission } from "@/hooks/queries/useMissions";
 import { Mission } from "@voisss/shared/types/socialfi";
-import {
-  createIPFSService,
-  AudioVersion,
-  AgentCategory,
-} from "@voisss/shared";
+import { AudioVersion, AgentCategory } from "@voisss/shared";
 import { useVersionLedger } from "@voisss/shared/hooks/useVersionLedger";
 import { SocialShare } from "@voisss/ui";
-import { VoiceRecordsABI } from "@/contracts/VoiceRecordsABI";
-import { createWalletClient, custom, encodeFunctionData } from "viem";
-import { base } from "viem/chains";
 import { Zap, UserX, Crown } from "lucide-react";
 
 // Core components (eager loaded)
@@ -33,6 +26,8 @@ import RecordingTitle from "@/components/RecordingStudio/RecordingTitle";
 import { useStudioSettings } from "@/hooks/useStudioSettings";
 import { useAgentVerification } from "@/hooks/useAgentVerification";
 import { saveVersionLedger, getVersionLedger } from "@/lib/studio-db";
+import { useAgentMode } from "@/hooks/useAgentMode";
+import { useRecordingSave } from "@/hooks/useRecordingSave";
 
 // Lazy load heavy components
 const AIVoicePanel = React.lazy(() => import("@/components/RecordingStudio/AIVoicePanel"));
@@ -63,12 +58,6 @@ interface ShareableRecording {
   ipfsUrl?: string;
   duration: number;
   createdAt: string;
-}
-
-interface SocialShareProps {
-  recording: ShareableRecording;
-  className?: string;
-  onShare?: (platform: string, url: string) => void;
 }
 
 interface SaveResult {
@@ -173,10 +162,15 @@ export default function RecordingStudio({
     "voice" | "dub" | "script" | "insights" | null
   >(null);
 
-  // Agent mode state
-  const [isAgentMode, setIsAgentMode] = useState(false);
-  const [agentCategory, setAgentCategory] = useState<AgentCategory>("general");
-  const [x402Price, setX402Price] = useState<string>("0");
+  // Agent mode — isolated state (CLEAN/MODULAR)
+  const {
+    isAgentMode,
+    agentCategory,
+    x402Price,
+    setIsAgentMode,
+    setAgentCategory,
+    setX402Price,
+  } = useAgentMode();
 
   // Persistence State
   const [initialLedgerState, setInitialLedgerState] = useState<any>(null);
@@ -231,10 +225,6 @@ export default function RecordingStudio({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<"success" | "error">("error");
 
-  // Gas saving fallback
-  const [isDirectSaving, setIsDirectSaving] = useState(false);
-  const contractAddress = process.env
-    .NEXT_PUBLIC_VOICE_RECORDS_CONTRACT as `0x${string}`;
 
   // Version selection state (now maps to ledger versions)
   const [selectedVersionIds, setSelectedVersionIds] = useState<Set<string>>(
@@ -286,14 +276,6 @@ export default function RecordingStudio({
     };
   }, [activePreviewUrl]);
 
-  // Restore persistence on mount (restore active version if in Forge)
-  // Legacy forge persistence removal - handled by version ledger now
-
-  // Core recording state
-
-  // Services
-  const ipfsService = React.useMemo(() => createIPFSService(), []);
-
   // Freemium state
   const {
     userTier,
@@ -304,17 +286,10 @@ export default function RecordingStudio({
     incrementAIVoiceUsage,
     incrementDubbingUsage,
     getRemainingQuota,
-    setUserTier,
   } = useFreemiumStore();
 
-  // Effects
-  useEffect(() => {
-    if (isAuthenticated && address) {
-      setUserTier("free");
-    } else {
-      setUserTier("guest");
-    }
-  }, [isAuthenticated, address, setUserTier]);
+  // Sync tier via bridge — single source of truth (replaces manual setUserTier effect)
+  useSyncUserTier(isAuthenticated && !!address, null);
 
   useEffect(() => {
     if (!audioBlob) {
@@ -423,157 +398,18 @@ export default function RecordingStudio({
     }
   }, [audioBlob, recordingTitle]);
 
-  // Core save functions
-  const saveRecordingToBase = useCallback(
-    async (audioBlob: Blob, metadata: any) => {
-      if (!subAccountAddress || !hasSubAccount) {
-        throw new Error(
-          "Sub Account not available. Use saveRecordingWithGas instead."
-        );
-      }
-
-      if (!isConnected) {
-        throw new Error("Base Account not connected.");
-      }
-
-      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const filename = `${metadata.title.replace(
-        /[^a-zA-Z0-9]/g,
-        "_"
-      )}_${timestamp}.mp3`;
-
-      const ipfsResult = await ipfsService.uploadAudio(audioBlob, {
-        filename,
-        mimeType: audioBlob.type || "audio/mpeg",
-        duration: duration,
-      });
-
-      // Prepare contract call data with agent mode support
-      const callData = encodeFunctionData({
-        abi: VoiceRecordsABI,
-        functionName: "saveRecording",
-        args: [
-          ipfsResult.hash,
-          metadata.title,
-          JSON.stringify({
-            description: metadata.description,
-            tags: metadata.tags,
-          }),
-          metadata.isPublic,
-          metadata.isAgentContent || false,
-          metadata.category || "",
-          metadata.x402Price ? BigInt(Math.floor(parseFloat(metadata.x402Price) * 1e6)) : BigInt(0),
-        ],
-      });
-
-      // Send transaction from Sub Account (gasless)
-      const txHash = await provider?.request({
-        method: "eth_sendTransaction",
-        params: [
-          {
-            from: subAccountAddress,
-            to: contractAddress,
-            data: callData,
-          },
-        ],
-      });
-
-      return { ipfsHash: ipfsResult.hash, txId: txHash };
-    },
-    [
-      subAccountAddress,
-      hasSubAccount,
-      isConnected,
-      ipfsService,
-      duration,
-      contractAddress,
-      provider,
-      isAgentMode,
-      agentCategory,
-      x402Price,
-    ]
-  );
-
-  const saveRecordingWithGas = useCallback(
-    async (
-      audioBlob: Blob,
-      metadata: {
-        title: string;
-        description: string;
-        isPublic: boolean;
-        tags: string[];
-        isAgentContent?: boolean;
-        category?: string;
-        x402Price?: string;
-      }
-    ) => {
-      if (!window.ethereum) {
-        throw new Error(
-          "No wallet detected. Please install a wallet like MetaMask."
-        );
-      }
-
-      if (!contractAddress) {
-        throw new Error("Contract not deployed. Please contact support.");
-      }
-
-      setIsDirectSaving(true);
-
-      try {
-        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-        const filename = `${metadata.title.replace(
-          /[^a-zA-Z0-9]/g,
-          "_"
-        )}_${timestamp}.mp3`;
-
-        const ipfsResult = await ipfsService.uploadAudio(audioBlob, {
-          filename,
-          mimeType: audioBlob.type || "audio/mpeg",
-          duration: duration,
-        });
-
-        const walletClient = createWalletClient({
-          chain: base,
-          transport: custom(window.ethereum as any),
-        });
-
-        const [account] = await walletClient.getAddresses();
-
-        const data = encodeFunctionData({
-          abi: VoiceRecordsABI,
-          functionName: "saveRecording",
-          args: [
-            ipfsResult.hash,
-            metadata.title,
-            JSON.stringify({
-              description: metadata.description,
-              tags: metadata.tags,
-            }),
-            metadata.isPublic,
-            metadata.isAgentContent || false,
-            metadata.category || "",
-            metadata.x402Price ? BigInt(Math.floor(parseFloat(metadata.x402Price) * 1e6)) : BigInt(0),
-          ],
-        });
-
-        const txHash = await walletClient.sendTransaction({
-          account,
-          to: contractAddress,
-          data,
-        });
-
-        setToastType("success");
-        setToastMessage(
-          `Recording saved to blockchain! Tx: ${txHash.slice(0, 10)}...`
-        );
-
-        return { ipfsHash: ipfsResult.hash, txHash };
-      } finally {
-        setIsDirectSaving(false);
-      }
-    },
-    [contractAddress, ipfsService, duration, setToastType, setToastMessage, isAgentMode, agentCategory, x402Price]
-  );
+  // Save logic — isolated via hook (CLEAN/MODULAR)
+  const { isDirectSaving, saveRecordingToBase, saveRecordingWithGas } = useRecordingSave({
+    duration,
+    subAccountAddress,
+    hasSubAccount,
+    isConnected,
+    provider,
+    isAgentMode,
+    agentCategory,
+    x402Price,
+    onToast: (msg, type) => { setToastMessage(msg); setToastType(type); },
+  });
 
   const handleOpenTool = useCallback(
     (tool: "voice" | "dub" | "script" | "insights", versionId: string) => {

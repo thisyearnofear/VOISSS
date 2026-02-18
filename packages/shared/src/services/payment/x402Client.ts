@@ -139,6 +139,15 @@ export class X402Client {
     return { 'Authorization': `Bearer ${jwt}` };
   }
 
+  /**
+   * Create payment requirements for x402 protocol
+   * 
+   * @param resourceUrl - The API endpoint being paid for
+   * @param amount - Payment amount in USDC wei (bigint) or as string ("$0.01" or "1000000")
+   * @param payTo - REQUIRED: Recipient wallet address (must be provided by caller)
+   * @param description - Optional description of the payment
+   * @throws Error if payTo is not provided or is invalid
+   */
   createRequirements(
     resourceUrl: string,
     amount: string | bigint,
@@ -170,20 +179,21 @@ export class X402Client {
       throw new Error(`Unsupported amount type: ${typeof amount}`);
     }
 
-    const DEFAULT_PAY_TO = '0xA6a8736f18f383f1cc2d938576933E5eA7Df01A1';
-    let targetPayTo = payTo;
-
-    if (!targetPayTo) {
-      console.warn(`⚠️ empty payTo provided, falling back to default: ${DEFAULT_PAY_TO}`);
-      targetPayTo = DEFAULT_PAY_TO;
+    // Validate payTo is provided - no more silent fallbacks
+    if (!payTo || payTo.trim() === '') {
+      throw new Error(
+        'x402 payTo address is REQUIRED. Provide the recipient wallet address explicitly. ' +
+        'Do not rely on hardcoded fallbacks - always specify who should receive payment.'
+      );
     }
 
-    let checksummedPayTo = targetPayTo;
+    let checksummedPayTo: string;
     try {
-      checksummedPayTo = getAddress(targetPayTo.trim());
+      checksummedPayTo = getAddress(payTo.trim());
     } catch (e) {
-      console.error(`Invalid payTo address format: "${targetPayTo}"`, e);
-      checksummedPayTo = DEFAULT_PAY_TO;
+      throw new Error(
+        `Invalid x402 payTo address format: "${payTo}". Must be a valid Ethereum address (0x...40 hex chars).`
+      );
     }
 
     return {

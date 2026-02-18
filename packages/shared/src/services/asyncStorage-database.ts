@@ -1,6 +1,13 @@
 /**
- * AsyncStorage Database Implementation
- * 
+ * @internal — React Native AsyncStorage adapter for DatabaseService.
+ *
+ * ⚠️  Do NOT import this file directly.
+ * Use `cross-platform-storage` (the public API) instead:
+ *   import { crossPlatformStorage } from '@voisss/shared';
+ *
+ * This adapter is an implementation detail of the storage layer.
+ * Importing it directly creates platform-specific coupling.
+ *
  * React Native-compatible database implementation using AsyncStorage.
  * Mirrors the localStorage-database API for consistency across platforms.
  */

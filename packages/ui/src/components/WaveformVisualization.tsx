@@ -1,29 +1,58 @@
-import React, { useEffect, useRef } from 'react';
+/**
+ * WaveformVisualization
+ *
+ * Single waveform canvas component for all VOISSS surfaces.
+ * Replaces the former WaveformVisualizer (deleted — was a subset).
+ *
+ * Modes
+ * ──────
+ * isRecording=true   → animated bars (rAF loop)
+ * audioData provided → renders real amplitude data
+ * neither            → renders static minimal bars
+ *
+ * Progress playhead is drawn when currentTime + duration are provided.
+ */
 
-interface WaveformVisualizationProps {
+import React, { useEffect, useRef } from 'react';
+import { cn } from '../utils/cn';
+
+export interface WaveformVisualizationProps {
+  // Real audio data (normalised 0-1 per bar, or raw 0-255 values)
   audioData?: number[];
+  // Live recording mode — animates bars with rAF
+  isRecording?: boolean;
+  // Playback progress
   currentTime?: number;
   duration?: number;
-  width?: number;
+  // Layout
   height?: number;
+  barCount?: number;
+  width?: number;
+  // Colours
   color?: string;
   backgroundColor?: string;
+  progressColor?: string;
+  // Styling pass-throughs
   className?: string;
   style?: React.CSSProperties;
 }
 
 export function WaveformVisualization({
   audioData = [],
+  isRecording = false,
   currentTime = 0,
   duration = 0,
-  width = 300,
   height = 60,
+  barCount = 40,
+  width,                        // optional explicit px width; defaults to CSS 100%
   color = '#7C5DFA',
-  backgroundColor = '#2A2A35',
+  backgroundColor = 'transparent',
+  progressColor = '#4E7BFF',
   className,
-  style
+  style,
 }: WaveformVisualizationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationRef = useRef<number>();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -32,61 +61,80 @@ export function WaveformVisualization({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set canvas size
-    canvas.width = width;
-    canvas.height = height;
+    const draw = () => {
+      const W = canvas.width;
+      const H = canvas.height;
 
-    // Clear canvas
-    ctx.clearRect(0, 0, width, height);
+      ctx.clearRect(0, 0, W, H);
 
-    // Generate mock audio data if not provided
-    const data = audioData.length > 0 ? audioData : generateMockAudioData(width);
-    
-    // Draw background
-    ctx.fillStyle = backgroundColor;
-    ctx.fillRect(0, 0, width, height);
+      // Background
+      if (backgroundColor !== 'transparent') {
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, W, H);
+      }
 
-    // Draw waveform
-    const barWidth = width / data.length;
-    const centerY = height / 2;
+      const bars = barCount;
+      const barWidth = W / bars;
+      const maxBarHeight = H * 0.8;
+      const centerY = H / 2;
 
-    ctx.fillStyle = color;
-    data.forEach((value, index) => {
-      const barHeight = (value / 255) * (height * 0.8);
-      const x = index * barWidth;
-      const y = centerY - barHeight / 2;
-      
-      ctx.fillRect(x, y, Math.max(barWidth - 1, 1), barHeight);
-    });
+      for (let i = 0; i < bars; i++) {
+        let barH: number;
 
-    // Draw progress indicator
-    if (duration > 0) {
-      const progress = (currentTime / duration) * width;
-      ctx.fillStyle = '#4E7BFF';
-      ctx.fillRect(progress, 0, 2, height);
-    }
-  }, [audioData, currentTime, duration, width, height, color, backgroundColor]);
+        if (isRecording) {
+          // Animated: random oscillation
+          barH = Math.random() * maxBarHeight * 0.7 + maxBarHeight * 0.1;
+        } else if (audioData.length > 0) {
+          const dataIndex = Math.floor((i / bars) * audioData.length);
+          const raw = audioData[dataIndex] ?? 0;
+          // Support both normalised (0-1) and raw (0-255) values
+          const normalised = raw > 1 ? raw / 255 : raw;
+          barH = normalised * maxBarHeight;
+        } else {
+          barH = maxBarHeight * 0.1;
+        }
+
+        const x = i * barWidth;
+        const y = centerY - barH / 2;
+
+        // Gradient bar (top → bottom)
+        const gradient = ctx.createLinearGradient(0, y, 0, y + barH);
+        gradient.addColorStop(0, color);
+        gradient.addColorStop(1, `${color}80`);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x, y, Math.max(barWidth - 2, 1), barH);
+      }
+
+      // Progress playhead
+      if (duration > 0 && currentTime > 0) {
+        const progress = (currentTime / duration) * W;
+        ctx.fillStyle = progressColor;
+        ctx.fillRect(progress, 0, 2, H);
+      }
+
+      if (isRecording) {
+        animationRef.current = requestAnimationFrame(draw);
+      }
+    };
+
+    draw();
+
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
+  }, [audioData, isRecording, currentTime, duration, barCount, color, backgroundColor, progressColor]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className={className}
-      style={{
-        borderRadius: '8px',
-        ...style
-      }}
-    />
+    <div className={cn('flex items-center justify-center', className)} style={style}>
+      <canvas
+        ref={canvasRef}
+        width={width ?? 300}
+        height={height}
+        className="w-full max-w-full"
+        style={{ height: `${height}px`, borderRadius: '8px' }}
+      />
+    </div>
   );
-}
-
-function generateMockAudioData(length: number): number[] {
-  const data: number[] = [];
-  for (let i = 0; i < length; i++) {
-    // Generate realistic audio waveform data
-    const amplitude = Math.sin(i * 0.1) * 0.5 + Math.random() * 0.3;
-    data.push(Math.floor(amplitude * 255));
-  }
-  return data;
 }
 
 export default WaveformVisualization;

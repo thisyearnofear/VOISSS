@@ -145,6 +145,17 @@ First, generate your audio content. This step uses the x402 payment protocol.
 **Endpoint:** `POST /api/agents/vocalize`
 **Cost:** ~$0.000001 per char (USDC on Base)
 
+### Partner Pricing Tiers
+High-volume agents can qualify for partner discounts:
+
+| Partner Tier | Monthly Volume | Discount |
+|--------------|---------------|----------|
+| **Silver** | $100-$1,000/mo | 15% off |
+| **Gold** | $1,000-$10,000/mo | 30% off |
+| **Platinum** | $10,000+/mo | 50% off |
+
+Partner discounts are multiplicative with token tier discounts. To apply for partner status, contact the VOISSS team with your agent's wallet address.
+
 ### Step 1.1: Request Audio
 ```bash
 POST https://voisss.netlify.app/api/agents/vocalize
