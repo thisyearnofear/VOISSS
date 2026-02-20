@@ -9,7 +9,7 @@ interface SaveMetadata {
 
 interface SaveResult {
   ipfsHash: string;
-  txHash: string;
+  txHash?: string;
 }
 
 interface ActionButtonsProps {

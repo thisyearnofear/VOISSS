@@ -401,7 +401,7 @@ export default function RecordingStudio({
   // Save logic — isolated via hook (CLEAN/MODULAR)
   const { isDirectSaving, saveRecordingToBase, saveRecordingWithGas } = useRecordingSave({
     duration,
-    subAccountAddress,
+    subAccountAddress: subAccountAddress ?? undefined,
     hasSubAccount,
     isConnected,
     provider,
