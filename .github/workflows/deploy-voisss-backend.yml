@@ -119,7 +119,11 @@ jobs:
             sudo mv -Tf \${DEPLOY_PATH}/current_new \${DEPLOY_PATH}/current
             
             cd \${DEPLOY_PATH}/current
-            sudo pm2 reload ecosystem.config.js || sudo pm2 start ecosystem.config.js
+            # Stop and delete old processes (in case path changed)
+            sudo pm2 stop voisss-server voisss-export-worker 2>/dev/null || true
+            sudo pm2 delete voisss-server voisss-export-worker 2>/dev/null || true
+            # Start fresh from current release
+            sudo pm2 start ecosystem.config.js
             sudo pm2 save
             
             echo ""
