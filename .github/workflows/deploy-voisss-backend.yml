@@ -11,12 +11,11 @@ on:
 
 env:
   RELEASES_TO_KEEP: 5
+  DEPLOY_PATH: /opt/voisss-processing
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    outputs:
-      artifact-path: ${{ steps.build.outputs.artifact-path }}
     
     steps:
       - name: Checkout code
@@ -49,7 +48,6 @@ jobs:
           cd artifacts
           tar -czf ${RELEASE_NAME}.tar.gz ${RELEASE_NAME}
           
-          echo "artifact-path=${RELEASE_NAME}.tar.gz" >> $GITHUB_OUTPUT
           echo "release-name=${RELEASE_NAME}" >> $GITHUB_OUTPUT
           ls -la ${RELEASE_NAME}.tar.gz
 
@@ -74,7 +72,7 @@ jobs:
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.HETZNER_SSH_KEY }}
+          ssh-private-key: ${{ secrets.VOISSS_DEPLOY_KEY }}
 
       - name: Add server to known hosts
         run: |
@@ -83,19 +81,17 @@ jobs:
 
       - name: Deploy to server
         env:
-          DEPLOY_PATH: ${{ secrets.VOISSS_DEPLOY_PATH }}
-          SERVER_USER: ${{ secrets.HETZNER_USER }}
           SERVER_HOST: ${{ secrets.HETZNER_HOST }}
         run: |
           ARTIFACT=$(ls artifacts/*.tar.gz | head -1)
           RELEASE_NAME=$(basename "$ARTIFACT" .tar.gz)
           
-          scp "$ARTIFACT" ${SERVER_USER}@${SERVER_HOST}:/tmp/
+          scp "$ARTIFACT" deploy@${SERVER_HOST}:/tmp/
           
-          ssh ${SERVER_USER}@${SERVER_HOST} << ENDSSH
+          ssh deploy@${SERVER_HOST} << ENDSSH
             set -e
             
-            DEPLOY_PATH="${DEPLOY_PATH}"
+            DEPLOY_PATH="${{ env.DEPLOY_PATH }}"
             RELEASE_NAME="${RELEASE_NAME}"
             RELEASES_TO_KEEP="${{ env.RELEASES_TO_KEEP }}"
             
@@ -108,13 +104,6 @@ jobs:
             
             mv \${RELEASE_NAME} \${DEPLOY_PATH}/releases/
             
-            if [ ! -f "\${DEPLOY_PATH}/.env" ]; then
-              if [ -f "\${DEPLOY_PATH}/releases/\${RELEASE_NAME}/.env.example" ]; then
-                cp \${DEPLOY_PATH}/releases/\${RELEASE_NAME}/.env.example \${DEPLOY_PATH}/.env
-                echo "⚠️  Created .env from example - please configure!"
-              fi
-            fi
-            
             mkdir -p \${DEPLOY_PATH}/logs
             
             cd \${DEPLOY_PATH}/releases/\${RELEASE_NAME}
@@ -126,12 +115,12 @@ jobs:
               echo "Previous release: \${PREVIOUS_RELEASE}"
             fi
             
-            ln -sfn \${DEPLOY_PATH}/releases/\${RELEASE_NAME} \${DEPLOY_PATH}/current_new
-            mv -Tf \${DEPLOY_PATH}/current_new \${DEPLOY_PATH}/current
+            sudo ln -sfn \${DEPLOY_PATH}/releases/\${RELEASE_NAME} \${DEPLOY_PATH}/current_new
+            sudo mv -Tf \${DEPLOY_PATH}/current_new \${DEPLOY_PATH}/current
             
             cd \${DEPLOY_PATH}/current
-            pm2 reload ecosystem.config.js || pm2 start ecosystem.config.js
-            pm2 save
+            sudo pm2 reload ecosystem.config.js || sudo pm2 start ecosystem.config.js
+            sudo pm2 save
             
             echo ""
             echo "=== Cleaning up old releases ==="
@@ -149,20 +138,16 @@ jobs:
             echo "✅ Deployment complete!"
             echo "   Release: \${RELEASE_NAME}"
             echo "   Path: \${DEPLOY_PATH}/current"
-            echo ""
-            df -h \${DEPLOY_PATH}
           ENDSSH
 
       - name: Verify deployment
         env:
-          SERVER_USER: ${{ secrets.HETZNER_USER }}
           SERVER_HOST: ${{ secrets.HETZNER_HOST }}
-          DEPLOY_PATH: ${{ secrets.VOISSS_DEPLOY_PATH }}
         run: |
-          ssh ${SERVER_USER}@${SERVER_HOST} << 'ENDSSH'
+          ssh deploy@${SERVER_HOST} << 'ENDSSH'
             sleep 5
             
-            pm2 status
+            sudo pm2 status
             
             curl -f http://localhost:5577/health || exit 1
             
