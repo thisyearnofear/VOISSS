@@ -1,5 +1,28 @@
 # VOISSS Backend Deployment Guide
 
+## Deployment Method: Artifact-Based with Releases Symlink
+
+This service uses **immutable artifact-based deployments** for efficiency and reliability:
+
+- **CI builds the artifact** (including `node_modules/`) - no server-side npm install
+- **Server runs releases** from timestamped directories
+- **Symlink switching** enables atomic updates and instant rollbacks
+- **Automatic cleanup** keeps only the last 5 releases
+
+### Server Directory Structure
+
+```
+/opt/voisss-processing/
+├── releases/
+│   ├── release-2026-02-22_10-30-00-abc1234/
+│   ├── release-2026-02-21_15-20-00-def5678/
+│   └── ...
+├── current -> releases/release-2026-02-22_10-30-00-abc1234  (symlink)
+├── .env                    (shared config)
+├── logs/                   (shared logs, symlinked into releases)
+└── data/                   (if any local state)
+```
+
 ## CI/CD Setup
 
 This service uses GitHub Actions for automated deployment.
@@ -50,26 +73,76 @@ cat ~/.ssh/github_deploy_voisss
 
 ## Manual Deployment
 
-If you prefer manual deployment:
+If you need to deploy manually:
 
 ```bash
-# From project root
+# 1. Build the artifact locally (on a Linux machine or CI)
 cd services/voisss-backend
+npm ci --omit=dev
 
-# Create deployment package
-tar -czf voisss-backend.tar.gz server.js package.json ecosystem.config.js .env.example
+RELEASE_NAME="release-$(date +%Y-%m-%d_%H-%M-%S)-manual"
+mkdir -p ../artifacts/${RELEASE_NAME}
+cp -r src/ node_modules/ ../artifacts/${RELEASE_NAME}/
+cp package.json package-lock.json ecosystem.config.js ../artifacts/${RELEASE_NAME}/
+cd ../artifacts
+tar -czf ${RELEASE_NAME}.tar.gz ${RELEASE_NAME}
 
-# Copy to server
-scp voisss-backend.tar.gz user@your-server:/tmp/
+# 2. Upload to server
+scp ${RELEASE_NAME}.tar.gz user@your-server:/tmp/
 
-# SSH and deploy
+# 3. Deploy on server
+ssh user@your-server << 'ENDSSH'
+  set -e
+  DEPLOY_PATH="/opt/voisss-processing"
+  RELEASE_NAME="release-$(date +%Y-%m-%d_%H-%M-%S)-manual"
+  
+  cd /tmp
+  tar -xzf ${RELEASE_NAME}.tar.gz
+  
+  mkdir -p ${DEPLOY_PATH}/releases
+  mv ${RELEASE_NAME} ${DEPLOY_PATH}/releases/
+  
+  # Symlink shared resources
+  cd ${DEPLOY_PATH}/releases/${RELEASE_NAME}
+  ln -sf ${DEPLOY_PATH}/.env .env
+  ln -sf ${DEPLOY_PATH}/logs logs
+  
+  # Atomic symlink switch
+  ln -sfn ${DEPLOY_PATH}/releases/${RELEASE_NAME} ${DEPLOY_PATH}/current_new
+  mv -Tf ${DEPLOY_PATH}/current_new ${DEPLOY_PATH}/current
+  
+  # Reload PM2
+  cd ${DEPLOY_PATH}/current
+  pm2 reload ecosystem.config.js || pm2 start ecosystem.config.js
+  pm2 save
+  
+  # Cleanup old releases (keep 5)
+  cd ${DEPLOY_PATH}/releases
+  CURRENT=$(basename $(readlink ${DEPLOY_PATH}/current))
+  ls -1t | grep -v "${CURRENT}" | tail -n +5 | xargs rm -rf
+  
+  echo "✅ Deployment complete"
+ENDSSH
+```
+
+### Rollback
+
+To rollback to the previous release:
+
+```bash
 ssh user@your-server
-cd /tmp
-tar -xzf voisss-backend.tar.gz
-cp server.js package.json ecosystem.config.js /opt/voisss-processing/
 cd /opt/voisss-processing
-npm install --production
-pm2 restart voisss-processing
+
+# List available releases
+ls -lt releases/
+
+# Switch to previous release
+PREVIOUS=$(ls -1t releases/ | head -2 | tail -1)
+ln -sfn releases/${PREVIOUS} current_new
+mv -Tf current_new current
+
+# Reload PM2
+pm2 reload ecosystem.config.js
 ```
 
 ## PostgreSQL Setup (Required)
@@ -104,13 +177,10 @@ The Next.js API routes will now use the remote PostgreSQL for mission persistenc
 
 ## First-Time Server Setup
 
-### 1. Create Deployment Directory
+### 1. Create Deployment Directory Structure
 ```bash
 ssh user@your-server
-mkdir -p /opt/voisss-processing
-cd /opt/voisss-processing
-git clone https://github.com/thisyearnofear/VOISSS.git .
-cd services/voisss-backend
+mkdir -p /opt/voisss-processing/{releases,logs}
 ```
 
 ### 2. Setup Infrastructure (Docker)
@@ -158,9 +228,10 @@ WORKER_CONCURRENCY=2
 EOF
 ```
 
-### 4. Install Dependencies
+### 4. First Deployment
 ```bash
-npm install --production
+# Trigger the GitHub Actions workflow, or deploy manually (see above)
+# The first deployment will create the 'current' symlink
 ```
 
 ### 5. Start Services
