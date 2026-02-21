@@ -35,21 +35,23 @@ jobs:
 
       - name: Create release artifact
         id: build
-        working-directory: services/voisss-backend
         run: |
           RELEASE_NAME="release-$(date +%Y-%m-%d_%H-%M-%S)-${GITHUB_SHA:0:7}"
-          mkdir -p ../artifacts/${RELEASE_NAME}
+          ARTIFACT_DIR="artifacts/${RELEASE_NAME}"
           
-          cp -r src/ ../artifacts/${RELEASE_NAME}/
-          cp -r node_modules/ ../artifacts/${RELEASE_NAME}/
-          cp package.json package-lock.json ecosystem.config.js ../artifacts/${RELEASE_NAME}/
-          cp .env.example ../artifacts/${RELEASE_NAME}/
+          mkdir -p ${ARTIFACT_DIR}
           
-          cd ../artifacts
+          cp -r services/voisss-backend/src/ ${ARTIFACT_DIR}/
+          cp -r services/voisss-backend/node_modules/ ${ARTIFACT_DIR}/
+          cp services/voisss-backend/package.json services/voisss-backend/package-lock.json services/voisss-backend/ecosystem.config.js ${ARTIFACT_DIR}/
+          cp services/voisss-backend/.env.example ${ARTIFACT_DIR}/
+          
+          cd artifacts
           tar -czf ${RELEASE_NAME}.tar.gz ${RELEASE_NAME}
           
-          echo "artifact-path=artifacts/${RELEASE_NAME}.tar.gz" >> $GITHUB_OUTPUT
+          echo "artifact-path=${RELEASE_NAME}.tar.gz" >> $GITHUB_OUTPUT
           echo "release-name=${RELEASE_NAME}" >> $GITHUB_OUTPUT
+          ls -la ${RELEASE_NAME}.tar.gz
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
