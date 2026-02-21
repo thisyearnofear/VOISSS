@@ -12,14 +12,13 @@ This service uses **immutable artifact-based deployments** for efficiency and re
 ### Server Directory Structure
 
 ```
-/opt/voisss-processing/
+<deploy-path>/
 ├── releases/
-│   ├── release-2026-02-22_10-30-00-abc1234/
-│   ├── release-2026-02-21_15-20-00-def5678/
+│   ├── release-TIMESTAMP-COMMIT/
 │   └── ...
-├── current -> releases/release-2026-02-22_10-30-00-abc1234  (symlink)
-├── .env                    (shared config)
-├── logs/                   (shared logs, symlinked into releases)
+├── current -> releases/release-TIMESTAMP-COMMIT  (symlink)
+├── .env                    (shared config, not in repo)
+├── logs/                   (shared logs)
 └── data/                   (if any local state)
 ```
 
@@ -31,44 +30,23 @@ This service uses GitHub Actions for automated deployment.
 
 Configure these secrets in your GitHub repository settings:
 
-1. **HETZNER_SSH_KEY** - Your SSH private key for server access
-2. **HETZNER_HOST** - Your server hostname or IP
-3. **HETZNER_USER** - SSH username (usually 'root')
-4. **VOISSS_DEPLOY_PATH** - Deployment path on server (e.g., `/opt/voisss-processing`)
+1. **HETZNER_HOST** - Server hostname or IP
+2. **VOISSS_DEPLOY_KEY** - Dedicated deploy SSH key (not root)
 
-### How to Set Up Secrets
+### Security Notes
 
-1. Go to GitHub repository → Settings → Secrets and variables → Actions
-2. Click "New repository secret"
-3. Add each secret:
-
-```
-Name: HETZNER_SSH_KEY
-Value: [Your SSH private key content]
-
-Name: HETZNER_HOST
-Value: your-server-hostname.com
-
-Name: HETZNER_USER
-Value: root
-
-Name: VOISSS_DEPLOY_PATH
-Value: /opt/voisss-processing
-```
+- Deployments use a dedicated user with restricted sudo access
+- Databases (PostgreSQL, Redis) are bound to localhost only
+- Environment files are not readable by the deploy user
 
 ### SSH Key Setup
 
-Generate a deployment key if you don't have one:
+Generate a dedicated deployment key (not your personal key):
 
 ```bash
-# On your local machine
-ssh-keygen -t ed25519 -C "github-deploy-voisss" -f ~/.ssh/github_deploy_voisss
-
-# Copy public key to server
-ssh-copy-id -i ~/.ssh/github_deploy_voisss.pub user@your-server
-
-# Copy private key content for GitHub secret
-cat ~/.ssh/github_deploy_voisss
+ssh-keygen -t ed25519 -C "deploy-voisss" -f deploy_key
+cat deploy_key      # Add to GitHub secrets
+cat deploy_key.pub  # Add to server's authorized_keys
 ```
 
 ## Manual Deployment
@@ -76,7 +54,7 @@ cat ~/.ssh/github_deploy_voisss
 If you need to deploy manually:
 
 ```bash
-# 1. Build the artifact locally (on a Linux machine or CI)
+# 1. Build the artifact
 cd services/voisss-backend
 npm ci --omit=dev
 
@@ -87,42 +65,10 @@ cp package.json package-lock.json ecosystem.config.js ../artifacts/${RELEASE_NAM
 cd ../artifacts
 tar -czf ${RELEASE_NAME}.tar.gz ${RELEASE_NAME}
 
-# 2. Upload to server
-scp ${RELEASE_NAME}.tar.gz user@your-server:/tmp/
-
-# 3. Deploy on server
-ssh user@your-server << 'ENDSSH'
-  set -e
-  DEPLOY_PATH="/opt/voisss-processing"
-  RELEASE_NAME="release-$(date +%Y-%m-%d_%H-%M-%S)-manual"
-  
-  cd /tmp
-  tar -xzf ${RELEASE_NAME}.tar.gz
-  
-  mkdir -p ${DEPLOY_PATH}/releases
-  mv ${RELEASE_NAME} ${DEPLOY_PATH}/releases/
-  
-  # Symlink shared resources
-  cd ${DEPLOY_PATH}/releases/${RELEASE_NAME}
-  ln -sf ${DEPLOY_PATH}/.env .env
-  ln -sf ${DEPLOY_PATH}/logs logs
-  
-  # Atomic symlink switch
-  ln -sfn ${DEPLOY_PATH}/releases/${RELEASE_NAME} ${DEPLOY_PATH}/current_new
-  mv -Tf ${DEPLOY_PATH}/current_new ${DEPLOY_PATH}/current
-  
-  # Reload PM2
-  cd ${DEPLOY_PATH}/current
-  pm2 reload ecosystem.config.js || pm2 start ecosystem.config.js
-  pm2 save
-  
-  # Cleanup old releases (keep 5)
-  cd ${DEPLOY_PATH}/releases
-  CURRENT=$(basename $(readlink ${DEPLOY_PATH}/current))
-  ls -1t | grep -v "${CURRENT}" | tail -n +5 | xargs rm -rf
-  
-  echo "✅ Deployment complete"
-ENDSSH
+# 2. Upload and deploy
+scp ${RELEASE_NAME}.tar.gz deploy@your-server:/tmp/
+ssh deploy@your-server "cd /tmp && tar -xzf ${RELEASE_NAME}.tar.gz"
+# ... rest of deployment via CI or manual steps
 ```
 
 ### Rollback
@@ -130,48 +76,33 @@ ENDSSH
 To rollback to the previous release:
 
 ```bash
-ssh user@your-server
-cd /opt/voisss-processing
+ssh deploy@your-server
 
 # List available releases
 ls -lt releases/
 
 # Switch to previous release
 PREVIOUS=$(ls -1t releases/ | head -2 | tail -1)
-ln -sfn releases/${PREVIOUS} current_new
-mv -Tf current_new current
+sudo ln -sfn releases/${PREVIOUS} current_new
+sudo mv -Tf current_new current
 
 # Reload PM2
-pm2 reload ecosystem.config.js
+cd current
+sudo pm2 reload ecosystem.config.js
 ```
 
 ## PostgreSQL Setup (Required)
 
-The backend now requires PostgreSQL for mission storage. It's configured in `docker-compose.yml`:
+The backend requires PostgreSQL for mission storage:
 
-1. **On production server**, update `.env`:
 ```bash
-DB_PASSWORD=your_strong_secure_password_here
+# Run PostgreSQL bound to localhost only
+docker run -d --name postgres --restart unless-stopped \
+  -p 127.0.0.1:5432:5432 \
+  -e POSTGRES_USER=<user> -e POSTGRES_PASSWORD=<password> -e POSTGRES_DB=<db> \
+  -v postgres-data:/var/lib/postgresql/data \
+  postgres:15-alpine
 ```
-
-2. **Start services with PostgreSQL**:
-```bash
-docker-compose up -d
-```
-
-This starts: PostgreSQL (5432), API (5577), Worker, and Redis (6379).
-
-3. **Verify PostgreSQL is running**:
-```bash
-docker exec voisss-postgres pg_isready -U voisss_user -d voisss
-```
-
-4. **For local development**, configure in `/apps/web/.env`:
-```
-DATABASE_URL=postgresql://voisss_user:your_password@your-production-server-ip:5432/voisss
-```
-
-The Next.js API routes will now use the remote PostgreSQL for mission persistence.
 
 ---
 
@@ -179,53 +110,24 @@ The Next.js API routes will now use the remote PostgreSQL for mission persistenc
 
 ### 1. Create Deployment Directory Structure
 ```bash
-ssh user@your-server
-mkdir -p /opt/voisss-processing/{releases,logs}
+mkdir -p <deploy-path>/{releases,logs}
 ```
 
-### 2. Setup Infrastructure (Docker)
+### 2. Setup Infrastructure
 ```bash
-# Add Redis container for Bull queue
-docker run -d --name redis-export --restart unless-stopped \
-  -p 127.0.0.1:6379:6379 -v redis-export-data:/data \
-  redis:7-alpine redis-server --appendonly yes
+# Redis (bound to localhost)
+docker run -d --name redis --restart unless-stopped \
+  -p 127.0.0.1:6379:6379 \
+  redis:7-alpine
 
-# Create output directory for exports
-sudo mkdir -p /var/www/voisss-exports
-sudo chown $(whoami) /var/www/voisss-exports
-chmod 755 /var/www/voisss-exports
-
-# Verify FFmpeg is installed
-ffmpeg -version
+# FFmpeg for audio processing
+apt-get install ffmpeg
 ```
 
 ### 3. Configure Environment
 ```bash
-# Create .env file (use .env.example as template)
-cat > .env << EOF
-# ElevenLabs API
-ELEVENLABS_API_KEY=your_api_key_here
-
-# Server
-PORT=5577
-NODE_ENV=production
-
-# Database (PostgreSQL)
-DATABASE_URL=postgresql://user:password@localhost:5433/voisss
-
-# Redis (for Bull queue)
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# Export paths
-EXPORT_TEMP_DIR=/tmp/voisss-exports
-EXPORT_OUTPUT_DIR=/var/www/voisss-exports
-EXPORT_PUBLIC_URL=https://your-domain.com
-
-# Worker scaling
-WORKER_INSTANCES=2
-WORKER_CONCURRENCY=2
-EOF
+# Create .env file in deploy root (use .env.example as template)
+# Ensure permissions restrict access: chmod 600 .env
 ```
 
 ### 4. First Deployment
