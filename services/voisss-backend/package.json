@@ -16,22 +16,25 @@
   "author": "VOISSS Team",
   "license": "MIT",
   "dependencies": {
-    "@base-org/account": "^2.4.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
-    "express": "^4.18.2",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
     "fluent-ffmpeg": "^2.1.2",
     "form-data": "^4.0.0",
+    "helmet": "^8.0.0",
     "multer": "^1.4.5-lts.1",
     "node-fetch": "^2.7.0",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0",
     "pg": "^8.10.0",
-    "sharp": "^0.33.0",
-    "viem": "^2.38.5"
+    "sharp": "^0.33.5",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   }
 }
