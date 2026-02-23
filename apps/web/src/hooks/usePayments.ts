@@ -289,11 +289,17 @@ export function usePayments(options: UsePaymentsOptions): UsePaymentsState {
     setError(null);
 
     try {
-      const response = await fetch('/api/agents/vocalize', {
-        method: 'GET',
+      // Request quote for actual quantity, not sample
+      const response = await fetch(`/api/agents/vocalize/quote`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          agentAddress: address,
+          service,
+          quantity,
+        }),
       });
 
       if (!response.ok) {
@@ -306,32 +312,18 @@ export function usePayments(options: UsePaymentsOptions): UsePaymentsState {
         throw new Error(data.error || 'Failed to get quote');
       }
 
-      // Construct quote from response
-      const sampleWei = BigInt(data.data.sampleCost.wei);
-      // Avoid division by zero when discount is 100%
-      const discountPercent = data.data.sampleCost.discountPercent;
-      const sampleBaseWei = discountPercent === 100 
-        ? sampleWei 
-        : sampleWei * 100n / BigInt(100 - discountPercent);
-      
-      // Parse unitCost - it may be formatted string or undefined
-      let unitCost = 0n;
-      if (data.data.costPerCharacterWei) {
-        unitCost = BigInt(data.data.costPerCharacterWei);
-      }
-      
       const paymentQuote: PaymentQuote = {
         service,
         quantity,
-        baseCost: sampleBaseWei * BigInt(quantity) / 1000n,
-        estimatedCost: sampleWei * BigInt(quantity) / 1000n,
-        unitCost,
-        discountPercent: discountPercent,
-        availableMethods: data.data.availablePaymentMethods,
+        baseCost: BigInt(data.data.baseCost),
+        estimatedCost: BigInt(data.data.estimatedCost),
+        unitCost: data.data.unitCost ? BigInt(data.data.unitCost) : 0n,
+        discountPercent: data.data.discountPercent,
+        availableMethods: data.data.availableMethods,
         recommendedMethod: data.data.recommendedMethod,
-        creditsAvailable: data.data.creditBalance ? BigInt(data.data.creditBalance) : undefined,
+        creditsAvailable: data.data.creditsAvailable ? BigInt(data.data.creditsAvailable) : undefined,
         currentTier: data.data.currentTier,
-        tierCoversService: data.data.availablePaymentMethods.includes('tier'),
+        tierCoversService: data.data.tierCoversService,
       };
 
       setQuote(paymentQuote);

@@ -305,10 +305,13 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
     const paymentHeader = req.headers.get('X-PAYMENT');
 
     if (paymentHeader) {
+      console.log('[vocalize] x402 payment attempt detected');
+      
       // Client is attempting x402 payment
       const payment = parsePaymentHeader(paymentHeader) as X402PaymentPayload | null;
 
       if (!payment) {
+        console.error('[vocalize] Invalid X-PAYMENT header format');
         return NextResponse.json({
           success: false,
           error: 'Invalid payment header. X-PAYMENT must be JSON (or base64-encoded JSON) matching X402PaymentPayload.',
@@ -333,6 +336,13 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
         `Voice generation: ${characterCount} characters (Discount: ${quote.discountPercent}%)`
       );
 
+      console.log('[vocalize] Verifying x402 payment:', {
+        from: payment.from,
+        to: payment.to,
+        value: payment.value,
+        expectedValue: actualCost.toString(),
+      });
+
       // Process x402 payment
       const paymentResult = await paymentRouter.processX402Payment(
         agentAddress,
@@ -343,11 +353,21 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
       );
 
       if (!paymentResult.success) {
+        console.error('[vocalize] x402 payment failed:', paymentResult.error);
         return NextResponse.json({
           success: false,
-          error: paymentResult.error || 'Payment failed'
+          error: paymentResult.error || 'Payment failed',
+          details: {
+            method: 'x402',
+            from: payment.from,
+            to: payment.to,
+            value: payment.value,
+            expectedValue: actualCost.toString(),
+          }
         }, { status: 402 });
       }
+
+      console.log('[vocalize] x402 payment successful, generating voice');
 
       // Payment successful, generate voice
       const response = await generateAndReturnVoice(

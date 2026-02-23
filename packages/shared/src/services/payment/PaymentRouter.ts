@@ -201,6 +201,20 @@ export class PaymentRouter {
 
   constructor(config: PaymentRouterConfig) {
     this.config = config;
+    
+    // Validate x402PayTo address
+    if (!config.x402PayTo || config.x402PayTo === '') {
+      console.warn('[PaymentRouter] x402PayTo address not configured. x402 payments will fail.');
+      console.warn('[PaymentRouter] Set X402_PAY_TO_ADDRESS environment variable.');
+    } else {
+      try {
+        const checksummed = require('viem').getAddress(config.x402PayTo);
+        console.log('[PaymentRouter] Initialized with x402PayTo:', checksummed);
+      } catch (e) {
+        console.error('[PaymentRouter] Invalid x402PayTo address:', config.x402PayTo);
+        throw new Error(`Invalid x402PayTo address: ${config.x402PayTo}`);
+      }
+    }
   }
 
   // ========================================================================
@@ -294,9 +308,19 @@ export class PaymentRouter {
     const tier = await this.getUserTier(userAddress);
     const { baseCost, discountedCost, discountPercent } = calculateServiceCost(service, quantity, tier, userAddress);
 
+    console.log('[PaymentRouter] Processing x402 payment:', {
+      userAddress,
+      service,
+      quantity,
+      baseCost: baseCost.toString(),
+      discountedCost: discountedCost.toString(),
+      discountPercent,
+    });
+
     const verification = await this.x402Client.verifyPayment(payment, requirements);
 
     if (!verification.success) {
+      console.error('[PaymentRouter] x402 payment verification failed:', verification.error);
       return {
         success: false,
         method: 'x402',
@@ -306,6 +330,10 @@ export class PaymentRouter {
         error: verification.error || 'Payment verification failed',
       };
     }
+
+    console.log('[PaymentRouter] x402 payment verified successfully:', {
+      txHash: verification.txHash,
+    });
 
     await recordUsage(userAddress, service, quantity);
 

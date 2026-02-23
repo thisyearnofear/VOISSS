@@ -87,7 +87,7 @@ export interface X402PaymentPayload {
 // ============================================================================
 
 export const DEFAULT_CONFIG: X402Config = {
-  facilitatorUrl: X402_CONSTANTS.CDP_FACILITATOR_URL,
+  facilitatorUrl: process.env.CDP_FACILITATOR_URL || X402_CONSTANTS.CDP_FACILITATOR_URL,
   network: 'base',
   maxTimeoutSeconds: 60,
   cdpApiKeyId: process.env.CDP_API_KEY_ID,
@@ -123,20 +123,26 @@ export class X402Client {
 
   private async getCdpAuthHeaders(method: string, path: string): Promise<Record<string, string>> {
     if (!this.isCdpFacilitator()) return {};
+    
     if (!this.config.cdpApiKeyId || !this.config.cdpApiKeySecret) {
-      console.warn('CDP API keys not configured, requests may fail');
-      return {};
+      console.error('[x402] CDP API keys not configured. Set CDP_API_KEY_ID and CDP_API_KEY_SECRET environment variables.');
+      throw new Error('CDP API keys required for x402 payment verification');
     }
 
-    const jwt = await generateJwt({
-      apiKeyId: this.config.cdpApiKeyId,
-      apiKeySecret: this.config.cdpApiKeySecret,
-      requestMethod: method,
-      requestHost: 'api.cdp.coinbase.com',
-      requestPath: path,
-    });
+    try {
+      const jwt = await generateJwt({
+        apiKeyId: this.config.cdpApiKeyId,
+        apiKeySecret: this.config.cdpApiKeySecret,
+        requestMethod: method,
+        requestHost: 'api.cdp.coinbase.com',
+        requestPath: path,
+      });
 
-    return { 'Authorization': `Bearer ${jwt}` };
+      return { 'Authorization': `Bearer ${jwt}` };
+    } catch (error) {
+      console.error('[x402] Failed to generate CDP JWT:', error);
+      throw new Error('Failed to authenticate with CDP facilitator');
+    }
   }
 
   /**
@@ -222,33 +228,52 @@ export class X402Client {
     try {
       const authHeaders = await this.getCdpAuthHeaders('POST', '/platform/v2/x402/verify');
 
+      const requestBody = {
+        x402Version: 1,
+        paymentPayload: {
+          x402Version: 1,
+          scheme: requirements.scheme,
+          network: requirements.network,
+          payload: {
+            signature,
+            authorization: { from, to, value, validAfter, validBefore, nonce },
+          },
+        },
+        paymentRequirements: requirements,
+      };
+
+      console.log('[x402] Verifying payment with CDP facilitator:', {
+        from,
+        to,
+        value,
+        facilitatorUrl: this.config.facilitatorUrl,
+      });
+
       const response = await fetch(`${this.config.facilitatorUrl}/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...authHeaders,
         },
-        body: JSON.stringify({
-          x402Version: 1,
-          paymentPayload: {
-            x402Version: 1,
-            scheme: requirements.scheme,
-            network: requirements.network,
-            payload: {
-              signature,
-              authorization: { from, to, value, validAfter, validBefore, nonce },
-            },
-          },
-          paymentRequirements: requirements,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        return { success: false, error: `Facilitator error: ${error}` };
+        const errorText = await response.text();
+        console.error('[x402] CDP facilitator error:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText,
+        });
+        return { success: false, error: `Facilitator error (${response.status}): ${errorText}` };
       }
 
       const result = await response.json();
+      
+      console.log('[x402] CDP verification result:', {
+        success: result.success ?? result.isValid,
+        txHash: result.txHash,
+      });
 
       return {
         success: result.success ?? result.isValid ?? true,
@@ -256,6 +281,7 @@ export class X402Client {
         error: result.error || result.invalidReason,
       };
     } catch (error) {
+      console.error('[x402] Payment verification exception:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Verification failed',

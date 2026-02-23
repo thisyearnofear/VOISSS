@@ -64,21 +64,40 @@ pnpm install
 # Set up environment variables
 cp apps/web/.env.example apps/web/.env.local
 
+# Configure x402 payments (see X402_SETUP.md)
+# - Get CDP API keys from https://portal.cdp.coinbase.com
+# - Set X402_PAY_TO_ADDRESS to your wallet
+# - Add ELEVENLABS_API_KEY and PINATA credentials
+
 # Start development
 pnpm dev:web      # Web app (production ready)
 pnpm dev:mobile   # React Native (in progress)
 ```
 
+## 💳 x402 Payment System
+
+VOISSS uses x402 protocol for agent-to-agent micropayments. See [X402_SETUP.md](./X402_SETUP.md) for complete setup guide.
+
+Quick test:
+```bash
+# Verify configuration
+pnpm x402:debug check-env
+
+# Run end-to-end test
+export TEST_AGENT_PRIVATE_KEY=0xYourKey
+pnpm x402:test
+```
+
 ## 📚 Documentation
 
-Comprehensive guides available in our docs directory:
+Consolidated guides in the `/docs` directory:
 
-- **[Getting Started](./docs/GETTING_STARTED.md)** - Setup and run instructions
-- **[Architecture](./docs/ARCHITECTURE.md)** - System architecture details
-- **[Agentic Integration](./docs/AGENT_INTEGRATION.md)** - AI assistant implementation
-- **[Blockchain Integration](./docs/BLOCKCHAIN_INTEGRATION.md)** - Multi-chain setup
-- **[Base Mainnet Contracts](./packages/contracts/BASE_MAINNET_DEPLOYED.md)** - Web app contract details
-- **[Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment
+| Document | Purpose |
+|----------|---------|
+| **[DOCS_OVERVIEW.md](./docs/DOCS_OVERVIEW.md)** | Platform summary, live links, quick reference |
+| **[GETTING_STARTED.md](./docs/GETTING_STARTED.md)** | Setup, environment config, running locally |
+| **[AGENT_INTEGRATION.md](./docs/AGENT_INTEGRATION.md)** | Agentic AI, external agent API, security |
+| **[BLOCKCHAIN_GUIDE.md](./docs/BLOCKCHAIN_GUIDE.md)** | Smart contracts, tokens, x402 payments |
 
 ## 🤝 Contributing
 

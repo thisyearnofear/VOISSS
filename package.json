@@ -24,7 +24,10 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "setup": "pnpm install && pnpm build:packages",
     "dev:all": "concurrently \"pnpm dev:web\" \"pnpm dev:mobile\"",
-    "check:flutter": "cd apps/mobile-flutter && flutter doctor"
+    "check:flutter": "cd apps/mobile-flutter && flutter doctor",
+    "x402:test": "tsx scripts/test-x402.ts",
+    "x402:debug": "tsx scripts/debug-x402.ts",
+    "x402:mock": "tsx scripts/mock-cdp-facilitator.ts"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

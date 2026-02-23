@@ -4,6 +4,12 @@ import { BaseProvider } from "./providers";
 import Nav from "../components/Nav";
 import VoiceAssistant from "../components/VoiceAssistant";
 import "./globals.css";
+import { validateX402Config } from "@/lib/x402-startup-check";
+
+// Validate x402 configuration on server startup
+if (typeof window === 'undefined') {
+  validateX402Config();
+}
 
 const inter = Inter({
   variable: "--font-inter",
