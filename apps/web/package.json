@@ -10,6 +10,8 @@
     "lint": "next lint",
     "deploy:base-sepolia": "hardhat run scripts/deploy-base-contract.js --network baseSepolia",
     "deploy:base": "hardhat run scripts/deploy-base-contract.js --network base",
+    "deploy:marketplace": "hardhat run scripts/deploy-marketplace.ts --network base",
+    "deploy:marketplace:sepolia": "hardhat run scripts/deploy-marketplace.ts --network baseSepolia",
     "verify:base": "hardhat verify --network base",
     "verify:base-sepolia": "hardhat verify --network baseSepolia",
     "test:gasless": "hardhat run scripts/test-gasless-flow.js --network baseSepolia",

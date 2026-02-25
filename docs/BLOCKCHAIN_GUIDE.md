@@ -45,6 +45,7 @@ Essential guide to VOISSS blockchain integration, contracts, tokens, and payment
 | **AgentRegistry** (v2) | `0xBE857DB4B4bD71a8bf8f50f950eecD7dDe68b85c` | Agent registration, USDC credits |
 | **ReputationRegistry** | `0xA09094Cc126166deC8800a7Ada7a3BbDAA32B127` | Agent reputation tracking |
 | **VoiceRecords** | `0x32bd629fBD5096b37f1cAee011A7E481A09Ac54D` | Recording storage |
+| **VoiceLicenseMarket** | TBD (deploying) | Voice licensing marketplace (NEW) |
 | **$VOISSS Token** | `0x1c3174c2aea455f1efb088e4ca4ecb4ab52d1b07` | Access tiers |
 | **$PAPAJAMS Token** | `0x2e9be99b199c874bd403f1b70fcaa9f11f47b96c` | Creator rewards |
 | **USDC** | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | Payment token (6 decimals) |
@@ -89,6 +90,52 @@ Essential guide to VOISSS blockchain integration, contracts, tokens, and payment
 
 **Mission Rewards:**
 - 50% submission, 30% quality, 20% featured
+
+---
+
+## 🛒 Voice License Market (NEW)
+
+**Contract:** TBD (deploying)
+
+### Key Features
+
+- USDC-based licensing (6 decimals)
+- 70/30 revenue split (contributor/platform)
+- Exclusive and non-exclusive licenses
+- Usage tracking and metering
+- Automatic royalty distribution
+
+### Core Functions
+
+**For Contributors:**
+- `listVoice(voiceId, price, isExclusive)` - List voice for licensing
+- `delistVoice(voiceId)` - Remove listing
+
+**For Licensees:**
+- `purchaseLicense(voiceId)` → licenseId - Purchase license with USDC
+- `hasActiveLicense(voiceId, user)` → bool - Check license status
+- `getUserLicense(voiceId, user)` → licenseId - Get license ID
+
+**For Platform:**
+- `reportUsage(licenseId, usageCount)` - Track synthesis calls
+- `updatePlatformFee(newFeeBps)` - Adjust platform fee
+
+### License Types
+
+| Type | Behavior | Use Case |
+|------|----------|----------|
+| **Non-Exclusive** | Multiple agents can license | Most common, affordable |
+| **Exclusive** | Only one agent, auto-delists | Premium, unique identity |
+
+### Revenue Flow
+
+```
+Agent pays $49 USDC
+  ↓
+Smart Contract splits:
+  → $34.30 to Voice Contributor (70%)
+  → $14.70 to Platform Treasury (30%)
+```
 
 ---
 

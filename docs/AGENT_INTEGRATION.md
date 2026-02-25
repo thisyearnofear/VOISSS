@@ -10,10 +10,11 @@ Essential guide for integrating AI agents with VOISSS voice generation and missi
 
 ## 🎯 Overview
 
-VOISSS provides two integration paths:
+VOISSS provides three integration paths:
 
 1. **Internal Agentic AI**: Gemini 3.0 Flash for context-aware voice commands
 2. **External Agent API**: RESTful API for autonomous agents
+3. **Voice Marketplace API**: License authentic human voices for your AI agents (NEW)
 
 ---
 
@@ -42,6 +43,97 @@ VOISSS provides two integration paths:
 | Registered | 20 | $20 | 2,000 |
 | Verified | 100 | $100 | 10,000 |
 | Premium | 500 | $500 | 50,000 |
+
+---
+
+## 🛒 Voice Marketplace API (NEW - MVP)
+
+### Overview
+
+License authentic human voices for your AI agents. Solves the "generic TTS problem" with legal protection and instant API integration.
+
+**Target Customers:** AI companion apps, customer service agents, AI SDRs, gaming NPCs
+
+### Browse Voices
+
+**Endpoint:** `GET /api/marketplace/voices`
+
+**Query Parameters:**
+- `language`: Filter by language (e.g., "en-US")
+- `tone`: Filter by tone (e.g., "professional", "friendly")
+- `licenseType`: "exclusive" or "non-exclusive"
+- `minPrice`, `maxPrice`: Price range in USDC wei
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "voices": [
+      {
+        "id": "voice_001",
+        "contributorAddress": "0x...",
+        "price": "49000000",
+        "licenseType": "non-exclusive",
+        "voiceProfile": {
+          "tone": "professional",
+          "language": "en-US",
+          "tags": ["corporate", "friendly"]
+        },
+        "stats": {
+          "views": 150,
+          "purchases": 5,
+          "usageCount": 1250
+        },
+        "sampleUrl": "https://ipfs.io/ipfs/Qm..."
+      }
+    ],
+    "total": 1
+  }
+}
+```
+
+### Purchase License (MVP: Manual Approval)
+
+**Endpoint:** `POST /api/marketplace/license`
+
+**Request:**
+```json
+{
+  "voiceId": "voice_001",
+  "licenseeAddress": "0xYourAgentWallet",
+  "licenseType": "non-exclusive"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "licenseRequestId": "lic_req_...",
+    "status": "pending_approval",
+    "message": "License request submitted. You will be contacted via email.",
+    "estimatedApprovalTime": "24-48 hours"
+  }
+}
+```
+
+### Pricing Tiers
+
+| License Type | Price | Calls/Month | Best For |
+|--------------|-------|-------------|----------|
+| Developer | $49/mo | 10K | Non-commercial, testing |
+| Startup | $499/mo | 100K | Category-exclusive |
+| Enterprise | $2K+/mo | Unlimited | Fully exclusive |
+
+**Revenue Split:** 70% to voice contributor, 30% platform fee
+
+### Get Your Licenses
+
+**Endpoint:** `GET /api/marketplace/license?licenseeAddress=0x...`
+
+Returns all licenses for your agent wallet.
 
 ---
 

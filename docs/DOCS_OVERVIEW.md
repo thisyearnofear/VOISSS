@@ -11,8 +11,8 @@ This is the consolidated documentation index for VOISSS. All essential informati
 
 | Document | Purpose | Key Topics |
 |----------|---------|------------|
+| **[MARKETPLACE_STRATEGY.md](./MARKETPLACE_STRATEGY.md)** | 🆕 B2B marketplace strategy and roadmap | MVP phases, pricing, go-to-market, risk mitigation |
 | **[GETTING_STARTED.md](./GETTING_STARTED.md)** | Quick setup and run instructions | Prerequisites, environment setup, platform scripts |
-| **[ARCHITECTURE.md](./ARCHITECTURE.md)** | System design and technology stack | Monorepo structure, tech stack, platform status |
 | **[AGENT_INTEGRATION.md](./AGENT_INTEGRATION.md)** | Agentic AI and external agent guide | Gemini integration, agent API, security, events |
 | **[BLOCKCHAIN_GUIDE.md](./BLOCKCHAIN_GUIDE.md)** | Blockchain contracts and payments | Smart contracts, tokens, x402, mission system |
 
@@ -22,15 +22,23 @@ This is the consolidated documentation index for VOISSS. All essential informati
 
 ### What is VOISSS?
 
-VOISSS is a decentralized AI-powered voice recording platform with agentic AI integration. It transforms how users capture, organize, and share audio content through a comprehensive ecosystem with a **web-first strategy** and phased mobile development.
+VOISSS is evolving into a **B2B voice licensing marketplace** where AI agents purchase and license authentic human voices from contributors. Built on proven infrastructure (blockchain provenance, IPFS storage, gasless transactions, AI voice synthesis).
+
+**Strategic Pivot:** Leveraging existing B2C platform to solve the "generic TTS problem" for AI agents while creating passive income for voice contributors.
 
 ### Core Value Proposition
 
-- **Agentic AI Assistant**: Context-aware, actionable AI powered by Gemini 3.0 Flash
-- **AI Voice Transformation**: ElevenLabs integration with 29+ languages
-- **Multi-Platform**: Web (production), Mobile (in progress), Flutter (AI Butler live)
-- **Blockchain Integration**: Base (web), Scroll (mobile), IPFS storage
-- **Creator Economy**: Token-gated missions with milestone rewards
+**For AI Agents (Customers):**
+- Authentic, licensed voices (not stolen/generic TTS)
+- Instant API integration (<30 min)
+- Legal protection with indemnification
+- Pricing: $49-$2K+/mo based on usage
+
+**For Voice Contributors (Suppliers):**
+- Passive income from existing recordings (70% revenue share)
+- Blockchain ownership tracking
+- Gasless onboarding (no crypto friction)
+- Portfolio management dashboard
 
 ---
 

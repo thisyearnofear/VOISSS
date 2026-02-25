@@ -89,6 +89,12 @@ export default function Nav() {
                 Studio
               </Link>
               <Link
+                href="/marketplace"
+                className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
+              >
+                Marketplace
+              </Link>
+              <Link
                 href="/agents"
                 className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
               >
