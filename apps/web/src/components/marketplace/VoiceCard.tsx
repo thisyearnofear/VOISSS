@@ -45,23 +45,23 @@ export function VoiceCard({ voice, onPurchase }: VoiceCardProps) {
   };
   
   return (
-    <div className="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow">
+    <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 hover:border-[#3A3A3A] transition-colors">
       {/* Voice Profile */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold text-lg">
+          <h3 className="font-semibold text-lg text-white">
             {voice.voiceProfile.tone || 'Professional'} Voice
           </h3>
           <span className={`text-xs px-2 py-1 rounded ${
             voice.licenseType === 'exclusive' 
-              ? 'bg-purple-100 text-purple-700' 
-              : 'bg-blue-100 text-blue-700'
+              ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' 
+              : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
           }`}>
             {voice.licenseType}
           </span>
         </div>
         
-        <div className="text-sm text-gray-600 space-y-1">
+        <div className="text-sm text-gray-400 space-y-1">
           {voice.voiceProfile.language && (
             <div>Language: {voice.voiceProfile.language}</div>
           )}
@@ -79,7 +79,7 @@ export function VoiceCard({ voice, onPurchase }: VoiceCardProps) {
             {voice.voiceProfile.tags.map((tag, idx) => (
               <span 
                 key={idx}
-                className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded"
+                className="text-xs bg-[#2A2A2A] text-gray-300 px-2 py-0.5 rounded"
               >
                 {tag}
               </span>
@@ -97,7 +97,7 @@ export function VoiceCard({ voice, onPurchase }: VoiceCardProps) {
       
       {/* Actions */}
       <div className="flex items-center justify-between">
-        <div className="text-2xl font-bold text-gray-900">
+        <div className="text-2xl font-bold text-white">
           ${priceUSDC}
           <span className="text-sm font-normal text-gray-500">/mo</span>
         </div>
@@ -106,7 +106,7 @@ export function VoiceCard({ voice, onPurchase }: VoiceCardProps) {
           {voice.sampleUrl && (
             <button
               onClick={handlePlaySample}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50"
+              className="px-3 py-1.5 text-sm border border-[#2A2A2A] text-gray-300 rounded-lg hover:bg-[#2A2A2A] transition-colors"
             >
               {isPlaying ? '⏸ Pause' : '▶ Preview'}
             </button>
@@ -114,7 +114,7 @@ export function VoiceCard({ voice, onPurchase }: VoiceCardProps) {
           
           <button
             onClick={handlePurchase}
-            className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             License
           </button>
@@ -122,7 +122,7 @@ export function VoiceCard({ voice, onPurchase }: VoiceCardProps) {
       </div>
       
       {/* Contributor */}
-      <div className="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-400">
+      <div className="mt-3 pt-3 border-t border-[#2A2A2A] text-xs text-gray-500">
         By {voice.contributorAddress.slice(0, 6)}...{voice.contributorAddress.slice(-4)}
       </div>
     </div>

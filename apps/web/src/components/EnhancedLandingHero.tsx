@@ -1,12 +1,12 @@
 "use client";
 
 import React from "react";
-import { Mic, Zap, Globe } from "lucide-react";
+import { Shield, Zap, TrendingUp } from "lucide-react";
 
 // Type-safe icon wrappers to resolve React 18/19 compatibility issues
-const CompatibleMic = Mic as React.ComponentType<{ className?: string }>;
+const CompatibleShield = Shield as React.ComponentType<{ className?: string }>;
 const CompatibleZap = Zap as React.ComponentType<{ className?: string }>;
-const CompatibleGlobe = Globe as React.ComponentType<{ className?: string }>;
+const CompatibleTrendingUp = TrendingUp as React.ComponentType<{ className?: string }>;
 
 export default function EnhancedLandingHero() {
 
@@ -25,37 +25,37 @@ export default function EnhancedLandingHero() {
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 rounded-full mb-6">
             <CompatibleZap className="w-4 h-4 text-yellow-400" />
             <span className="text-sm font-medium text-white">
-              Built on Base • Gasless Transactions
+              Built on Base • Gasless Transactions • x402 Payments
             </span>
           </div>
 
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-6">
-            <span className="voisss-gradient-text">VOISSS</span>
+            <span className="text-white">Voice Marketplace</span>
             <br />
-            <span className="text-white">AI Studio</span>
+            <span className="voisss-gradient-text">for AI Agents</span>
           </h1>
 
           <p className="text-xl sm:text-2xl text-gray-300 mb-4 max-w-3xl mx-auto">
-            Record, Transform, Store.
+            License authentic human voices for your AI agents.
           </p>
           <p className="text-gray-400 mb-12 max-w-2xl mx-auto">
-            Transform your voice with AI and secure it onchain.
+            Blockchain provenance. Instant API access. Built on Base.
           </p>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
             <a
-              href="/studio"
+              href="/marketplace"
               className="px-8 py-4 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-xl text-white text-lg font-semibold hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 flex items-center gap-3"
             >
-              <CompatibleMic className="w-5 h-5" />
-              Launch Studio
+              <CompatibleShield className="w-5 h-5" />
+              Browse Voices
             </a>
             <a
-              href="/agents"
+              href="/studio"
               className="px-8 py-4 border border-gray-600 rounded-xl text-white text-lg font-semibold hover:border-gray-400 transition-all duration-300 hover:bg-white/5"
             >
-              Explore Agents
+              List Your Voice
             </a>
           </div>
         </div>
@@ -64,13 +64,13 @@ export default function EnhancedLandingHero() {
         <div className="grid md:grid-cols-3 gap-8 mb-16">
           <div className="text-center">
             <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <CompatibleMic className="w-8 h-8 text-white" />
+              <CompatibleShield className="w-8 h-8 text-white" />
             </div>
             <h3 className="text-xl font-semibold text-white mb-2">
-              HD Voice Recording
+              Licensed Voices
             </h3>
             <p className="text-gray-400">
-              Crystal clear audio capture with real-time waveform visualization
+              Authentic human voices with legal protection and blockchain provenance
             </p>
           </div>
 
@@ -79,27 +79,71 @@ export default function EnhancedLandingHero() {
               <CompatibleZap className="w-8 h-8 text-white" />
             </div>
             <h3 className="text-xl font-semibold text-white mb-2">
-              AI Voice Transform & Dubbing
+              Instant API Access
             </h3>
             <p className="text-gray-400">
-              Transform voices with AI and dub to 29+ languages using ElevenLabs
+              Integrate voices into your AI agent with a single API call via x402 payments
             </p>
           </div>
 
           <div className="text-center">
             <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <CompatibleGlobe className="w-8 h-8 text-white" />
+              <CompatibleTrendingUp className="w-8 h-8 text-white" />
             </div>
             <h3 className="text-xl font-semibold text-white mb-2">
-              Blockchain Storage
+              70% Revenue Share
             </h3>
             <p className="text-gray-400">
-              Permanent IPFS storage secured by Base smart contracts
+              Voice contributors earn passive income from every AI agent license
             </p>
           </div>
         </div>
 
-        {/* Value Proposition - Honest and Clear */}
+        {/* How It Works */}
+        <div className="mb-16">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white text-center mb-10">
+            How It Works
+          </h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center p-6 bg-[#111111] border border-[#2A2A2A] rounded-2xl">
+              <div className="w-10 h-10 bg-purple-500/20 text-purple-400 rounded-full flex items-center justify-center mx-auto mb-4 text-lg font-bold">
+                1
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">
+                Contributors Record &amp; List
+              </h3>
+              <p className="text-gray-400 text-sm">
+                Voice artists record samples and list them on the marketplace with licensing terms
+              </p>
+            </div>
+
+            <div className="text-center p-6 bg-[#111111] border border-[#2A2A2A] rounded-2xl">
+              <div className="w-10 h-10 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4 text-lg font-bold">
+                2
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">
+                AI Agents Browse &amp; License
+              </h3>
+              <p className="text-gray-400 text-sm">
+                Developers and AI agents discover and license voices via API or marketplace UI
+              </p>
+            </div>
+
+            <div className="text-center p-6 bg-[#111111] border border-[#2A2A2A] rounded-2xl">
+              <div className="w-10 h-10 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto mb-4 text-lg font-bold">
+                3
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">
+                Automatic Royalty Payments
+              </h3>
+              <p className="text-gray-400 text-sm">
+                Smart contracts handle payments automatically — contributors earn on every use
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Value Proposition */}
         <div className="text-center max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded-full mb-4">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -108,7 +152,7 @@ export default function EnhancedLandingHero() {
             </span>
           </div>
           <p className="text-gray-400 text-sm">
-            Built for content creators, podcasters, and voice artists who need professional AI tools with blockchain permanence
+            The marketplace where AI agents license authentic human voices — with consent, provenance, and fair compensation
           </p>
         </div>
       </div>

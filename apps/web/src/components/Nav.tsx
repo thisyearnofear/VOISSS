@@ -83,34 +83,28 @@ export default function Nav() {
           <div className="flex items-center gap-6">
             <div className="hidden sm:flex items-center gap-6">
               <Link
-                href="/studio"
-                className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
-              >
-                Studio
-              </Link>
-              <Link
                 href="/marketplace"
-                className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
+                className="text-white hover:text-blue-400 transition-colors text-sm font-bold uppercase tracking-wider"
               >
                 Marketplace
+              </Link>
+              <Link
+                href="/marketplace/dashboard"
+                className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
+              >
+                Contributor Portal
               </Link>
               <Link
                 href="/agents"
                 className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
               >
-                Agents
+                Developers
               </Link>
               <Link
                 href="/missions"
                 className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
               >
-                Conversations
-              </Link>
-              <Link
-                href="/help"
-                className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
-              >
-                Help
+                Sessions
               </Link>
             </div>
 
