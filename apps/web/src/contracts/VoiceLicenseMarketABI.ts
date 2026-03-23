@@ -54,6 +54,16 @@ export const VoiceLicenseMarketABI = [
     "anonymous": false,
     "inputs": [
       { "indexed": true, "internalType": "uint256", "name": "voiceId", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "oldPrice", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "newPrice", "type": "uint256" }
+    ],
+    "name": "VoicePriceUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "uint256", "name": "voiceId", "type": "uint256" },
       { "indexed": true, "internalType": "address", "name": "contributor", "type": "address" },
       { "indexed": false, "internalType": "uint256", "name": "price", "type": "uint256" },
       { "indexed": false, "internalType": "bool", "name": "isExclusive", "type": "bool" }
@@ -247,6 +257,16 @@ export const VoiceLicenseMarketABI = [
       { "internalType": "uint256", "name": "newFeeBps", "type": "uint256" }
     ],
     "name": "updatePlatformFee",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "voiceId", "type": "uint256" },
+      { "internalType": "uint256", "name": "newPrice", "type": "uint256" }
+    ],
+    "name": "updateListingPrice",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

@@ -67,6 +67,12 @@ contract VoiceLicenseMarket is Ownable, ReentrancyGuard {
     );
     
     event VoiceDelisted(uint256 indexed voiceId);
+
+    event VoicePriceUpdated(
+        uint256 indexed voiceId,
+        uint256 oldPrice,
+        uint256 newPrice
+    );
     
     event LicensePurchased(
         uint256 indexed licenseId,
@@ -103,17 +109,28 @@ contract VoiceLicenseMarket is Ownable, ReentrancyGuard {
         uint256 price,
         bool isExclusive
     ) external {
+        VoiceListing storage existingListing = listings[voiceId];
+
         require(price > 0, "Price must be > 0");
-        require(listings[voiceId].contributor == address(0), "Already listed");
-        
-        listings[voiceId] = VoiceListing({
-            contributor: msg.sender,
-            price: price,
-            isExclusive: isExclusive,
-            isActive: true,
-            totalSales: 0,
-            totalUsage: 0
-        });
+        require(exclusiveLicenses[voiceId] == 0, "Exclusive license exists");
+
+        if (existingListing.contributor == address(0)) {
+            listings[voiceId] = VoiceListing({
+                contributor: msg.sender,
+                price: price,
+                isExclusive: isExclusive,
+                isActive: true,
+                totalSales: 0,
+                totalUsage: 0
+            });
+        } else {
+            require(existingListing.contributor == msg.sender, "Already listed");
+            require(!existingListing.isActive, "Already active");
+
+            existingListing.price = price;
+            existingListing.isExclusive = isExclusive;
+            existingListing.isActive = true;
+        }
         
         emit VoiceListed(voiceId, msg.sender, price, isExclusive);
     }
@@ -130,6 +147,23 @@ contract VoiceLicenseMarket is Ownable, ReentrancyGuard {
         listing.isActive = false;
         
         emit VoiceDelisted(voiceId);
+    }
+
+    /**
+     * @notice Update the listing price for an active voice
+     * @param voiceId Voice to update
+     * @param newPrice New price in USDC (6 decimals)
+     */
+    function updateListingPrice(uint256 voiceId, uint256 newPrice) external {
+        VoiceListing storage listing = listings[voiceId];
+        require(listing.contributor == msg.sender, "Not contributor");
+        require(listing.isActive, "Not active");
+        require(newPrice > 0, "Price must be > 0");
+
+        uint256 oldPrice = listing.price;
+        listing.price = newPrice;
+
+        emit VoicePriceUpdated(voiceId, oldPrice, newPrice);
     }
     
     /**

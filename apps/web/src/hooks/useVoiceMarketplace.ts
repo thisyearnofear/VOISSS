@@ -3,12 +3,11 @@
  * ENHANCEMENT FIRST: Integrates with existing wagmi/viem patterns
  */
 
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useReadContract, useWriteContract } from 'wagmi';
 import { VoiceLicenseMarketABI, VOICE_LICENSE_MARKET_ADDRESS } from '@/contracts/VoiceLicenseMarketABI';
 import { parseUnits, formatUnits } from 'viem';
 
 export function useVoiceMarketplace() {
-  const { address } = useAccount();
   const { writeContractAsync } = useWriteContract();
 
   // List a voice for licensing
@@ -49,6 +48,23 @@ export function useVoiceMarketplace() {
     return hash;
   };
 
+  const updateListingPrice = async (voiceId: bigint, priceUSDC: string) => {
+    if (!VOICE_LICENSE_MARKET_ADDRESS) {
+      throw new Error('Marketplace contract not deployed');
+    }
+
+    const priceWei = parseUnits(priceUSDC, 6);
+
+    const hash = await writeContractAsync({
+      address: VOICE_LICENSE_MARKET_ADDRESS,
+      abi: VoiceLicenseMarketABI,
+      functionName: 'updateListingPrice',
+      args: [voiceId, priceWei],
+    });
+
+    return hash;
+  };
+
   // Purchase a license (requires USDC approval first)
   const purchaseLicense = async (voiceId: bigint) => {
     if (!VOICE_LICENSE_MARKET_ADDRESS) {
@@ -68,6 +84,7 @@ export function useVoiceMarketplace() {
   return {
     listVoice,
     delistVoice,
+    updateListingPrice,
     purchaseLicense,
   };
 }

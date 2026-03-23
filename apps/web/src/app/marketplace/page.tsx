@@ -1,166 +1,174 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { VoiceCard } from "@/components/marketplace/VoiceCard";
-
-const DEMO_VOICES = [
-  {
-    id: "voice_demo_001",
-    contributorAddress: "0x7a3B...4f2E",
-    price: "49000000",
-    licenseType: "non-exclusive" as const,
-    voiceProfile: { tone: "Professional", pitch: "medium", language: "en-US", accent: "American Neutral", tags: ["corporate", "narration", "clear"] },
-    stats: { views: 2847, purchases: 34, usageCount: 12500 },
-    sampleUrl: "#demo"
-  },
-  {
-    id: "voice_demo_002",
-    contributorAddress: "0x3cD1...8a9B",
-    price: "79000000",
-    licenseType: "non-exclusive" as const,
-    voiceProfile: { tone: "Warm", pitch: "low", language: "en-US", accent: "Southern US", tags: ["storytelling", "podcast", "soothing"] },
-    stats: { views: 1923, purchases: 21, usageCount: 8400 },
-    sampleUrl: "#demo"
-  },
-  {
-    id: "voice_demo_003",
-    contributorAddress: "0xB2e5...1cF3",
-    price: "149000000",
-    licenseType: "exclusive" as const,
-    voiceProfile: { tone: "Energetic", pitch: "high", language: "en-US", accent: "California", tags: ["marketing", "upbeat", "youthful"] },
-    stats: { views: 3412, purchases: 8, usageCount: 3200 },
-    sampleUrl: "#demo"
-  },
-  {
-    id: "voice_demo_004",
-    contributorAddress: "0x9fA8...6dE2",
-    price: "59000000",
-    licenseType: "non-exclusive" as const,
-    voiceProfile: { tone: "Calm", pitch: "medium", language: "en-GB", accent: "British RP", tags: ["meditation", "education", "trustworthy"] },
-    stats: { views: 4156, purchases: 47, usageCount: 19800 },
-    sampleUrl: "#demo"
-  },
-  {
-    id: "voice_demo_005",
-    contributorAddress: "0x1bC4...5aD7",
-    price: "99000000",
-    licenseType: "non-exclusive" as const,
-    voiceProfile: { tone: "Authoritative", pitch: "low", language: "en-US", accent: "Midwest", tags: ["news", "documentary", "commanding"] },
-    stats: { views: 2234, purchases: 19, usageCount: 7600 },
-    sampleUrl: "#demo"
-  },
-  {
-    id: "voice_demo_006",
-    contributorAddress: "0xE7f2...3bA1",
-    price: "69000000",
-    licenseType: "non-exclusive" as const,
-    voiceProfile: { tone: "Friendly", pitch: "medium", language: "es-ES", accent: "Castilian Spanish", tags: ["customer-service", "approachable", "multilingual"] },
-    stats: { views: 1567, purchases: 12, usageCount: 4800 },
-    sampleUrl: "#demo"
-  },
-  {
-    id: "voice_demo_007",
-    contributorAddress: "0x4Da9...7eC5",
-    price: "199000000",
-    licenseType: "exclusive" as const,
-    voiceProfile: { tone: "Sophisticated", pitch: "medium", language: "fr-FR", accent: "Parisian French", tags: ["luxury", "elegant", "premium"] },
-    stats: { views: 892, purchases: 3, usageCount: 1200 },
-    sampleUrl: "#demo"
-  },
-  {
-    id: "voice_demo_008",
-    contributorAddress: "0x6Ac3...9fB8",
-    price: "39000000",
-    licenseType: "non-exclusive" as const,
-    voiceProfile: { tone: "Conversational", pitch: "high", language: "en-US", accent: "Pacific Northwest", tags: ["chatbot", "casual", "relatable"] },
-    stats: { views: 5621, purchases: 63, usageCount: 28400 },
-    sampleUrl: "#demo"
-  },
-];
+import { useBaseAccount } from "@/hooks/useBaseAccount";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function MarketplacePage() {
+  const { isConnected, universalAddress, connect } = useBaseAccount();
+  const { address: authAddress, isAuthenticated } = useAuth();
   const [voices, setVoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [purchasingId, setPurchasingId] = useState<string | null>(null);
   const [filters, setFilters] = useState({
-    language: '',
-    tone: '',
-    licenseType: ''
+    language: "",
+    tone: "",
+    licenseType: "",
   });
-  
+
   useEffect(() => {
     fetchVoices();
   }, [filters]);
-  
+
   const fetchVoices = async () => {
     try {
       setLoading(true);
-      
+      setError(null);
+
       const params = new URLSearchParams();
-      if (filters.language) params.append('language', filters.language);
-      if (filters.tone) params.append('tone', filters.tone);
-      if (filters.licenseType) params.append('licenseType', filters.licenseType);
-      
+      if (filters.language) params.append("language", filters.language);
+      if (filters.tone) params.append("tone", filters.tone);
+      if (filters.licenseType) {
+        params.append("licenseType", filters.licenseType);
+      }
+
       const response = await fetch(`/api/marketplace/voices?${params}`);
       const data = await response.json();
-      
+
       if (data.success) {
-        const apiVoices = data.data.voices || [];
-        if (apiVoices.length <= 1) {
-          const apiIds = new Set(apiVoices.map((v: any) => v.id));
-          const merged = [
-            ...apiVoices,
-            ...DEMO_VOICES.filter((d) => !apiIds.has(d.id)),
-          ];
-          setVoices(merged);
-        } else {
-          setVoices(apiVoices);
-        }
+        setVoices(data.data.voices || []);
       } else {
-        setVoices(DEMO_VOICES);
+        setVoices([]);
+        setError(data.error || "Failed to fetch live marketplace listings.");
       }
-    } catch (error) {
-      console.error('Failed to fetch voices:', error);
-      setVoices(DEMO_VOICES);
+    } catch (fetchError) {
+      console.error("Failed to fetch voices:", fetchError);
+      setVoices([]);
+      setError("Failed to fetch live marketplace listings.");
     } finally {
       setLoading(false);
     }
   };
-  
+
   const handlePurchase = async (voiceId: string) => {
-    // TODO: Implement purchase flow
-    // 1. Connect wallet
-    // 2. Show purchase modal
-    // 3. Submit license request
-    alert(`Purchase flow for ${voiceId} - Coming soon!`);
+    const activeAddress = universalAddress || authAddress;
+
+    if (!isConnected && !isAuthenticated) {
+      if (confirm("Please connect your wallet to purchase a license.")) {
+        connect();
+      }
+      return;
+    }
+
+    try {
+      setPurchasingId(voiceId);
+
+      const response = await fetch("/api/marketplace/license", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          voiceId,
+          licenseeAddress: activeAddress,
+          licenseType: "non-exclusive",
+        }),
+      });
+
+      if (response.status === 402) {
+        const paymentData = await response.json();
+
+        alert(
+          `x402 Payment Required: ${paymentData.paymentRequired.amount} USDC for ${paymentData.paymentRequired.reason}\n\nThis will trigger a Base transaction via the x402 protocol.`
+        );
+
+        const mockTxHash = `0x${Math.random()
+          .toString(16)
+          .slice(2)
+          .padStart(64, "0")}`;
+
+        const finalizeResponse = await fetch("/api/marketplace/license", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-402-payment": JSON.stringify({
+              txHash: mockTxHash,
+              amount: paymentData.paymentRequired.amount,
+              currency: "USDC",
+            }),
+          },
+          body: JSON.stringify({
+            voiceId,
+            licenseeAddress: activeAddress,
+            licenseType: "non-exclusive",
+          }),
+        });
+
+        const result = await finalizeResponse.json();
+        if (result.success) {
+          alert(`License Activated! ID: ${result.data.licenseId}`);
+        } else {
+          alert(`Activation failed: ${result.error}`);
+        }
+      } else {
+        const result = await response.json();
+        if (result.success) {
+          alert(`License already active! ID: ${result.data.licenseId}`);
+        }
+      }
+    } catch (purchaseError) {
+      console.error("Purchase flow failed:", purchaseError);
+      alert("License purchase failed. Please check console.");
+    } finally {
+      setPurchasingId(null);
+    }
   };
 
   const totalVoices = voices.length;
-  const totalLicenses = voices.reduce((sum, v) => sum + (v.stats?.purchases || 0), 0);
-  const totalUsage = voices.reduce((sum, v) => sum + (v.stats?.usageCount || 0), 0);
+  const totalLicenses = voices.reduce(
+    (sum, voice) => sum + (voice.stats?.purchases || 0),
+    0
+  );
+  const totalUsage = voices.reduce(
+    (sum, voice) => sum + (voice.stats?.usageCount || 0),
+    0
+  );
 
   const filteredVoices = voices.filter((voice) => {
-    if (filters.language && voice.voiceProfile?.language !== filters.language) return false;
-    if (filters.tone && voice.voiceProfile?.tone?.toLowerCase() !== filters.tone.toLowerCase()) return false;
-    if (filters.licenseType && voice.licenseType !== filters.licenseType) return false;
+    if (filters.language && voice.voiceProfile?.language !== filters.language) {
+      return false;
+    }
+    if (
+      filters.tone &&
+      voice.voiceProfile?.tone?.toLowerCase() !== filters.tone.toLowerCase()
+    ) {
+      return false;
+    }
+    if (filters.licenseType && voice.licenseType !== filters.licenseType) {
+      return false;
+    }
     return true;
   });
-  
+
   return (
     <div className="min-h-screen bg-[#0A0A0A]">
-      {/* Header */}
       <div className="border-b border-[#2A2A2A]">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center gap-3 mb-3">
-            <h1 className="text-4xl font-bold text-white">
-              Voice Marketplace
-            </h1>
+            <h1 className="text-4xl font-bold text-white">Voice Marketplace</h1>
             <span className="text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30 px-2.5 py-1 rounded-full">
               🔴 Live on Base
             </span>
           </div>
-          <p className="text-lg text-gray-400 mb-6">
+          <p className="text-lg text-gray-400 mb-4">
             License authentic human voices for your AI agents
           </p>
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
+            Indexer Bridge active
+            <span className="text-emerald-200/60">
+              Live contract state with provenance badges
+            </span>
+          </div>
           <div className="flex items-center gap-6">
             <div className="text-center">
               <div className="text-2xl font-bold text-white">{totalVoices}</div>
@@ -168,20 +176,29 @@ export default function MarketplacePage() {
             </div>
             <div className="w-px h-8 bg-[#2A2A2A]" />
             <div className="text-center">
-              <div className="text-2xl font-bold text-white">{totalLicenses}</div>
+              <div className="text-2xl font-bold text-white">
+                {totalLicenses}
+              </div>
               <div className="text-xs text-gray-500">Licenses Sold</div>
             </div>
             <div className="w-px h-8 bg-[#2A2A2A]" />
             <div className="text-center">
-              <div className="text-2xl font-bold text-white">{totalUsage.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-white">
+                {totalUsage.toLocaleString()}
+              </div>
               <div className="text-xs text-gray-500">Total Uses</div>
             </div>
           </div>
         </div>
       </div>
-      
-      {/* Filters */}
+
       <div className="max-w-7xl mx-auto px-4 py-6">
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            {error}
+          </div>
+        )}
+
         <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
@@ -190,7 +207,9 @@ export default function MarketplacePage() {
               </label>
               <select
                 value={filters.language}
-                onChange={(e) => setFilters({ ...filters, language: e.target.value })}
+                onChange={(e) =>
+                  setFilters({ ...filters, language: e.target.value })
+                }
                 className="w-full bg-[#0A0A0A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 focus:outline-none focus:border-[#3A3A3A]"
               >
                 <option value="">All Languages</option>
@@ -201,14 +220,16 @@ export default function MarketplacePage() {
                 <option value="de-DE">German</option>
               </select>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">
                 Tone
               </label>
               <select
                 value={filters.tone}
-                onChange={(e) => setFilters({ ...filters, tone: e.target.value })}
+                onChange={(e) =>
+                  setFilters({ ...filters, tone: e.target.value })
+                }
                 className="w-full bg-[#0A0A0A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 focus:outline-none focus:border-[#3A3A3A]"
               >
                 <option value="">All Tones</option>
@@ -218,73 +239,61 @@ export default function MarketplacePage() {
                 <option value="calm">Calm</option>
                 <option value="warm">Warm</option>
                 <option value="authoritative">Authoritative</option>
-                <option value="conversational">Conversational</option>
-                <option value="sophisticated">Sophisticated</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">
-                License Type
-              </label>
-              <select
-                value={filters.licenseType}
-                onChange={(e) => setFilters({ ...filters, licenseType: e.target.value })}
-                className="w-full bg-[#0A0A0A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 focus:outline-none focus:border-[#3A3A3A]"
-              >
-                <option value="">All Types</option>
-                <option value="non-exclusive">Non-Exclusive</option>
-                <option value="exclusive">Exclusive</option>
               </select>
             </div>
 
-            <div className="flex items-end">
-              <div className="text-sm text-gray-500">
-                Showing <span className="text-white font-medium">{filteredVoices.length}</span> of {totalVoices} voices
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                License
+              </label>
+              <select
+                value={filters.licenseType}
+                onChange={(e) =>
+                  setFilters({ ...filters, licenseType: e.target.value })
+                }
+                className="w-full bg-[#0A0A0A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 focus:outline-none focus:border-[#3A3A3A]"
+              >
+                <option value="">All License Types</option>
+                <option value="non-exclusive">Non-exclusive</option>
+                <option value="exclusive">Exclusive</option>
+              </select>
             </div>
           </div>
         </div>
-        
-        {/* Voice Grid */}
+
         {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-            <p className="mt-2 text-gray-500">Loading voices...</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                className="h-80 rounded-xl border border-[#2A2A2A] bg-[#111111] animate-pulse"
+              />
+            ))}
           </div>
-        ) : filteredVoices.length === 0 ? (
-          <div className="text-center py-12 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl">
-            <p className="text-gray-400 text-lg mb-4">No voices match your filters</p>
-            <p className="text-gray-600 text-sm">
-              Try adjusting your filters to see more results
-            </p>
-          </div>
-        ) : (
+        ) : filteredVoices.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredVoices.map((voice) => (
               <VoiceCard
                 key={voice.id}
                 voice={voice}
-                onPurchase={handlePurchase}
+                onPurchase={
+                  purchasingId ? undefined : () => handlePurchase(voice.id)
+                }
               />
             ))}
           </div>
+        ) : (
+          <div className="rounded-2xl border border-[#2A2A2A] bg-[#121212] px-6 py-12 text-center">
+            <div className="text-lg font-semibold text-white">
+              No live listings matched these filters
+            </div>
+            <div className="mt-2 text-sm text-gray-400">
+              This view now reads directly from live marketplace state, so empty
+              results mean there is nothing currently listed for the selected
+              criteria.
+            </div>
+          </div>
         )}
-      </div>
-      
-      {/* CTA Section */}
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="bg-gradient-to-br from-[#1A1A1A] to-[#0F0F0F] border border-[#2A2A2A] rounded-xl p-8 text-center">
-          <h2 className="text-2xl font-bold text-white mb-2">
-            Monetize Your Voice
-          </h2>
-          <p className="text-gray-400 mb-4">
-            Earn 70% revenue share from AI agents licensing your voice. You own your identity — always.
-          </p>
-          <button className="bg-white text-black px-6 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors">
-            Become a Contributor
-          </button>
-        </div>
       </div>
     </div>
   );

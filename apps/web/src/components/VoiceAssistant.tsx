@@ -413,7 +413,7 @@ export default function VoiceAssistant({
               <div className="flex items-center gap-6">
                 <span className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-                  Google Gemini 3.0
+                  Google Gemini 3.1 Pro
                 </span>
                 <span className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />

@@ -1,6 +1,6 @@
 "use server";
 
-import { generateContentFromAudio } from "../lib/gemini";
+import { generateStudioAnalysisFromAudio } from "../lib/gemini";
 
 export async function generateRecordingInsights(formData: FormData) {
   try {
@@ -17,7 +17,6 @@ export async function generateRecordingInsights(formData: FormData) {
     const buffer = Buffer.from(arrayBuffer);
     const base64Audio = buffer.toString("base64");
 
-    // Clean mime type (remove codecs)
     let mimeType = file.type || "audio/webm";
     if (mimeType.includes(";")) {
       mimeType = mimeType.split(";")[0];
@@ -25,14 +24,17 @@ export async function generateRecordingInsights(formData: FormData) {
 
     console.log(`Analyzing audio: ${mimeType}, size: ${buffer.length} bytes`);
 
-    const insights = await generateContentFromAudio(base64Audio, mimeType);
+    const analysis = await generateStudioAnalysisFromAudio(base64Audio, mimeType);
 
-    return { success: true, data: insights };
+    return { success: true, data: analysis };
   } catch (error) {
     console.error("Gemini Server Action Error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "The AI was unable to process this audio. Please ensure it has clear speech."
+      error:
+        error instanceof Error
+          ? error.message
+          : "The AI was unable to process this audio. Please ensure it has clear speech.",
     };
   }
 }

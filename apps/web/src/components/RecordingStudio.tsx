@@ -23,6 +23,7 @@ import AlchemyModeStatus from "@/components/RecordingStudio/AlchemyModeStatus";
 import AudioPreview from "@/components/RecordingStudio/AudioPreview";
 import ActionButtons from "@/components/RecordingStudio/ActionButtons";
 import RecordingTitle from "@/components/RecordingStudio/RecordingTitle";
+import GeminiInsightsPanel from "@/components/RecordingStudio/GeminiInsightsPanel";
 import { useStudioSettings } from "@/hooks/useStudioSettings";
 import { useAgentVerification } from "@/hooks/useAgentVerification";
 import { saveVersionLedger, getVersionLedger } from "@/lib/studio-db";
@@ -156,6 +157,22 @@ export default function RecordingStudio({
   const [recordingTitle, setRecordingTitle] = useState("");
   const [recordingDescription, setRecordingDescription] = useState("");
   const [recordingTags, setRecordingTags] = useState<string[]>([]);
+  const [listOnMarketplace, setListOnMarketplace] = useState(false);
+  const [marketplacePrice, setMarketplacePrice] = useState("49");
+  const [marketplaceExclusive, setMarketplaceExclusive] = useState(false);
+  const [recordingAnalysis, setRecordingAnalysis] = useState<{
+    provider?: string;
+    model?: string;
+    humanityCertificate?: {
+      status: "verified-human" | "review-needed" | "uncertain";
+      badge: string;
+      confidence: number;
+      verdict: string;
+      humanSignals: string[];
+      aiArtifacts: string[];
+      provenanceNotes: string[];
+    };
+  } | null>(null);
   const [showSaveOptions, setShowSaveOptions] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<
@@ -353,6 +370,10 @@ export default function RecordingStudio({
     setRecordingTitle("");
     setRecordingDescription("");
     setRecordingTags([]);
+    setListOnMarketplace(false);
+    setMarketplacePrice("49");
+    setMarketplaceExclusive(false);
+    setRecordingAnalysis(null);
     setIsPaused(false);
     resetRecordingStates();
   }, [cancelRecording]);
@@ -365,10 +386,30 @@ export default function RecordingStudio({
   };
 
   const handleApplyInsights = useCallback(
-    (data: { title: string; summary: string; tags: string[] }) => {
+    (data: {
+      title: string;
+      summary: string;
+      tags: string[];
+      humanityCertificate?: {
+        status: "verified-human" | "review-needed" | "uncertain";
+        badge: string;
+        confidence: number;
+        verdict: string;
+        humanSignals: string[];
+        aiArtifacts: string[];
+        provenanceNotes: string[];
+      };
+      provider?: string;
+      model?: string;
+    }) => {
       setRecordingTitle(data.title);
       setRecordingDescription(data.summary);
       setRecordingTags(data.tags);
+      setRecordingAnalysis({
+        provider: data.provider,
+        model: data.model,
+        humanityCertificate: data.humanityCertificate,
+      });
       setToastType("success");
       setToastMessage("AI Insights applied!");
     },
@@ -490,6 +531,12 @@ export default function RecordingStudio({
             recordingDescription || `Mission submission for: ${mission.title}`,
           isPublic: true, // Missions are usually public
           tags: ["mission-submission", missionId, ...recordingTags],
+          analysis: recordingAnalysis || undefined,
+          marketplace: {
+            enabled: false,
+            priceUSDC: marketplacePrice,
+            isExclusive: marketplaceExclusive,
+          },
           isAgentContent: isAgentMode,
           category: agentCategory,
           x402Price: x402Price,
@@ -566,6 +613,12 @@ export default function RecordingStudio({
               version.metadata.voiceId || "",
               ...recordingTags,
             ].filter(Boolean),
+            analysis: recordingAnalysis || undefined,
+            marketplace: {
+              enabled: listOnMarketplace,
+              priceUSDC: marketplacePrice,
+              isExclusive: marketplaceExclusive,
+            },
             isAgentContent: isAgentMode,
             category: agentCategory,
             x402Price: x402Price,
@@ -657,6 +710,10 @@ export default function RecordingStudio({
     saveRecordingToBase,
     recordingDescription,
     recordingTags,
+    listOnMarketplace,
+    marketplacePrice,
+    marketplaceExclusive,
+    recordingAnalysis,
     setToastType,
     setToastMessage,
     isConnected,
@@ -751,6 +808,13 @@ export default function RecordingStudio({
                   onCategoryChange={setAgentCategory}
                   x402Price={x402Price}
                   onX402PriceChange={setX402Price}
+                  listOnMarketplace={listOnMarketplace}
+                  onListOnMarketplaceChange={setListOnMarketplace}
+                  marketplacePrice={marketplacePrice}
+                  onMarketplacePriceChange={setMarketplacePrice}
+                  marketplaceExclusive={marketplaceExclusive}
+                  onMarketplaceExclusiveChange={setMarketplaceExclusive}
+                  humanityCertificateBadge={recordingAnalysis?.humanityCertificate?.badge || null}
                   isVerifiedAgent={isVerifiedAgent}
                 />
                 <AlchemyModeStatus
@@ -868,6 +932,14 @@ export default function RecordingStudio({
                       languageHint={activeVersion.metadata.language || "en"}
                     />
                   </Suspense>
+                )}
+
+                {activeTool === "insights" && (
+                  <GeminiInsightsPanel
+                    audioBlob={activeVersion?.blob || audioBlob}
+                    onApplyInsights={handleApplyInsights}
+                    isVisible={true}
+                  />
                 )}
               </div>
             </>

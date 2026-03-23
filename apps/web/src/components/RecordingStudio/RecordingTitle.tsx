@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, Tags, DollarSign, Lock } from 'lucide-react';
+import { Bot, Tags, DollarSign, Lock, BadgeCheck, Mic2 } from 'lucide-react';
 import { AgentCategory } from '@voisss/shared/types';
 
 interface RecordingTitleProps {
@@ -12,6 +12,13 @@ interface RecordingTitleProps {
   onCategoryChange?: (category: AgentCategory) => void;
   x402Price?: string;
   onX402PriceChange?: (price: string) => void;
+  listOnMarketplace?: boolean;
+  onListOnMarketplaceChange?: (enabled: boolean) => void;
+  marketplacePrice?: string;
+  onMarketplacePriceChange?: (price: string) => void;
+  marketplaceExclusive?: boolean;
+  onMarketplaceExclusiveChange?: (exclusive: boolean) => void;
+  humanityCertificateBadge?: string | null;
   // Verification
   isVerifiedAgent?: boolean;
 }
@@ -33,6 +40,13 @@ export default function RecordingTitle({
   onCategoryChange,
   x402Price = '0',
   onX402PriceChange,
+  listOnMarketplace = false,
+  onListOnMarketplaceChange,
+  marketplacePrice = '49',
+  onMarketplacePriceChange,
+  marketplaceExclusive = false,
+  onMarketplaceExclusiveChange,
+  humanityCertificateBadge,
   isVerifiedAgent = false,
 }: RecordingTitleProps) {
   return (
@@ -153,6 +167,94 @@ export default function RecordingTitle({
               Agent Mode requires registration in the Agent Registry.{" "}
               <a href="/agents" className="text-indigo-400 hover:text-indigo-300">Learn more</a>
             </p>
+          )}
+        </div>
+      )}
+
+      {onListOnMarketplaceChange && (
+        <div className="pt-4 border-t border-[#2A2A2A]">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-1">
+                <Mic2 className="w-4 h-4 text-cyan-400" />
+                List This Voice on Marketplace
+              </label>
+              <p className="text-xs text-gray-500">
+                Publish the saved recording as a licensable voice immediately after anchoring it on Base.
+              </p>
+              {humanityCertificateBadge && (
+                <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                  <BadgeCheck className="w-3 h-3" />
+                  {humanityCertificateBadge}
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => onListOnMarketplaceChange(!listOnMarketplace)}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+                listOnMarketplace ? 'bg-cyan-500' : 'bg-[#2A2A2A]'
+              }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                  listOnMarketplace ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          {listOnMarketplace && (
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
+              {onMarketplacePriceChange && (
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-400 mb-2">
+                    <DollarSign className="w-4 h-4" />
+                    Marketplace Price (USDC / month)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={marketplacePrice}
+                    onChange={(e) => onMarketplacePriceChange(e.target.value)}
+                    className="w-full voisss-input bg-[#2A2A2A] border-[#3A3A3A] text-white placeholder-gray-500"
+                  />
+                </div>
+              )}
+
+              {onMarketplaceExclusiveChange && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                    License Mode
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onMarketplaceExclusiveChange(false)}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-sm transition-all ${
+                        !marketplaceExclusive
+                          ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300'
+                          : 'border-[#3A3A3A] bg-[#2A2A2A] text-gray-400'
+                      }`}
+                    >
+                      Non-exclusive
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onMarketplaceExclusiveChange(true)}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-sm transition-all ${
+                        marketplaceExclusive
+                          ? 'border-purple-500/40 bg-purple-500/10 text-purple-300'
+                          : 'border-[#3A3A3A] bg-[#2A2A2A] text-gray-400'
+                      }`}
+                    >
+                      Exclusive
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}
