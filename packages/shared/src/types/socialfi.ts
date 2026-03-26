@@ -102,50 +102,6 @@ export const MissionSchema = z.object({
 });
 
 export type Mission = z.infer<typeof MissionSchema>;
-export type CreateMissionInput = z.input<typeof MissionSchema>;
-export type QualityCriteria = z.infer<typeof QualityCriteriaSchema>;
-export type QualityScoreItem = z.infer<typeof QualityScoreItemSchema>;
-export type QualityRubric = z.infer<typeof QualityRubricSchema>;
-export type SubmissionScore = z.infer<typeof SubmissionScoreSchema>;
-export type RewardMapping = z.infer<typeof RewardMappingSchema>;
-
-export const MissionResponseSchema = z.object({
-  id: z.string(),
-  missionId: z.string(),
-  userId: z.string(), // wallet address of submitter
-  recordingId: z.string(),
-  recordingIpfsHash: z.string().optional(), // IPFS hash of the recording
-  location: z.object({
-    city: z.string(),
-    country: z.string(),
-    coordinates: z.object({
-      lat: z.number(),
-      lng: z.number(),
-    }).optional(),
-  }),
-  context: z.string(), // "taxi", "coffee shop", "street interview", etc.
-  participantConsent: z.boolean(),
-  consentProof: z.string().optional(), // IPFS hash of consent recording/document
-  isAnonymized: z.boolean(),
-  voiceObfuscated: z.boolean(),
-  submittedAt: z.union([z.date(), z.string()]),
-  status: z.enum(['approved', 'flagged', 'removed']).default('approved'), // Auto-approved on submission
-  transcription: z.string().optional(),
-  sentiment: z.enum(['positive', 'negative', 'neutral', 'mixed']).optional(),
-
-  // Quality Scoring
-  qualityScore: z.number().min(0).max(100).optional(), // 0-100 overall score from rubric
-  qualityScoreId: z.string().optional(), // reference to SubmissionScore record
-  suggestedReward: z.object({
-    papajamsAmount: z.number().min(0),
-    voisssAmount: z.number().min(0),
-  }).optional(), // calculated from RewardMapping based on qualityScore
-
-  // Moderation
-  flaggedAt: z.union([z.date(), z.string()]).optional(),
-  flagReason: z.string().optional(), // why it was flagged/removed
-  removedAt: z.union([z.date(), z.string()]).optional(),
-});
 
 export type MissionResponse = z.infer<typeof MissionResponseSchema>;
 
