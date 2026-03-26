@@ -1,7 +1,10 @@
 /**
  * Agent Event Hub - Central-Decentral Event Subscription System
  * Solves the "million lobsters polling million APIs" problem
+ * Supports Redis-backed distributed event delivery with in-memory fallback
  */
+
+import { createClient, RedisClientType } from 'redis';
 
 export interface AgentEvent {
     id: string;
@@ -48,18 +51,46 @@ export interface EventFilter {
     customFilters?: Record<string, any>;
 }
 
+const EH_KEY_PREFIX = 'voisss:events:';
+
 export class AgentEventHub {
     private subscriptions = new Map<string, EventSubscription>();
-    private eventQueue = new Map<string, AgentEvent[]>(); // Per-agent queues
+    private eventQueue = new Map<string, AgentEvent[]>(); // Per-agent queues (in-memory fallback)
     private websockets = new Map<string, WebSocket>();
     private eventHistory = new Map<string, AgentEvent[]>(); // Recent events per type
     private readonly MAX_QUEUE_SIZE = 1000;
     private readonly MAX_HISTORY_SIZE = 100;
     private readonly CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
+    private redis: RedisClientType | null = null;
+    private redisConnected = false;
 
-    constructor() {
+    constructor(private redisUrl?: string) {
         // Periodic cleanup
         setInterval(() => this.cleanup(), this.CLEANUP_INTERVAL);
+
+        if (redisUrl || process.env.REDIS_URL) {
+            this.initRedis(redisUrl || process.env.REDIS_URL!);
+        }
+    }
+
+    private async initRedis(url: string): Promise<void> {
+        try {
+            this.redis = createClient({
+                url,
+                socket: {
+                    reconnectStrategy: (retries: number) => {
+                        if (retries > 10) return new Error('Max reconnection attempts reached');
+                        return Math.min(retries * 100, 3000);
+                    },
+                },
+            });
+            this.redis.on('error', () => { this.redisConnected = false; });
+            await this.redis.connect();
+            this.redisConnected = true;
+        } catch {
+            this.redisConnected = false;
+            this.redis = null;
+        }
     }
 
     /**
@@ -143,14 +174,26 @@ export class AgentEventHub {
 
     /**
      * Get events for agent (polling fallback)
+     * Reads from Redis when available, falls back to in-memory
      */
     async getEvents(agentId: string, options: {
         since?: number;
         limit?: number;
         eventTypes?: string[];
     } = {}): Promise<AgentEvent[]> {
-        const queue = this.eventQueue.get(agentId) || [];
-        let events = [...queue];
+        let events: AgentEvent[];
+
+        if (this.redisConnected && this.redis) {
+            try {
+                const key = `${EH_KEY_PREFIX}queue:${agentId}`;
+                const raw = await this.redis.lRange(key, 0, -1);
+                events = raw.map(r => JSON.parse(r) as AgentEvent);
+            } catch {
+                events = [...(this.eventQueue.get(agentId) || [])];
+            }
+        } else {
+            events = [...(this.eventQueue.get(agentId) || [])];
+        }
 
         // Filter by timestamp
         if (options.since) {
@@ -315,9 +358,19 @@ export class AgentEventHub {
     }
 
     /**
-     * Queue event for polling
+     * Queue event for polling - uses Redis list when available
      */
     private async queueEvent(event: AgentEvent, agentId: string): Promise<void> {
+        if (this.redisConnected && this.redis) {
+            try {
+                const key = `${EH_KEY_PREFIX}queue:${agentId}`;
+                await this.redis.lPush(key, JSON.stringify(event));
+                await this.redis.lTrim(key, 0, this.MAX_QUEUE_SIZE - 1);
+                await this.redis.expire(key, 86400); // 24h TTL
+                return;
+            } catch { /* fall through to in-memory */ }
+        }
+
         if (!this.eventQueue.has(agentId)) {
             this.eventQueue.set(agentId, []);
         }
@@ -481,7 +534,7 @@ let agentEventHub: AgentEventHub | null = null;
 
 export function getAgentEventHub(): AgentEventHub {
     if (!agentEventHub) {
-        agentEventHub = new AgentEventHub();
+        agentEventHub = new AgentEventHub(process.env.REDIS_URL);
     }
     return agentEventHub;
 }

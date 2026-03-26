@@ -6,14 +6,15 @@ import {
 } from "@voisss/shared";
 import { rateLimiters, getIdentifier, getRateLimitHeaders } from "@/lib/rate-limit";
 import crypto from "crypto";
-import { promises as fs } from 'fs';
-import path from 'path';
 
-// File-based persistence for development/ MVP
-const DB_PATH = path.join(process.cwd(), 'agent-registry.json');
-
-// In-memory cache
+// In-memory cache (hydrated from DB on first access)
 let agentRegistry: Map<string, AgentProfile> | null = null;
+
+// Lazy import to avoid bundling pg in edge runtime
+async function getDb() {
+  const { createPostgresDatabase } = await import("@voisss/shared/server");
+  return createPostgresDatabase();
+}
 
 async function getRegistry(): Promise<Map<string, AgentProfile>> {
   if (agentRegistry) return agentRegistry;
@@ -21,25 +22,24 @@ async function getRegistry(): Promise<Map<string, AgentProfile>> {
   agentRegistry = new Map();
 
   try {
-    const data = await fs.readFile(DB_PATH, 'utf-8');
-    const entries = JSON.parse(data);
-    agentRegistry = new Map(entries);
+    const db = await getDb();
+    await db.connect();
+    const rows = await db.getAll<AgentProfile>('agent_registry');
+    for (const row of rows) {
+      agentRegistry.set(row.agentAddress, row);
+    }
 
     // Rehydrate Security Service
-    // This ensures that even after a restart, all known agents are trusted again
     const { getAgentSecurityService } = await import("@voisss/shared/services/agent-security");
     const securityService = getAgentSecurityService();
 
     for (const [address, _] of agentRegistry) {
       securityService.trustAgent(address);
     }
-    console.log(`Rehydrated ${agentRegistry.size} agents from persistence.`);
+    console.log(`Rehydrated ${agentRegistry.size} agents from database.`);
 
   } catch (error) {
-    // If file doesn't exist, start empty
-    if ((error as any).code !== 'ENOENT') {
-      console.warn('Failed to load agent registry:', error);
-    }
+    console.warn('Failed to load agent registry from database:', error);
   }
 
   return agentRegistry;
@@ -48,8 +48,10 @@ async function getRegistry(): Promise<Map<string, AgentProfile>> {
 async function saveRegistry() {
   if (!agentRegistry) return;
   try {
-    const data = JSON.stringify(Array.from(agentRegistry.entries()), null, 2);
-    await fs.writeFile(DB_PATH, data);
+    const db = await getDb();
+    await db.connect();
+    const items = Array.from(agentRegistry.entries()).map(([id, data]) => ({ id, data }));
+    await db.setBatch('agent_registry', items);
   } catch (error) {
     console.error('Failed to save agent registry:', error);
   }

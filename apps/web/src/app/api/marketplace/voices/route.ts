@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getMarketplaceListings } from "@/lib/marketplace-indexer";
 
+const VALID_LICENSE_TYPES = ["exclusive", "non-exclusive"] as const;
+
 /**
  * GET /api/marketplace/voices
  *
@@ -16,10 +18,21 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
     const contributor = searchParams.get("contributor");
-    const licenseType = searchParams.get("licenseType") as
-      | "exclusive"
-      | "non-exclusive"
-      | null;
+    const rawLicenseType = searchParams.get("licenseType");
+
+    // Validate licenseType if provided
+    const licenseType = rawLicenseType
+      ? VALID_LICENSE_TYPES.includes(rawLicenseType as typeof VALID_LICENSE_TYPES[number])
+        ? (rawLicenseType as typeof VALID_LICENSE_TYPES[number])
+        : null
+      : null;
+
+    if (rawLicenseType && !licenseType) {
+      return NextResponse.json({
+        success: false,
+        error: `Invalid licenseType. Must be one of: ${VALID_LICENSE_TYPES.join(', ')}`
+      }, { status: 400 });
+    }
 
     const voices = await getMarketplaceListings({
       language,

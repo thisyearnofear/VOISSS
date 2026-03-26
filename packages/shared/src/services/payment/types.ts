@@ -109,7 +109,6 @@ export const PARTNER_WHITELIST = new Set<string>([
  */
 export const WHITELISTED_ADDRESSES = new Set([
   '0xBE857DB4B4bD71a8bf8f50f950eecD7dDe68b85c'.toLowerCase(), // Owner/Platform address
-  '0x1234567890123456789012345678901234567890'.toLowerCase(), // Test address
   '0x55A5705453Ee82c742274154136Fce8149597058'.toLowerCase(), // New Whitelisted Address
 ]);
 

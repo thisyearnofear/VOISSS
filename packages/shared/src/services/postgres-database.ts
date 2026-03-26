@@ -73,8 +73,7 @@ export class PostgresDatabase implements DatabaseService {
     }
   }
 
-  // Helper to ensure table exists (Auto-migration for prototype phase)
-  // In production, use proper migration scripts
+  // Helper to ensure table exists with proper indexes
   private async ensureTable(collection: string): Promise<void> {
     if (!this.pool) throw new DatabaseConnectionError('No connection pool');
     
@@ -88,6 +87,12 @@ export class PostgresDatabase implements DatabaseService {
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       );
+      
+      -- GIN index on JSONB column for efficient querying of nested fields
+      CREATE INDEX IF NOT EXISTS "${tableName}_data_idx" ON "${tableName}" USING GIN (data jsonb_path_ops);
+      
+      -- Index on updated_at for time-based queries
+      CREATE INDEX IF NOT EXISTS "${tableName}_updated_at_idx" ON "${tableName}" (updated_at);
     `;
     
     await this.pool.query(query);
@@ -123,10 +128,34 @@ export class PostgresDatabase implements DatabaseService {
   }
 
   async getWhere<T>(collection: string, predicate: (item: T) => boolean): Promise<T[]> {
-    // Note: This is inefficient for large datasets as it fetches all rows.
-    // Optimization: In the future, DatabaseService could support structured queries.
+    // Note: For simple JSONB field equality checks, prefer queryJsonb() below
+    // which uses PostgreSQL's native JSONB operators instead of full table scans.
     const all = await this.getAll<T>(collection);
     return all.filter(predicate);
+  }
+
+  /**
+   * Query JSONB data using PostgreSQL's native operators.
+   * Uses GIN index for efficient lookups instead of full table scans.
+   * 
+   * Examples:
+   *   queryJsonb('missions', "data->>'status' = 'active'")
+   *   queryJsonb('missions', "data @> '{\"category\": \"music\"}'")
+   *   queryJsonb('missions', "data->>'userId' = $1", [userAddress])
+   */
+  async queryJsonb<T>(collection: string, whereClause: string, params?: any[]): Promise<T[]> {
+    await this.ensureConnected();
+    await this.ensureTable(collection);
+
+    try {
+      const res = await this.pool!.query(
+        `SELECT data FROM "${collection}" WHERE ${whereClause}`,
+        params
+      );
+      return res.rows.map(row => this.reviveDates(row.data) as T);
+    } catch (error) {
+      throw new DatabaseOperationError('Failed to query items', collection, 'queryJsonb');
+    }
   }
 
   async set<T>(collection: string, id: string, data: T): Promise<void> {

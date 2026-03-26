@@ -1,43 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+
+const SynthesizeRequestSchema = z.object({
+  text: z.string().min(1, "Text is required").max(5000, "Text must be under 5000 characters"),
+  voiceId: z.string().min(1, "Voice ID is required").max(100),
+  licenseeAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address"),
+});
 
 /**
  * POST /api/marketplace/synthesize
- * 
+ *
  * Metered voice synthesis for licensed voices
  * Requires valid license and API key
- * 
- * Request body:
- * {
- *   text: string,
- *   voiceId: string,
- *   licenseeAddress: string
- * }
- * 
- * Headers:
- * - X-API-Key: License API key
  */
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const apiKey = req.headers.get('X-API-Key');
-    
+
     if (!apiKey) {
       return NextResponse.json({
         success: false,
         error: "API key required. Include X-API-Key header."
       }, { status: 401 });
     }
-    
+
     const body = await req.json();
-    const { text, voiceId, licenseeAddress } = body;
-    
-    // Validation
-    if (!text || !voiceId || !licenseeAddress) {
-      return NextResponse.json({
-        success: false,
-        error: "Missing required fields: text, voiceId, licenseeAddress"
-      }, { status: 400 });
-    }
-    
+    const validated = SynthesizeRequestSchema.parse(body);
+
     // TODO: MVP Implementation
     // 1. Validate API key against license
     // 2. Check license is active
@@ -46,15 +35,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // 5. Increment usage counter
     // 6. Report usage to smart contract
     // 7. Return audio URL
-    
-    // For MVP, return not implemented
+
     return NextResponse.json({
       success: false,
       error: "Synthesis endpoint not yet implemented. Use /api/agents/vocalize for now.",
       note: "This endpoint will be activated once licenses are approved and API keys are issued."
     }, { status: 501 });
-    
+
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        error: `Validation error: ${error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`
+      }, { status: 400 });
+    }
     console.error("Synthesis error:", error);
     return NextResponse.json({
       success: false,

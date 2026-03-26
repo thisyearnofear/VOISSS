@@ -10,8 +10,15 @@ import jwt from 'jsonwebtoken';
 import { createPublicClient, http } from 'viem';
 import { base } from 'viem/chains';
 
-const AUTH_SECRET = process.env.AUTH_JWT_SECRET || 'dev-secret-change-in-prod';
-const NONCE_SECRET = process.env.AUTH_NONCE_SECRET || 'nonce-secret-change-in-prod';
+const AUTH_SECRET = process.env.AUTH_JWT_SECRET;
+const NONCE_SECRET = process.env.AUTH_NONCE_SECRET;
+
+if (!AUTH_SECRET) {
+  throw new Error('AUTH_JWT_SECRET environment variable is required');
+}
+if (!NONCE_SECRET) {
+  throw new Error('AUTH_NONCE_SECRET environment variable is required');
+}
 
 // JWT payload for authenticated user
 export interface AuthUser {

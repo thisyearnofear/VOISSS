@@ -51,7 +51,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; connect-src 'self' https://api.cdp.coinbase.com https://api.coinbase.com https://cca-lite.coinbase.com https://chain-proxy.wallet.coinbase.com https://mainnet.base.org https://sepolia.base.org https://voisss.famile.xyz https://8453.rpc.thirdweb.com wss://www.walletlink.org https://www.walletlink.org wss://api.elevenlabs.io; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com blob: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https://ipfs.io https://*.ipfs.dweb.link blob:; media-src 'self' blob:; frame-src 'self' https://verify.coinbase.com;",
+            value: "default-src 'self'; connect-src 'self' https://api.cdp.coinbase.com https://api.coinbase.com https://cca-lite.coinbase.com https://chain-proxy.wallet.coinbase.com https://mainnet.base.org https://sepolia.base.org https://voisss.famile.xyz https://8453.rpc.thirdweb.com wss://www.walletlink.org https://www.walletlink.org wss://api.elevenlabs.io; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com blob: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https://ipfs.io https://*.ipfs.dweb.link blob:; media-src 'self' blob:; frame-src 'self' https://verify.coinbase.com;",
           },
         ],
       },
@@ -95,13 +95,20 @@ const nextConfig = {
       'tls': false,
     };
 
-    // Provide process polyfill for browser
+    // Provide process polyfill for browser - only expose NEXT_PUBLIC_* variables
     if (!isServer) {
       const webpack = require('webpack');
+      // Explicitly whitelist only NEXT_PUBLIC_* env vars to avoid leaking secrets
+      const publicEnv: Record<string, string> = {};
+      for (const [key, value] of Object.entries(process.env)) {
+        if (key.startsWith('NEXT_PUBLIC_')) {
+          publicEnv[key] = value ?? '';
+        }
+      }
       config.plugins = config.plugins || [];
       config.plugins.push(
         new webpack.DefinePlugin({
-          'process.env': JSON.stringify(process.env),
+          'process.env': JSON.stringify(publicEnv),
           'process.exit': 'undefined',
           'process.version': JSON.stringify(process.version),
           'process.platform': JSON.stringify('browser'),

@@ -4,6 +4,13 @@ import {
   parsePaymentHeader,
   type X402PaymentPayload,
 } from "@voisss/shared";
+import { z } from "zod";
+
+const LicenseRequestSchema = z.object({
+  voiceId: z.string().min(1, "Voice ID is required"),
+  licenseeAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address"),
+  licenseType: z.enum(["exclusive", "non-exclusive"], { errorMap: () => ({ message: "licenseType must be 'exclusive' or 'non-exclusive'" }) }),
+});
 
 /**
  * POST /api/marketplace/license
@@ -14,17 +21,8 @@ import {
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const body = await req.json();
-    const { voiceId, licenseeAddress, licenseType } = body;
-
-    if (!voiceId || !licenseeAddress || !licenseType) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Missing required fields: voiceId, licenseeAddress, licenseType",
-        },
-        { status: 400 }
-      );
-    }
+    const validated = LicenseRequestSchema.parse(body);
+    const { voiceId, licenseeAddress, licenseType } = validated;
 
     const paymentHeader = req.headers.get("x-402-payment");
     const payment = parsePaymentHeader(paymentHeader) as X402PaymentPayload | null;
@@ -73,6 +71,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       },
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        error: `Validation error: ${error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`
+      }, { status: 400 });
+    }
     console.error("License purchase error:", error);
     return NextResponse.json(
       {
@@ -104,13 +108,12 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const mockLicenses: any[] = [];
-
+    // TODO: Replace with actual database query once license storage is implemented
     return NextResponse.json({
       success: true,
       data: {
-        licenses: mockLicenses,
-        total: mockLicenses.length,
+        licenses: [],
+        total: 0,
       },
     });
   } catch (error) {

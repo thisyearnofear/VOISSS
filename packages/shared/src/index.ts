@@ -33,6 +33,7 @@ export * from './services/recording-service';
 export * from './services/mission-service';
 export * from './services/moderation-service';
 export * from './services/database-service';
+export * from './services/firecrawl-service';
 // cross-platform-storage is the single public storage API.
 // localStorage-database and asyncStorage-database are internal adapters —
 // import cross-platform-storage instead of using them directly.

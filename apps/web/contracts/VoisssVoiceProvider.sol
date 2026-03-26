@@ -42,6 +42,7 @@ contract VoisssVoiceProvider is IVoiceProvider, Ownable, Pausable, ReentrancyGua
     error InsufficientPayment();
     error GenerationFailed();
     error InvalidRating();
+    error TransferFailed();
 
     constructor(string memory _providerName) Ownable(msg.sender) {
         providerName = _providerName;
@@ -97,7 +98,8 @@ contract VoisssVoiceProvider is IVoiceProvider, Ownable, Pausable, ReentrancyGua
         
         // Refund excess payment
         if (msg.value > totalCost) {
-            payable(msg.sender).transfer(msg.value - totalCost);
+            (bool refundSuccess, ) = payable(msg.sender).call{value: msg.value - totalCost}("");
+            if (!refundSuccess) revert TransferFailed();
         }
         
         // Emit event
@@ -253,8 +255,9 @@ contract VoisssVoiceProvider is IVoiceProvider, Ownable, Pausable, ReentrancyGua
      * @param amount Amount to withdraw
      */
     function withdrawRevenue(uint256 amount) external onlyOwner {
-        require(amount <= address(this).balance, "Insufficient balance");
-        payable(owner()).transfer(amount);
+        if (amount > address(this).balance) revert InsufficientPayment();
+        (bool success, ) = payable(owner()).call{value: amount}("");
+        if (!success) revert TransferFailed();
     }
 
     /**

@@ -118,6 +118,8 @@ contract AgentRegistry is Ownable, Pausable {
     
     event ServiceAuthorized(address indexed service, bool authorized);
 
+    event AdminUSDCWithdrawn(address indexed recipient, uint256 amount);
+
     /**
      * @dev Modifier to check if caller is a registered agent
      */
@@ -519,6 +521,7 @@ contract AgentRegistry is Ownable, Pausable {
         if (amount > usdcToken.balanceOf(address(this))) revert InsufficientCredits();
         
         usdcToken.safeTransfer(recipient, amount);
+        emit AdminUSDCWithdrawn(recipient, amount);
     }
 
     // ============ View Functions ============

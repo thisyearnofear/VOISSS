@@ -1,9 +1,11 @@
 /**
  * Agent Security Service
  * Comprehensive security measures for AI agent interactions
+ * Supports Redis-backed persistence with in-memory fallback
  */
 
 import { createHash, randomBytes } from 'crypto';
+import { createClient, RedisClientType } from 'redis';
 
 export interface SecurityThreat {
     type: 'ddos' | 'abuse' | 'fraud' | 'impersonation' | 'resource_exhaustion';
@@ -29,21 +31,75 @@ export interface AgentSecurityProfile {
     suspiciousPatterns: string[];
 }
 
+const REDIS_KEY_PREFIX = 'voisss:security:';
+
 export class AgentSecurityService {
     private profiles = new Map<string, AgentSecurityProfile>();
     private threats = new Map<string, SecurityThreat[]>();
-    private honeypots = new Set<string>(); // Honeypot endpoints
-    private blocklist = new Set<string>(); // Blocked agent IDs
-    private allowlist = new Set<string>(); // Trusted agent IDs
+    private honeypots = new Set<string>();
+    private blocklist = new Set<string>();
+    private allowlist = new Set<string>();
+    private redis: RedisClientType | null = null;
+    private redisConnected = false;
 
-    constructor() {
+    constructor(private redisUrl?: string) {
         // Initialize honeypots
         this.honeypots.add('/api/admin/secret');
         this.honeypots.add('/api/internal/debug');
         this.honeypots.add('/api/hidden/backdoor');
 
         // Cleanup old data periodically
-        setInterval(() => this.cleanup(), 60 * 60 * 1000); // Every hour
+        setInterval(() => this.cleanup(), 60 * 60 * 1000);
+
+        // Try to connect to Redis
+        if (redisUrl || process.env.REDIS_URL) {
+            this.initRedis(redisUrl || process.env.REDIS_URL!);
+        }
+    }
+
+    private async initRedis(url: string): Promise<void> {
+        try {
+            this.redis = createClient({
+                url,
+                socket: {
+                    reconnectStrategy: (retries: number) => {
+                        if (retries > 10) return new Error('Max reconnection attempts reached');
+                        return Math.min(retries * 100, 3000);
+                    },
+                },
+            });
+            this.redis.on('error', () => { this.redisConnected = false; });
+            await this.redis.connect();
+            this.redisConnected = true;
+            await this.loadFromRedis();
+        } catch {
+            this.redisConnected = false;
+            this.redis = null;
+        }
+    }
+
+    private async loadFromRedis(): Promise<void> {
+        if (!this.redis || !this.redisConnected) return;
+        try {
+            const blocklistKey = `${REDIS_KEY_PREFIX}blocklist`;
+            const allowlistKey = `${REDIS_KEY_PREFIX}allowlist`;
+            const blocked = await this.redis.sMembers(blocklistKey);
+            const allowed = await this.redis.sMembers(allowlistKey);
+            blocked.forEach(id => this.blocklist.add(id));
+            allowed.forEach(id => this.allowlist.add(id));
+        } catch { /* fallback to in-memory */ }
+    }
+
+    private async redisSAdd(key: string, member: string): Promise<void> {
+        if (this.redis && this.redisConnected) {
+            try { await this.redis.sAdd(key, member); } catch { /* fallback */ }
+        }
+    }
+
+    private async redisSRem(key: string, member: string): Promise<void> {
+        if (this.redis && this.redisConnected) {
+            try { await this.redis.sRem(key, member); } catch { /* fallback */ }
+        }
     }
 
     /**
@@ -117,10 +173,6 @@ export class AgentSecurityService {
             const payloadThreats = this.analyzePayload(request.payload, request.agentId);
             threats.push(...payloadThreats);
         }
-
-        // 5. Request pattern analysis
-        const rateThreats = this.analyzeRequestPatterns(request, profile);
-        threats.push(...rateThreats);
 
         // 6. User-Agent analysis
         if (request.userAgent) {
@@ -570,14 +622,17 @@ export class AgentSecurityService {
      */
     blockAgent(agentId: string) {
         this.blocklist.add(agentId);
+        this.redisSAdd(`${REDIS_KEY_PREFIX}blocklist`, agentId);
     }
 
     unblockAgent(agentId: string) {
         this.blocklist.delete(agentId);
+        this.redisSRem(`${REDIS_KEY_PREFIX}blocklist`, agentId);
     }
 
     trustAgent(agentId: string) {
         this.allowlist.add(agentId);
+        this.redisSAdd(`${REDIS_KEY_PREFIX}allowlist`, agentId);
         const profile = this.getOrCreateProfile(agentId);
         profile.trustScore = 100;
         profile.reputation = 1000;
@@ -589,7 +644,7 @@ let agentSecurityService: AgentSecurityService | null = null;
 
 export function getAgentSecurityService(): AgentSecurityService {
     if (!agentSecurityService) {
-        agentSecurityService = new AgentSecurityService();
+        agentSecurityService = new AgentSecurityService(process.env.REDIS_URL);
     }
     return agentSecurityService;
 }
