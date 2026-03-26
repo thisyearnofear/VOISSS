@@ -2,15 +2,23 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useConversation } from "@elevenlabs/react";
+import { shouldTriggerWebSearch } from "@voisss/shared";
 
 // --- Types ---
 
 export type Role = "user" | "assistant";
 
+export interface SearchResult {
+  title: string;
+  url: string;
+  description: string;
+}
+
 export interface Message {
   role: Role;
   content: string;
   timestamp: Date;
+  searchResults?: SearchResult[];
 }
 
 export type AgentStatus =
@@ -19,6 +27,7 @@ export type AgentStatus =
   | "connected"
   | "listening"
   | "processing"
+  | "searching"
   | "speaking";
 
 interface UseVoiceConversationProps {
@@ -42,6 +51,7 @@ export function useVoiceConversation({
   // ---------------------------------------------------------------------------
 
   const [officialError, setOfficialError] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
   const officialConversation = useConversation({
     onConnect: () => setOfficialError(null),
@@ -52,6 +62,13 @@ export function useVoiceConversation({
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onMessage: (message: any) => {
+      // Handle tool calls (Firecrawl search)
+      if (message.type === "tool_call") {
+        setIsSearching(true);
+      } else if (message.type === "tool_call_result") {
+        setIsSearching(false);
+      }
+
       // Check for actions in the message
       if (message.message?.text && onAction) {
         const actionMatch = message.message.text.match(/\[ACTION:(\w+)\]/);
@@ -112,10 +129,10 @@ export function useVoiceConversation({
   const updateManualStatus = (status: AgentStatus) =>
     setManualState((prev) => ({ ...prev, status }));
 
-  const addMessage = (role: Role, content: string) =>
+  const addMessage = (role: Role, content: string, searchResults?: SearchResult[]) =>
     setManualState((prev) => ({
       ...prev,
-      messages: [...prev.messages, { role, content, timestamp: new Date() }],
+      messages: [...prev.messages, { role, content, timestamp: new Date(), searchResults }],
     }));
 
   const speakResponse = async (text: string) => {
@@ -153,7 +170,11 @@ export function useVoiceConversation({
     if (!text.trim()) return;
 
     addMessage("user", text);
-    updateManualStatus("processing");
+    
+    // Check if we should show searching state (for web search queries)
+    const mightSearch = shouldTriggerWebSearch(text);
+    
+    updateManualStatus(mightSearch ? "searching" : "processing");
     setManualState((prev) => ({ ...prev, transcript: "" })); // Clear transcript
 
     try {
@@ -171,6 +192,7 @@ export function useVoiceConversation({
 
       const data = await res.json();
       let aiResponse = data.response;
+      const searchResults = data.searchResults;
 
       // Extract actions
       const actionMatch = aiResponse.match(/\[ACTION:(\w+)\]/);
@@ -179,7 +201,8 @@ export function useVoiceConversation({
         aiResponse = aiResponse.replace(/\[ACTION:\w+\]/g, "").trim();
       }
 
-      addMessage("assistant", aiResponse);
+      // Add message with search results if available
+      addMessage("assistant", aiResponse, searchResults);
       if (onInsight) onInsight(aiResponse);
 
       await speakResponse(aiResponse);
@@ -279,6 +302,7 @@ export function useVoiceConversation({
         );
       },
       isSpeaking,
+      isSearching,
     };
   }
 
@@ -307,6 +331,7 @@ export function useVoiceConversation({
     },
     sendMessage: handleManualInput,
     isSpeaking: manualState.status === "speaking",
+    isSearching: manualState.status === "searching",
   };
 }
 

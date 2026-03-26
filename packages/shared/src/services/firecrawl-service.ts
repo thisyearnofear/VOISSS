@@ -143,3 +143,22 @@ export class FirecrawlService {
 export function createFirecrawlService(apiKey?: string): FirecrawlService {
   return new FirecrawlService(apiKey);
 }
+
+/**
+ * Common keywords that suggest a web search is needed
+ */
+export const WEB_SEARCH_KEYWORDS = [
+  'news', 'latest', 'current', 'today', 'recent', 
+  'what is', 'how does', 'tell me about', 
+  'announcement', 'release', 'price of',
+  'who is', 'where is', 'when is',
+  'weather', 'stock', 'crypto', 'blockchain news'
+];
+
+/**
+ * Simple heuristic to determine if a query should trigger a web search
+ */
+export function shouldTriggerWebSearch(query: string): boolean {
+  const lowerQuery = query.toLowerCase();
+  return WEB_SEARCH_KEYWORDS.some(keyword => lowerQuery.includes(keyword));
+}

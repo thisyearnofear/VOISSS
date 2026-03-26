@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // 5. Format results for the AI agent
+    // 5. Format results for the AI agent and the UI
     // We want to provide a clean summary of the search results
     const formattedResults = result.data.web?.map((item, index) => ({
       index: index + 1,
@@ -59,9 +59,17 @@ export async function POST(request: NextRequest) {
       content: item.markdown?.substring(0, 1500) // Truncate content to avoid hitting context limits
     })) || [];
 
+    // Format for UI rendering (consistent with our Message interface)
+    const uiResults = result.data.web?.map(item => ({
+      title: item.title,
+      url: item.url,
+      description: item.description
+    })) || [];
+
     return NextResponse.json({
       query,
       results: formattedResults,
+      searchResults: uiResults, // For our custom UI to pick up
       count: formattedResults.length,
       source: 'Firecrawl'
     });

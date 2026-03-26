@@ -270,3 +270,15 @@ export const VALIDATION = {
     MAX_LENGTH: 20,
   },
 } as const;
+
+// Web Search Configuration - Keywords that trigger web search in voice assistant
+export const WEB_SEARCH_KEYWORDS = [
+  'news', 'latest', 'current', 'today', 'recent', '2024', '2025', '2026',
+  'update', 'announcement', 'release', 'trending', 'what is', 'how does',
+  'tell me about', 'explain', 'information on'
+] as const;
+
+export const shouldTriggerWebSearch = (text: string): boolean => {
+  const lowerText = text.toLowerCase();
+  return WEB_SEARCH_KEYWORDS.some(keyword => lowerText.includes(keyword));
+};

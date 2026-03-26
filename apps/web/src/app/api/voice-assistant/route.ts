@@ -3,6 +3,7 @@ import {
   generateAssistantReply,
   getAIProviderStatus,
 } from "../../../lib/gemini";
+import { createFirecrawlService, shouldTriggerWebSearch } from "@voisss/shared";
 
 interface ConversationMessage {
   role: "user" | "assistant";
@@ -45,6 +46,8 @@ Example: "I can help you with that in the studio. [ACTION:studio]"
 
 When users ask about features, provide helpful guidance. When they have technical issues, suggest solutions or direct them to the Help page.
 
+When users ask about current events, news, or real-time information, you will receive web search results. Use these to provide accurate, up-to-date answers.
+
 Remember: Your responses will be read aloud using text-to-speech, so write naturally and conversationally. Do not speak the [ACTION:...] part, it is for the system.`;
 
 export async function POST(request: NextRequest) {
@@ -70,13 +73,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if we should perform a web search (for current events, news, real-time info)
+    const shouldSearch = shouldTriggerWebSearch(message);
+
+    let searchResults = null;
+    let searchQuery = message;
+
+    // Perform web search if relevant
+    if (shouldSearch && process.env.FIRECRAWL_API_KEY) {
+      try {
+        const firecrawl = createFirecrawlService(process.env.FIRECRAWL_API_KEY);
+        const searchResult = await firecrawl.search(searchQuery, {
+          limit: 3,
+          scrapeOptions: {
+            formats: ['markdown'],
+            onlyMainContent: true
+          }
+        });
+
+        if (searchResult.success && searchResult.data.web) {
+          searchResults = searchResult.data.web.map(item => ({
+            title: item.title,
+            url: item.url,
+            description: item.description
+          }));
+        }
+      } catch (searchError) {
+        console.error('Web search error:', searchError);
+        // Continue without search results
+      }
+    }
+
     const conversationContext = conversationHistory
       .map(
         (msg) => `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`
       )
       .join("\n");
 
-    const fullPrompt = `${SYSTEM_PROMPT}
+    let promptWithContext = `${SYSTEM_PROMPT}
 
 ${context ? `Current Context: ${context}` : ""}
 
@@ -84,9 +118,21 @@ ${conversationContext ? `Previous conversation:\n${conversationContext}\n` : ""}
 
 User: ${message}
 
+`;
+
+    // Add search results context if available
+    if (searchResults && searchResults.length > 0) {
+      promptWithContext += `
+Web Search Results:
+${searchResults.map((r, i) => `${i + 1}. ${r.title} - ${r.description} (${r.url})`).join('\n')}
+
+Based on these search results, provide accurate and up-to-date information.`;
+    }
+
+    promptWithContext += `
 Respond naturally and helpfully. Keep your response concise (2-3 sentences) unless the user asks for more detail.`;
 
-    const aiResult = await generateAssistantReply(fullPrompt);
+    const aiResult = await generateAssistantReply(promptWithContext);
     const cleanedResponse = aiResult.text
       .replace(/\*\*/g, "")
       .replace(/\*/g, "")
@@ -98,6 +144,7 @@ Respond naturally and helpfully. Keep your response concise (2-3 sentences) unle
       response: cleanedResponse,
       model: aiResult.model,
       provider: aiResult.provider,
+      searchResults: searchResults || undefined,
     });
   } catch (error) {
     console.error("Voice assistant error:", error);

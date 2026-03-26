@@ -13,7 +13,10 @@ import {
   Zap,
   AlertCircle,
   ArrowRight,
+  Globe,
+  ExternalLink,
 } from "lucide-react";
+import { SearchResult } from "../hooks/useVoiceConversation";
 import { useAssistant } from "../contexts/AssistantContext";
 import { useVoiceConversation } from "../hooks/useVoiceConversation";
 
@@ -69,6 +72,7 @@ export default function VoiceAssistant({
     disconnect,
     sendMessage,
     isSpeaking,
+    isSearching: searchingFromHook,
   } = useVoiceConversation({
     context,
     onAction: handleAction,
@@ -114,12 +118,14 @@ export default function VoiceAssistant({
 
   const isListening = status === "listening";
   const isProcessing = status === "processing";
+  const isSearching = status === "searching";
   const isConnecting = status === "connecting";
   const isConnected =
     status === "connected" ||
     status === "listening" ||
     status === "speaking" ||
-    status === "processing";
+    status === "processing" ||
+    status === "searching";
 
   // Unified Toggle Handler
   const handleToggle = () => {
@@ -178,7 +184,9 @@ export default function VoiceAssistant({
                   <div
                     className={`w-2 h-2 rounded-full ${
                       isConnected
-                        ? "bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.5)]"
+                        ? isSearching
+                          ? "bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.5)] animate-pulse"
+                          : "bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.5)]"
                         : "bg-gray-600"
                     }`}
                   />
@@ -187,6 +195,8 @@ export default function VoiceAssistant({
                       ? "Listening..."
                       : status === "processing"
                       ? "Processing..."
+                      : status === "searching"
+                      ? "Searching web..."
                       : status === "speaking"
                       ? "Speaking"
                       : status === "connecting"
@@ -213,12 +223,18 @@ export default function VoiceAssistant({
               <div className="relative">
                 {/* Dynamic Orb Animation */}
                 <div
-                  className={`absolute inset-0 bg-purple-500/20 blur-2xl rounded-full transition-all duration-500 ${
-                    isSpeaking
-                      ? "scale-150 opacity-100"
-                      : "scale-100 opacity-50"
+                  className={`absolute inset-0 blur-2xl rounded-full transition-all duration-500 ${
+                    isSearching
+                      ? "bg-cyan-500/30 scale-110 animate-pulse-glow"
+                      : isSpeaking
+                      ? "bg-purple-500/20 scale-150 opacity-100"
+                      : "bg-purple-500/20 scale-100 opacity-50"
                   }`}
                 />
+                {/* Search ring animation */}
+                {isSearching && (
+                  <div className="absolute inset-0 border-2 border-cyan-500/40 rounded-full animate-ping" />
+                )}
                 <button
                   onClick={handleToggle}
                   disabled={isConnecting}
@@ -228,6 +244,8 @@ export default function VoiceAssistant({
                     <Loader2 className="w-12 h-12 text-purple-400 animate-spin" />
                   ) : isSpeaking ? (
                     <Volume2 className="w-12 h-12 text-blue-400 animate-pulse" />
+                  ) : isSearching ? (
+                    <Globe className="w-12 h-12 text-cyan-400 animate-spin-slow" />
                   ) : isListening ? (
                     <Mic className="w-12 h-12 text-red-500 animate-pulse" />
                   ) : (
@@ -278,29 +296,89 @@ export default function VoiceAssistant({
                     msg.role === "user" ? "justify-end" : "justify-start"
                   } animate-in fade-in slide-in-from-bottom-4 duration-500`}
                 >
-                  <div
-                    className={`max-w-[88%] px-6 py-4 rounded-[1.5rem] shadow-xl text-[15px] leading-relaxed tracking-wide ${
-                      msg.role === "user"
-                        ? "bg-gradient-to-br from-purple-600 to-blue-600 text-white rounded-tr-none shadow-purple-500/10"
-                        : "bg-[#151515] border border-white/5 text-gray-200 rounded-tl-none ring-1 ring-white/5 shadow-black/40"
-                    }`}
-                  >
-                    {msg.content}
+                  <div className={`relative max-w-[88%] ${msg.role === "assistant" && msg.searchResults ? "" : ""}`}>
+                    {/* Web-Sourced Badge */}
+                    {msg.role === "assistant" && msg.searchResults && msg.searchResults.length > 0 && (
+                      <div className="absolute -top-2 -right-2 flex items-center gap-1 px-2 py-0.5 bg-cyan-500/20 border border-cyan-500/30 rounded-full z-10">
+                        <Globe className="w-2.5 h-2.5 text-cyan-400" />
+                        <span className="text-[9px] font-bold text-cyan-400 uppercase tracking-wider">
+                          Web
+                        </span>
+                      </div>
+                    )}
+                    <div
+                      className={`px-6 py-4 rounded-[1.5rem] shadow-xl text-[15px] leading-relaxed tracking-wide ${
+                        msg.role === "user"
+                          ? "bg-gradient-to-br from-purple-600 to-blue-600 text-white rounded-tr-none shadow-purple-500/10"
+                          : "bg-[#151515] border border-white/5 text-gray-200 rounded-tl-none ring-1 ring-white/5 shadow-black/40"
+                      }`}
+                    >
+                      {msg.content}
+                    </div>
+                    
+                    {/* Search Result Cards */}
+                    {msg.role === "assistant" && msg.searchResults && msg.searchResults.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {msg.searchResults.map((result: SearchResult, rIdx: number) => (
+                          <a
+                            key={rIdx}
+                            href={result.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block p-3 bg-white/[0.03] border border-white/5 rounded-xl hover:bg-white/[0.06] hover:border-cyan-500/30 hover:shadow-lg hover:shadow-cyan-500/10 transition-all group cursor-pointer"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <h4 className="text-sm font-medium text-gray-200 group-hover:text-cyan-300 line-clamp-1">
+                                {result.title}
+                              </h4>
+                              <ExternalLink className="w-3 h-3 text-gray-500 group-hover:text-cyan-400 flex-shrink-0" />
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                              {result.description}
+                            </p>
+                            <div className="flex items-center gap-1 mt-2">
+                              <Globe className="w-2.5 h-2.5 text-gray-600" />
+                              <span className="text-[10px] text-gray-600 font-medium">
+                                {(() => {
+                                  try {
+                                    return new URL(result.url).hostname.replace('www.', '');
+                                  } catch {
+                                    return 'Unknown source';
+                                  }
+                                })()}
+                              </span>
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
 
-              {isProcessing && (
+              {(isProcessing || isSearching) && (
                 <div className="flex justify-start">
                   <div className="bg-[#151515] border border-white/5 px-6 py-4 rounded-[1.5rem] rounded-tl-none ring-1 ring-white/5">
                     <div className="flex items-center gap-4">
                       <div className="flex gap-1">
-                        <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                        <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" />
+                        {isSearching ? (
+                          <>
+                            <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                            <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                            <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce" />
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                            <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" />
+                          </>
+                        )}
                       </div>
-                      <span className="text-gray-400 text-xs font-bold uppercase tracking-widest italic">
-                        Thinking...
+                      <span className={`text-xs font-bold uppercase tracking-widest italic ${
+                        isSearching ? "text-cyan-400" : "text-gray-400"
+                      }`}>
+                        {isSearching ? "Searching web..." : "Thinking..."}
                       </span>
                     </div>
                   </div>
