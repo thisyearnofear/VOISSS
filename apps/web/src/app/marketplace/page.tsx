@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { VoiceCard } from "@/components/marketplace/VoiceCard";
+import { VoiceMarketTrends } from "@/components/marketplace/VoiceMarketTrends";
 import { useBaseAccount } from "@/hooks/useBaseAccount";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -193,6 +194,8 @@ export default function MarketplacePage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
+        <VoiceMarketTrends />
+
         {error && (
           <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             {error}

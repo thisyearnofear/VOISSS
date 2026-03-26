@@ -270,6 +270,65 @@ Rules:
   };
 }
 
+export interface MarketTrend {
+  title: string;
+  description: string;
+  demandLevel: "High" | "Medium" | "Low";
+  growth: string; // e.g. "+15%"
+  topTags: string[];
+}
+
+export interface MarketTrendResult {
+  trends: MarketTrend[];
+  topLanguages: string[];
+  topCategories: string[];
+  summary: string;
+}
+
+/**
+ * Analyze market trends from scraped markdown data
+ */
+export async function analyzeMarketTrends(
+  markdown: string
+): Promise<MarketTrendResult> {
+  if (!googleClient) {
+    throw new Error("Market trend analysis requires Gemini API configuration");
+  }
+
+  const prompt = `
+Analyze the following markdown content from a voice-over job board and extract the current market trends.
+Return a structured JSON object with the following format:
+
+{
+  "trends": [
+    {
+      "title": "Short catchy trend name (e.g., 'Warm Corporate')",
+      "description": "Brief explanation of why this is trending",
+      "demandLevel": "High" | "Medium" | "Low",
+      "growth": "Estimated growth percentage based on frequency (e.g., '+20%')",
+      "topTags": ["tag1", "tag2"]
+    }
+  ],
+  "topLanguages": ["English", "Spanish", "etc"],
+  "topCategories": ["Commercial", "E-learning", "etc"],
+  "summary": "A 2-sentence overview of the current voice-over market state"
+}
+
+Markdown Content:
+${markdown.substring(0, 10000)} // Truncate to avoid context limits
+
+Rules:
+- Be specific about vocal styles (tones, accents, demographics).
+- If no clear trends are found, provide generalized voice-over market insights.
+- Return ONLY valid JSON.
+`;
+
+  return runGoogleJsonPrompt<MarketTrendResult>({
+    model: googleTextModel,
+    prompt,
+  });
+}
+
 export async function generateContentFromAudio(
   audioBase64: string,
   mimeType: string

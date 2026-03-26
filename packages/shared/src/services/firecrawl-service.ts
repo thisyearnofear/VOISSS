@@ -135,6 +135,20 @@ export class FirecrawlService {
       throw error;
     }
   }
+
+  /**
+   * Specifically scrape voice-over job boards for market trends
+   */
+  async scrapeMarketTrends(platform: 'voice123' | 'upwork' | 'backstage'): Promise<any> {
+    const urls = {
+      voice123: 'https://voice123.com/voice-over-jobs', // Note: actual search URL might vary
+      upwork: 'https://www.upwork.com/nx/search/jobs/?q=voice%20over',
+      backstage: 'https://www.backstage.com/casting/?q=voice%20over'
+    };
+
+    const targetUrl = urls[platform];
+    return this.scrape(targetUrl, ['markdown']);
+  }
 }
 
 /**
