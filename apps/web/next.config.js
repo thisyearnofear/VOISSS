@@ -99,7 +99,7 @@ const nextConfig = {
     if (!isServer) {
       const webpack = require('webpack');
       // Explicitly whitelist only NEXT_PUBLIC_* env vars to avoid leaking secrets
-      const publicEnv: Record<string, string> = {};
+      const publicEnv = {};
       for (const [key, value] of Object.entries(process.env)) {
         if (key.startsWith('NEXT_PUBLIC_')) {
           publicEnv[key] = value ?? '';

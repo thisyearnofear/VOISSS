@@ -76,11 +76,6 @@ export class PersistentMissionService implements MissionService {
           transcriptionRequired: false,
         },
       },
-      // MARKET_INTELLIGENCE_DEFAULTPLACEHOLDER
-          audioMinScore: 10, // Minimal validation
-          transcriptionRequired: false,
-        },
-      },
       {
         title: "Web3 Street Wisdom",
         description: "Ask people in your city what they really think about Web3 and cryptocurrency. Interview format: taxi, coffee shop, or street corner conversations.",
@@ -99,11 +94,6 @@ export class PersistentMissionService implements MissionService {
         qualityCriteria: {
           audioMinScore: 10, // Minimal validation
           transcriptionRequired: false,
-        },
-      },
-      // MARKET_INTELLIGENCE_DEFAULTPLACEHOLDER
-          audioMinScore: 60,
-          transcriptionRequired: true,
         },
       },
       {
@@ -126,11 +116,6 @@ export class PersistentMissionService implements MissionService {
           transcriptionRequired: false,
         },
       },
-      // MARKET_INTELLIGENCE_DEFAULTPLACEHOLDER
-          audioMinScore: 65,
-          transcriptionRequired: true,
-        },
-      },
       {
         title: "Marriage in 2024",
         description: "Explore contemporary views on marriage and commitment. Deep, thoughtful conversation. Record in a comfortable, private setting.",
@@ -149,11 +134,6 @@ export class PersistentMissionService implements MissionService {
         qualityCriteria: {
           audioMinScore: 10, // Minimal validation
           transcriptionRequired: false,
-        },
-      },
-      // MARKET_INTELLIGENCE_DEFAULTPLACEHOLDER
-          audioMinScore: 70,
-          transcriptionRequired: true,
         },
       },
       {
@@ -176,11 +156,6 @@ export class PersistentMissionService implements MissionService {
           transcriptionRequired: false,
         },
       },
-      // MARKET_INTELLIGENCE_DEFAULTPLACEHOLDER
-          audioMinScore: 65,
-          transcriptionRequired: true,
-        },
-      },
       {
         title: "Global Coffee Culture",
         description: "Visit a local cafe and capture a conversation about what coffee culture means in your city. Is it a social ritual or a fuel for work?",
@@ -198,11 +173,6 @@ export class PersistentMissionService implements MissionService {
         submissions: [],
         qualityCriteria: {
           audioMinScore: 10, // Minimal validation
-          transcriptionRequired: false,
-        },
-      },
-      // MARKET_INTELLIGENCE_DEFAULTPLACEHOLDER
-          audioMinScore: 60,
           transcriptionRequired: false,
         },
       },
@@ -226,11 +196,6 @@ export class PersistentMissionService implements MissionService {
           transcriptionRequired: false,
         },
       },
-      // MARKET_INTELLIGENCE_DEFAULTPLACEHOLDER
-          audioMinScore: 75,
-          transcriptionRequired: true,
-        },
-      },
       {
         title: "Mental Health in Tech",
         description: "A safe space to share perspectives on burnout, work-life balance, and the psychological impact of constant connectivity in the tech industry.",
@@ -249,11 +214,6 @@ export class PersistentMissionService implements MissionService {
         qualityCriteria: {
           audioMinScore: 10, // Minimal validation
           transcriptionRequired: false,
-        },
-      },
-      // MARKET_INTELLIGENCE_DEFAULTPLACEHOLDER
-          audioMinScore: 70,
-          transcriptionRequired: true,
         },
       },
       // Market Intelligence Mission

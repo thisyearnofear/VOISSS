@@ -13,7 +13,8 @@ import {
 } from '../../types/market-intelligence';
 import { getFirecrawlService, FirecrawlService } from './firecrawl-service';
 import { getAgentEventHub, VOISSS_EVENT_TYPES } from '../agent-event-hub';
-import { DatabaseService, COLLECTIONS, createInMemoryDatabase } from '../database-service';
+import { DatabaseService, COLLECTIONS } from '../database-service';
+import { createInMemoryDatabase } from '../memory-database';
 
 export interface MarketAgentConfig {
   firecrawlService?: FirecrawlService;

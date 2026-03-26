@@ -6,7 +6,7 @@
  */
 
 import {
-  FirecrawlSearchResult,
+  FirecrawlSearchResult as MarketIntelligenceSearchResult,
   FirecrawlSearchResultSchema,
   MARKET_INTELLIGENCE_CONFIG,
   MarketTrend,
@@ -55,13 +55,50 @@ const cache = new FirecrawlCache();
 
 export interface FirecrawlSearchOptions {
   limit?: number;
+  location?: string;
+  scrapeOptions?: {
+    formats?: ('markdown' | 'html' | 'raw_html' | 'content')[];
+    onlyMainContent?: boolean;
+    includeTags?: string[];
+    excludeTags?: string[];
+    waitFor?: number;
+  };
   timeout?: number;
+}
+
+export interface FirecrawlSearchResult {
+  success: boolean;
+  data: {
+    web?: Array<{
+      title: string;
+      description: string;
+      url: string;
+      markdown?: string;
+      html?: string;
+      metadata?: Record<string, any>;
+    }>;
+    images?: Array<{
+      title: string;
+      imageUrl: string;
+      url: string;
+    }>;
+    news?: Array<{
+      title: string;
+      snippet: string;
+      date: string;
+      url: string;
+    }>;
+  };
+  warning?: string | null;
+  id?: string;
+  creditsUsed?: number;
+  error?: string;
 }
 
 export interface FirecrawlResponse {
   success: boolean;
   data?: {
-    results: FirecrawlSearchResult[];
+    results: MarketIntelligenceSearchResult[];
     error?: string;
   };
   error?: string;
@@ -76,8 +113,8 @@ export class FirecrawlService {
   private isConfigured: boolean;
 
   constructor(apiKey?: string) {
-    this.apiKey = apiKey || process.env.FIRECRAWL_API_KEY || '';
-    this.baseUrl = process.env.FIRECRAWL_API_URL || 'https://api.firecrawl.dev';
+    this.apiKey = apiKey || (typeof process !== 'undefined' ? process.env.FIRECRAWL_API_KEY : '') || '';
+    this.baseUrl = (typeof process !== 'undefined' ? process.env.FIRECRAWL_API_URL : '') || 'https://api.firecrawl.dev';
     this.isConfigured = !!this.apiKey;
   }
 
@@ -89,14 +126,111 @@ export class FirecrawlService {
   }
 
   /**
-   * Search for market intelligence data
+   * Search the web using Firecrawl (Agent/Voice AI focused)
    */
-  async search(query: string, options: FirecrawlSearchOptions = {}): Promise<FirecrawlSearchResult[]> {
+  async search(query: string, options: FirecrawlSearchOptions = {}): Promise<FirecrawlSearchResult> {
+    if (!this.apiKey) {
+      return {
+        success: false,
+        data: {},
+        error: 'FIRECRAWL_API_KEY is not configured',
+      };
+    }
+
+    try {
+      const apiBase = this.baseUrl.includes('api.firecrawl.dev') ? `${this.baseUrl}/v2` : this.baseUrl;
+      const response = await fetch(`${apiBase}/search`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query,
+          limit: options.limit || 5,
+          location: options.location,
+          scrapeOptions: options.scrapeOptions || { formats: ['markdown'] },
+          timeout: options.timeout || 30000,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return {
+          success: false,
+          data: {},
+          error: `Firecrawl API error (${response.status}): ${errorText}`,
+        };
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      console.error('Firecrawl search error:', error);
+      return {
+        success: false,
+        data: {},
+        error: error.message || 'Unknown error during Firecrawl search',
+      };
+    }
+  }
+
+  /**
+   * Scrape a single URL using Firecrawl
+   */
+  async scrape(url: string, formats: ('markdown' | 'html')[] = ['markdown']): Promise<any> {
+    if (!this.apiKey) {
+      throw new Error('FIRECRAWL_API_KEY is not configured');
+    }
+
+    try {
+      const apiBase = this.baseUrl.includes('api.firecrawl.dev') ? `${this.baseUrl}/v2` : this.baseUrl;
+      const response = await fetch(`${apiBase}/scrape`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url,
+          formats,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Firecrawl scrape error (${response.status}): ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      console.error('Firecrawl scrape error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Specifically scrape voice-over job boards for market trends
+   */
+  async scrapeMarketTrends(platform: 'voice123' | 'upwork' | 'backstage'): Promise<any> {
+    const urls = {
+      voice123: 'https://voice123.com/voice-over-jobs',
+      upwork: 'https://www.upwork.com/nx/search/jobs/?q=voice%20over',
+      backstage: 'https://www.backstage.com/casting/?q=voice%20over'
+    };
+
+    const targetUrl = urls[platform];
+    return this.scrape(targetUrl, ['markdown']);
+  }
+
+  /**
+   * Legacy/Market Intelligence Search (Market Intelligence focused)
+   */
+  async searchMarketData(query: string, options: { limit?: number; timeout?: number } = {}): Promise<MarketIntelligenceSearchResult[]> {
     const limit = options.limit || MARKET_INTELLIGENCE_CONFIG.MAX_SEARCH_RESULTS;
     
     // Check cache first
     const cacheKey = `search:${query}:${limit}`;
-    const cached = cache.get<FirecrawlSearchResult[]>(cacheKey);
+    const cached = cache.get<MarketIntelligenceSearchResult[]>(cacheKey);
     if (cached) {
       console.log(`[Firecrawl] Cache hit for query: ${query}`);
       return cached;
@@ -144,7 +278,7 @@ export class FirecrawlService {
           const parsed = FirecrawlSearchResultSchema.safeParse(result);
           return parsed.success ? parsed.data : null;
         })
-        .filter((r): r is FirecrawlSearchResult => r !== null);
+        .filter((r): r is MarketIntelligenceSearchResult => r !== null);
 
       // Cache the results
       cache.set(cacheKey, results, MARKET_INTELLIGENCE_CONFIG.CACHE_TTL_MS.MARKET_TRENDS);
@@ -166,7 +300,7 @@ export class FirecrawlService {
     const cached = cache.get<MarketTrend[]>(cacheKey);
     if (cached) return cached;
 
-    const results = await this.search('voice AI market size growth 2024');
+    const results = await this.searchMarketData('voice AI market size growth 2024');
     const trends: MarketTrend[] = this.parseMarketTrends(results);
 
     cache.set(cacheKey, trends, MARKET_INTELLIGENCE_CONFIG.CACHE_TTL_MS.MARKET_TRENDS);
@@ -181,7 +315,7 @@ export class FirecrawlService {
     const cached = cache.get<VoicePricingData[]>(cacheKey);
     if (cached) return cached;
 
-    const results = await this.search('ElevenLabs pricing per character 2024');
+    const results = await this.searchMarketData('ElevenLabs pricing per character 2024');
     const pricing = this.parseVoicePricing(results);
 
     cache.set(cacheKey, pricing, MARKET_INTELLIGENCE_CONFIG.CACHE_TTL_MS.PRICING_DATA);
@@ -196,7 +330,7 @@ export class FirecrawlService {
     const cached = cache.get<CompetitorData[]>(cacheKey);
     if (cached) return cached;
 
-    const results = await this.search('AI voice generation competitors ElevenLabs Murf AWS Polly 2024');
+    const results = await this.searchMarketData('AI voice generation competitors ElevenLabs Murf AWS Polly 2024');
     const competitors = this.parseCompetitorData(results);
 
     cache.set(cacheKey, competitors, MARKET_INTELLIGENCE_CONFIG.CACHE_TTL_MS.COMPETITOR_DATA);
@@ -211,7 +345,7 @@ export class FirecrawlService {
     keyFindings: string[];
     sources: { title: string; url: string; publishedAt?: string }[];
   }> {
-    const results = await this.search(query);
+    const results = await this.searchMarketData(query);
     
     if (results.length === 0) {
       return {
@@ -246,11 +380,9 @@ export class FirecrawlService {
   /**
    * Get fallback search results when API is unavailable
    */
-  private getFallbackSearchResults(query: string): FirecrawlSearchResult[] {
-    // Return cached fallback data based on query keywords
+  private getFallbackSearchResults(query: string): MarketIntelligenceSearchResult[] {
     const lowerQuery = query.toLowerCase();
-    
-    const fallbackResults: FirecrawlSearchResult[] = [];
+    const fallbackResults: MarketIntelligenceSearchResult[] = [];
     
     if (lowerQuery.includes('pricing') || lowerQuery.includes('price') || lowerQuery.includes('cost')) {
       fallbackResults.push(
@@ -289,10 +421,7 @@ export class FirecrawlService {
     return fallbackResults;
   }
 
-  /**
-   * Parse market trends from search results
-   */
-  private parseMarketTrends(results: FirecrawlSearchResult[]): MarketTrend[] {
+  private parseMarketTrends(results: MarketIntelligenceSearchResult[]): MarketTrend[] {
     return results.slice(0, 5).map((result, index) => ({
       id: `trend_${index}`,
       title: result.title,
@@ -304,10 +433,7 @@ export class FirecrawlService {
     }));
   }
 
-  /**
-   * Parse voice pricing from search results
-   */
-  private parseVoicePricing(results: FirecrawlSearchResult[]): VoicePricingData[] {
+  private parseVoicePricing(results: MarketIntelligenceSearchResult[]): VoicePricingData[] {
     return [
       {
         id: 'elevenlabs_pro',
@@ -346,17 +472,14 @@ export class FirecrawlService {
     ];
   }
 
-  /**
-   * Parse competitor data from search results
-   */
-  private parseCompetitorData(results: FirecrawlSearchResult[]): CompetitorData[] {
+  private parseCompetitorData(results: MarketIntelligenceSearchResult[]): CompetitorData[] {
     return [
       {
         id: 'elevenlabs',
         name: 'ElevenLabs',
         description: 'Leading AI voice platform with advanced voice cloning and synthesis',
         website: 'https://elevenlabs.io',
-        voiceCount: 1000+,
+        voiceCount: '1000+',
         languages: ['29'],
         lastUpdated: new Date().toISOString(),
       },
@@ -365,7 +488,7 @@ export class FirecrawlService {
         name: 'Murf AI',
         description: 'Enterprise voiceover platform with studio-quality AI voices',
         website: 'https://murf.ai',
-        voiceCount: 120+,
+        voiceCount: '120+',
         languages: ['20'],
         lastUpdated: new Date().toISOString(),
       },
@@ -374,7 +497,7 @@ export class FirecrawlService {
         name: 'WellSaid Labs',
         description: 'Real-time text-to-speech for enterprise applications',
         website: 'https://wellsaidlabs.com',
-        voiceCount: 50+,
+        voiceCount: '50+',
         languages: ['3'],
         lastUpdated: new Date().toISOString(),
       },
@@ -383,17 +506,14 @@ export class FirecrawlService {
         name: 'AWS Polly',
         description: 'Amazon cloud TTS service with neural and standard voices',
         website: 'https://aws.amazon.com/polly',
-        voiceCount: 90+,
+        voiceCount: '90+',
         languages: ['30+'],
         lastUpdated: new Date().toISOString(),
       },
     ];
   }
 
-  /**
-   * Generate summary from search results
-   */
-  private generateSummary(results: FirecrawlSearchResult[]): string {
+  private generateSummary(results: MarketIntelligenceSearchResult[]): string {
     if (results.length === 0) {
       return 'No relevant information found for this query.';
     }
@@ -417,15 +537,11 @@ export class FirecrawlService {
     return summary;
   }
 
-  /**
-   * Extract key findings from search results
-   */
-  private extractKeyFindings(results: FirecrawlSearchResult[]): string[] {
+  private extractKeyFindings(results: MarketIntelligenceSearchResult[]): string[] {
     const findings: string[] = [];
     
     for (const result of results.slice(0, 5)) {
       if (result.description) {
-        // Extract first sentence or truncated description
         const firstSentence = result.description.split('.')[0];
         if (firstSentence && firstSentence.length > 20) {
           findings.push(firstSentence.trim() + '.');
@@ -433,7 +549,6 @@ export class FirecrawlService {
       }
     }
 
-    // Ensure we have at least one finding
     if (findings.length === 0) {
       findings.push(`Found ${results.length} relevant sources for this research query.`);
     }
@@ -454,4 +569,23 @@ export function getFirecrawlService(): FirecrawlService {
 
 export function createFirecrawlService(apiKey?: string): FirecrawlService {
   return new FirecrawlService(apiKey);
+}
+
+/**
+ * Common keywords that suggest a web search is needed
+ */
+export const WEB_SEARCH_KEYWORDS = [
+  'news', 'latest', 'current', 'today', 'recent', 
+  'what is', 'how does', 'tell me about', 
+  'announcement', 'release', 'price of',
+  'who is', 'where is', 'when is',
+  'weather', 'stock', 'crypto', 'blockchain news'
+];
+
+/**
+ * Simple heuristic to determine if a query should trigger a web search
+ */
+export function shouldTriggerWebSearch(query: string): boolean {
+  const lowerQuery = query.toLowerCase();
+  return WEB_SEARCH_KEYWORDS.some(keyword => lowerQuery.includes(keyword));
 }
