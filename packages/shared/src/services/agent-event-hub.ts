@@ -465,7 +465,15 @@ export const VOISSS_EVENT_TYPES = {
     AGENT_REGISTERED: 'agent.registered',
     AGENT_VERIFIED: 'agent.verified',
     AGENT_BLOCKED: 'agent.blocked',
-    AGENT_REPUTATION_CHANGED: 'agent.reputation_changed'
+    AGENT_REPUTATION_CHANGED: 'agent.reputation_changed',
+
+    // Market Intelligence events
+    MARKET_RESEARCH_STARTED: 'market_intelligence.research_started',
+    MARKET_SEARCH_COMPLETED: 'market_intelligence.search_completed',
+    MARKET_ANALYSIS_COMPLETED: 'market_intelligence.analysis_completed',
+    MARKET_REPORT_GENERATED: 'market_intelligence.report_generated',
+    MARKET_REPORT_PUBLISHED: 'market_intelligence.report_published',
+    MARKET_RESEARCH_FAILED: 'market_intelligence.research_failed',
 } as const;
 
 // Singleton instance

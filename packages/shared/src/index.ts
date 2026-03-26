@@ -1,6 +1,7 @@
 // Shared types and utilities for VOISSS platform
 export * from './types';
 export * from './types/socialfi';
+export * from './types/market-intelligence';
 export * from './constants/languages';
 export * from './types/audio';
 export * from './services/audio/ai/elevenlabs-service';
@@ -85,12 +86,10 @@ export * from './config/tokenAccess';
 // Tier bridge — canonical mapping between TokenTier and UserTier (server-safe)
 export * from './utils/tierBridge';
 export * from './services/token-burn-service';
-// Note: useTokenAccess is a client-only hook and should be imported directly:
-// import { useTokenAccess } from '@voisss/shared/hooks/useTokenAccess'
 
 // Unified Payment System (server-safe)
 export * from './services/payment';
 
-// Note: Other hooks are NOT exported from main index to prevent bundling in server components
-// Client components should import directly:
-// import { useMemoryContext } from '@voisss/shared/hooks/useMemoryContext'
+// Market Intelligence Services
+export * from './services/market-intelligence/firecrawl-service';
+export * from './services/market-intelligence/market-agent-service';

@@ -74,7 +74,8 @@ export const COLLECTIONS = {
   MISSION_RESPONSES: 'mission_responses',
   RECORDINGS: 'recordings',
   USER_PROFILES: 'user_profiles',
-  SESSIONS: 'sessions'
+  SESSIONS: 'sessions',
+  MARKET_INTELLIGENCE_REPORTS: 'market_intelligence_reports',
 } as const;
 
 export type CollectionName = typeof COLLECTIONS[keyof typeof COLLECTIONS];
