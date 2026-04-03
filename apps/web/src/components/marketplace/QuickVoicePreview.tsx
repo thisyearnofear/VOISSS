@@ -83,12 +83,14 @@ export default function QuickVoicePreview() {
 
     try {
       setIsLoading(true);
+      setError(null);
       const response = await fetch("/api/agents/vocalize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: text || "Hello from VOISSS.",
           voiceId: selectedVoice.contractVoiceId || selectedVoice.id,
+          agentAddress: "0x0000000000000000000000000000000000000000", // Required for validation, but ignored for previews
           preview: true,
         }),
       });
