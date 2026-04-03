@@ -1,5 +1,6 @@
 import EnhancedLandingHero from "../components/EnhancedLandingHero";
 import InteractiveHowItWorks from "../components/InteractiveHowItWorks";
+import OWSHackathonSection from "../components/OWSHackathonSection";
 import NewsletterSection from "../components/NewsletterSection";
 import FAQSection from "../components/FAQSection";
 
@@ -9,6 +10,9 @@ export default function Home() {
       <div className="voisss-container py-8 sm:py-12">
         {/* Enhanced Hero Section */}
         <EnhancedLandingHero />
+
+        {/* OWS Hackathon Alignment Section */}
+        <OWSHackathonSection />
 
         {/* Interactive How It Works (Progressive Disclosure) */}
         <InteractiveHowItWorks />

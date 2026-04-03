@@ -29,6 +29,8 @@ interface AgentStats {
   revenue: string;
   lastSeen: string;
   chains: string[];
+  reputation: number;
+  trustScore: number;
 }
 
 interface RecentActivity {
@@ -39,6 +41,7 @@ interface RecentActivity {
   cost: string;
   characterCount: number;
   recordingId: string;
+  reputation?: number;
 }
 
 interface Analytics {
@@ -189,7 +192,19 @@ export default function HackathonDashboard() {
                         <div className="text-white font-mono text-sm">
                           {agent.agentId}
                         </div>
-                        <div className="text-xs text-gray-400">
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                            agent.trustScore >= 80 ? 'bg-green-500/20 text-green-400' :
+                            agent.trustScore >= 50 ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-red-500/20 text-red-400'
+                          }`}>
+                            Score: {agent.trustScore}
+                          </span>
+                          <span className="text-[10px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded">
+                            Rep: {agent.reputation}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-gray-500 mt-1">
                           {agent.chains.join(', ')}
                         </div>
                       </div>
@@ -233,6 +248,11 @@ export default function HackathonDashboard() {
                       <span className="text-purple-400">
                         {activity.chain}
                       </span>
+                      {activity.reputation && (
+                        <span className="text-gray-500">
+                          Rep: {activity.reputation}
+                        </span>
+                      )}
                       <span className="text-green-400">
                         {activity.cost}
                       </span>

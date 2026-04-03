@@ -26,7 +26,7 @@ export default function EnhancedLandingHero() {
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 rounded-full mb-6">
             <CompatibleZap className="w-4 h-4 text-yellow-400" />
             <span className="text-sm font-medium text-white">
-              Built on Base • Gasless Transactions • x402 Payments
+              OWS Hackathon • Base • x402 Payments
             </span>
           </div>
 

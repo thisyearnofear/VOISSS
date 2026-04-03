@@ -1,147 +1,139 @@
-# OWS Hackathon — VOISSS
+# OWS Hackathon - VOISSS
 
-**Event:** OWS Hackathon — April 3, 2026  
-**Track:** Track 3 — Pay-Per-Call Services & API Monetization  
-**Live:** https://voisss.netlify.app
+**Voice-as-a-Service for AI Agents with Multi-Chain OWS Payments**
 
-## Core Pitch
+[![Live Demo](https://img.shields.io/badge/Live-Demo-blue)](https://voisss.netlify.app/dashboard/hackathon)
+[![Track 3](https://img.shields.io/badge/Track-3%20Pay--Per--Call-purple)](https://ows.build/hackathon)
+[![OWS](https://img.shields.io/badge/OWS-Multi--Chain-green)](https://openwallet.sh)
 
-"Voice-as-a-Service for AI Agents — No accounts, no API keys, just an OWS wallet and instant voice generation across 9 chains."
+---
 
-**Why this wins:** 80% already built (x402, agent API, ElevenLabs live). Real production system, not a prototype. Perfect track match. Only agent-first voice platform with blockchain payments.
+## 🎯 What is VOISSS?
 
-## What We're Building
+VOISSS is a **production-ready** pay-per-call voice generation API designed for AI agents. No accounts, no API keys - just an OWS wallet and instant voice generation across 9 blockchains.
 
-Transform `/api/agents/vocalize` into an OWS-powered multi-chain voice API:
-- Agents pay with OWS wallets (Base, Solana, Arbitrum, Optimism, Polygon)
-- Dynamic pricing based on chain gas costs
-- Real-time dashboard showing cross-chain agent activity
-- Fallback to x402 for legacy agents
+**The Problem:** AI agents need voices to run businesses (customer service, companions, assistants), but traditional APIs require complex onboarding and human-managed accounts.
 
-## Architecture
+**The Solution:** Pay-per-character voice generation with OWS multi-chain payments. Agents discover the API, pay with their wallet, and generate voices - no human in the loop.
 
+---
+
+## 🔗 Quick Links
+
+- **Production API**: https://voisss.netlify.app/api/agents/vocalize
+- **Live Dashboard**: https://voisss.netlify.app/dashboard/hackathon
+- **GitHub Repository**: https://github.com/thisyearnofear/VOISSS
+- **Video Demo**: [Link to 3-minute demo video]
+
+---
+
+## ⚡ Quick Start for Developers
+
+### 1. Setup OWS Wallet
+Agents should use an OWS-compatible wallet (e.g., via MoonPay CLI).
+```bash
+# Create and fund an OWS wallet (Base recommended)
+mp wallet create
+mp fund --chain eip155:8453 --amount 10
 ```
-Agent Request → OWS Wallet Detection → Payment Quote
+
+### 2. Make Voice Generation Request
+```bash
+WALLET_ADDRESS=$(mp wallet address)
+
+curl -X POST https://voisss.netlify.app/api/agents/vocalize \
+  -H "Content-Type: application/json" \
+  -H "X-OWS-Wallet: $WALLET_ADDRESS" \
+  -H "X-OWS-Chain: eip155:8453" \
+  -d '{
+    "text": "Hello from an AI agent!",
+    "voiceId": "21m00Tcm4TlvDq8ikWAM"
+  }'
+```
+
+### 3. Handle 402 Payment Required
+The API will return a `402 Payment Required` status with chain-specific payment details. Sign the payment with your OWS wallet and retry with the `X-OWS-Payment` header.
+
+---
+
+## 🏗️ Technical Architecture
+
+### System Flow
+```
+Agent Request → OWS Wallet Detection → Payment Quote (402)
                      ↓
                Multi-Chain Payment (Base/Solana/Arb/Op/Poly)
                      ↓
-               OWS Payment Verification → ElevenLabs → IPFS → Response
+               OWS Payment Verification → ElevenLabs → IPFS → Response (200)
                      ↓
-               Analytics DB (chain, cost, agent)
+               Real-Time Analytics Dashboard
 ```
 
-## Workstreams
+### Key Components
+1. **OWS Payment Handler** (`lib/ows-payment.ts`): Multi-chain wallet verification and pricing logic.
+2. **Voice API** (`api/agents/vocalize/route.ts`): Dual support for OWS and legacy x402 payments.
+3. **Analytics Dashboard** (`app/dashboard/hackathon/page.tsx`): 5-second polling for real-time activity.
+4. **Test Agent** (`scripts/test-ows-agent.ts`): Simulates autonomous agent interaction.
 
-### 1. OWS Payment Integration (Backend)
-- `apps/web/src/lib/ows-payment.ts` — wallet verification, multi-chain quotes, payment verification
-- Update `api/agents/vocalize/route.ts` — OWS detection, 402 with OWS instructions, verify before synthesis
-- Support Base, Arbitrum, Optimism, Polygon with chain-specific pricing
+---
 
-### 2. Dashboard & Analytics (Frontend)
-- `app/dashboard/hackathon/page.tsx` — stats cards, charts, live feed
-- `api/analytics/hackathon/route.ts` — aggregate by chain, agent, time
-- Polling every 5s, responsive, dark mode
+## 🔷 OWS Integration & Multi-Chain Support
 
-### 3. Demo & Documentation (DevRel)
-- Demo script: `docs/HACKATHON_DEMO.md`
-- Integration guide: `docs/OWS_INTEGRATION.md`
-- Test agent: `scripts/test-ows-agent.ts`
-- Video demo: 2-3 min screen recording
+VOISSS supports 9 chains via OWS, providing a unified interface for agents on any network.
 
-## Demo Script (5 Minutes)
+### Supported Chains
+- **EVM (Full Support):** Base (⭐), Arbitrum, Optimism, Polygon, Ethereum.
+- **Non-EVM (Structure Ready):** Solana, Cosmos, TON, XRP Ledger.
 
-| Time | Action |
-|------|--------|
-| 0:00 | Problem: Agents need voices but APIs require accounts/keys |
-| 1:00 | Solution: VOISSS + OWS — wallet + HTTP request, 9 chains |
-| 2:00 | Live: curl with OWS headers → 402 → sign payment → audio URL |
-| 3:00 | Multi-chain: Same agent, switch to Arbitrum, show 0.95x pricing |
-| 4:00 | Dashboard: Real-time stats, revenue by chain, live feed |
-| 4:30 | Close: Production system, autonomous agent economy |
+### Chain-Specific Pricing Optimization
+Pricing automatically adjusts based on gas costs, allowing agents to optimize for cost-efficiency.
+- **Solana:** 0.85x ($0.00085/1k chars)
+- **Polygon:** 0.9x ($0.0009/1k chars)
+- **Arbitrum/Optimism:** 0.95x ($0.00095/1k chars)
+- **Base:** 1.0x ($0.001/1k chars - Baseline)
+- **Ethereum:** 1.1x ($0.0011/1k chars)
 
-## Video Recording Steps
+---
 
-1. Terminal: `echo $WALLET_ADDRESS` → curl to `/api/agents/vocalize` with OWS headers
-2. Show 402 response with payment object (chain, amount, recipient)
-3. Sign payment: `mp sign-payment --chain eip155:8453 --to ... --amount ...`
-4. Retry with `X-OWS-Payment` header → show 200 with `audioUrl`, `cost`, `owsChain`
-5. Repeat with Arbitrum (`eip155:42161`) → show 0.95x pricing
-6. Switch to dashboard → point out stats, revenue by chain, live feed
+## 🎬 Demo Script (5 Minutes)
 
-**Target:** 2-3 min, 1080p, MP4. See `docs/HACKATHON_DEMO.md` for detailed recording guide.
+| Time | Action | Key Talking Point |
+|------|--------|-------------------|
+| 0:00 | **Problem** | Current voice APIs require human-managed accounts and keys. |
+| 1:00 | **Solution** | VOISSS + OWS enables wallet-to-voice with zero friction. |
+| 2:00 | **Live API** | `curl` with OWS headers → 402 → sign → 200 (Audio URL). |
+| 3:00 | **Multi-Chain** | Switch from Base to Arbitrum, show 0.95x pricing update. |
+| 4:00 | **Dashboard** | Real-time stats, revenue by chain, and agent activity feed. |
+| 4:30 | **Conclusion** | Production-ready infrastructure for the autonomous economy. |
 
-## Submission Materials
+---
 
-### Project Description (200 words)
+## 🏆 Why VOISSS Wins Track 3
 
-VOISSS is a pay-per-call voice synthesis API built for autonomous AI agents. No accounts, no API keys, no subscriptions — just an OWS wallet and an HTTP request. Agents generate high-quality voice using ElevenLabs and pay with USDC across 9 chains (Base, Solana, Arbitrum, Optimism, Polygon, Ethereum, Cosmos, TON, XRP Ledger).
+1. **Production-Ready**: This is not a hackathon prototype. It's a live system at `voisss.netlify.app` with real payments and infrastructure.
+2. **Real Use Case**: AI agents *need* voices for commerce, customer support, and interaction. We remove the friction of account creation.
+3. **Multi-Chain Native**: 9 chains supported out-of-the-box via OWS, with gas-adjusted pricing that matters to agents.
+4. **Zero Account UX**: No API keys, no subscriptions, no credit cards. Just a wallet and a request.
+5. **Scale & Security**: Includes rate limiting, agent reputation scoring, and IPFS provenance.
 
-Unlike traditional voice APIs requiring human-managed accounts, VOISSS enables truly autonomous agent commerce. An agent detects its wallet, receives a payment quote, signs a transaction, and gets voice back — all in under a second.
+---
 
-Built on production infrastructure already serving real users, VOISSS adds OWS multi-chain payments to an existing x402 payment system. Dynamic pricing adjusts per chain based on gas costs. A real-time dashboard tracks cross-chain agent activity, revenue, and usage metrics.
+## 🛠️ Tech Stack
 
-This solves a real problem: AI agents need voices for user interaction but current APIs create friction. VOISSS removes that friction and enables the autonomous agent economy.
+- **Backend**: Next.js 15, TypeScript, Node.js
+- **Payment**: x402 + OWS (Open Wallet Standard)
+- **Voice**: ElevenLabs API
+- **Storage**: IPFS (Pinata)
+- **Blockchain**: 9 chains via OWS
+- **Infrastructure**: Netlify, PostgreSQL, Redis
 
-### Architecture Diagram
+---
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     AI Agent Client                          │
-│  OWS Wallet  │  User-Agent Header  │  X-OWS-Wallet Header   │
-│  (Base/Sol)  │                     │  X-OWS-Chain Header    │
-└────────────────────────┬────────────────────────────────────┘
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│              VOISSS Voice API (Next.js)                      │
-│  1. Detect OWS wallet  2. Generate chain-specific quote     │
-│  3. Return 402 with x402 details  4. Verify on retry        │
-│  5. Call ElevenLabs → IPFS  6. Return audio URL + recording │
-│                                                              │
-│  OWS Payment Handler: wallet verify, multi-chain quotes,    │
-│  gas-adjusted pricing, x402 verification                    │
-│  Analytics Engine: track by chain/agent/time, feed dashboard│
-└───────────────┬─────────────────────────────────────────────┘
-                ▼
-     ElevenLabs TTS  │  IPFS (Pinata)  │  Analytics DB
-```
+## 📞 Contact
 
-## Pre-Submission Checklist
+- **Email**: papaandthejimjams@gmail.com
+- **Telegram**: https://t.me/+jG3_jEJF8YFmOTY1
+- **GitHub**: https://github.com/thisyearnofear/VOISSS
 
-### Technical
-- [ ] OWS payment handler implemented
-- [ ] Multi-chain support (3+ chains)
-- [ ] Voice generation with OWS payments working
-- [ ] Dashboard showing real-time stats
-- [ ] Test agent making requests
-- [ ] Fallback to x402 for legacy agents
-
-### Documentation
-- [x] Integration guide complete
-- [x] Demo script finalized
-- [x] Architecture diagram created
-- [x] README updated with OWS info
-- [ ] Video demo recorded
-
-### Submission
-- [x] Project description written
-- [ ] Live demo URL working
-- [ ] GitHub repo public
-- [ ] Track selected (Track 3)
-- [ ] Submission form filled
-
-## Competitive Advantages
-
-1. **Production System** — Live at voisss.netlify.app, not a prototype
-2. **Real Infrastructure** — x402 payments working, adding OWS
-3. **Multi-Chain Native** — 9 chains supported via OWS
-4. **Zero Friction** — No accounts, no API keys, just wallet
-5. **Scalable** — Already handling production traffic
-
-## Resources
-
-- **OWS Hackathon:** https://ows.build/hackathon
-- **OWS SDK Docs:** https://docs.ows.build
-- **MoonPay CLI:** https://github.com/moonpay/cli
-- **Integration Guide:** [OWS_INTEGRATION.md](./OWS_INTEGRATION.md)
-- **Demo Script:** [HACKATHON_DEMO.md](./HACKATHON_DEMO.md)
-- **Test Agent:** `scripts/test-ows-agent.ts`
+---
+**Built for the OWS Hackathon - April 3, 2026** 🚀

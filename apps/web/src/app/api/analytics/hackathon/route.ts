@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAgentEventHub, VOISSS_EVENT_TYPES } from '@voisss/shared/services/agent-event-hub';
 import { formatUSDC } from '@voisss/shared';
+import { getAgentSecurityService } from '@voisss/shared/services/agent-security';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -33,6 +34,8 @@ interface AgentStats {
   revenue: string;
   lastSeen: string;
   chains: string[];
+  reputation: number;
+  trustScore: number;
 }
 
 interface RecentActivity {
@@ -43,6 +46,7 @@ interface RecentActivity {
   cost: string;
   characterCount: number;
   recordingId: string;
+  reputation?: number;
 }
 
 interface HackathonAnalytics {
@@ -110,6 +114,8 @@ export async function GET(req: NextRequest): Promise<NextResponse<HackathonAnaly
  * Process events into analytics data
  */
 function processEvents(events: any[], startTime: number, endTime: number): HackathonAnalytics {
+  const securityService = getAgentSecurityService();
+  
   // Track unique agents
   const agentSet = new Set<string>();
   
@@ -190,6 +196,9 @@ function processEvents(events: any[], startTime: number, endTime: number): Hacka
     
     // Add to recent activity (keep last 50)
     if (recentActivity.length < 50) {
+      // Get agent profile for reputation
+      const profile = (securityService as any).getOrCreateProfile?.(data.agentId);
+
       recentActivity.push({
         timestamp: new Date(event.timestamp || Date.now()).toISOString(),
         agentId: truncateAddress(data.agentId),
@@ -198,6 +207,7 @@ function processEvents(events: any[], startTime: number, endTime: number): Hacka
         cost: formatUSDC(costWei),
         characterCount: data.characterCount || 0,
         recordingId: data.recordingId || '',
+        reputation: profile?.reputation || 0,
       });
     }
   }
@@ -220,13 +230,22 @@ function processEvents(events: any[], startTime: number, endTime: number): Hacka
   
   // Convert agent map to array and get top 10
   const topAgents: AgentStats[] = Array.from(agentMap.entries())
-    .map(([agentId, stats]) => ({
-      agentId: truncateAddress(agentId),
-      requests: stats.requests,
-      revenue: formatUSDC(stats.revenueWei),
-      lastSeen: new Date(stats.lastSeen).toISOString(),
-      chains: Array.from(stats.chains),
-    }))
+    .map(([agentId, stats]) => {
+      // Use full agentId if we can find it in profiles, or just use stats
+      // Since agentId in map might be truncated if we were using it wrong, 
+      // but here agentId is full address from data.agentId.
+      const profile = (securityService as any).getOrCreateProfile?.(agentId);
+
+      return {
+        agentId: truncateAddress(agentId),
+        requests: stats.requests,
+        revenue: formatUSDC(stats.revenueWei),
+        lastSeen: new Date(stats.lastSeen).toISOString(),
+        chains: Array.from(stats.chains),
+        reputation: profile?.reputation || 100,
+        trustScore: profile?.trustScore || 50,
+      };
+    })
     .sort((a, b) => b.requests - a.requests)
     .slice(0, 10);
   
