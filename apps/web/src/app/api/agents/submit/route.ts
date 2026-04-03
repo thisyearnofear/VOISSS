@@ -111,12 +111,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<AgentSubmissi
       recordingId,
       recordingIpfsHash: ipfsHash,
       location: location || { city: "Unknown", country: "Unknown" },
-      context: context || "agent-generated",
       participantConsent: true,
-      isAnonymized: false,
-      voiceObfuscated: false,
-      status: 'approved',
-    });
+      rewardStatus: 'pending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as any);
 
     // Calculate reward eligibility
     const baseReward = parseFloat(mission.baseReward) || 0;

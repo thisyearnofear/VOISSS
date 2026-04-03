@@ -1,11 +1,23 @@
 import EnhancedLandingHero from "../components/EnhancedLandingHero";
+import InteractiveHowItWorks from "../components/InteractiveHowItWorks";
+import NewsletterSection from "../components/NewsletterSection";
+import FAQSection from "../components/FAQSection";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white">
+    <div className="min-h-screen bg-[#0A0A0A] text-white overflow-hidden">
       <div className="voisss-container py-8 sm:py-12">
         {/* Enhanced Hero Section */}
         <EnhancedLandingHero />
+
+        {/* Interactive How It Works (Progressive Disclosure) */}
+        <InteractiveHowItWorks />
+
+        {/* Newsletter Section (Lead Capture) */}
+        <NewsletterSection />
+
+        {/* FAQ Section (Secondary Information) */}
+        <FAQSection />
 
         {/* Simple Footer */}
         <div className="text-center mt-24 pt-12 border-t border-[#2A2A2A]">

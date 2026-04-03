@@ -6,15 +6,16 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@voisss/shared", "@voisss/ui"],
+  
+  // Enable ESM externals for jose and other ESM packages
+  experimental: {
+    esmExternals: 'loose',
+    optimizePackageImports: ['lucide-react'],
+  },
 
   // Increase serverless function timeout for AI processing
   serverRuntimeConfig: {
     maxDuration: 300, // 5 minutes for AI processing
-  },
-
-  // Enable experimental features for better performance
-  experimental: {
-    optimizePackageImports: ['lucide-react'],
   },
 
   // Optimize images

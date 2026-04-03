@@ -58,6 +58,12 @@ export const RewardMappingSchema = z.object({
   updatedAt: z.union([z.date(), z.string()]),
 });
 
+export type QualityCriteria = z.infer<typeof QualityCriteriaSchema>;
+export type QualityScoreItem = z.infer<typeof QualityScoreItemSchema>;
+export type QualityRubric = z.infer<typeof QualityRubricSchema>;
+export type SubmissionScore = z.infer<typeof SubmissionScoreSchema>;
+export type RewardMapping = z.infer<typeof RewardMappingSchema>;
+
 export const MissionSchema = z.object({
   // Core fields
   id: z.string(),
@@ -102,6 +108,49 @@ export const MissionSchema = z.object({
 });
 
 export type Mission = z.infer<typeof MissionSchema>;
+export type CreateMissionInput = z.input<typeof MissionSchema>;
+
+export const MissionResponseSchema = z.object({
+  id: z.string(),
+  missionId: z.string(),
+  userId: z.string(), // wallet address of submitter
+  recordingId: z.string(),
+  recordingIpfsHash: z.string().optional(), // IPFS hash of the recording
+  location: z.object({
+    city: z.string(),
+    country: z.string(),
+    coordinates: z.object({
+      lat: z.number(),
+      lng: z.number(),
+    }).optional(),
+  }).optional(),
+
+  // Content & Quality
+  transcript: z.string().optional(),
+  transcription: z.string().optional(), // Alias for backward compatibility
+  qualityScore: z.number().min(0).max(100).default(0),
+  humanityScore: z.number().min(0).max(100).default(0),
+  aiProvider: z.string().optional(), // if generated/transformed
+
+  // Rewards
+  rewardStatus: z.enum(['pending', 'distributed', 'claimed', 'rejected', 'flagged', 'removed']).default('pending'),
+  status: z.enum(['pending', 'distributed', 'claimed', 'rejected', 'flagged', 'removed']).optional(), // Alias for backward compatibility
+  rewardAmount: z.object({
+    papajamsAmount: z.number().min(0),
+    voisssAmount: z.number().min(0),
+  }).optional(), // calculated from RewardMapping based on qualityScore
+
+  // Moderation
+  participantConsent: z.boolean().default(true),
+  flaggedAt: z.union([z.date(), z.string()]).optional(),
+  flagReason: z.string().optional(), // why it was flagged/removed
+  removedAt: z.union([z.date(), z.string()]).optional(),
+  
+  // Timing
+  submittedAt: z.union([z.date(), z.string()]).optional(), // Alias for createdAt
+  createdAt: z.union([z.date(), z.string()]),
+  updatedAt: z.union([z.date(), z.string()]),
+});
 
 export type MissionResponse = z.infer<typeof MissionResponseSchema>;
 
@@ -340,7 +389,7 @@ export type RewardClaim = z.infer<typeof RewardClaimSchema>;
 
 // Utility types for the mission system
 export type MissionDifficulty = Mission['difficulty'];
-export type MissionStatus = MissionResponse['status'];
+export type MissionStatus = MissionResponse['rewardStatus'];
 export type ConsentType = ConsentRecord['consentType'];
 export type PrivacyLevel = ConsentRecord['privacyLevel'];
 export type MilestoneType = Milestone;

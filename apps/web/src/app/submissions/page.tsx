@@ -32,8 +32,8 @@ export default function SubmissionsGalleryPage() {
 
   // Sort submissions
   const sortedSubmissions = [...submissions].sort((a, b) => {
-    const aTime = new Date(a.submittedAt).getTime();
-    const bTime = new Date(b.submittedAt).getTime();
+    const aTime = new Date(a.submittedAt || a.createdAt).getTime();
+    const bTime = new Date(b.submittedAt || b.createdAt).getTime();
     switch (sortBy) {
       case "recent":
         return bTime - aTime;
@@ -193,23 +193,28 @@ export default function SubmissionsGalleryPage() {
               {/* Location & Context */}
               <div>
                 <p className="text-xs text-gray-500 mb-2">Location & Context</p>
-                <p className="text-sm text-white mb-1">
-                  📍 {selectedSubmission.location.city}, {selectedSubmission.location.country}
-                </p>
-                <p className="text-sm text-gray-300">{selectedSubmission.context}</p>
+                {selectedSubmission.location && (
+                  <p className="text-sm text-white mb-1">
+                    📍 {selectedSubmission.location.city}, {selectedSubmission.location.country}
+                  </p>
+                )}
+                <p className="text-sm text-gray-300">{(selectedSubmission as any).context}</p>
               </div>
 
               {/* Quality Status */}
               <div>
                 <p className="text-xs text-gray-500 mb-2">Status</p>
                 <p className={`text-sm font-semibold ${
-                  selectedSubmission.status === 'approved' ? 'text-[#22C55E]' :
-                  selectedSubmission.status === 'flagged' ? 'text-yellow-500' :
-                  'text-red-500'
+                  selectedSubmission.rewardStatus === 'distributed' ? 'text-[#22C55E]' :
+                  selectedSubmission.rewardStatus === 'flagged' ? 'text-yellow-500' :
+                  selectedSubmission.rewardStatus === 'removed' ? 'text-red-500' :
+                  'text-blue-500'
                 }`}>
-                  {selectedSubmission.status === 'approved' && '✓ Approved'}
-                  {selectedSubmission.status === 'flagged' && '⚠ Flagged'}
-                  {selectedSubmission.status === 'removed' && '✗ Removed'}
+                  {selectedSubmission.rewardStatus === 'distributed' && '✓ Distributed'}
+                  {selectedSubmission.rewardStatus === 'pending' && '⧖ Pending'}
+                  {selectedSubmission.rewardStatus === 'flagged' && '⚠ Flagged'}
+                  {selectedSubmission.rewardStatus === 'removed' && '✗ Removed'}
+                  {selectedSubmission.rewardStatus === 'claimed' && '⚡ Claimed'}
                 </p>
               </div>
 
@@ -217,7 +222,7 @@ export default function SubmissionsGalleryPage() {
               <div className="pt-3 border-t border-[#3A3A3A]">
                 <p className="text-xs text-gray-500 mb-1">Submitted</p>
                 <p className="text-sm text-white">
-                  {new Date(selectedSubmission.submittedAt).toLocaleDateString("en-US", {
+                  {new Date(selectedSubmission.submittedAt || selectedSubmission.createdAt).toLocaleDateString("en-US", {
                     weekday: "long",
                     year: "numeric",
                     month: "long",
@@ -233,7 +238,7 @@ export default function SubmissionsGalleryPage() {
                     ✓ Consent obtained
                   </span>
                 )}
-                {selectedSubmission.isAnonymized && (
+                {(selectedSubmission as any).isAnonymized && (
                   <span className="px-2 py-1 text-xs bg-blue-600/20 text-blue-400 rounded">
                     🔒 Anonymized
                   </span>

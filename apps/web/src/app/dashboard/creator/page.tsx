@@ -68,7 +68,10 @@ export default function CreatorDashboardPage() {
   if (timeRange !== "all") {
     const days = timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : 90;
     const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-    filteredSubmissions = submissions.filter(s => new Date(s.submittedAt) >= cutoff);
+    filteredSubmissions = submissions.filter(s => {
+      const date = s.submittedAt || s.createdAt;
+      return date ? new Date(date) >= cutoff : false;
+    });
   }
 
   // Calculate stats (engagement metrics removed)
@@ -278,18 +281,22 @@ export default function CreatorDashboardPage() {
               </div>
 
               {/* Location */}
-              <div>
-                <p className="text-xs text-gray-500 mb-2">Location</p>
-                <p className="text-sm text-white">
-                  📍 {selectedSubmission.location.city}, {selectedSubmission.location.country}
-                </p>
-              </div>
+              {selectedSubmission.location && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-2">Location</p>
+                  <p className="text-sm text-white">
+                    📍 {selectedSubmission.location.city}, {selectedSubmission.location.country}
+                  </p>
+                </div>
+              )}
 
               {/* Context */}
-              <div>
-                <p className="text-xs text-gray-500 mb-2">Context</p>
-                <p className="text-sm text-white">{selectedSubmission.context}</p>
-              </div>
+              {(selectedSubmission as any).context && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-2">Context</p>
+                  <p className="text-sm text-white">{(selectedSubmission as any).context}</p>
+                </div>
+              )}
 
               {/* Recording ID */}
               <div>
@@ -301,7 +308,7 @@ export default function CreatorDashboardPage() {
               <div className="pt-3 border-t border-[#3A3A3A]">
                 <p className="text-xs text-gray-500 mb-1">Submitted</p>
                 <p className="text-sm text-white">
-                  {new Date(selectedSubmission.submittedAt).toLocaleDateString("en-US", {
+                  {new Date(selectedSubmission.submittedAt || selectedSubmission.createdAt).toLocaleDateString("en-US", {
                     weekday: "short",
                     year: "numeric",
                     month: "short",

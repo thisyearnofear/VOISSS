@@ -39,32 +39,40 @@ export default function SubmissionCard({
             </p>
           )}
           <p className="text-xs text-gray-500 mt-1">
-            {new Date(submission.submittedAt).toLocaleDateString()}
+            {new Date(submission.submittedAt || submission.createdAt).toLocaleDateString()}
           </p>
         </div>
         <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
-          submission.status === 'approved' 
+          submission.rewardStatus === 'distributed' 
             ? 'bg-[#22C55E]/20 text-[#22C55E]'
-            : submission.status === 'flagged'
+            : submission.rewardStatus === 'flagged'
             ? 'bg-yellow-600/20 text-yellow-500'
-            : 'bg-red-600/20 text-red-500'
+            : submission.rewardStatus === 'removed'
+            ? 'bg-red-600/20 text-red-500'
+            : 'bg-blue-600/20 text-blue-400'
         }`}>
-          {submission.status === 'approved' && '✓ Approved'}
-          {submission.status === 'flagged' && '⚠ Flagged'}
-          {submission.status === 'removed' && '✗ Removed'}
+          {submission.rewardStatus === 'distributed' && '✓ Distributed'}
+          {submission.rewardStatus === 'pending' && '⧖ Pending'}
+          {submission.rewardStatus === 'flagged' && '⚠ Flagged'}
+          {submission.rewardStatus === 'removed' && '✗ Removed'}
+          {submission.rewardStatus === 'claimed' && '⚡ Claimed'}
         </span>
       </div>
 
       {/* Location */}
       <div className="mb-4 flex items-center gap-2 text-sm text-gray-400">
         <span>📍</span>
-        <span className="truncate">{submission.location.city}, {submission.location.country}</span>
+        {submission.location && (
+          <span className="truncate">{submission.location.city}, {submission.location.country}</span>
+        )}
       </div>
 
       {/* Context */}
-      <p className="text-sm text-gray-300 mb-4 line-clamp-2">
-        Context: {submission.context}
-      </p>
+      {(submission as any).context && (
+        <p className="text-sm text-gray-300 mb-4 line-clamp-2">
+          Context: {(submission as any).context}
+        </p>
+      )}
 
       {/* Quality & Transcript */}
       {submission.transcription && (
@@ -83,7 +91,7 @@ export default function SubmissionCard({
           </div>
           <div className="flex justify-between">
             <span>Submission</span>
-            <span className="text-gray-400">{new Date(submission.submittedAt).toLocaleDateString()}</span>
+            <span className="text-gray-400">{new Date(submission.submittedAt || submission.createdAt).toLocaleDateString()}</span>
           </div>
         </div>
       )}
@@ -103,12 +111,12 @@ export default function SubmissionCard({
             ✓ Consent
           </span>
         )}
-        {submission.isAnonymized && (
+        {(submission as any).isAnonymized && (
           <span className="px-2 py-1 bg-blue-600/20 text-blue-400 rounded">
             🔒 Anonymized
           </span>
         )}
-        {submission.voiceObfuscated && (
+        {(submission as any).voiceObfuscated && (
           <span className="px-2 py-1 bg-blue-600/20 text-blue-400 rounded">
             🔇 Voice Obfuscated
           </span>

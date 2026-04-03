@@ -66,7 +66,7 @@ export interface FirecrawlSearchOptions {
   timeout?: number;
 }
 
-export interface FirecrawlSearchResult {
+export interface FirecrawlAgentSearchResult {
   success: boolean;
   data: {
     web?: Array<{
@@ -128,7 +128,7 @@ export class FirecrawlService {
   /**
    * Search the web using Firecrawl (Agent/Voice AI focused)
    */
-  async search(query: string, options: FirecrawlSearchOptions = {}): Promise<FirecrawlSearchResult> {
+  async search(query: string, options: FirecrawlSearchOptions = {}): Promise<FirecrawlAgentSearchResult> {
     if (!this.apiKey) {
       return {
         success: false,
@@ -479,7 +479,7 @@ export class FirecrawlService {
         name: 'ElevenLabs',
         description: 'Leading AI voice platform with advanced voice cloning and synthesis',
         website: 'https://elevenlabs.io',
-        voiceCount: '1000+',
+        voiceCount: 1000,
         languages: ['29'],
         lastUpdated: new Date().toISOString(),
       },
@@ -488,7 +488,7 @@ export class FirecrawlService {
         name: 'Murf AI',
         description: 'Enterprise voiceover platform with studio-quality AI voices',
         website: 'https://murf.ai',
-        voiceCount: '120+',
+        voiceCount: 120,
         languages: ['20'],
         lastUpdated: new Date().toISOString(),
       },
@@ -497,7 +497,7 @@ export class FirecrawlService {
         name: 'WellSaid Labs',
         description: 'Real-time text-to-speech for enterprise applications',
         website: 'https://wellsaidlabs.com',
-        voiceCount: '50+',
+        voiceCount: 50,
         languages: ['3'],
         lastUpdated: new Date().toISOString(),
       },
@@ -506,7 +506,7 @@ export class FirecrawlService {
         name: 'AWS Polly',
         description: 'Amazon cloud TTS service with neural and standard voices',
         website: 'https://aws.amazon.com/polly',
-        voiceCount: '90+',
+        voiceCount: 90,
         languages: ['30+'],
         lastUpdated: new Date().toISOString(),
       },

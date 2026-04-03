@@ -253,6 +253,7 @@ export default function RecordingStudio({
     []
   );
   const [showSharing, setShowSharing] = useState(false);
+  const [isAdvancedMode, setIsAdvancedMode] = useState(false);
 
   // Auth and wallet state
   const { isAuthenticated, address, signIn } = useAuth();
@@ -779,73 +780,92 @@ export default function RecordingStudio({
       {/* PHASE 2: STUDIO HUB (Laboratory & Forge) */}
       {!isRecording && (audioBlob || versions.length > 0) && (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="text-center py-6 border-b border-[#2A2A2A]">
-            <h3 className="text-2xl font-black text-white tracking-tight uppercase">
-              The Laboratory
-            </h3>
-            <p className="text-sm text-gray-400">
-              Alchemy Hub: Transform, Dub, and Secure your creation
-            </p>
+          <div className="flex items-center justify-between border-b border-[#2A2A2A] pb-6">
+            <div className="text-left">
+              <h3 className="text-2xl font-black text-white tracking-tight uppercase">
+                {isAdvancedMode ? "The Laboratory" : "Recording Saved"}
+              </h3>
+              <p className="text-sm text-gray-400">
+                {isAdvancedMode 
+                  ? "Alchemy Hub: Transform, Dub, and Secure your creation" 
+                  : "Preview your recording or unlock advanced tools"}
+              </p>
+            </div>
+            
+            <button 
+              onClick={() => setIsAdvancedMode(!isAdvancedMode)}
+              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+                isAdvancedMode 
+                  ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40" 
+                  : "bg-[#2A2A2A] text-zinc-400 hover:text-white"
+              }`}
+            >
+              {isAdvancedMode ? "✨ Advanced Mode" : "Show Advanced Tools"}
+            </button>
           </div>
 
           {/* Top Section: Analysis & Metadata */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-            <div className="md:col-span-3 space-y-6">
+            <div className={`${isAdvancedMode ? "md:col-span-3" : "md:col-span-5"} space-y-6`}>
               <AudioPreview
                 previewUrl={activePreviewUrl || previewUrl}
                 audioBlob={activeVersion?.blob || audioBlob}
                 formatFileSize={formatFileSize}
               />
             </div>
-            <div className="md:col-span-2 space-y-6">
-              <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-6 space-y-6 shadow-xl">
-                <RecordingTitle
-                  recordingTitle={recordingTitle}
-                  onTitleChange={setRecordingTitle}
-                  isAgentMode={isAgentMode}
-                  onAgentModeChange={setIsAgentMode}
-                  category={agentCategory}
-                  onCategoryChange={setAgentCategory}
-                  x402Price={x402Price}
-                  onX402PriceChange={setX402Price}
-                  listOnMarketplace={listOnMarketplace}
-                  onListOnMarketplaceChange={setListOnMarketplace}
-                  marketplacePrice={marketplacePrice}
-                  onMarketplacePriceChange={setMarketplacePrice}
-                  marketplaceExclusive={marketplaceExclusive}
-                  onMarketplaceExclusiveChange={setMarketplaceExclusive}
-                  humanityCertificateBadge={recordingAnalysis?.humanityCertificate?.badge || null}
-                  isVerifiedAgent={isVerifiedAgent}
-                />
-                <AlchemyModeStatus
-                  isConnected={isConnected}
-                  hasSubAccount={hasSubAccount}
-                  activeMode={activeMode}
-                  isCreatingSubAccount={isCreatingSubAccount}
-                  createSubAccount={createSubAccount}
-                  setToastType={setToastType}
-                  setToastMessage={setToastMessage}
-                />
+            {isAdvancedMode && (
+              <div className="md:col-span-2 space-y-6">
+                <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-6 space-y-6 shadow-xl">
+                  <RecordingTitle
+                    recordingTitle={recordingTitle}
+                    onTitleChange={setRecordingTitle}
+                    isAgentMode={isAgentMode}
+                    onAgentModeChange={setIsAgentMode}
+                    category={agentCategory}
+                    onCategoryChange={setAgentCategory}
+                    x402Price={x402Price}
+                    onX402PriceChange={setX402Price}
+                    listOnMarketplace={listOnMarketplace}
+                    onListOnMarketplaceChange={setListOnMarketplace}
+                    marketplacePrice={marketplacePrice}
+                    onMarketplacePriceChange={setMarketplacePrice}
+                    marketplaceExclusive={marketplaceExclusive}
+                    onMarketplaceExclusiveChange={setMarketplaceExclusive}
+                    humanityCertificateBadge={recordingAnalysis?.humanityCertificate?.badge || null}
+                    isVerifiedAgent={isVerifiedAgent}
+                  />
+                  <AlchemyModeStatus
+                    isConnected={isConnected}
+                    hasSubAccount={hasSubAccount}
+                    activeMode={activeMode}
+                    isCreatingSubAccount={isCreatingSubAccount}
+                    createSubAccount={createSubAccount}
+                    setToastType={setToastType}
+                    setToastMessage={setToastMessage}
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
-          <div className="border-t border-[#2A2A2A] pt-6">
-            <VersionSelection
-              versions={versions}
-              activeVersionId={activeVersionId}
-              selectedVersionIds={selectedVersionIds}
-              userTier={userTier}
-              remainingQuota={remainingQuota}
-              onSelectedVersionIdsChange={setSelectedVersionIds}
-              onSetActive={setActiveVersion}
-              onDeleteVersion={deleteVersion}
-              onOpenTool={handleOpenTool}
-            />
-          </div>
+          {isAdvancedMode && (
+            <div className="border-t border-[#2A2A2A] pt-6">
+              <VersionSelection
+                versions={versions}
+                activeVersionId={activeVersionId}
+                selectedVersionIds={selectedVersionIds}
+                userTier={userTier}
+                remainingQuota={remainingQuota}
+                onSelectedVersionIdsChange={setSelectedVersionIds}
+                onSetActive={setActiveVersion}
+                onDeleteVersion={deleteVersion}
+                onOpenTool={handleOpenTool}
+              />
+            </div>
+          )}
 
           {/* Active Tool Panel (Tool Deck) */}
-          {activeTool && (
+          {activeTool && isAdvancedMode && (
             <>
               {/* Mobile Backdrop */}
               <div

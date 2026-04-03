@@ -128,23 +128,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Create submission with defaults
-    const submissionData: Omit<MissionResponse, "id" | "submittedAt"> = {
+    const submissionData = {
       missionId: body.missionId,
       userId: body.userId,
       recordingId: body.recordingId,
       recordingIpfsHash: body.recordingIpfsHash,
       location: body.location,
-      context: body.context,
       participantConsent: body.participantConsent,
-      consentProof: body.consentProof,
-      isAnonymized: body.isAnonymized,
-      voiceObfuscated: body.voiceObfuscated,
-      status: "approved", // Auto-approved
+      rewardStatus: "pending",
     };
 
     // Submit via service
     const submission = await missionService.submitMissionResponse(
-      submissionData
+      submissionData as any
     );
 
     return NextResponse.json(

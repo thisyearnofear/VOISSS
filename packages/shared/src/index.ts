@@ -7,6 +7,21 @@ export * from './types/audio';
 export * from './services/audio/ai/elevenlabs-service';
 export * from './starknet/index'; // Legacy export for backward compatibility
 
+// Export non-conflicting types from api.types
+export {
+  API_ERROR_CODES,
+  createSuccessResponse,
+  createErrorResponse,
+  createValidationErrorResponse,
+  isSuccessResponse,
+  isErrorResponse
+} from './types/api.types';
+export type {
+  ApiError,
+  ResponseMeta,
+  PaginationMeta
+} from './types/api.types';
+
 // Token services - New consolidated token access
 export * from './services/token';
 

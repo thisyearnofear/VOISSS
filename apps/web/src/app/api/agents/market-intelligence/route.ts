@@ -24,7 +24,8 @@ import { getIdentifier, rateLimiters, getRateLimitHeaders } from "@/lib/rate-lim
 import { getAgentVerificationService } from "@voisss/shared/services/agent-verification";
 import { getAgentRateLimiter } from "@voisss/shared/services/agent-rate-limiter";
 import { getAgentSecurityService } from "@voisss/shared/services/agent-security";
-import { getAgentEventHub, MARKET_INTELLIGENCE_EVENT_TYPES } from "@voisss/shared/types/market-intelligence";
+import { getAgentEventHub } from "@voisss/shared/services/agent-event-hub";
+import { MARKET_INTELLIGENCE_EVENT_TYPES } from "@voisss/shared/types/market-intelligence";
 
 export const runtime = "nodejs";
 
@@ -59,7 +60,7 @@ interface MarketIntelligenceResponse {
  * 
  * Generate a market intelligence report with optional audio
  */
-export async function POST(req: NextRequest): Promise<NextResponse<MarketIntelligenceResponse>> {
+export async function POST(req: NextRequest): Promise<NextResponse<any>> {
   const requestStart = Date.now();
   const identifier = getIdentifier(req);
 

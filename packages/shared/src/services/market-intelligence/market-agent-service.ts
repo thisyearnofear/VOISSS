@@ -10,6 +10,7 @@ import {
   MarketIntelligenceRequestSchema,
   MarketIntelligenceReport,
   MARKET_INTELLIGENCE_EVENT_TYPES,
+  MARKET_INTELLIGENCE_CONFIG,
 } from '../../types/market-intelligence';
 import { getFirecrawlService, FirecrawlService } from './firecrawl-service';
 import { getAgentEventHub, VOISSS_EVENT_TYPES } from '../agent-event-hub';
@@ -289,7 +290,7 @@ export class MarketAgentService {
     } catch (error) {
       console.error('[MarketAgent] Voice generation error:', error);
       // Return empty result to allow report to still be created
-      return { audioUrl: undefined };
+      return { audioUrl: '' };
     }
   }
 

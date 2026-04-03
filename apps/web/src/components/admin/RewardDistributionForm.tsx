@@ -81,13 +81,15 @@ export default function RewardDistributionForm({
       <div className="p-4 bg-[#1A1A1A] rounded-lg border border-[#2A2A2A]">
         <p className="text-xs text-gray-400 mb-1">Status</p>
         <p className={`text-sm font-semibold ${
-          submission.status === 'approved' ? 'text-[#22C55E]' :
-          submission.status === 'flagged' ? 'text-yellow-500' :
-          'text-red-500'
+          submission.rewardStatus === 'distributed' ? 'text-[#22C55E]' :
+          submission.rewardStatus === 'flagged' ? 'text-yellow-500' :
+          'text-blue-500'
         }`}>
-          {submission.status === 'approved' && '✓ Approved'}
-          {submission.status === 'flagged' && '⚠ Flagged'}
-          {submission.status === 'removed' && '✗ Removed'}
+          {submission.rewardStatus === 'distributed' && '✓ Distributed'}
+          {submission.rewardStatus === 'pending' && '⧖ Pending'}
+          {submission.rewardStatus === 'flagged' && '⚠ Flagged'}
+          {submission.rewardStatus === 'removed' && '✗ Removed'}
+          {submission.rewardStatus === 'claimed' && '⚡ Claimed'}
         </p>
       </div>
 

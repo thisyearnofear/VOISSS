@@ -531,7 +531,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
           agentTier,
           paymentResult.baseCost,
           paymentResult.discountApplied,
-          owsWallet
+          owsWallet || undefined
         );
 
         // Cache successful result for idempotency

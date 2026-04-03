@@ -30,8 +30,8 @@ export async function GET(request: NextRequest) {
     const filters: Parameters<typeof missionService.getAllSubmissions>[0] = {};
 
     if (searchParams.has("status")) {
-      const status = searchParams.get("status") as MissionResponse["status"];
-      if (["approved", "flagged", "removed"].includes(status)) {
+      const status = searchParams.get("status") as MissionResponse["rewardStatus"];
+      if (status && ["pending", "distributed", "claimed", "rejected", "flagged", "removed"].includes(status)) {
         filters.status = status;
       }
     }

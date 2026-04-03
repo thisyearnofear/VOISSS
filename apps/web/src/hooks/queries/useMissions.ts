@@ -198,7 +198,7 @@ export function useUserMissions() {
           })),
           completed: apiResponse.data.completed.map(response => ({
             ...response,
-            submittedAt: new Date(response.submittedAt),
+            submittedAt: response.submittedAt ? new Date(response.submittedAt) : new Date(response.createdAt),
           })),
         };
       } catch (error) {

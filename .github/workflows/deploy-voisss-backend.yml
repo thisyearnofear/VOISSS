@@ -30,7 +30,7 @@ jobs:
 
       - name: Install production dependencies
         working-directory: services/voisss-backend
-        run: npm ci --omit=dev
+        run: npm ci --omit=dev --ignore-scripts
 
       - name: Create release artifact
         id: build

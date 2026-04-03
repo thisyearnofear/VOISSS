@@ -121,20 +121,22 @@ export default function AdminSubmissionsPage() {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-gray-500 mb-1">
-                      {new Date(submission.submittedAt).toLocaleDateString()}
+                      {submission.submittedAt ? new Date(submission.submittedAt).toLocaleDateString() : 'N/A'}
                     </p>
                     <p className="text-sm font-mono text-[#7C5DFA] truncate">
                       {submission.userId.slice(0, 6)}...{submission.userId.slice(-4)}
                     </p>
                   </div>
                   <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
-                    submission.status === 'approved'
+                    submission.rewardStatus === 'distributed'
                       ? 'bg-[#22C55E]/20 text-[#22C55E]'
-                      : submission.status === 'flagged'
+                      : submission.rewardStatus === 'flagged'
                       ? 'bg-yellow-600/20 text-yellow-400'
-                      : 'bg-red-600/20 text-red-400'
+                      : submission.rewardStatus === 'removed'
+                      ? 'bg-red-600/20 text-red-400'
+                      : 'bg-blue-600/20 text-blue-400'
                   }`}>
-                    {submission.status}
+                    {submission.rewardStatus}
                   </span>
                 </div>
 
@@ -142,20 +144,25 @@ export default function AdminSubmissionsPage() {
                 <div className="mb-4 p-3 bg-[#1A1A1A] rounded-lg">
                   <p className="text-xs text-gray-500 mb-1">Status</p>
                   <p className={`text-sm font-semibold ${
-                    submission.status === 'approved' ? 'text-[#22C55E]' :
-                    submission.status === 'flagged' ? 'text-yellow-500' :
-                    'text-red-500'
+                    submission.rewardStatus === 'distributed' ? 'text-[#22C55E]' :
+                    submission.rewardStatus === 'flagged' ? 'text-yellow-500' :
+                    submission.rewardStatus === 'removed' ? 'text-red-500' :
+                    'text-blue-500'
                   }`}>
-                    {submission.status === 'approved' && '✓ Approved'}
-                    {submission.status === 'flagged' && '⚠ Flagged'}
-                    {submission.status === 'removed' && '✗ Removed'}
+                    {submission.rewardStatus === 'distributed' && '✓ Distributed'}
+                    {submission.rewardStatus === 'pending' && '⧖ Pending'}
+                    {submission.rewardStatus === 'flagged' && '⚠ Flagged'}
+                    {submission.rewardStatus === 'removed' && '✗ Removed'}
+                    {submission.rewardStatus === 'claimed' && '⚡ Claimed'}
                   </p>
                 </div>
 
                 {/* Location */}
-                <p className="text-xs text-gray-500 mb-3">
-                  📍 {submission.location.city}, {submission.location.country}
-                </p>
+                {submission.location && (
+                  <p className="text-xs text-gray-500 mb-3">
+                    📍 {submission.location.city}, {submission.location.country}
+                  </p>
+                )}
 
                 {/* Quick Actions */}
                 <div className="flex gap-2 pt-3 border-t border-[#3A3A3A]">
@@ -255,18 +262,22 @@ export default function AdminSubmissionsPage() {
               )}
 
               {/* Location */}
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Location</p>
-                <p className="text-sm text-white">
-                  {selectedSubmission.location.city}, {selectedSubmission.location.country}
-                </p>
-              </div>
+              {selectedSubmission.location && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Location</p>
+                  <p className="text-sm text-white">
+                    {selectedSubmission.location.city}, {selectedSubmission.location.country}
+                  </p>
+                </div>
+              )}
 
               {/* Context */}
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Context</p>
-                <p className="text-sm text-white">{selectedSubmission.context}</p>
-              </div>
+              {(selectedSubmission as any).context && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Context</p>
+                  <p className="text-sm text-white">{(selectedSubmission as any).context}</p>
+                </div>
+              )}
 
               {/* Transcription */}
               {selectedSubmission.transcription && (
@@ -279,7 +290,7 @@ export default function AdminSubmissionsPage() {
               {/* Submitted At */}
               <div>
                 <p className="text-xs text-gray-500 mb-1">Submitted</p>
-                <p className="text-sm text-white">{new Date(selectedSubmission.submittedAt).toLocaleString()}</p>
+                <p className="text-sm text-white">{selectedSubmission.submittedAt ? new Date(selectedSubmission.submittedAt).toLocaleString() : 'N/A'}</p>
               </div>
 
               {/* Action Buttons */}

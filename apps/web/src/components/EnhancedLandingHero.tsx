@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Shield, Zap, TrendingUp } from "lucide-react";
+import QuickVoicePreview from "./marketplace/QuickVoicePreview";
 
 // Type-safe icon wrappers to resolve React 18/19 compatibility issues
 const CompatibleShield = Shield as React.ComponentType<{ className?: string }>;
@@ -58,10 +59,15 @@ export default function EnhancedLandingHero() {
               List Your Voice
             </a>
           </div>
+
+          {/* Instant Synthesis Playground (Time-to-Magic) */}
+          <div className="max-w-4xl mx-auto px-4 mb-20">
+            <QuickVoicePreview />
+          </div>
         </div>
 
         {/* Feature Highlights - Clean and Focused */}
-        <div className="grid md:grid-cols-3 gap-8 mb-16">
+        <div className="grid md:grid-cols-3 gap-8 mb-24">
           <div className="text-center">
             <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <CompatibleShield className="w-8 h-8 text-white" />
@@ -96,50 +102,6 @@ export default function EnhancedLandingHero() {
             <p className="text-gray-400">
               Voice contributors earn passive income from every AI agent license
             </p>
-          </div>
-        </div>
-
-        {/* How It Works */}
-        <div className="mb-16">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white text-center mb-10">
-            How It Works
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center p-6 bg-[#111111] border border-[#2A2A2A] rounded-2xl">
-              <div className="w-10 h-10 bg-purple-500/20 text-purple-400 rounded-full flex items-center justify-center mx-auto mb-4 text-lg font-bold">
-                1
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">
-                Contributors Record &amp; List
-              </h3>
-              <p className="text-gray-400 text-sm">
-                Voice artists record samples and list them on the marketplace with licensing terms
-              </p>
-            </div>
-
-            <div className="text-center p-6 bg-[#111111] border border-[#2A2A2A] rounded-2xl">
-              <div className="w-10 h-10 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4 text-lg font-bold">
-                2
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">
-                AI Agents Browse &amp; License
-              </h3>
-              <p className="text-gray-400 text-sm">
-                Developers and AI agents discover and license voices via API or marketplace UI
-              </p>
-            </div>
-
-            <div className="text-center p-6 bg-[#111111] border border-[#2A2A2A] rounded-2xl">
-              <div className="w-10 h-10 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto mb-4 text-lg font-bold">
-                3
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">
-                Automatic Royalty Payments
-              </h3>
-              <p className="text-gray-400 text-sm">
-                Smart contracts handle payments automatically — contributors earn on every use
-              </p>
-            </div>
           </div>
         </div>
 

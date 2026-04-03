@@ -234,7 +234,6 @@ export class PersistentMissionService implements MissionService {
         submissions: [],
         topic: "market-intelligence",
         tags: ["market-intelligence", "ai", "voice", "research"],
-        agentGenerated: true, // Mark as agent-generated
       },
     ];
 
@@ -977,11 +976,18 @@ export class PersistentMissionService implements MissionService {
       }
       if (filters?.after) {
         const afterTime = filters.after.getTime();
-        submissions = submissions.filter(r => new Date(r.submittedAt).getTime() >= afterTime);
+        submissions = submissions.filter(r => {
+          const submittedAt = r.submittedAt || r.createdAt;
+          return new Date(submittedAt).getTime() >= afterTime;
+        });
       }
 
       // Sort by submission date, newest first
-      return submissions.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+      return submissions.sort((a, b) => {
+        const timeA = new Date(a.submittedAt || a.createdAt).getTime();
+        const timeB = new Date(b.submittedAt || b.createdAt).getTime();
+        return timeB - timeA;
+      });
     } catch (error) {
       throw new DatabaseOperationError('Failed to get all submissions', COLLECTIONS.MISSION_RESPONSES, 'getAllSubmissions');
     }
@@ -996,7 +1002,7 @@ export class PersistentMissionService implements MissionService {
       }
 
       const updated = await this.db.update<MissionResponse>(COLLECTIONS.MISSION_RESPONSES, submissionId, {
-        status: 'flagged',
+        rewardStatus: 'flagged',
         flaggedAt: new Date(),
         flagReason: reason
       });
@@ -1017,7 +1023,7 @@ export class PersistentMissionService implements MissionService {
       }
 
       const updated = await this.db.update<MissionResponse>(COLLECTIONS.MISSION_RESPONSES, submissionId, {
-        status: 'removed',
+        rewardStatus: 'removed',
         removedAt: new Date(),
         flagReason: reason
       });
