@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, cloneElement } from 'react';
 import { Bot, Shield, Zap, DollarSign, CheckCircle, ArrowRight, Play, Loader2, Award } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useBaseAccount } from '../../../hooks/useBaseAccount';
@@ -18,6 +18,18 @@ import { useCompleteMission } from '../../../hooks/queries/useMissions';
  * 3. Pay-Per-Call Services & API Monetization (x402/MPP integration)
  */
 export default function OWSAgentDemo() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0A0A0A] text-white flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      </div>
+    }>
+      <OWSAgentDemoContent />
+    </Suspense>
+  );
+}
+
+function OWSAgentDemoContent() {
   const [step, setStep] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -48,7 +60,11 @@ export default function OWSAgentDemo() {
         location: {
           city: 'Global',
           country: 'Autonomous'
-        }
+        },
+        context: 'onboarding-tutorial',
+        participantConsent: true,
+        isAnonymized: true,
+        voiceObfuscated: false
       });
       setIsCompleted(true);
       setShowConfetti(true);
@@ -297,5 +313,3 @@ function StepItem({ active, current, icon, label }: { active: boolean, current: 
     </div>
   );
 }
-
-import { cloneElement } from 'react';

@@ -20,20 +20,53 @@ export default function QuickVoicePreview() {
   const [selectedVoice, setSelectedVoice] = useState<MarketplaceVoice | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Fallback voices for demo/development if indexer is empty
+  const FALLBACK_VOICES: MarketplaceVoice[] = [
+    {
+      id: "fallback_1",
+      contractVoiceId: "professional_male_01",
+      voiceProfile: { tone: "Professional", accent: "American", language: "English" }
+    },
+    {
+      id: "fallback_2",
+      contractVoiceId: "friendly_female_01",
+      voiceProfile: { tone: "Friendly", accent: "British", language: "English" }
+    },
+    {
+      id: "fallback_3",
+      contractVoiceId: "narrator_deep_01",
+      voiceProfile: { tone: "Narrator", accent: "Deep", language: "English" }
+    }
+  ];
 
   useEffect(() => {
     // Fetch top 3 featured voices for the preview
     const fetchFeaturedVoices = async () => {
       try {
+        setError(null);
         const response = await fetch("/api/marketplace/voices?limit=3");
+        
+        if (!response.ok) {
+           throw new Error(`HTTP ${response.status}`);
+        }
+        
         const data = await response.json();
         if (data.success && data.data.voices?.length > 0) {
           setVoices(data.data.voices.slice(0, 3));
           setSelectedVoice(data.data.voices[0]);
+        } else {
+          // If no voices returned, use fallbacks for better UX during hackathon
+          console.warn("No voices returned from marketplace API, using fallbacks.");
+          setVoices(FALLBACK_VOICES);
+          setSelectedVoice(FALLBACK_VOICES[0]);
         }
       } catch (error) {
-        console.error("Failed to fetch featured voices:", error);
+        console.error("Failed to fetch featured voices, using fallbacks:", error);
+        setVoices(FALLBACK_VOICES);
+        setSelectedVoice(FALLBACK_VOICES[0]);
       }
     };
     fetchFeaturedVoices();
@@ -72,10 +105,12 @@ export default function QuickVoicePreview() {
         await audio.play();
         setIsPlaying(true);
       } else {
-        alert("Failed to generate preview. Please try another voice or wait a moment.");
+        setError(data.error || "Failed to generate preview.");
+        alert(data.error || "Failed to generate preview. Please try another voice or wait a moment.");
       }
     } catch (error) {
       console.error("Error playing sample:", error);
+      setError("An unexpected error occurred.");
     } finally {
       setIsLoading(false);
     }
