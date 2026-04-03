@@ -18,6 +18,15 @@ import { getAgentRateLimiter, AgentTierLimits } from "@voisss/shared/services/ag
 import { getAgentSecurityService, AgentSecurityProfile } from "@voisss/shared/services/agent-security";
 import { getAgentEventHub, VOISSS_EVENT_TYPES } from "@voisss/shared/services/agent-event-hub";
 import { createHash } from "crypto";
+import {
+  extractOWSWallet,
+  hasOWSWallet,
+  createOWSPaymentRequirements,
+  verifyOWSPayment,
+  createOWSPaymentResponse,
+  getChainPricingMultiplier,
+  type OWSWalletInfo,
+} from "@/lib/ows-payment";
 
 // Idempotency cache with TTL cleanup
 class IdempotencyCache {
@@ -106,6 +115,14 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
   const requestStart = Date.now();
 
   try {
+    // Check for OWS wallet first
+    const owsWallet = extractOWSWallet(req.headers);
+    const isOWSRequest = !!owsWallet;
+
+    if (isOWSRequest) {
+      console.log(`🔷 OWS wallet detected: ${owsWallet.address} on ${owsWallet.chainName}`);
+    }
+
     // Check idempotency key first
     const idempotencyKey = req.headers.get('Idempotency-Key');
     if (idempotencyKey) {
@@ -123,8 +140,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
 
     const { text, voiceId, agentAddress, options, maxDurationMs: requestMaxDurationMs } = validatedRequest;
 
+    // Use OWS wallet address if available, otherwise use agentAddress from body
+    const effectiveAgentAddress = owsWallet?.address || agentAddress;
+
     // Get agent identifier for security and rate limiting
-    const agentId = agentAddress || getIdentifier(req);
+    const agentId = effectiveAgentAddress || getIdentifier(req);
     const userAgent = req.headers.get('user-agent') || undefined;
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || undefined;
 
@@ -298,114 +318,197 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
     });
 
     // Get payment quote (this now includes tier-based discounts)
-    const quote = await paymentRouter.getQuote(agentAddress, 'voice_generation', characterCount);
-    const actualCost = quote.estimatedCost;
+    const quote = await paymentRouter.getQuote(effectiveAgentAddress, 'voice_generation', characterCount);
+    let actualCost = quote.estimatedCost;
 
-    // Check for X-PAYMENT header (x402 payment attempt)
-    const paymentHeader = req.headers.get('X-PAYMENT');
+    // Apply chain-specific pricing for OWS
+    if (owsWallet) {
+      const chainMultiplier = getChainPricingMultiplier(owsWallet.chainId);
+      actualCost = BigInt(Math.floor(Number(actualCost) * chainMultiplier));
+      console.log(`🔷 OWS chain pricing: ${owsWallet.chainName} multiplier ${chainMultiplier}x = ${formatUSDC(actualCost)}`);
+    }
+
+    // Check for payment headers (OWS or x402)
+    const owsPaymentHeader = req.headers.get('X-OWS-Payment');
+    const x402PaymentHeader = req.headers.get('X-PAYMENT');
+    const paymentHeader = owsPaymentHeader || x402PaymentHeader;
 
     if (paymentHeader) {
-      console.log('[vocalize] x402 payment attempt detected');
+      console.log(`[vocalize] Payment attempt detected (${isOWSRequest ? 'OWS' : 'x402'})`);
       
-      // Client is attempting x402 payment
-      const payment = parsePaymentHeader(paymentHeader) as X402PaymentPayload | null;
+      // Handle OWS payment
+      if (isOWSRequest && owsWallet && owsPaymentHeader) {
+        console.log(`[vocalize] Processing OWS payment on ${owsWallet.chainName}`);
 
-      if (!payment) {
-        console.error('[vocalize] Invalid X-PAYMENT header format');
-        return NextResponse.json({
-          success: false,
-          error: 'Invalid payment header. X-PAYMENT must be JSON (or base64-encoded JSON) matching X402PaymentPayload.',
-          expectedFormat: {
-            signature: "0x...(EIP-712 TransferWithAuthorization signature)",
-            from: "0x...(your agent address)",
-            to: "0x...(payTo from 402 response)",
-            value: "100",
-            validAfter: "0",
-            validBefore: "9999999999",
-            nonce: "0x...(random 32-byte hex)"
-          }
-        }, { status: 400 });
-      }
+        // Create payment requirements for verification
+        const owsRequirements = createOWSPaymentRequirements(
+          owsWallet,
+          actualCost,
+          `Voice generation: ${characterCount} characters (Discount: ${quote.discountPercent}%)`,
+          `${req.nextUrl.origin}/api/agents/vocalize`
+        );
 
-      // Create requirements for verification
-      const x402Client = (await import('@voisss/shared')).getX402Client();
-      const requirements = x402Client.createRequirements(
-        `${req.nextUrl.origin}/api/agents/vocalize`,
-        actualCost,
-        process.env.X402_PAY_TO_ADDRESS || '',
-        `Voice generation: ${characterCount} characters (Discount: ${quote.discountPercent}%)`
-      );
+        // Verify OWS payment
+        const owsVerification = await verifyOWSPayment(
+          owsWallet,
+          owsPaymentHeader,
+          actualCost,
+          owsRequirements
+        );
 
-      console.log('[vocalize] Verifying x402 payment:', {
-        from: payment.from,
-        to: payment.to,
-        value: payment.value,
-        expectedValue: actualCost.toString(),
-      });
-
-      // Process x402 payment
-      const paymentResult = await paymentRouter.processX402Payment(
-        agentAddress,
-        'voice_generation',
-        characterCount,
-        payment,
-        requirements
-      );
-
-      if (!paymentResult.success) {
-        console.error('[vocalize] x402 payment failed:', paymentResult.error);
-        return NextResponse.json({
-          success: false,
-          error: paymentResult.error || 'Payment failed',
-          details: {
-            method: 'x402',
-            from: payment.from,
-            to: payment.to,
-            value: payment.value,
-            expectedValue: actualCost.toString(),
-          }
-        }, { status: 402 });
-      }
-
-      console.log('[vocalize] x402 payment successful, generating voice');
-
-      // Payment successful, generate voice
-      const response = await generateAndReturnVoice(
-        text,
-        voiceId,
-        agentAddress,
-        characterCount,
-        paymentResult.cost,
-        'x402',
-        req,
-        paymentResult.txHash,
-        undefined,
-        undefined,
-        recordingId,
-        agentTier,
-        paymentResult.baseCost,
-        paymentResult.discountApplied
-      );
-
-      // Cache successful result for idempotency
-      if (idempotencyKey) {
-        const resultBody = await response.clone().json();
-        if (resultBody.success) {
-          idempotencyCache.set(idempotencyKey, {
-            result: resultBody,
-            expiresAt: Date.now() + IDEMPOTENCY_TTL_MS,
-          });
+        if (!owsVerification.success) {
+          console.error('[vocalize] OWS payment verification failed:', owsVerification.error);
+          return NextResponse.json({
+            success: false,
+            error: owsVerification.error || 'OWS payment verification failed',
+            details: {
+              method: 'ows',
+              chain: owsWallet.chainName,
+              chainId: owsWallet.chainId,
+              from: owsWallet.address,
+              expectedAmount: actualCost.toString(),
+            }
+          }, { status: 402 });
         }
-      }
 
-      return response;
+        console.log('[vocalize] OWS payment successful, generating voice');
+
+        // Payment successful, generate voice
+        const response = await generateAndReturnVoice(
+          text,
+          voiceId,
+          effectiveAgentAddress,
+          characterCount,
+          actualCost,
+          `ows-${owsWallet.chainType}`,
+          req,
+          owsVerification.txHash,
+          undefined,
+          undefined,
+          recordingId,
+          agentTier,
+          quote.baseCost,
+          quote.discountPercent,
+          owsWallet
+        );
+
+        // Cache successful result for idempotency
+        if (idempotencyKey) {
+          const resultBody = await response.clone().json();
+          if (resultBody.success) {
+            idempotencyCache.set(idempotencyKey, {
+              result: resultBody,
+              expiresAt: Date.now() + IDEMPOTENCY_TTL_MS,
+            });
+          }
+        }
+
+        return response;
+      }
+      
+      // Handle standard x402 payment
+      if (x402PaymentHeader) {
+        console.log('[vocalize] Processing x402 payment');
+        
+        const payment = parsePaymentHeader(x402PaymentHeader) as X402PaymentPayload | null;
+
+        if (!payment) {
+          console.error('[vocalize] Invalid X-PAYMENT header format');
+          return NextResponse.json({
+            success: false,
+            error: 'Invalid payment header. X-PAYMENT must be JSON (or base64-encoded JSON) matching X402PaymentPayload.',
+            expectedFormat: {
+              signature: "0x...(EIP-712 TransferWithAuthorization signature)",
+              from: "0x...(your agent address)",
+              to: "0x...(payTo from 402 response)",
+              value: "100",
+              validAfter: "0",
+              validBefore: "9999999999",
+              nonce: "0x...(random 32-byte hex)"
+            }
+          }, { status: 400 });
+        }
+
+        // Create requirements for verification
+        const x402Client = (await import('@voisss/shared')).getX402Client();
+        const requirements = x402Client.createRequirements(
+          `${req.nextUrl.origin}/api/agents/vocalize`,
+          actualCost,
+          process.env.X402_PAY_TO_ADDRESS || '',
+          `Voice generation: ${characterCount} characters (Discount: ${quote.discountPercent}%)`
+        );
+
+        console.log('[vocalize] Verifying x402 payment:', {
+          from: payment.from,
+          to: payment.to,
+          value: payment.value,
+          expectedValue: actualCost.toString(),
+        });
+
+        // Process x402 payment
+        const paymentResult = await paymentRouter.processX402Payment(
+          effectiveAgentAddress,
+          'voice_generation',
+          characterCount,
+          payment,
+          requirements
+        );
+
+        if (!paymentResult.success) {
+          console.error('[vocalize] x402 payment failed:', paymentResult.error);
+          return NextResponse.json({
+            success: false,
+            error: paymentResult.error || 'Payment failed',
+            details: {
+              method: 'x402',
+              from: payment.from,
+              to: payment.to,
+              value: payment.value,
+              expectedValue: actualCost.toString(),
+            }
+          }, { status: 402 });
+        }
+
+        console.log('[vocalize] x402 payment successful, generating voice');
+
+        // Payment successful, generate voice
+        const response = await generateAndReturnVoice(
+          text,
+          voiceId,
+          effectiveAgentAddress,
+          characterCount,
+          paymentResult.cost,
+          'x402',
+          req,
+          paymentResult.txHash,
+          undefined,
+          undefined,
+          recordingId,
+          agentTier,
+          paymentResult.baseCost,
+          paymentResult.discountApplied
+        );
+
+        // Cache successful result for idempotency
+        if (idempotencyKey) {
+          const resultBody = await response.clone().json();
+          if (resultBody.success) {
+            idempotencyCache.set(idempotencyKey, {
+              result: resultBody,
+              expiresAt: Date.now() + IDEMPOTENCY_TTL_MS,
+            });
+          }
+        }
+
+        return response;
+      }
     }
 
     // No payment header - check if we can process without x402
     if (quote.recommendedMethod !== 'x402') {
       // Try credits or tier
       const paymentResult = await paymentRouter.process({
-        userAddress: agentAddress,
+        userAddress: effectiveAgentAddress,
         service: 'voice_generation',
         quantity: characterCount,
         metadata: { voiceId },
@@ -416,7 +519,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
         const response = await generateAndReturnVoice(
           text,
           voiceId,
-          agentAddress,
+          effectiveAgentAddress,
           characterCount,
           paymentResult.cost,
           paymentResult.method,
@@ -427,7 +530,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
           recordingId,
           agentTier,
           paymentResult.baseCost,
-          paymentResult.discountApplied
+          paymentResult.discountApplied,
+          owsWallet
         );
 
         // Cache successful result for idempotency
@@ -453,7 +557,20 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
       }
     }
 
-    // Return 402 Payment Required for x402
+    // Return 402 Payment Required
+    // If OWS wallet detected, return OWS-specific payment requirements
+    if (isOWSRequest && owsWallet) {
+      const owsRequirements = createOWSPaymentRequirements(
+        owsWallet,
+        actualCost,
+        `Voice generation: ${characterCount} characters (Discount: ${quote.discountPercent}%)`,
+        `${req.nextUrl.origin}/api/agents/vocalize`
+      );
+
+      return createOWSPaymentResponse(owsWallet, owsRequirements) as NextResponse<VocalizeResponse>;
+    }
+
+    // Otherwise return standard x402 payment requirements
     const x402Client = (await import('@voisss/shared')).getX402Client();
     const requirements = x402Client.createRequirements(
       `${req.nextUrl.origin}/api/agents/vocalize`,
@@ -519,7 +636,8 @@ async function generateAndReturnVoice(
   recordingId?: string,
   agentTier?: keyof import('@voisss/shared/services/agent-rate-limiter').AgentTierLimits,
   baseCost?: bigint,
-  discountApplied?: number
+  discountApplied?: number,
+  owsWallet?: OWSWalletInfo
 ): Promise<NextResponse<VocalizeResponse>> {
   const agentId = agentAddress || getIdentifier(req);
   const eventHub = getAgentEventHub();
@@ -713,6 +831,10 @@ async function generateAndReturnVoice(
       isTemporary,
       tier: agentTier,
       discount: discountApplied ? `${Math.floor(discountApplied * 100)}%` : 'none',
+      ...(owsWallet && {
+        owsChain: owsWallet.chainName,
+        owsChainId: owsWallet.chainId,
+      }),
     });
 
     // Publish success event
@@ -733,11 +855,16 @@ async function generateAndReturnVoice(
         tier: agentTier,
         ...(ipfsHash && { ipfsHash }),
         ...(isTemporary && { isTemporary: true }),
-        ...(txHash && { txHash })
+        ...(txHash && { txHash }),
+        ...(owsWallet && {
+          owsChain: owsWallet.chainName,
+          owsChainId: owsWallet.chainId,
+          owsChainType: owsWallet.chainType,
+        }),
       },
       metadata: {
         priority: 'normal',
-        tags: ['voice-generation', 'success']
+        tags: ['voice-generation', 'success', ...(owsWallet ? ['ows-payment'] : [])],
       }
     });
 
@@ -766,6 +893,11 @@ async function generateAndReturnVoice(
         }),
         ...(tier && { tier }),
         ...(agentTier && { agentTier }),
+        ...(owsWallet && {
+          owsChain: owsWallet.chainName,
+          owsChainId: owsWallet.chainId,
+          owsChainType: owsWallet.chainType,
+        }),
       }
     };
 
