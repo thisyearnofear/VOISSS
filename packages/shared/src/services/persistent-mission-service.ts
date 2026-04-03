@@ -57,6 +57,28 @@ export class PersistentMissionService implements MissionService {
     // Create default missions for demo purposes
     const defaultMissions: Omit<Mission, 'id' | 'createdAt' | 'updatedAt' | 'currentParticipants'>[] = [
       {
+        title: "Meet Your First AI Agent",
+        description: "Experience the future of commerce. Watch how an autonomous agent uses an OWS wallet to license a voice and pay via x402. Completing this tutorial mission helps you understand the VOISSS ecosystem.",
+        difficulty: "easy",
+        baseReward: "10",
+        rewardModel: "pool",
+        expiresAt: new Date(Date.now() + 365 * 10 * 24 * 60 * 60 * 1000), // Permanent
+        locationBased: false,
+        isActive: true,
+        createdBy: "platform",
+        targetDuration: 60,
+        language: "en",
+        curatorReward: 0,
+        autoExpire: false,
+        submissions: [],
+        topic: "onboarding",
+        tags: ["tutorial", "ows", "agent", "onboarding"],
+        qualityCriteria: {
+          audioMinScore: 0,
+          transcriptionRequired: false,
+        },
+      },
+      {
         title: "The Public Square",
         description: "An open space for all voices. Share your daily thoughts, updates, agent logs, and stories with the community. No topic is off-limits.",
         difficulty: "easy",

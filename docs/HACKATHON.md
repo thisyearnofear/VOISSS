@@ -3,6 +3,7 @@
 **Voice-as-a-Service for AI Agents with Multi-Chain OWS Payments**
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-blue)](https://voisss.netlify.app/dashboard/hackathon)
+[![Autonomous Agent Demo](https://img.shields.io/badge/Agent-Demo-green)](https://voisss.netlify.app/demo/ows-agent)
 [![Track 3](https://img.shields.io/badge/Track-3%20Pay--Per--Call-purple)](https://ows.build/hackathon)
 [![OWS](https://img.shields.io/badge/OWS-Multi--Chain-green)](https://openwallet.sh)
 
@@ -21,6 +22,7 @@ VOISSS is a **production-ready** pay-per-call voice generation API designed for 
 ## 🔗 Quick Links
 
 - **Production API**: https://voisss.netlify.app/api/agents/vocalize
+- **Autonomous Agent Demo**: https://voisss.netlify.app/demo/ows-agent (⭐ New)
 - **Live Dashboard**: https://voisss.netlify.app/dashboard/hackathon
 - **GitHub Repository**: https://github.com/thisyearnofear/VOISSS
 - **Video Demo**: [Link to 3-minute demo video]
@@ -73,7 +75,8 @@ Agent Request → OWS Wallet Detection → Payment Quote (402)
 1. **OWS Payment Handler** (`lib/ows-payment.ts`): Multi-chain wallet verification and pricing logic.
 2. **Voice API** (`api/agents/vocalize/route.ts`): Dual support for OWS and legacy x402 payments.
 3. **Analytics Dashboard** (`app/dashboard/hackathon/page.tsx`): 5-second polling for real-time activity.
-4. **Test Agent** (`scripts/test-ows-agent.ts`): Simulates autonomous agent interaction.
+4. **Autonomous Agent Demo** (`app/demo/ows-agent/page.tsx`): Real-time simulation of agentic commerce.
+5. **Test Agent** (`scripts/test-ows-agent.ts`): Simulates autonomous agent interaction.
 
 ---
 
@@ -111,7 +114,8 @@ Pricing automatically adjusts based on gas costs, allowing agents to optimize fo
 ## 🏆 Why VOISSS Wins Track 3
 
 1. **Production-Ready**: This is not a hackathon prototype. It's a live system at `voisss.netlify.app` with real payments and infrastructure.
-2. **Real Use Case**: AI agents *need* voices for commerce, customer support, and interaction. We remove the friction of account creation.
+2. **Autonomous Commerce**: Demonstrated via our live agent demo, agents manage their own P&L and policy-governed budgets autonomously.
+3. **Real Use Case**: AI agents *need* voices for commerce, customer support, and interaction. We remove the friction of account creation.
 3. **Multi-Chain Native**: 9 chains supported out-of-the-box via OWS, with gas-adjusted pricing that matters to agents.
 4. **Zero Account UX**: No API keys, no subscriptions, no credit cards. Just a wallet and a request.
 5. **Scale & Security**: Includes rate limiting, agent reputation scoring, and IPFS provenance.

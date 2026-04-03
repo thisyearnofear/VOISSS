@@ -141,32 +141,50 @@ export default function QuickVoicePreview() {
         </div>
 
         {/* Play Button */}
-        <button
-          onClick={handlePreview}
-          disabled={isLoading || !selectedVoice}
-          className={`w-full py-4 rounded-xl flex items-center justify-center gap-3 font-bold text-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] ${
-            isPlaying
-              ? "bg-white text-black"
-              : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25"
-          } disabled:opacity-50 disabled:cursor-not-allowed`}
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="w-6 h-6 animate-spin" />
-              Synthesizing...
-            </>
-          ) : isPlaying ? (
-            <>
-              <Square className="w-5 h-5 fill-current" />
-              Stop Playing
-            </>
-          ) : (
-            <>
-              <Play className="w-5 h-5 fill-current" />
-              Try this voice
-            </>
+        <div className="relative group">
+          {isPlaying && (
+            <div className="absolute -inset-2 bg-blue-500/10 rounded-2xl blur-xl animate-pulse -z-10" />
           )}
-        </button>
+          
+          <button
+            onClick={handlePreview}
+            disabled={isLoading || !selectedVoice}
+            className={`w-full py-4 rounded-xl flex items-center justify-center gap-3 font-bold text-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] ${
+              isPlaying
+                ? "bg-white text-black ring-4 ring-blue-500/20"
+                : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25"
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-6 h-6 animate-spin" />
+                Synthesizing...
+              </>
+            ) : isPlaying ? (
+              <>
+                <div className="flex items-center gap-1 mr-2">
+                  {[...Array(4)].map((_, i) => (
+                    <div 
+                      key={i} 
+                      className="w-1 bg-black rounded-full animate-bounce" 
+                      style={{ 
+                        height: `${Math.random() * 16 + 8}px`,
+                        animationDelay: `${i * 0.1}s`,
+                        animationDuration: '0.6s'
+                      }} 
+                    />
+                  ))}
+                </div>
+                Stop Playing
+              </>
+            ) : (
+              <>
+                <Play className="w-5 h-5 fill-current" />
+                Try this voice
+              </>
+            )}
+          </button>
+        </div>
 
         <p className="text-center text-[10px] text-gray-500 uppercase tracking-widest font-medium">
           Powered by VOISSS x402 Protocol • Gasless Preview

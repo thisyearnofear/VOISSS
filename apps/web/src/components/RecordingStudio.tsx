@@ -794,13 +794,20 @@ export default function RecordingStudio({
             
             <button 
               onClick={() => setIsAdvancedMode(!isAdvancedMode)}
-              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+              className={`group relative px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
                 isAdvancedMode 
                   ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40" 
                   : "bg-[#2A2A2A] text-zinc-400 hover:text-white"
               }`}
             >
               {isAdvancedMode ? "✨ Advanced Mode" : "Show Advanced Tools"}
+              
+              {!isAdvancedMode && (
+                <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 bg-black/90 border border-white/10 p-2 rounded text-[10px] lowercase text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case">
+                  Unlock <span className="text-purple-400 font-bold">Alchemy Mode</span>, custom x402 pricing, and multi-version management.
+                  <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-black border-r border-b border-white/10 rotate-45" />
+                </div>
+              )}
             </button>
           </div>
 

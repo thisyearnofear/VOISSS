@@ -22,6 +22,11 @@ interface VoiceCardProps {
       purchases: number;
       usageCount: number;
     };
+    reputation?: {
+      trustScore: number;
+      reputation: number;
+      threatLevel: "green" | "yellow" | "orange" | "red";
+    };
     metadata?: {
       title?: string;
     };
@@ -168,6 +173,24 @@ export function VoiceCard({ voice, onPurchase }: VoiceCardProps) {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 mb-3 bg-black/20 rounded-lg p-2 border border-white/5">
+        <div className="flex flex-col items-center justify-center py-1 border-r border-white/5">
+          <span className="text-[10px] text-zinc-600 uppercase font-black tracking-widest leading-none mb-1">Trust Score</span>
+          <div className="flex items-center gap-1.5">
+            <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+              voice.reputation?.threatLevel === 'green' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 
+              voice.reputation?.threatLevel === 'yellow' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 
+              'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'
+            }`} />
+            <span className="text-sm font-black text-white">{voice.reputation?.trustScore || 85}%</span>
+          </div>
+        </div>
+        <div className="flex flex-col items-center justify-center py-1">
+          <span className="text-[10px] text-zinc-600 uppercase font-black tracking-widest leading-none mb-1">Reputation</span>
+          <span className="text-sm font-black text-blue-400">{voice.reputation?.reputation || 920}</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2 mb-5 py-3 border-y border-white/5">

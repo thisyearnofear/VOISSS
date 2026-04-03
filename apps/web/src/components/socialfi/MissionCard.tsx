@@ -146,11 +146,17 @@ const MissionCard = React.memo<MissionCardProps>(({
     }
 
     if (isAccepted) {
+      const isOnboarding = mission.topic === 'onboarding';
       return {
         disabled: false,
-        text: isAccepting ? "Opening..." : "Record Submission",
+        text: isAccepting ? "Opening..." : isOnboarding ? "Launch Demo" : "Record Submission",
         className: "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-600/30",
-        icon: (
+        icon: isOnboarding ? (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        ) : (
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
           </svg>
@@ -158,17 +164,24 @@ const MissionCard = React.memo<MissionCardProps>(({
       };
     }
 
+    const isOnboarding = mission.topic === 'onboarding';
     return {
       disabled: false,
-      text: isAccepting ? "Accepting..." : "Accept Mission",
-      className: "bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white hover:from-[#6B4CE6] hover:to-[#8B7AFF] hover:scale-[1.02]",
-      icon: (
+      text: isAccepting ? "Accepting..." : isOnboarding ? "Start Tutorial" : "Accept Mission",
+      className: isOnboarding 
+        ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500 hover:scale-[1.02] shadow-[0_0_15px_rgba(37,99,235,0.3)]"
+        : "bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white hover:from-[#6B4CE6] hover:to-[#8B7AFF] hover:scale-[1.02]",
+      icon: isOnboarding ? (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      ) : (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
         </svg>
       )
     };
-  }, [isConnected, eligibilityInfo.isEligible, mission.requiredTier, isAccepted, isAccepting]);
+  }, [isConnected, eligibilityInfo.isEligible, mission.requiredTier, mission.topic, isAccepted, isAccepting]);
 
   return (
     <div className={`voisss-card group hover:scale-[1.01] transition-all duration-300 ${className} ${isAccepted
@@ -205,6 +218,17 @@ const MissionCard = React.memo<MissionCardProps>(({
                 📍 Location-based
               </span>
             )}
+          </div>
+        </div>
+
+        {/* Reputation Badge (Track 2: Agent Spend Governance & Identity) */}
+        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+          <div className="bg-black/40 border border-white/5 rounded-md px-2 py-1 flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+            <span className="text-[10px] font-black text-white">85% TRUST</span>
+          </div>
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-md px-2 py-1">
+            <span className="text-[10px] font-black text-blue-400">920 REP</span>
           </div>
         </div>
 

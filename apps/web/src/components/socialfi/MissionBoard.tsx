@@ -74,8 +74,12 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
         onMissionSelect(mission);
       }
 
-      // Navigate to recording studio with mission context
-      router.push(`/studio?missionId=${mission.id}`);
+      // Navigate to recording studio or demo depending on mission type
+      if (mission.topic === 'onboarding') {
+        router.push(`/demo/ows-agent?missionId=${mission.id}`);
+      } else {
+        router.push(`/studio?missionId=${mission.id}`);
+      }
     } catch (err) {
       console.error("Failed to accept mission:", err);
       alert("Failed to accept mission. Please try again.");
@@ -174,8 +178,39 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
     (m: Mission) => m.createdBy !== "platform" && m.autoExpire
   );
 
+  const onboardingMission = missions.find(
+    (m: Mission) => m.topic === "onboarding"
+  );
+
   return (
     <div className="max-w-6xl mx-auto voisss-section-spacing">
+      {/* Onboarding Mission Highlight */}
+      {onboardingMission && (
+        <div className="mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
+          <div className="flex items-center justify-between mb-4 px-1">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🚀</span>
+              <h2 className="text-xl font-bold text-white">
+                Getting Started
+              </h2>
+            </div>
+            <span className="text-xs text-blue-400 font-medium px-2 py-1 bg-blue-400/10 border border-blue-400/20 rounded-lg">
+              TUTORIAL
+            </span>
+          </div>
+          <MissionCard
+            mission={onboardingMission}
+            onAccept={() => handleMissionAccept(onboardingMission)}
+            isConnected={isConnected || false}
+            isAccepted={acceptedMissionIds.has(onboardingMission.id)}
+            userTier={userTier}
+            userBalance={userBalance ?? undefined}
+            balanceStatus={balanceStatus}
+            className="border-blue-500/30 bg-blue-500/5 hover:border-blue-500/50"
+          />
+        </div>
+      )}
+
       {/* Header */}
       <div className="voisss-card text-center mb-8">
         <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#7C5DFA] to-[#9C88FF] rounded-full mb-4">
