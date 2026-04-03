@@ -323,12 +323,17 @@ apps/mobile/ios/build/
 apps/mobile/ios/Pods/
 apps/mobile/ios/Podfile.lock
 
-# agents
+# AI Assistant directories
+.qoder/
+.qodo/
+.claude/
+.zenflow/
+.zencoder/
+.gemini/
+.junie/
+.kiro/
 
-.qoder
-.qodo
-.claude
-.zenflow
-.zencoder
-.qoder
-.gemini
+# AI Assistant output files
+.output.txt
+output.txt
+*.output.txt
