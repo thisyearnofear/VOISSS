@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { createBaseAccountSDK } from "@base-org/account";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { base } from "viem/chains";
+import { WagmiProvider } from "wagmi";
+import { getConfig } from "@/wagmi";
 import { AuthProvider } from "../contexts/AuthContext";
 import { AssistantProvider } from "../contexts/AssistantContext";
 
@@ -80,16 +82,20 @@ export function BaseProvider({ children }: { children: React.ReactNode }) {
     initializeSDK();
   }, []);
 
+  const wagmiConfig = useMemo(() => getConfig(), []);
+  
   return (
-    <QueryClientProvider client={queryClient}>
-      <BaseContext.Provider value={sdk && provider ? { sdk, provider } : null}>
-        <AssistantProvider>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
-        </AssistantProvider>
-        <ReactQueryDevtools initialIsOpen={false} />
-      </BaseContext.Provider>
-    </QueryClientProvider>
+    <WagmiProvider config={wagmiConfig}>
+      <QueryClientProvider client={queryClient}>
+        <BaseContext.Provider value={sdk && provider ? { sdk, provider } : null}>
+          <AssistantProvider>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </AssistantProvider>
+          <ReactQueryDevtools initialIsOpen={false} />
+        </BaseContext.Provider>
+      </QueryClientProvider>
+    </WagmiProvider>
   );
 }

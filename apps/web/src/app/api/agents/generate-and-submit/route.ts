@@ -44,6 +44,13 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(`🤖 Agent ${agentAddress} requested generate-and-submit for theme ${themeId}`);
+    
+    // Debug: Log request URL info
+    console.log(`📍 Request URL info:`, {
+      origin: req.nextUrl?.origin,
+      href: req.nextUrl?.href,
+      pathname: req.nextUrl?.pathname,
+    });
 
     // Step 1: Generate Voice
     // We'll proxy to the vocalize endpoint logic or call it directly if it was a service.
@@ -51,9 +58,13 @@ export async function POST(req: NextRequest) {
     // or extract the logic. Since we want to keep it simple, we'll use an internal fetch
     // but with the original headers.
     
-    const baseUrl = req.nextUrl.origin;
+    // Get base URL safely, with fallback
+    const baseUrl = req.nextUrl?.origin || 
+                    (typeof window !== 'undefined' ? window.location.origin : '') ||
+                    process.env.NEXT_PUBLIC_BASE_URL ||
+                    'https://voisss.netlify.app';
     
-    console.log(`🎙️ Step 1: Generating voice...`);
+    console.log(`🎙️ Step 1: Generating voice... (baseUrl: ${baseUrl})`);
     const vocalizeResponse = await fetch(`${baseUrl}/api/agents/vocalize`, {
       method: 'POST',
       headers: {
