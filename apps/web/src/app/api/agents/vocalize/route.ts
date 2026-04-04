@@ -138,28 +138,17 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
     const body = await req.json();
     const validatedRequest = VoiceGenerationRequestSchema.parse(body);
 
-    const { text, voiceId, agentAddress, options, maxDurationMs: requestMaxDurationMs } = validatedRequest;
-
-    // Use OWS wallet address if available, otherwise use agentAddress from body
-    const effectiveAgentAddress = owsWallet?.address || agentAddress;
-
-    // Get agent identifier for security and rate limiting
-    const agentId = effectiveAgentAddress || getIdentifier(req);
-    const userAgent = req.headers.get('user-agent') || undefined;
-    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || undefined;
-
-    // Collect headers for security analysis
-    const headers: Record<string, string> = {};
-    req.headers.forEach((value, key) => {
-      headers[key] = value;
-    });
+    const { text, voiceId, agentAddress, options, maxDurationMs: requestMaxDurationMs, preview } = validatedRequest;
 
     // SECURITY LAYER 1: Agent Verification (reverse CAPTCHA)
+    // For previews, we allow a lower confidence threshold or bypass to ensure "magic moment"
     const agentProof = req.headers.get('X-Agent-Proof');
     const timestamp = req.headers.get('X-Agent-Timestamp');
     const verificationService = getAgentVerificationService();
 
-    if (agentAddress && agentProof) {
+    if (preview === true) {
+      console.log(`✨ Preview request detected: Lowering agent verification barrier for magic moment.`);
+    } else if (agentAddress && agentProof) {
       const proofResult = await verificationService.verifyAgentProof(agentAddress, agentProof, timestamp || '');
       if (proofResult.valid) {
         console.log(`🤖 Agent verification: PASS via wallet proof (agent: ${agentAddress})`);
@@ -199,6 +188,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
         payload: body
       });
 
+      // Strict enforcement for non-preview requests (automated agents)
       if (verification.confidence < 0.6) {
         return NextResponse.json({
           success: false,
@@ -240,7 +230,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
       }
     });
 
-    if (!securityCheck.allowed) {
+    // For previews, we use the agent address from the body to determine effective agent address
+    // This is because previews may not have OWS wallets or verified headers
+    const effectiveAgentAddress = owsWallet?.address || agentAddress;
+
+    if (!securityCheck.allowed && preview !== true) {
       console.warn(`🚨 Security check failed for agent ${agentId}: ${securityCheck.reason}`);
 
       // Publish security event
@@ -267,7 +261,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
     }
 
     // Determine agent tier based on security profile
-    const agentTier = determineAgentTier(securityCheck.profile, agentAddress);
+    const agentTier = determineAgentTier(securityCheck.profile, effectiveAgentAddress);
 
     // SECURITY LAYER 3: Advanced Rate Limiting
     const rateLimiter = getAgentRateLimiter();

@@ -121,8 +121,15 @@ export default function QuickVoicePreview() {
           });
         }
       } else {
-        setError(data.error || "Failed to generate preview.");
-        alert(data.error || "Failed to generate preview. Please try another voice or wait a moment.");
+        const errorMessage = data.error || "Failed to generate preview.";
+        setError(errorMessage);
+        
+        // Use a more user-friendly message for verification errors
+        if (errorMessage.includes("verification required")) {
+          alert("We couldn't verify your browser session. Please try refreshing or ensuring you're not using a highly restrictive VPN/Proxy.");
+        } else {
+          alert(errorMessage + " Please try another voice or wait a moment.");
+        }
       }
     } catch (error) {
       console.error("Error playing sample:", error);
