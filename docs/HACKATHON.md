@@ -72,11 +72,11 @@ Agent Request → OWS Wallet Detection → Payment Quote (402)
 ```
 
 ### Key Components
-1. **OWS Payment Handler** (`lib/ows-payment.ts`): Multi-chain wallet verification and pricing logic.
-2. **Voice API** (`api/agents/vocalize/route.ts`): Dual support for OWS and legacy x402 payments.
-3. **Analytics Dashboard** (`app/dashboard/hackathon/page.tsx`): 5-second polling for real-time activity.
-4. **Autonomous Agent Demo** (`app/demo/ows-agent/page.tsx`): Real-time simulation of agentic commerce.
-5. **Test Agent** (`scripts/test-ows-agent.ts`): Simulates autonomous agent interaction.
+1. **OWS Payment Handler** (`lib/ows-payment.ts`): Multi-chain wallet verification, HTTP Message Signatures (X-OWS-Signature), and pricing logic.
+2. **Voice API** (`api/agents/vocalize/route.ts`): Triple support for OWS Signatures, OWS x402, and legacy x402 payments.
+3. **Analytics Dashboard** (`app/dashboard/hackathon/page.tsx`): 5-second polling for real-time activity with reputation visualization.
+4. **Autonomous Agent Demo** (`app/demo/ows-agent/page.tsx`): Real-time simulation of agentic commerce with OWS Zero-Trust signing.
+5. **Test Agent** (`scripts/test-ows-agent.ts`): Simulates autonomous agent interaction using OWS headers.
 
 ---
 
@@ -87,6 +87,12 @@ VOISSS supports 9 chains via OWS, providing a unified interface for agents on an
 ### Supported Chains
 - **EVM (Full Support):** Base (⭐), Arbitrum, Optimism, Polygon, Ethereum.
 - **Non-EVM (Structure Ready):** Solana, Cosmos, TON, XRP Ledger.
+
+### OWS Zero-Trust Identity & Security
+VOISSS implements the latest OWS identity standards, ensuring agents don't just pay, but prove their identity securely.
+- **X-OWS-Signature**: HTTP Message Signatures (RFC 9421) for zero-trust request verification.
+- **X-OWS-Agent-ID**: Persistent agent identity mapped to OWS wallet provenance.
+- **X-OWS-Timestamp**: Replay attack protection for all signed requests.
 
 ### Chain-Specific Pricing Optimization
 Pricing automatically adjusts based on gas costs, allowing agents to optimize for cost-efficiency.

@@ -93,12 +93,15 @@ function OWSAgentDemoContent() {
     
     await sleep(1500);
     setStep(2);
+    addLog("🛡️ OWS Zero-Trust Signing: Generating HTTP Message Signature");
+    addLog("✍️ Signing: VOISSS-Agent:0x123...789:17122...000");
+    addLog("✅ Signature Generated: 0x5e2b...f1a0");
     addLog("🛡️ Checking OWS Spending Policy: 'Max $5/day per session'");
     addLog("✅ Policy check passed. Session budget available: $4.85");
 
     await sleep(1500);
     setStep(3);
-    addLog("📞 Calling /api/agents/vocalize with prompt: 'I am an autonomous agent...'");
+    addLog("📞 Calling /api/agents/vocalize with OWS-Signature header");
     addLog("📡 Server returned 402 Payment Required");
     addLog("💰 Cost: 15,000 USDC wei (Approx $0.015)");
 
@@ -115,6 +118,8 @@ function OWSAgentDemoContent() {
           'Content-Type': 'application/json',
           'X-OWS-Wallet': '0x1234567890123456789012345678901234567890',
           'X-OWS-Chain': 'eip155:8453',
+          'X-OWS-Signature': '0x5e2b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b', // Mock OWS signature
+          'X-OWS-Timestamp': Date.now().toString(),
           'X-OWS-Payment': 'HACKATHON_DEMO_MAGIC_SIG_VALID'
         },
         body: JSON.stringify({

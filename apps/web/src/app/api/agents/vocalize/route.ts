@@ -172,6 +172,26 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
           }
         }, { status: 403 });
       }
+    } else if (owsWallet?.signature && owsWallet?.timestamp) {
+      // OWS HTTP Message Signature Verification
+      const proofResult = await verificationService.verifyAgentProof(
+        owsWallet.address, 
+        owsWallet.signature, 
+        owsWallet.timestamp
+      );
+      
+      if (proofResult.valid) {
+        console.log(`🔷 OWS Agent verification: PASS via HTTP Message Signature (agent: ${owsWallet.address})`);
+      } else {
+        console.warn(`🔷 OWS Agent verification: FAIL (${proofResult.reason})`);
+        return NextResponse.json({
+          success: false,
+          error: "OWS signature verification failed",
+          details: {
+            reason: proofResult.reason,
+          }
+        }, { status: 403 });
+      }
     } else {
       const verification = verificationService.verifyAgentBehavior({
         userAgent,

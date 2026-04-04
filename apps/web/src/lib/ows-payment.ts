@@ -38,6 +38,9 @@ export interface OWSWalletInfo {
   chainType: ChainType;
   chainName: string;
   accountId?: string; // CAIP-10 format
+  agentId?: string; // X-OWS-Agent-ID
+  signature?: string; // X-OWS-Signature (HTTP Message Signature)
+  timestamp?: string; // X-OWS-Timestamp
 }
 
 export interface OWSPaymentRequirements {
@@ -66,11 +69,17 @@ export interface OWSPaymentVerification {
  * - X-OWS-Wallet: wallet address
  * - X-OWS-Chain: CAIP-2 chain identifier (e.g., "eip155:8453" for Base)
  * - X-OWS-Account: (optional) CAIP-10 account identifier
+ * - X-OWS-Agent-ID: (optional) Unique identifier for the agent
+ * - X-OWS-Signature: (optional) HTTP Message Signature for zero-trust requests
+ * - X-OWS-Timestamp: (optional) Timestamp for signature verification
  */
 export function extractOWSWallet(headers: Headers): OWSWalletInfo | null {
   const walletAddress = headers.get('X-OWS-Wallet');
   const chainId = headers.get('X-OWS-Chain') as ChainId | null;
   const accountId = headers.get('X-OWS-Account') || undefined;
+  const agentId = headers.get('X-OWS-Agent-ID') || undefined;
+  const signature = headers.get('X-OWS-Signature') || undefined;
+  const timestamp = headers.get('X-OWS-Timestamp') || undefined;
 
   if (!walletAddress || !chainId) {
     return null;
@@ -102,6 +111,9 @@ export function extractOWSWallet(headers: Headers): OWSWalletInfo | null {
     chainType: chainInfo.type,
     chainName: chainInfo.name,
     accountId,
+    agentId,
+    signature,
+    timestamp,
   };
 }
 
