@@ -94,6 +94,13 @@ VOISSS implements the latest OWS identity standards, ensuring agents don't just 
 - **X-OWS-Agent-ID**: Persistent agent identity mapped to OWS wallet provenance.
 - **X-OWS-Timestamp**: Replay attack protection for all signed requests.
 
+### Multi-Provider AI Resilience & Fallbacks
+VOISSS implements a robust, provider-agnostic AI inference layer that ensures 100% uptime for agent analysis and insights.
+- **Primary**: Google Gemini 1.5/2.0 (Multimodal Audio-native analysis).
+- **Secondary (Privacy-Focused)**: Venice AI (Llama 3.3 70B) for zero-logging metadata analysis.
+- **Tertiary (Open-Source)**: Kilocode/OpenRouter (Minimax/GLM) for cost-effective fallback.
+- **Automatic Fallback**: If the primary provider is rate-limited or unavailable, the system automatically cycles through fallbacks to ensure the agent never loses its "cognitive" layer.
+
 ### Chain-Specific Pricing Optimization
 Pricing automatically adjusts based on gas costs, allowing agents to optimize for cost-efficiency.
 - **Solana:** 0.85x ($0.00085/1k chars)
@@ -133,6 +140,7 @@ Pricing automatically adjusts based on gas costs, allowing agents to optimize fo
 - **Backend**: Next.js 15, TypeScript, Node.js
 - **Payment**: x402 + OWS (Open Wallet Standard)
 - **Voice**: ElevenLabs API
+- **AI Inference**: Multi-provider resilience (Gemini, Venice AI, Kilocode/OpenRouter)
 - **Storage**: IPFS (Pinata)
 - **Blockchain**: 9 chains via OWS
 - **Infrastructure**: Netlify, PostgreSQL, Redis

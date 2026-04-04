@@ -63,7 +63,7 @@ const kilocodeModels = [
 ];
 const kilocodeDefaultModel = kilocodeModels[0].id;
 
-if (!googleApiKey && !veniceApiKey && !kilocodeApiKey && typeof window === "undefined") {
+if (!googleApiKey && !veniceApiKey && !kilocodeApiKey && typeof process !== "undefined" && !process.env.NEXT_RUNTIME) {
   console.warn(
     "No AI providers (Gemini, Venice, Kilocode) are configured in environment variables"
   );
@@ -158,12 +158,8 @@ async function runVeniceChat(messages: ChatMessage[]): Promise<string> {
     throw new Error(`Venice AI request failed: ${response.status} ${details}`);
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as any;
   const content = data?.choices?.[0]?.message?.content;
-
-  if (!content || typeof content !== "string") {
-    throw new Error("Venice AI returned an empty response");
-  }
 
   return content.trim();
 }
@@ -193,9 +189,8 @@ async function runKilocodeChat(messages: ChatMessage[]): Promise<string> {
     throw new Error(`Kilocode AI request failed: ${response.status} ${details}`);
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as any;
   const content = data?.choices?.[0]?.message?.content;
-
   if (!content || typeof content !== "string") {
     throw new Error("Kilocode AI returned an empty response");
   }
@@ -291,7 +286,7 @@ const studioAnalysisSchema = z.object({
   }),
 });
 
-async function runJsonPrompt<T>(prompt: string, schema: z.ZodSchema<T>): Promise<{ data: T; provider: string; model: string }> {
+export async function runJsonPrompt<T>(prompt: string, schema: z.ZodSchema<T>): Promise<{ data: T; provider: string; model: string }> {
   // Try Venice first
   if (veniceApiKey) {
     try {
