@@ -1,6 +1,6 @@
 "use server";
 
-import { generateStudioAnalysisFromAudio } from "../lib/gemini";
+import { generateStudioAnalysisFromAudio } from "../lib/ai-inference";
 
 export async function generateRecordingInsights(formData: FormData) {
   try {

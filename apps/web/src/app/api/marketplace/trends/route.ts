@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createFirecrawlService } from '@voisss/shared';
-import { analyzeMarketTrends, MarketTrendResult } from '@/lib/gemini';
+import { analyzeMarketTrends, MarketTrendResult } from '@/lib/ai-inference';
 
 /**
  * Marketplace Trends API
@@ -54,8 +54,8 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // 2. Analyze the markdown content via Gemini
-    console.log('🧠 Analyzing market data via Gemini...');
+    // 2. Analyze the markdown content via AI
+    console.log('🧠 Analyzing market data via AI...');
     const trends = await analyzeMarketTrends(scrapeResult.data.markdown);
 
     // 3. Cache and return the results

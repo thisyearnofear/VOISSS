@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   generateAssistantReply,
   getAIProviderStatus,
-} from "../../../lib/gemini";
+} from "../../../lib/ai-inference";
 import { createFirecrawlService, shouldTriggerWebSearch } from "@voisss/shared";
 
 interface ConversationMessage {

@@ -10,7 +10,7 @@ import {
   Globe,
 } from "lucide-react";
 
-interface GeminiInsightsPanelProps {
+interface StudioInsightsPanelProps {
   audioBlob: Blob | null;
   onApplyInsights: (data: {
     title: string;
@@ -43,11 +43,11 @@ interface InsightsData {
   model?: string;
 }
 
-export default function GeminiInsightsPanel({
+export default function StudioInsightsPanel({
   audioBlob,
   onApplyInsights,
   isVisible,
-}: GeminiInsightsPanelProps) {
+}: StudioInsightsPanelProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [insights, setInsights] = useState<InsightsData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -117,7 +117,7 @@ export default function GeminiInsightsPanel({
           </div>
           <div>
             <h3 className="text-lg font-bold text-white tracking-tight">
-              Publishing Strategy
+              Studio Insights
             </h3>
             <p className="text-xs text-gray-500 font-medium">
               AI-optimized metadata, captions, and trust signals
@@ -292,6 +292,11 @@ export default function GeminiInsightsPanel({
           <div className="flex justify-between items-center pt-2">
             <p className="text-[10px] text-gray-600 font-medium">
               Strategy generated based on the current audio version.
+              {insights.provider && (
+                <span className="ml-2 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 uppercase tracking-tighter">
+                  Powered by {insights.provider} {insights.model}
+                </span>
+              )}
             </p>
             <button
               onClick={handleApply}

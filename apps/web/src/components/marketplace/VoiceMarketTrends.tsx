@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { TrendingUp, Globe, Briefcase, Info, RefreshCw, BarChart3, Tag } from "lucide-react";
-import { MarketTrendResult, MarketTrend } from "@/lib/gemini";
+import { MarketTrendResult, MarketTrend } from "@/lib/ai-inference";
 
 export function VoiceMarketTrends() {
   const [trends, setTrends] = useState<MarketTrendResult | null>(null);

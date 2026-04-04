@@ -24,7 +24,7 @@ import AlchemyModeStatus from "@/components/RecordingStudio/AlchemyModeStatus";
 import AudioPreview from "@/components/RecordingStudio/AudioPreview";
 import ActionButtons from "@/components/RecordingStudio/ActionButtons";
 import RecordingTitle from "@/components/RecordingStudio/RecordingTitle";
-import GeminiInsightsPanel from "@/components/RecordingStudio/GeminiInsightsPanel";
+import StudioInsightsPanel from "@/components/RecordingStudio/StudioInsightsPanel";
 import { useStudioSettings } from "@/hooks/useStudioSettings";
 import { useAgentVerification } from "@/hooks/useAgentVerification";
 import { saveVersionLedger, getVersionLedger } from "@/lib/studio-db";
@@ -996,7 +996,7 @@ export default function RecordingStudio({
                 )}
 
                 {activeTool === "insights" && (
-                  <GeminiInsightsPanel
+                  <StudioInsightsPanel
                     audioBlob={activeVersion?.blob || audioBlob}
                     onApplyInsights={handleApplyInsights}
                     isVisible={true}
