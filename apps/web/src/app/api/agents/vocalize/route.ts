@@ -139,6 +139,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
     const validatedRequest = VoiceGenerationRequestSchema.parse(body);
 
     const { text, voiceId, agentAddress, options, maxDurationMs: requestMaxDurationMs, preview } = validatedRequest;
+    const userAgent = req.headers.get("user-agent") || "unknown";
+    const headers = Object.fromEntries(req.headers.entries());
 
     // SECURITY LAYER 1: Agent Verification (reverse CAPTCHA)
     // For previews, we allow a lower confidence threshold or bypass to ensure "magic moment"
@@ -215,6 +217,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
     }
 
     // SECURITY LAYER 2: Comprehensive Security Check
+    const agentId = agentAddress || owsWallet?.address || "anonymous-agent";
+    const ip = req.ip || req.headers.get('x-forwarded-for') || '127.0.0.1';
     const securityService = getAgentSecurityService();
     const securityCheck = await securityService.securityCheck({
       agentId,

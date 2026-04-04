@@ -268,6 +268,7 @@ export const VoiceGenerationRequestSchema = z.object({
   voiceId: z.string(),
   agentAddress: z.string(),
   maxDurationMs: z.number().min(1000).max(AUDIO_CONFIG.MAX_DURATION_MS).optional(),
+  preview: z.boolean().optional(),
   options: z.object({
     model: z.string().default("eleven_multilingual_v2"),
     stability: z.number().min(0).max(1).default(0.5),
