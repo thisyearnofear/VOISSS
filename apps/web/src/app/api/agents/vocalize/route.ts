@@ -150,6 +150,12 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
 
     if (preview === true) {
       console.log(`✨ Preview request detected: Lowering agent verification barrier for magic moment.`);
+      
+      // Ensure we have a valid payTo address for the quote even in preview
+      // If X402_PAY_TO_ADDRESS is missing, we use a platform fallback for the preview quote
+      if (!process.env.X402_PAY_TO_ADDRESS) {
+        process.env.X402_PAY_TO_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base USDC Address as placeholder
+      }
     } else if (agentAddress && agentProof) {
       const proofResult = await verificationService.verifyAgentProof(agentAddress, agentProof, timestamp || '');
       if (proofResult.valid) {

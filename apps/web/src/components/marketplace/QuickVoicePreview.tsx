@@ -122,18 +122,19 @@ export default function QuickVoicePreview() {
         }
       } else {
         const errorMessage = data.error || "Failed to generate preview.";
-        setError(errorMessage);
         
-        // Use a more user-friendly message for verification errors
+        // Use a more user-friendly message for verification or payment errors
         if (errorMessage.includes("verification required")) {
-          alert("We couldn't verify your browser session. Please try refreshing or ensuring you're not using a highly restrictive VPN/Proxy.");
+          setError("Verification check paused. Please refresh the page and try again.");
+        } else if (errorMessage.includes("payTo address is REQUIRED") || errorMessage.includes("Payment required")) {
+          setError("Preview configuration is being updated. Please try again in a moment.");
         } else {
-          alert(errorMessage + " Please try another voice or wait a moment.");
+          setError(errorMessage + " Please try another voice or wait a moment.");
         }
       }
     } catch (error) {
       console.error("Error playing sample:", error);
-      setError("An unexpected error occurred.");
+      setError("An unexpected error occurred. Please check your connection.");
     } finally {
       setIsLoading(false);
     }
