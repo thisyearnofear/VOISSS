@@ -57,7 +57,7 @@
     "url": "0.11.4",
     "viem": "^2.18.3",
     "vm-browserify": "1.1.2",
-    "wagmi": "^2.18.1",
+    "wagmi": "^3.6.0",
     "zustand": "^5.0.2"
   },
   "devDependencies": {
