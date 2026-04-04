@@ -43,7 +43,7 @@ const googleApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 const googleTextModel =
   process.env.GEMINI_TEXT_MODEL || "gemini-3.1-pro-preview";
 const googleAudioModel =
-  process.env.GEMINI_AUDIO_MODEL || googleTextModel;
+  process.env.GEMINI_AUDIO_MODEL || "gemini-3.1-flash-preview";
 
 const veniceApiKey = process.env.VENICE_API_KEY;
 const veniceBaseUrl =
@@ -61,7 +61,7 @@ const kilocodeModels = [
   { id: "minimax/minimax-m2.1:free", name: "Minimax M2.1" },
   { id: "z-ai/glm-4.7:free", name: "GLM 4.7" }
 ];
-const kilocodeDefaultModel = kilocodeModels[0].id;
+const kilocodeDefaultModel = process.env.KILOCODE_MODEL || kilocodeModels[0].id;
 
 if (!googleApiKey && !veniceApiKey && !kilocodeApiKey && typeof process !== "undefined" && !process.env.NEXT_RUNTIME) {
   console.warn(

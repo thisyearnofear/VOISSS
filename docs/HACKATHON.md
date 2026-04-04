@@ -96,7 +96,7 @@ VOISSS implements the latest OWS identity standards, ensuring agents don't just 
 
 ### Multi-Provider AI Resilience & Fallbacks
 VOISSS implements a robust, provider-agnostic AI inference layer that ensures 100% uptime for agent analysis and insights.
-- **Primary**: Google Gemini 1.5/2.0 (Multimodal Audio-native analysis).
+- **Primary**: Google Gemini 3.1 Pro/Flash (Multimodal Audio-native analysis).
 - **Secondary (Privacy-Focused)**: Venice AI (Llama 3.3 70B) for zero-logging metadata analysis.
 - **Tertiary (Open-Source)**: Kilocode/OpenRouter (Minimax/GLM) for cost-effective fallback.
 - **Automatic Fallback**: If the primary provider is rate-limited or unavailable, the system automatically cycles through fallbacks to ensure the agent never loses its "cognitive" layer.
