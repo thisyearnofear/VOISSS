@@ -24,7 +24,7 @@
     "@voisss/ui": "workspace:*",
     "browserify-zlib": "0.2.0",
     "buffer": "6.0.3",
-    "expo": "^54.0.29",
+    "expo": "^55.0.11",
     "expo-asset": "~12.0.11",
     "expo-audio": "^1.1.0",
     "expo-av": "~16.0.8",
