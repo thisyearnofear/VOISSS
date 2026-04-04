@@ -553,6 +553,28 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
     }
 
     // No payment header - check if we can process without x402
+    if (preview === true) {
+      console.log(`✨ Generating voice for preview without payment (gasless magic moment)`);
+      const response = await generateAndReturnVoice(
+        text,
+        voiceId,
+        effectiveAgentAddress,
+        characterCount,
+        BigInt(0),
+        'preview',
+        req,
+        undefined,
+        undefined,
+        undefined,
+        recordingId,
+        agentTier,
+        quote.baseCost,
+        0,
+        owsWallet || undefined
+      );
+      return response;
+    }
+
     if (quote.recommendedMethod !== 'x402') {
       // Try credits or tier
       const paymentResult = await paymentRouter.process({
