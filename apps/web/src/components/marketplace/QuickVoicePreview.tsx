@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Play, Square, Loader2, Sparkles, MessageSquare } from "lucide-react";
+import confetti from "canvas-confetti";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface MarketplaceVoice {
   id: string;
@@ -21,6 +23,7 @@ export default function QuickVoicePreview() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasSynthesized, setHasSynthesized] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Fallback voices for demo/development if indexer is empty
@@ -106,6 +109,17 @@ export default function QuickVoicePreview() {
         audio.onended = () => setIsPlaying(false);
         await audio.play();
         setIsPlaying(true);
+
+        // Trigger celebration on first successful synthesis
+        if (!hasSynthesized) {
+          setHasSynthesized(true);
+          confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ["#3b82f6", "#8b5cf6", "#06b6d4"],
+          });
+        }
       } else {
         setError(data.error || "Failed to generate preview.");
         alert(data.error || "Failed to generate preview. Please try another voice or wait a moment.");
@@ -119,7 +133,11 @@ export default function QuickVoicePreview() {
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto bg-[#141414]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="w-full max-w-2xl mx-auto bg-[#141414]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl"
+    >
       <div className="flex items-center gap-2 mb-6 text-blue-400 font-bold uppercase tracking-widest text-xs">
         <Sparkles className="w-4 h-4" />
         Instant Synthesis Playground
@@ -141,7 +159,7 @@ export default function QuickVoicePreview() {
                 }}
                 className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-300 ${
                   selectedVoice?.id === voice.id
-                    ? "bg-blue-600/20 border-blue-500 text-white"
+                    ? "bg-blue-600/20 border-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.2)]"
                     : "bg-[#0A0A0A] border-white/5 text-gray-400 hover:border-white/20"
                 }`}
               >
@@ -162,7 +180,7 @@ export default function QuickVoicePreview() {
 
         {/* Text Input */}
         <div className="relative group">
-          <div className="absolute left-4 top-4 text-gray-500">
+          <div className="absolute left-4 top-4 text-gray-500 transition-colors group-focus-within:text-blue-500">
             <MessageSquare className="w-5 h-5" />
           </div>
           <textarea
@@ -179,54 +197,79 @@ export default function QuickVoicePreview() {
 
         {/* Play Button */}
         <div className="relative group">
-          {isPlaying && (
-            <div className="absolute -inset-2 bg-blue-500/10 rounded-2xl blur-xl animate-pulse -z-10" />
-          )}
+          <AnimatePresence>
+            {isPlaying && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="absolute -inset-2 bg-blue-500/10 rounded-2xl blur-xl -z-10" 
+              />
+            )}
+          </AnimatePresence>
           
-          <button
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
             onClick={handlePreview}
             disabled={isLoading || !selectedVoice}
-            className={`w-full py-4 rounded-xl flex items-center justify-center gap-3 font-bold text-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] ${
+            className={`w-full py-4 rounded-xl flex items-center justify-center gap-3 font-bold text-lg transition-all duration-300 ${
               isPlaying
                 ? "bg-white text-black ring-4 ring-blue-500/20"
                 : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25"
             } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {isLoading ? (
-              <>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center gap-2"
+              >
                 <Loader2 className="w-6 h-6 animate-spin" />
                 Synthesizing...
-              </>
+              </motion.div>
             ) : isPlaying ? (
-              <>
-                <div className="flex items-center gap-1 mr-2">
-                  {[...Array(4)].map((_, i) => (
-                    <div 
-                      key={i} 
-                      className="w-1 bg-black rounded-full animate-bounce" 
-                      style={{ 
-                        height: `${Math.random() * 16 + 8}px`,
-                        animationDelay: `${i * 0.1}s`,
-                        animationDuration: '0.6s'
-                      }} 
-                    />
-                  ))}
-                </div>
-                Stop Playing
-              </>
+              <div className="flex items-center gap-1">
+                {[...Array(6)].map((_, i) => (
+                  <motion.div 
+                    key={i} 
+                    className="w-1.5 bg-black rounded-full" 
+                    animate={{ 
+                      height: [8, 24, 12, 32, 8],
+                    }}
+                    transition={{
+                      duration: 0.6,
+                      repeat: Infinity,
+                      delay: i * 0.1,
+                      ease: "easeInOut"
+                    }}
+                  />
+                ))}
+                <span className="ml-2">Stop Playing</span>
+              </div>
             ) : (
               <>
                 <Play className="w-5 h-5 fill-current" />
                 Try this voice
               </>
             )}
-          </button>
+          </motion.button>
         </div>
 
         <p className="text-center text-[10px] text-gray-500 uppercase tracking-widest font-medium">
           Powered by VOISSS x402 Protocol • Gasless Preview
         </p>
       </div>
-    </div>
+
+      {error && (
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-center"
+        >
+          {error}
+        </motion.div>
+      )}
+    </motion.div>
   );
 }

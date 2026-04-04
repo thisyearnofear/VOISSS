@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useEffect, useMemo, Suspense } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBase } from "@/app/providers";
 import { useBaseAccount } from "@/hooks/useBaseAccount";
@@ -782,14 +783,24 @@ export default function RecordingStudio({
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="flex items-center justify-between border-b border-[#2A2A2A] pb-6">
             <div className="text-left">
-              <h3 className="text-2xl font-black text-white tracking-tight uppercase">
+              <motion.h3 
+                key={isAdvancedMode ? "lab" : "saved"}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="text-2xl font-black text-white tracking-tight uppercase"
+              >
                 {isAdvancedMode ? "The Laboratory" : "Recording Saved"}
-              </h3>
-              <p className="text-sm text-gray-400">
+              </motion.h3>
+              <motion.p 
+                key={isAdvancedMode ? "alchemy" : "preview"}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-sm text-gray-400"
+              >
                 {isAdvancedMode 
                   ? "Alchemy Hub: Transform, Dub, and Secure your creation" 
                   : "Preview your recording or unlock advanced tools"}
-              </p>
+              </motion.p>
             </div>
             
             <button 
@@ -800,7 +811,12 @@ export default function RecordingStudio({
                   : "bg-[#2A2A2A] text-zinc-400 hover:text-white"
               }`}
             >
-              {isAdvancedMode ? "✨ Advanced Mode" : "Show Advanced Tools"}
+              <motion.span
+                layout
+                className="flex items-center gap-2"
+              >
+                {isAdvancedMode ? "✨ Advanced Mode" : "Show Advanced Tools"}
+              </motion.span>
               
               {!isAdvancedMode && (
                 <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 bg-black/90 border border-white/10 p-2 rounded text-[10px] lowercase text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case">
@@ -811,65 +827,83 @@ export default function RecordingStudio({
             </button>
           </div>
 
-          {/* Top Section: Analysis & Metadata */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-            <div className={`${isAdvancedMode ? "md:col-span-3" : "md:col-span-5"} space-y-6`}>
+            <motion.div 
+              layout
+              className={`${isAdvancedMode ? "md:col-span-3" : "md:col-span-5"} space-y-6 transition-all duration-500 ease-in-out`}
+            >
               <AudioPreview
                 previewUrl={activePreviewUrl || previewUrl}
                 audioBlob={activeVersion?.blob || audioBlob}
                 formatFileSize={formatFileSize}
               />
-            </div>
-            {isAdvancedMode && (
-              <div className="md:col-span-2 space-y-6">
-                <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-6 space-y-6 shadow-xl">
-                  <RecordingTitle
-                    recordingTitle={recordingTitle}
-                    onTitleChange={setRecordingTitle}
-                    isAgentMode={isAgentMode}
-                    onAgentModeChange={setIsAgentMode}
-                    category={agentCategory}
-                    onCategoryChange={setAgentCategory}
-                    x402Price={x402Price}
-                    onX402PriceChange={setX402Price}
-                    listOnMarketplace={listOnMarketplace}
-                    onListOnMarketplaceChange={setListOnMarketplace}
-                    marketplacePrice={marketplacePrice}
-                    onMarketplacePriceChange={setMarketplacePrice}
-                    marketplaceExclusive={marketplaceExclusive}
-                    onMarketplaceExclusiveChange={setMarketplaceExclusive}
-                    humanityCertificateBadge={recordingAnalysis?.humanityCertificate?.badge || null}
-                    isVerifiedAgent={isVerifiedAgent}
-                  />
-                  <AlchemyModeStatus
-                    isConnected={isConnected}
-                    hasSubAccount={hasSubAccount}
-                    activeMode={activeMode}
-                    isCreatingSubAccount={isCreatingSubAccount}
-                    createSubAccount={createSubAccount}
-                    setToastType={setToastType}
-                    setToastMessage={setToastMessage}
-                  />
-                </div>
-              </div>
-            )}
+            </motion.div>
+            
+            <AnimatePresence>
+              {isAdvancedMode && (
+                <motion.div 
+                  initial={{ opacity: 0, x: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: 20, scale: 0.95 }}
+                  transition={{ duration: 0.3 }}
+                  className="md:col-span-2 space-y-6"
+                >
+                  <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-6 space-y-6 shadow-xl">
+                    <RecordingTitle
+                      recordingTitle={recordingTitle}
+                      onTitleChange={setRecordingTitle}
+                      isAgentMode={isAgentMode}
+                      onAgentModeChange={setIsAgentMode}
+                      category={agentCategory}
+                      onCategoryChange={setAgentCategory}
+                      x402Price={x402Price}
+                      onX402PriceChange={setX402Price}
+                      listOnMarketplace={listOnMarketplace}
+                      onListOnMarketplaceChange={setListOnMarketplace}
+                      marketplacePrice={marketplacePrice}
+                      onMarketplacePriceChange={setMarketplacePrice}
+                      marketplaceExclusive={marketplaceExclusive}
+                      onMarketplaceExclusiveChange={setMarketplaceExclusive}
+                      humanityCertificateBadge={recordingAnalysis?.humanityCertificate?.badge || null}
+                      isVerifiedAgent={isVerifiedAgent}
+                    />
+                    <AlchemyModeStatus
+                      isConnected={isConnected}
+                      hasSubAccount={hasSubAccount}
+                      activeMode={activeMode}
+                      isCreatingSubAccount={isCreatingSubAccount}
+                      createSubAccount={createSubAccount}
+                      setToastType={setToastType}
+                      setToastMessage={setToastMessage}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          {isAdvancedMode && (
-            <div className="border-t border-[#2A2A2A] pt-6">
-              <VersionSelection
-                versions={versions}
-                activeVersionId={activeVersionId}
-                selectedVersionIds={selectedVersionIds}
-                userTier={userTier}
-                remainingQuota={remainingQuota}
-                onSelectedVersionIdsChange={setSelectedVersionIds}
-                onSetActive={setActiveVersion}
-                onDeleteVersion={deleteVersion}
-                onOpenTool={handleOpenTool}
-              />
-            </div>
-          )}
+          <AnimatePresence>
+            {isAdvancedMode && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="border-t border-[#2A2A2A] pt-6"
+              >
+                <VersionSelection
+                  versions={versions}
+                  activeVersionId={activeVersionId}
+                  selectedVersionIds={selectedVersionIds}
+                  userTier={userTier}
+                  remainingQuota={remainingQuota}
+                  onSelectedVersionIdsChange={setSelectedVersionIds}
+                  onSetActive={setActiveVersion}
+                  onDeleteVersion={deleteVersion}
+                  onOpenTool={handleOpenTool}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Active Tool Panel (Tool Deck) */}
           {activeTool && isAdvancedMode && (
