@@ -39,6 +39,24 @@ export interface StudioAnalysisResult {
   model: string;
 }
 
+export type AnalysisStepId = "transcription" | "analysis" | "fallback";
+export type AnalysisStepStatus = "pending" | "running" | "completed" | "failed" | "skipped";
+
+export interface AnalysisStep {
+  id: AnalysisStepId;
+  label: string;
+  status: AnalysisStepStatus;
+  provider?: string;
+  model?: string;
+  message?: string;
+}
+
+export interface PipelineAnalysisResult extends StudioAnalysisResult {
+  transcript?: string;
+  mode: "transcript-pipeline" | "audio-native-fallback";
+  steps: AnalysisStep[];
+}
+
 const googleApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 const googleTextModel =
   process.env.GEMINI_TEXT_MODEL || "gemini-3.1-pro-preview";
@@ -50,6 +68,9 @@ const veniceBaseUrl =
   process.env.VENICE_API_URL || "https://api.venice.ai/api/v1";
 const veniceModel = process.env.VENICE_MODEL || "llama-3.3-70b";
 
+const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
+const elevenLabsSTTModel = process.env.ELEVENLABS_STT_MODEL || "scribe_v2";
+
 const googleClient = googleApiKey
   ? new GoogleGenerativeAI(googleApiKey)
   : null;
@@ -58,8 +79,8 @@ const googleClient = googleApiKey
 const kilocodeApiKey = process.env.KILOCODE_API_KEY;
 const kilocodeBaseUrl = process.env.KILOCODE_API_URL || "https://api.kilo.ai/api/openrouter/";
 const kilocodeModels = [
-  { id: "minimax/minimax-m2.1:free", name: "Minimax M2.1" },
-  { id: "z-ai/glm-4.7:free", name: "GLM 4.7" }
+  { id: "kilo-auto/balanced", name: "Kilo Auto (Balanced)" },
+  { id: "kilo-auto/free", name: "Kilo Auto (Free)" },
 ];
 const kilocodeDefaultModel = process.env.KILOCODE_MODEL || kilocodeModels[0].id;
 
@@ -198,6 +219,41 @@ async function runKilocodeChat(messages: ChatMessage[]): Promise<string> {
   return content.trim();
 }
 
+async function transcribeWithElevenLabs(file: File): Promise<{ transcript: string; provider: string; model: string }> {
+  if (!elevenLabsApiKey) {
+    throw new Error("ElevenLabs is not configured (ELEVENLABS_API_KEY missing)");
+  }
+
+  const form = new FormData();
+  form.append("model_id", elevenLabsSTTModel);
+  form.append("file", file);
+
+  const response = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
+    method: "POST",
+    headers: {
+      "xi-api-key": elevenLabsApiKey,
+    },
+    body: form,
+  });
+
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`ElevenLabs STT failed: ${response.status} ${details}`);
+  }
+
+  const data = await response.json() as { text?: string; language_code?: string };
+
+  if (!data.text?.trim()) {
+    throw new Error("ElevenLabs returned an empty transcript");
+  }
+
+  return {
+    transcript: data.text.trim(),
+    provider: "elevenlabs",
+    model: elevenLabsSTTModel,
+  };
+}
+
 export function getAIProviderStatus() {
   return {
     google: {
@@ -213,7 +269,11 @@ export function getAIProviderStatus() {
       configured: Boolean(kilocodeApiKey),
       models: kilocodeModels,
     },
-    fallbackOrder: ["venice", "kilocode", "google"],
+    elevenlabs: {
+      configured: Boolean(elevenLabsApiKey),
+      sttModel: elevenLabsSTTModel,
+    },
+    fallbackOrder: ["kilocode", "venice", "google"],
   };
 }
 
@@ -222,26 +282,7 @@ export async function generateAssistantReply(prompt: string): Promise<{
   provider: "google" | "venice" | "kilocode";
   model: string;
 }> {
-  // Try Venice first
-  if (veniceApiKey) {
-    try {
-      return {
-        text: await runVeniceChat([
-          {
-            role: "system",
-            content: "You are the VOISSS assistant. Keep responses concise, natural, and ready for text-to-speech.",
-          },
-          { role: "user", content: prompt },
-        ]),
-        provider: "venice",
-        model: veniceModel,
-      };
-    } catch (error) {
-      console.error("Venice fallback failed:", error);
-    }
-  }
-
-  // Try Kilocode second
+  // Try Kilocode first (primary)
   if (kilocodeApiKey) {
     try {
       return {
@@ -256,7 +297,26 @@ export async function generateAssistantReply(prompt: string): Promise<{
         model: kilocodeDefaultModel,
       };
     } catch (error) {
-      console.error("Kilocode fallback failed:", error);
+      console.error("Kilocode failed, trying Venice:", error);
+    }
+  }
+
+  // Try Venice second (secondary)
+  if (veniceApiKey) {
+    try {
+      return {
+        text: await runVeniceChat([
+          {
+            role: "system",
+            content: "You are the VOISSS assistant. Keep responses concise, natural, and ready for text-to-speech.",
+          },
+          { role: "user", content: prompt },
+        ]),
+        provider: "venice",
+        model: veniceModel,
+      };
+    } catch (error) {
+      console.error("Venice failed, trying Google:", error);
     }
   }
 
@@ -287,21 +347,7 @@ const studioAnalysisSchema = z.object({
 });
 
 export async function runJsonPrompt<T>(prompt: string, schema: z.ZodSchema<T>): Promise<{ data: T; provider: string; model: string }> {
-  // Try Venice first
-  if (veniceApiKey) {
-    try {
-      const content = await runVeniceChat([
-        { role: "system", content: "You are a specialized AI assistant that returns ONLY raw JSON following the provided schema. No talk, just JSON." },
-        { role: "user", content: `${prompt}\n\nReturn strict JSON following this schema requirement.` }
-      ]);
-      const data = parseJsonResponse<T>(content);
-      return { data, provider: "venice", model: veniceModel };
-    } catch (error) {
-      console.error("Venice JSON prompt failed:", error);
-    }
-  }
-
-  // Try Kilocode second
+  // Try Kilocode first (primary)
   if (kilocodeApiKey) {
     try {
       const content = await runKilocodeChat([
@@ -315,11 +361,166 @@ export async function runJsonPrompt<T>(prompt: string, schema: z.ZodSchema<T>): 
     }
   }
 
+  // Try Venice second (secondary)
+  if (veniceApiKey) {
+    try {
+      const content = await runVeniceChat([
+        { role: "system", content: "You are a specialized AI assistant that returns ONLY raw JSON following the provided schema. No talk, just JSON." },
+        { role: "user", content: `${prompt}\n\nReturn strict JSON following this schema requirement.` }
+      ]);
+      const data = parseJsonResponse<T>(content);
+      return { data, provider: "venice", model: veniceModel };
+    } catch (error) {
+      console.error("Venice JSON prompt failed:", error);
+    }
+  }
+
   // Fallback to Google (text model)
   const model = googleTextModel;
   const content = await runGoogleTextPrompt(prompt);
   const data = parseJsonResponse<T>(content);
   return { data, provider: "google", model };
+}
+
+function buildStudioTranscriptPrompt(transcript: string): string {
+  return `
+You are VOISSS Trust & Publishing Engine. Analyze the following transcript from a voice recording and return strict JSON.
+
+Transcript:
+"""${transcript}"""
+
+Return:
+{
+  "insights": {
+    "title": "A strong publishing title under 60 characters",
+    "summary": ["point one", "point two", "point three"],
+    "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
+    "actionItems": ["caption for X/Farcaster", "caption for TikTok/Reels", "creator next step"]
+  },
+  "humanityCertificate": {
+    "status": "verified-human" | "review-needed" | "uncertain",
+    "badge": "Short trust badge label",
+    "confidence": 0.0,
+    "verdict": "One-sentence assessment",
+    "humanSignals": ["signal 1", "signal 2", "signal 3"],
+    "aiArtifacts": ["artifact 1", "artifact 2"],
+    "provenanceNotes": ["note 1", "note 2"]
+  }
+}
+
+Rules:
+- Base conclusions on transcript content and any speech markers present.
+- Since this is transcript-only (not raw audio), be conservative with authenticity assessments.
+- Prefer "review-needed" over "verified-human" unless transcript evidence is very strong.
+- Confidence must be between 0 and 1, and should be capped at 0.75 for transcript-only analysis.
+- Return ONLY valid JSON.
+`;
+}
+
+export async function generateStudioAnalysisWithPipeline(
+  file: File,
+  audioBase64: string,
+  mimeType: string,
+  onProgress?: (event: { step: AnalysisStep; steps: AnalysisStep[]; transcript?: string }) => void
+): Promise<PipelineAnalysisResult> {
+  const steps: AnalysisStep[] = [
+    { id: "transcription", label: "Transcribing audio with ElevenLabs", status: "pending" },
+    { id: "analysis", label: "Analyzing transcript", status: "pending" },
+    { id: "fallback", label: "Gemini audio-native fallback", status: "pending" },
+  ];
+
+  function updateStep(id: AnalysisStepId, updates: Partial<AnalysisStep>) {
+    const step = steps.find((s) => s.id === id)!;
+    Object.assign(step, updates);
+    onProgress?.({ step, steps: [...steps], transcript: undefined });
+  }
+
+  // ── Step 1: ElevenLabs Transcription ──
+  let transcript: string | undefined;
+  let sttProvider: string | undefined;
+  let sttModel: string | undefined;
+
+  try {
+    updateStep("transcription", { status: "running" });
+    const sttResult = await transcribeWithElevenLabs(file);
+    transcript = sttResult.transcript;
+    sttProvider = sttResult.provider;
+    sttModel = sttResult.model;
+    updateStep("transcription", {
+      status: "completed",
+      provider: sttProvider,
+      model: sttModel,
+      message: `Transcribed ${transcript.length} characters`,
+    });
+    onProgress?.({ step: steps.find((s) => s.id === "transcription")!, steps: [...steps], transcript });
+  } catch (error) {
+    console.error("ElevenLabs STT failed:", error);
+    updateStep("transcription", {
+      status: "failed",
+      message: error instanceof Error ? error.message : "Transcription failed",
+    });
+  }
+
+  // ── Step 2: Transcript Analysis (Kilocode → Venice → Gemini text) ──
+  if (transcript) {
+    try {
+      updateStep("analysis", { status: "running" });
+      const prompt = buildStudioTranscriptPrompt(transcript);
+      const result = await runJsonPrompt<{
+        insights: StudioInsights;
+        humanityCertificate: HumanityCertificate;
+      }>(prompt, studioAnalysisSchema);
+
+      updateStep("analysis", {
+        status: "completed",
+        provider: result.provider,
+        model: result.model,
+      });
+      updateStep("fallback", { status: "skipped" });
+
+      return {
+        insights: result.data.insights,
+        humanityCertificate: result.data.humanityCertificate,
+        provider: result.provider,
+        model: result.model,
+        transcript,
+        mode: "transcript-pipeline",
+        steps,
+      };
+    } catch (error) {
+      console.error("Transcript analysis failed:", error);
+      updateStep("analysis", {
+        status: "failed",
+        message: error instanceof Error ? error.message : "Analysis failed",
+      });
+    }
+  } else {
+    updateStep("analysis", { status: "skipped", message: "No transcript available" });
+  }
+
+  // ── Step 3: Gemini Audio-Native Fallback ──
+  try {
+    updateStep("fallback", { status: "running", message: "Falling back to Gemini multimodal" });
+    const fallbackResult = await generateStudioAnalysisFromAudio(audioBase64, mimeType);
+    updateStep("fallback", {
+      status: "completed",
+      provider: fallbackResult.provider,
+      model: fallbackResult.model,
+    });
+
+    return {
+      ...fallbackResult,
+      transcript,
+      mode: "audio-native-fallback",
+      steps,
+    };
+  } catch (error) {
+    updateStep("fallback", {
+      status: "failed",
+      message: error instanceof Error ? error.message : "Fallback failed",
+    });
+    throw new Error("All analysis pipelines failed. Please try again later.");
+  }
 }
 
 export async function generateStudioAnalysisFromAudio(
@@ -474,3 +675,5 @@ export async function generateContentFromAudio(
   const analysis = await generateStudioAnalysisFromAudio(audioBase64, mimeType);
   return analysis.insights;
 }
+
+

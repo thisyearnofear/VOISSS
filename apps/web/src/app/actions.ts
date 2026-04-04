@@ -1,6 +1,6 @@
 "use server";
 
-import { generateStudioAnalysisFromAudio } from "../lib/ai-inference";
+import { generateStudioAnalysisWithPipeline } from "../lib/ai-inference";
 
 export async function generateRecordingInsights(formData: FormData) {
   try {
@@ -24,11 +24,15 @@ export async function generateRecordingInsights(formData: FormData) {
 
     console.log(`Analyzing audio: ${mimeType}, size: ${buffer.length} bytes`);
 
-    const analysis = await generateStudioAnalysisFromAudio(base64Audio, mimeType);
+    const analysis = await generateStudioAnalysisWithPipeline(
+      file,
+      base64Audio,
+      mimeType
+    );
 
     return { success: true, data: analysis };
   } catch (error) {
-    console.error("Gemini Server Action Error:", error);
+    console.error("Studio Analysis Pipeline Error:", error);
     return {
       success: false,
       error:

@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import { generateRecordingInsights } from "../../app/actions";
+import React, { useState, useCallback } from "react";
 import {
   Sparkles,
   Loader2,
@@ -8,6 +7,11 @@ import {
   FileText,
   Zap,
   Globe,
+  Mic,
+  Brain,
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 interface StudioInsightsPanelProps {
@@ -33,6 +37,17 @@ interface HumanityCertificate {
   provenanceNotes: string[];
 }
 
+type StepStatus = "pending" | "running" | "completed" | "failed" | "skipped";
+
+interface PipelineStep {
+  id: string;
+  label: string;
+  status: StepStatus;
+  provider?: string;
+  model?: string;
+  message?: string;
+}
+
 interface InsightsData {
   title: string;
   summary: string[];
@@ -41,6 +56,58 @@ interface InsightsData {
   humanityCertificate?: HumanityCertificate;
   provider?: string;
   model?: string;
+  transcript?: string;
+  mode?: string;
+}
+
+const INITIAL_STEPS: PipelineStep[] = [
+  { id: "transcription", label: "Transcribing audio with ElevenLabs", status: "pending" },
+  { id: "analysis", label: "Analyzing transcript", status: "pending" },
+  { id: "fallback", label: "Gemini audio-native fallback", status: "pending" },
+];
+
+function StepIcon({ status }: { status: StepStatus }) {
+  switch (status) {
+    case "running":
+      return <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" />;
+    case "completed":
+      return <Check className="w-3.5 h-3.5 text-emerald-400" />;
+    case "failed":
+      return <AlertTriangle className="w-3.5 h-3.5 text-red-400" />;
+    case "skipped":
+      return <div className="w-3.5 h-3.5 rounded-full border border-gray-600" />;
+    default:
+      return <div className="w-3.5 h-3.5 rounded-full border border-gray-700 bg-gray-800" />;
+  }
+}
+
+function StepLabel({ step }: { step: PipelineStep }) {
+  const statusColors: Record<StepStatus, string> = {
+    pending: "text-gray-600",
+    running: "text-purple-300",
+    completed: "text-emerald-300",
+    failed: "text-red-300",
+    skipped: "text-gray-600",
+  };
+
+  return (
+    <div className="flex items-center gap-2.5">
+      <StepIcon status={step.status} />
+      <div className="flex flex-col">
+        <span className={`text-xs font-medium ${statusColors[step.status]}`}>
+          {step.label}
+        </span>
+        {step.provider && step.status === "completed" && (
+          <span className="text-[10px] text-gray-500">
+            via {step.provider} ({step.model})
+          </span>
+        )}
+        {step.message && step.status === "failed" && (
+          <span className="text-[10px] text-red-400/70">{step.message}</span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function StudioInsightsPanel({
@@ -51,33 +118,111 @@ export default function StudioInsightsPanel({
   const [isLoading, setIsLoading] = useState(false);
   const [insights, setInsights] = useState<InsightsData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pipelineSteps, setPipelineSteps] = useState<PipelineStep[]>(INITIAL_STEPS);
+  const [transcript, setTranscript] = useState<string | null>(null);
+  const [showTranscript, setShowTranscript] = useState(false);
+  const [showPipeline, setShowPipeline] = useState(false);
 
-  if (!isVisible) return null;
-
-  const handleGenerateInsights = async () => {
+  const handleGenerateInsights = useCallback(async () => {
     if (!audioBlob) return;
 
     setIsLoading(true);
     setError(null);
+    setInsights(null);
+    setTranscript(null);
+    setShowPipeline(true);
+    setPipelineSteps(INITIAL_STEPS.map((s) => ({ ...s })));
 
     try {
       const formData = new FormData();
       formData.append("file", audioBlob, "recording.webm");
 
-      const result = await generateRecordingInsights(formData);
+      const response = await fetch("/api/studio-insights/stream", {
+        method: "POST",
+        body: formData,
+      });
 
-      if (result.success && result.data) {
-        setInsights({
-          ...result.data.insights,
-          humanityCertificate: result.data.humanityCertificate,
-          provider: result.data.provider,
-          model: result.data.model,
-        });
-      } else {
-        throw new Error(
-          result.error ||
-            "The AI service is temporarily busy. Please try again in a moment."
-        );
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response stream");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        const events = buffer.split("\n\n");
+        buffer = events.pop() || "";
+
+        for (const eventBlock of events) {
+          const lines = eventBlock.split("\n");
+          let eventType = "";
+          let eventData = "";
+
+          for (const line of lines) {
+            if (line.startsWith("event: ")) {
+              eventType = line.slice(7);
+            } else if (line.startsWith("data: ")) {
+              eventData = line.slice(6);
+            }
+          }
+
+          if (!eventType || !eventData) continue;
+
+          try {
+            const parsed = JSON.parse(eventData);
+
+            switch (eventType) {
+              case "progress":
+                if (parsed.steps) {
+                  setPipelineSteps(parsed.steps);
+                }
+                break;
+
+              case "transcript":
+                if (parsed.text) {
+                  setTranscript(parsed.text);
+                }
+                break;
+
+              case "complete":
+                setInsights({
+                  title: parsed.insights?.title || "Untitled",
+                  summary: parsed.insights?.summary || [],
+                  tags: parsed.insights?.tags || [],
+                  actionItems: parsed.insights?.actionItems || [],
+                  humanityCertificate: parsed.humanityCertificate,
+                  provider: parsed.provider,
+                  model: parsed.model,
+                  transcript: parsed.transcript,
+                  mode: parsed.mode,
+                });
+                if (parsed.steps) {
+                  setPipelineSteps(parsed.steps);
+                }
+                if (parsed.transcript && !transcript) {
+                  setTranscript(parsed.transcript);
+                }
+                break;
+
+              case "error":
+                throw new Error(parsed.message || "Pipeline failed");
+            }
+          } catch (parseErr) {
+            if (parseErr instanceof Error && parseErr.message !== "Pipeline failed") {
+              console.warn("SSE parse error:", parseErr);
+            } else {
+              throw parseErr;
+            }
+          }
+        }
       }
     } catch (err) {
       console.error(err);
@@ -89,12 +234,12 @@ export default function StudioInsightsPanel({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [audioBlob, transcript]);
+
+  if (!isVisible) return null;
 
   const handleApply = () => {
-    if (!insights) {
-      return;
-    }
+    if (!insights) return;
 
     onApplyInsights({
       title: insights.title,
@@ -105,6 +250,9 @@ export default function StudioInsightsPanel({
       model: insights.model,
     });
   };
+
+  const activeSteps = pipelineSteps.filter((s) => s.status !== "pending" || isLoading);
+  const hasVisibleSteps = activeSteps.length > 0 && (isLoading || insights);
 
   return (
     <div className="bg-[#111111] rounded-2xl p-6 mb-8 border border-purple-500/20 shadow-[0_0_50px_rgba(124,93,250,0.1)] relative overflow-hidden group">
@@ -120,7 +268,7 @@ export default function StudioInsightsPanel({
               Studio Insights
             </h3>
             <p className="text-xs text-gray-500 font-medium">
-              AI-optimized metadata, captions, and trust signals
+              AI-powered transcription, metadata & trust signals
             </p>
           </div>
         </div>
@@ -133,7 +281,7 @@ export default function StudioInsightsPanel({
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Processing Audio...
+                Analyzing...
               </>
             ) : (
               <>
@@ -144,6 +292,64 @@ export default function StudioInsightsPanel({
           </button>
         )}
       </div>
+
+      {/* Pipeline Progress */}
+      {(isLoading || showPipeline) && (
+        <div className="mb-6 space-y-1.5 animate-in fade-in duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-px flex-1 bg-gradient-to-r from-purple-500/20 to-transparent" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-purple-400/60">
+              Pipeline
+            </span>
+            <div className="h-px flex-1 bg-gradient-to-l from-purple-500/20 to-transparent" />
+          </div>
+
+          <div className="flex items-center gap-6">
+            {pipelineSteps.map((step, i) => (
+              <React.Fragment key={step.id}>
+                {i > 0 && (
+                  <div
+                    className={`h-px flex-1 max-w-[40px] ${
+                      step.status === "completed" || step.status === "running"
+                        ? "bg-purple-500/40"
+                        : "bg-gray-800"
+                    }`}
+                  />
+                )}
+                <StepLabel step={step} />
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Transcript Preview */}
+      {transcript && (
+        <div className="mb-6 animate-in fade-in slide-in-from-bottom-1 duration-500">
+          <button
+            onClick={() => setShowTranscript(!showTranscript)}
+            className="flex items-center gap-2 w-full text-left group/transcript"
+          >
+            <Mic className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">
+              Transcript
+            </span>
+            <span className="text-[10px] text-gray-600 ml-1">
+              ({transcript.length} chars)
+            </span>
+            {showTranscript ? (
+              <ChevronUp className="w-3 h-3 text-gray-600 ml-auto" />
+            ) : (
+              <ChevronDown className="w-3 h-3 text-gray-600 ml-auto" />
+            )}
+          </button>
+          {showTranscript && (
+            <div className="mt-2 p-3 bg-gray-900/50 rounded-xl border border-indigo-500/10 text-gray-300 text-xs leading-relaxed max-h-32 overflow-y-auto">
+              {transcript}
+            </div>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="text-red-400 text-sm mb-6 bg-red-900/10 border border-red-900/20 p-4 rounded-xl flex items-center gap-2">
@@ -204,7 +410,7 @@ export default function StudioInsightsPanel({
                     X / FARCASTER
                   </span>
                   <p className="text-gray-300 text-xs italic">
-                    "{insights.actionItems[0]}"
+                    &ldquo;{insights.actionItems[0]}&rdquo;
                   </p>
                 </div>
               )}
@@ -214,7 +420,7 @@ export default function StudioInsightsPanel({
                     TIKTOK / REELS
                   </span>
                   <p className="text-gray-300 text-xs italic">
-                    "{insights.actionItems[1]}"
+                    &ldquo;{insights.actionItems[1]}&rdquo;
                   </p>
                 </div>
               )}
@@ -290,14 +496,28 @@ export default function StudioInsightsPanel({
           )}
 
           <div className="flex justify-between items-center pt-2">
-            <p className="text-[10px] text-gray-600 font-medium">
-              Strategy generated based on the current audio version.
-              {insights.provider && (
-                <span className="ml-2 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 uppercase tracking-tighter">
-                  Powered by {insights.provider} {insights.model}
-                </span>
-              )}
-            </p>
+            <div className="flex flex-col gap-1">
+              <p className="text-[10px] text-gray-600 font-medium">
+                {insights.mode === "transcript-pipeline" ? (
+                  <>
+                    <Mic className="w-3 h-3 inline mr-1 text-indigo-400" />
+                    Transcribed by ElevenLabs
+                    <Brain className="w-3 h-3 inline mx-1 text-purple-400" />
+                    Analyzed by {insights.provider}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3 h-3 inline mr-1 text-amber-400" />
+                    Audio-native analysis by {insights.provider}
+                  </>
+                )}
+                {insights.model && (
+                  <span className="ml-2 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 uppercase tracking-tighter">
+                    {insights.model}
+                  </span>
+                )}
+              </p>
+            </div>
             <button
               onClick={handleApply}
               className="flex items-center gap-2 px-5 py-2 bg-green-600 hover:bg-green-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95 border border-green-500/20"
