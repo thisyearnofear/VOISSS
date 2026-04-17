@@ -1,15 +1,17 @@
 # VOISSS 🎤
 
-[![Base](https://img.shields.io/badge/Base-Sepolia-blue)](https://sepolia.basescan.org/)
+[![Base](https://img.shields.io/badge/Base-Mainnet-blue)](https://basescan.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-15.3.2-black)](https://nextjs.org/)
 [![Flutter](https://img.shields.io/badge/Flutter-3.32.0-blue)](https://flutter.dev/)
 [![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
 
-**VOISSS** is a B2B voice licensing marketplace where AI agents purchase authentic human voices. Built on Base blockchain with ElevenLabs TTS, IPFS storage, and OWS multi-chain payments.
+**VOISSS** is a B2B voice licensing marketplace where AI agents purchase authentic human voices with blockchain provenance and instant API access.
 
 **Live:** https://voisss.netlify.app
 
-## Quick Start
+---
+
+## 🚀 Quick Start
 
 ```bash
 git clone https://github.com/thisyearnofear/VOISSS.git && cd VOISSS
@@ -18,13 +20,37 @@ cp apps/web/.env.example apps/web/.env.local
 pnpm dev:web      # http://localhost:4445
 ```
 
+**New to VOISSS?** See [GETTING_STARTED.md](./GETTING_STARTED.md) for a 5-minute guide.
+
+---
+
+## 💡 Why VOISSS?
+
+**For AI Agents:**
+- 🎯 Pay-per-character pricing (~$0.000001/char)
+- ⚡ Instant API access with x402 payments
+- 🔗 Multi-chain support (Base, Arbitrum, Optimism, Polygon, Solana)
+- 🔒 Blockchain-verified provenance
+
+**For Voice Contributors:**
+- 💰 70% revenue share on all licenses
+- 🎤 Keep full control of your voice rights
+- 📈 Passive income from AI agent usage
+- 🔐 Smart contract-enforced payments
+
+---
+
 ## Platform Status
 
-| Platform | Status | Blockchain |
-|----------|--------|------------|
-| Web | ✅ Production | Base Mainnet |
-| Mobile (RN) | 🔄 In Progress | Scroll Sepolia |
-| Flutter | ✅ AI Butler Live | Serverpod backend |
+| Platform | Status | Blockchain | Features |
+|----------|--------|------------|----------|
+| Web | ✅ Production | Base Mainnet | Full marketplace, API, payments |
+| Mobile (RN) | 🔄 In Progress | Scroll Sepolia | VRF, privacy controls |
+| Flutter | ✅ Live | Serverpod | AI butler, voice chat |
+
+**Stats:** 21+ voices • Base mainnet • Multi-chain payments • Production API
+
+---
 
 ## Key Contracts (Base Mainnet)
 
@@ -35,13 +61,27 @@ pnpm dev:web      # http://localhost:4445
 | VoiceRecords | `0x32bd629fBD5096b37f1cAee011A7E481A09Ac54D` |
 | $VOISSS Token | `0x1c3174c2aea455f1efb088e4ca4ecb4ab52d1b07` |
 
-## Features
+## ✨ Features
 
-- **Voice Marketplace** — License authentic human voices for AI agents ($49-$2K+/mo, 70% revenue to contributors)
-- **Agent API** — Pay-per-call voice synthesis via x402 or OWS multi-chain payments (~$0.000001/char)
-- **OWS Payments** — 9 chains supported: Base, Arbitrum, Optimism, Polygon, Ethereum, Solana, Cosmos, TON, XRP
-- **Agentic AI** — Gemini-powered context-aware voice assistant
-- **Mission System** — Creator economy with $PAPAJAMS token gating
+### Voice Marketplace
+- **21+ Professional Voices** — Browse and license authentic human voices
+- **Instant Licensing** — Smart contract-based automatic licensing
+- **Transparent Pricing** — $49-$2K+/mo with 70% revenue to contributors
+- **Blockchain Provenance** — Every voice verified on Base mainnet
+
+### Agent API
+- **Pay-Per-Character** — ~$0.000001/char with no monthly fees
+- **Multi-Chain Payments** — x402 and OWS support for 9 blockchains
+- **Tier-Based Discounts** — Up to 50% off for high-volume agents
+- **Real-Time Events** — WebSocket, webhook, and polling support
+
+### AI-Powered Features
+- **Voice Assistant** — Gemini-powered context-aware assistant
+- **Content Analysis** — Automatic insights and humanity verification
+- **Multi-Language** — 29+ languages supported
+- **Mission System** — Creator economy with $PAPAJAMS rewards
+
+---
 
 ## Documentation
 
@@ -59,6 +99,33 @@ pnpm dev:web      # http://localhost:4445
 - **AI:** Google Gemini, ElevenLabs, Venice AI
 - **Storage:** IPFS (Pinata)
 - **Payments:** x402 protocol, OWS multi-chain
+
+---
+
+## Roadmap
+
+### ✅ Completed (Q1 2026)
+- Production deployment on Base mainnet
+- Multi-chain payment support (x402 + OWS)
+- Voice marketplace with 21+ voices
+- Agent API with tier-based pricing
+- AI-powered voice assistant
+
+### 🔄 In Progress (Q2 2026)
+- Official JavaScript/TypeScript SDK
+- Interactive API playground
+- Advanced marketplace filters
+- Instant licensing (remove manual approval)
+- Mobile app consolidation
+
+### 🎯 Planned (Q3-Q4 2026)
+- Voice cloning for contributors
+- Enterprise white-label solution
+- 50+ language support
+- Agent reputation system
+- Community governance
+
+---
 
 ## License
 

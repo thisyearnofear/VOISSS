@@ -115,6 +115,18 @@ voisss/
 ## Links
 
 - **GitHub:** https://github.com/thisyearnofear/VOISSS
+- **Live App:** https://voisss.netlify.app
+- **Getting Started:** [GETTING_STARTED.md](../GETTING_STARTED.md)
 - **Telegram:** https://t.me/+jG3_jEJF8YFmOTY1
 - **CDP Portal:** https://portal.cdp.coinbase.com
 - **Base Sepolia Faucet:** https://www.coinbase.com/faucets/base-ethereum-sepolia-faucet
+
+---
+
+## Next Steps
+
+After setup, consider:
+1. **Browse the marketplace** at `/marketplace` to see available voices
+2. **Try the API** with the preview endpoint (no payment required)
+3. **Read the agent API docs** at [AGENT_API.md](./AGENT_API.md)
+4. **Join the community** on Telegram for support and updates

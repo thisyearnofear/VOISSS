@@ -11,39 +11,36 @@ export default function Home() {
         {/* Enhanced Hero Section */}
         <EnhancedLandingHero />
 
-        {/* OWS Hackathon Alignment Section */}
-        <OWSHackathonSection />
-
         {/* Interactive How It Works (Progressive Disclosure) */}
         <InteractiveHowItWorks />
-
-        {/* Newsletter Section (Lead Capture) */}
-        <NewsletterSection />
 
         {/* FAQ Section (Secondary Information) */}
         <FAQSection />
 
+        {/* Newsletter Section (Lead Capture) */}
+        <NewsletterSection />
+
         {/* Simple Footer */}
         <div className="text-center mt-24 pt-12 border-t border-[#2A2A2A]">
           <p className="text-zinc-500 text-sm mb-6 font-medium tracking-wide">
-            ENTERPRISE VOICE LICENSING • BLOCKCHAIN PROVENANCE • SCALABLE API
+            VOICE LICENSING FOR AI AGENTS • BLOCKCHAIN PROVENANCE • INSTANT API ACCESS
           </p>
           <div className="flex flex-wrap justify-center gap-x-12 gap-y-4 text-sm font-bold uppercase tracking-widest">
             <a href="/marketplace" className="text-white hover:text-blue-500 transition-colors">
-              Browse Marketplace
+              Browse Voices
+            </a>
+            <a href="/agents" className="text-zinc-400 hover:text-white transition-colors">
+              API Docs
             </a>
             <a href="/marketplace/dashboard" className="text-zinc-400 hover:text-white transition-colors">
-              Contributor Portal
+              List Your Voice
             </a>
-            <a href="/docs" className="text-zinc-400 hover:text-white transition-colors">
-              Developer Docs
-            </a>
-            <a href="mailto:enterprise@voisss.io" className="text-zinc-400 hover:text-white transition-colors">
-              Contact Sales
+            <a href="https://github.com/thisyearnofear/VOISSS" target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white transition-colors">
+              GitHub
             </a>
           </div>
           <p className="mt-12 text-zinc-600 text-[10px] tracking-widest uppercase">
-            © 2026 VOISSS TECHNOLOGIES. ALL RIGHTS RESERVED.
+            © 2026 VOISSS. Built on Base • Open Source • MIT License
           </p>
         </div>
       </div>

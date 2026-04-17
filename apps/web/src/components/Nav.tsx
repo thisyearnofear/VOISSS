@@ -86,25 +86,25 @@ export default function Nav() {
                 href="/marketplace"
                 className="text-white hover:text-blue-400 transition-colors text-sm font-bold uppercase tracking-wider"
               >
-                Marketplace
-              </Link>
-              <Link
-                href="/marketplace/dashboard"
-                className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
-              >
-                Contributor Portal
+                Browse Voices
               </Link>
               <Link
                 href="/agents"
                 className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
               >
-                Developers
+                API Docs
+              </Link>
+              <Link
+                href="/marketplace/dashboard"
+                className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
+              >
+                List Your Voice
               </Link>
               <Link
                 href="/missions"
                 className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
               >
-                Sessions
+                Missions
               </Link>
             </div>
 

@@ -26,7 +26,7 @@ export default function EnhancedLandingHero() {
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 rounded-full mb-6">
             <CompatibleZap className="w-4 h-4 text-yellow-400" />
             <span className="text-sm font-medium text-white">
-              OWS Hackathon • Base • x402 Payments
+              Production Ready • Base Mainnet • Multi-Chain Payments
             </span>
           </div>
 
@@ -37,10 +37,10 @@ export default function EnhancedLandingHero() {
           </h1>
 
           <p className="text-xl sm:text-2xl text-gray-300 mb-4 max-w-3xl mx-auto">
-            License authentic human voices for your AI agents.
+            License authentic human voices for your AI agents. Pay-per-character with blockchain provenance.
           </p>
           <p className="text-gray-400 mb-12 max-w-2xl mx-auto">
-            Blockchain provenance. Instant API access. Built on Base.
+            ~$0.000001/character • 70% to contributors • Instant API access
           </p>
 
           {/* CTA Buttons */}
