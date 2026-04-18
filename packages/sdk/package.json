@@ -1,0 +1,50 @@
+{
+  "name": "@voisss/sdk",
+  "version": "0.1.0",
+  "description": "Official JavaScript/TypeScript SDK for VOISSS voice licensing API",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "test": "vitest",
+    "lint": "eslint src --ext .ts"
+  },
+  "keywords": [
+    "voisss",
+    "voice",
+    "ai",
+    "blockchain",
+    "base",
+    "elevenlabs",
+    "tts",
+    "voice-licensing"
+  ],
+  "author": "VOISSS",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thisyearnofear/VOISSS.git",
+    "directory": "packages/sdk"
+  },
+  "dependencies": {
+    "viem": "^2.21.54"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.50",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "vitest": "^4.0.18"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  }
+}
