@@ -1,7 +1,7 @@
 [build]
   base = "apps/web"
   command = "cd ../.. && pnpm install && pnpm build:web"
-  publish = "apps/web/.next"
+  publish = ".next"
 
 [[redirects]]
   from = "/api/*"
