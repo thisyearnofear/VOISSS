@@ -48,7 +48,7 @@ pnpm dev:web      # http://localhost:4445
 | Mobile (RN) | 🔄 In Progress | Scroll Sepolia | VRF, privacy controls |
 | Flutter | ✅ Live | Serverpod | AI butler, voice chat |
 
-**Stats:** 21+ voices • Base mainnet • Multi-chain payments • Production API
+**Stats:** 21+ voices • Base mainnet • Multi-chain payments • Production API • Full engagement system
 
 ---
 
@@ -81,6 +81,14 @@ pnpm dev:web      # http://localhost:4445
 - **Multi-Language** — 29+ languages supported
 - **Mission System** — Creator economy with $PAPAJAMS rewards
 
+### Engagement & Virality
+- **Referral System** — Automatic tracking, conversion rewards, viral bonuses
+- **Streak Mechanics** — Daily recording streaks with milestone rewards and freeze protection
+- **Leaderboards** — Real-time rankings across earnings, quality, volume, and streaks
+- **Achievements** — 9+ achievements with bronze/silver/gold/platinum tiers
+- **Notifications** — In-app notification system with priority levels
+- **Social Sharing** — Built-in sharing with referral code generation
+
 ---
 
 ## Documentation
@@ -110,6 +118,7 @@ pnpm dev:web      # http://localhost:4445
 - Voice marketplace with 21+ voices
 - Agent API with tier-based pricing
 - AI-powered voice assistant
+- Comprehensive engagement system (referrals, streaks, leaderboards, achievements)
 
 ### 🔄 In Progress (Q2 2026)
 - Official JavaScript/TypeScript SDK

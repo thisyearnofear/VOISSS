@@ -8,7 +8,7 @@ import { useBaseAccount } from "../hooks/useBaseAccount";
 import { useAssistant } from "../contexts/AssistantContext";
 import { Sparkles } from "lucide-react";
 import { NotificationBell } from "@voisss/ui";
-import { useEngagement } from "@voisss/shared";
+import { useEngagement } from "@voisss/shared/hooks/useEngagement";
 import { webEngagementService } from "../services/engagement";
 import { useRouter } from "next/navigation";
 

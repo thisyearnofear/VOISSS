@@ -112,8 +112,6 @@ export default function CreatorDashboardPage() {
             <StreakDisplay
               currentStreak={streak.currentStreak}
               longestStreak={streak.longestStreak}
-              hasFreeze={!streak.streakFreezeUsed}
-              variant="web"
             />
           </div>
         )}

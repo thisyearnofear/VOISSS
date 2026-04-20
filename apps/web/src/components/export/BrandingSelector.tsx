@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { Crown, Zap, Star, Check } from 'lucide-react';
-import { type TokenTier, type TranscriptTemplate } from '@voisss/shared';
+import { type TokenTier } from '@voisss/shared';
+import { type TranscriptTemplate } from '@voisss/shared/types/transcript';
 import { useTokenAccess } from '@voisss/shared/hooks/useTokenAccess';
 import { useBurnAction } from '../../hooks/useBurnAction';
 

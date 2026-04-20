@@ -27,15 +27,15 @@ import {
 import { DatabaseService, COLLECTIONS } from './database-service';
 
 export class EngagementService {
-  private db: DatabaseService;
-  private initialized = false;
-  private achievementsCache: Achievement[] | null = null;
+  public db: DatabaseService;
+  /** @internal */ initialized = false;
+  /** @internal */ achievementsCache: Achievement[] | null = null;
 
   constructor(database: DatabaseService) {
     this.db = database;
   }
 
-  private async ensureInitialized(): Promise<void> {
+  async ensureInitialized(): Promise<void> {
     if (this.initialized) return;
     
     await this.db.connect();
@@ -432,7 +432,7 @@ export class EngagementService {
 
   // ===== ACHIEVEMENT SYSTEM =====
 
-  private async initializeAchievements(): Promise<void> {
+  async initializeAchievements(): Promise<void> {
     const existingCount = await this.db.count('achievements');
     if (existingCount > 0) {
       this.achievementsCache = await this.db.getAll<Achievement>('achievements');
@@ -781,7 +781,7 @@ export class EngagementService {
 
   // ===== HELPER METHODS =====
 
-  private async awardTokens(
+  async awardTokens(
     userId: string,
     amount: string,
     reason: string

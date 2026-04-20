@@ -7,7 +7,7 @@ import {
   canAffordBurnAction,
   getBurnActionDisplay,
   submitBurnAction,
-} from '@voisss/shared';
+} from '@voisss/shared/services/token-burn-service';
 import { useTokenAccess } from '@voisss/shared/hooks/useTokenAccess';
 import { encodeBurnTokens, STANDARD_BURN_ADDRESS } from '../lib/token-transfer';
 

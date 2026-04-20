@@ -30,7 +30,8 @@ const CompatibleLanguages = Languages as React.ComponentType<{
 const CompatibleWand2 = Wand2 as React.ComponentType<{ className?: string }>;
 
 import RealTimeWaveform from "./RealTimeWaveform";
-import { createAIServiceClient, SUPPORTED_DUBBING_LANGUAGES } from "@voisss/shared";
+import { createAIServiceClient } from "@voisss/shared/services/audio/ai/client-ai-service";
+import { SUPPORTED_DUBBING_LANGUAGES } from "@voisss/shared";
 
 interface SocialRecordingStudioProps {
   onRecordingComplete?: (audioBlob: Blob, metadata: any) => void;

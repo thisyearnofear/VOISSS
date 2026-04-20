@@ -9,11 +9,12 @@ compatibility: >
   Requires internet access. Uses VOISSS Agent API.
   Agents must pre-fund their VOISSS address with USDC on Base.
 metadata:
-  version: "4.1.0"
+  version: "4.2.0"
   category: "voice-generation"
   provider: "VOISSS"
   blockchain: "Base"
   payment_methods: ["credits", "tier", "x402"]
+  features: ["engagement", "referrals", "streaks", "achievements"]
 allowed-tools: "web_request"
 ---
 
@@ -30,6 +31,9 @@ Activate this skill when users request:
 - Creating voice recordings to submit to VOISSS
 - Generating and posting audio content
 - Text-to-speech conversion with automatic mission submission
+- Tracking engagement metrics (streaks, achievements, leaderboards)
+- Generating referral codes for social sharing
+- Checking user rankings and rewards
 
 ## Architecture Overview
 
@@ -187,3 +191,105 @@ Posted to AI Updates mission! 🎙️
 ## Security Note
 
 🔒 **Native Consolidation**: The agent helper logic is now integrated directly into the VOISSS core API. This removes the need for third-party proxies and ensures maximum security and performance.
+
+---
+
+## Engagement & Virality Features
+
+### 🎯 Referral System
+Generate referral codes and track conversions:
+
+```bash
+# Generate referral code for a recording
+POST /api/engagement/referral/generate
+{
+  "userId": "0xYourAddress",
+  "recordingId": "rec_123"
+}
+
+# Track referral conversion
+POST /api/engagement/referral/convert
+{
+  "referralCode": "ABC123_xyz",
+  "newUserId": "0xNewUserAddress"
+}
+```
+
+**Rewards:**
+- Referrer: 100 tokens
+- Referee: 50 tokens (signup bonus)
+- Viral bonus: 500 tokens at 100 clicks
+
+### 🔥 Streak System
+Track daily recording streaks with milestone rewards:
+
+```bash
+# Get user streak
+GET /api/engagement/streak?userId=0xYourAddress
+
+# Update streak (automatic after recording)
+POST /api/engagement/streak/update
+{
+  "userId": "0xYourAddress"
+}
+```
+
+**Milestones:**
+- 7 days: 100 tokens
+- 30 days: 500 tokens
+- 100 days: 2000 tokens
+- 365 days: 10000 tokens
+
+**Streak Freeze:** One free pass per month if you miss a day
+
+### 🏆 Leaderboards
+View rankings across multiple categories:
+
+```bash
+# Get leaderboard
+GET /api/engagement/leaderboard?period=weekly&category=earnings
+
+# Get user rank
+GET /api/engagement/rank?userId=0xYourAddress&period=weekly
+```
+
+**Categories:** earnings, quality, volume, streak  
+**Periods:** daily, weekly, monthly, all-time
+
+### 🎖️ Achievements
+Unlock achievements and earn rewards:
+
+```bash
+# Check achievements
+GET /api/engagement/achievements?userId=0xYourAddress
+
+# Get all available achievements
+GET /api/engagement/achievements/all
+```
+
+**Achievement Tiers:**
+- Bronze: 10-50 tokens
+- Silver: 50-100 tokens
+- Gold: 100-500 tokens
+- Platinum: 500-2000 tokens + multipliers
+
+### 🔔 Notifications
+In-app notification system:
+
+```bash
+# Get notifications
+GET /api/engagement/notifications?userId=0xYourAddress&unreadOnly=true
+
+# Mark as read
+POST /api/engagement/notifications/read
+{
+  "notificationId": "notif_123"
+}
+```
+
+**Notification Types:**
+- Achievement unlocked
+- Referral converted
+- Streak milestone
+- Reward ready
+- Streak reminder/broken

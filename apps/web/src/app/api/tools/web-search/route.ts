@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createFirecrawlService } from '@voisss/shared';
+import { createFirecrawlService } from '@voisss/shared/services/market-intelligence/firecrawl-service';
 
 /**
  * Web Search Tool - For ElevenLabs Agent

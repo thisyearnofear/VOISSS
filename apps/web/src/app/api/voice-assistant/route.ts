@@ -3,7 +3,7 @@ import {
   generateAssistantReply,
   getAIProviderStatus,
 } from "../../../lib/ai-inference";
-import { createFirecrawlService, shouldTriggerWebSearch } from "@voisss/shared";
+import { createFirecrawlService, shouldTriggerWebSearch } from "@voisss/shared/services/market-intelligence/firecrawl-service";
 
 interface ConversationMessage {
   role: "user" | "assistant";
