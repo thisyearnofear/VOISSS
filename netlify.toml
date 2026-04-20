@@ -7,6 +7,53 @@
   NODE_VERSION = "18"
   NPM_FLAGS = "--legacy-peer-deps"
 
+# ─── Proxy to Hetzner backend (voisss.famile.xyz:5577) ───
+# Auth handled by Hetzner allowing Netlify's IP / origin header
+# Netlify matches top-down, first match wins
+
+# ElevenLabs voice processing
+[[redirects]]
+  from = "/api/voices"
+  to = "https://voisss.famile.xyz/api/voices"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/transform"
+  to = "https://voisss.famile.xyz/api/transform"
+  status = 200
+  force = true
+
+# Dubbing
+[[redirects]]
+  from = "/api/dubbing/*"
+  to = "https://voisss.famile.xyz/api/dubbing/:splat"
+  status = 200
+  force = true
+
+# Missions (Hetzner has Postgres)
+[[redirects]]
+  from = "/api/missions/*"
+  to = "https://voisss.famile.xyz/api/missions/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/missions"
+  to = "https://voisss.famile.xyz/api/missions"
+  status = 200
+  force = true
+
+# Export (video/transcript with ffmpeg)
+[[redirects]]
+  from = "/api/export/*"
+  to = "https://voisss.famile.xyz/api/export/:splat"
+  status = 200
+  force = true
+
+# ─── All other /api/* → Next.js API routes (fallback) ───
+
+# ─── Cache headers for static assets ───
 [[headers]]
   for = "/manifest.json"
   [headers.values]
