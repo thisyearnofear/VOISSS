@@ -13,6 +13,7 @@ import {
   PLATFORM_CONFIG,
   meetsCreatorRequirements,
 } from "@voisss/shared/config/platform";
+import { convertReferralOnSignIn } from "../utils/referral-handler";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -265,6 +266,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log("✅ Signed in with Base Account successfully");
       setIsAuthenticated(true);
+      
+      // Convert referral if user came from referral link
+      try {
+        await convertReferralOnSignIn(address);
+      } catch (err) {
+        console.warn("Referral conversion failed:", err);
+        // Don't block signin on referral failure
+      }
     } catch (err) {
       console.error("Sign in failed:", err);
       setError(err instanceof Error ? err.message : "Sign in failed");

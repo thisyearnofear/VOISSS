@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Linking, Alert, Clipboard } from 'react-native';
 
 export interface ShareableRecording {
@@ -13,11 +13,26 @@ export interface ShareableRecording {
 export interface SocialShareProps {
   recording: ShareableRecording;
   style?: any;
-  onShare?: (platform: string, url: string) => void;
+  onShare?: (platform: string, url: string, referralCode?: string) => void;
+  userId?: string; // ENHANCEMENT: Add userId for referral tracking
+  generateReferralCode?: (userId: string, recordingId: string) => Promise<string>;
 }
 
-export function SocialShare({ recording, style, onShare }: SocialShareProps) {
-  const shareUrl = recording.ipfsUrl || `https://voisss.netlify.app/recording/${recording.id}`;
+export function SocialShare({ recording, style, onShare, userId, generateReferralCode }: SocialShareProps) {
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  
+  // ENHANCEMENT: Generate referral code on mount
+  useEffect(() => {
+    if (userId && generateReferralCode) {
+      generateReferralCode(userId, recording.id).then(setReferralCode);
+    }
+  }, [userId, recording.id, generateReferralCode]);
+  
+  const shareUrl = useMemo(() => {
+    const baseUrl = recording.ipfsUrl || `https://voisss.netlify.app/recording/${recording.id}`;
+    return referralCode ? `${baseUrl}?ref=${referralCode}` : baseUrl;
+  }, [recording.ipfsUrl, recording.id, referralCode]);
+  
   const shareText = `Check out this voice recording: "${recording.title}"`;
 
   const platforms = [
@@ -59,39 +74,39 @@ export function SocialShare({ recording, style, onShare }: SocialShareProps) {
   ];
 
   const shareToWhatsApp = (text: string) => {
-    const url = `whatsapp://send?text=${encodeURIComponent(text)}`;
+    const url = `whatsapp://send?text=${encodeURIComponent(text + ' ' + shareUrl)}`;
     Linking.openURL(url).catch(() => {
       Alert.alert('Error', 'WhatsApp is not installed');
     });
-    onShare?.('whatsapp', shareUrl);
+    onShare?.('whatsapp', shareUrl, referralCode || undefined);
   };
 
   const shareToTelegram = (text: string) => {
-    const url = `tg://msg?text=${encodeURIComponent(text)}`;
+    const url = `tg://msg?text=${encodeURIComponent(text + ' ' + shareUrl)}`;
     Linking.openURL(url).catch(() => {
       // Fallback to web if Telegram is not installed
       const webUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
       Linking.openURL(webUrl);
     });
-    onShare?.('telegram', shareUrl);
+    onShare?.('telegram', shareUrl, referralCode || undefined);
   };
 
   const shareToTwitter = (text: string, url: string) => {
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
     Linking.openURL(twitterUrl);
-    onShare?.('twitter', shareUrl);
+    onShare?.('twitter', shareUrl, referralCode || undefined);
   };
 
   const shareToFarcaster = (text: string, url: string) => {
     const farcasterUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text + ' ' + url)}`;
     Linking.openURL(farcasterUrl);
-    onShare?.('farcaster', shareUrl);
+    onShare?.('farcaster', shareUrl, referralCode || undefined);
   };
 
   const copyToClipboard = (url: string) => {
     Clipboard.setString(url);
-    Alert.alert('Success', 'Link copied to clipboard!');
-    onShare?.('copy', shareUrl);
+    Alert.alert('Success', referralCode ? 'Referral link copied!' : 'Link copied to clipboard!');
+    onShare?.('copy', shareUrl, referralCode || undefined);
   };
 
   return (

@@ -40,6 +40,7 @@ const { width } = Dimensions.get("window");
 
 import { WaveformVisualization, AITransformationPanel, DubbingPanel } from "@voisss/ui";
 import { SocialShare } from "@voisss/ui";
+import { mobileEngagementService } from "../../services/engagement";
 
 export default function RecordScreen() {
   const router = useRouter();
@@ -360,6 +361,18 @@ export default function RecordScreen() {
         ]);
       }
 
+      // ENHANCEMENT: Update streak and check achievements
+      if (account?.address) {
+        try {
+          await mobileEngagementService.updateStreak(account.address);
+          await mobileEngagementService.checkAchievements(account.address);
+          await mobileEngagementService.updateUserMetrics(account.address);
+        } catch (engagementError) {
+          console.warn('Engagement tracking failed:', engagementError);
+          // Don't block the save flow if engagement fails
+        }
+      }
+
       setShowSaveOptions(false);
       setRecordingTitle("");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -375,6 +388,7 @@ export default function RecordScreen() {
     addRecordingWithIPFS,
     capabilities.canAccessWeb3,
     router,
+    account?.address,
   ]);
 
   const handleCancelRecording = useCallback(async () => {
@@ -927,9 +941,24 @@ export default function RecordScreen() {
         {showSharing && savedRecordings.length > 0 && (
           <SocialShare
             recording={savedRecordings[0]} // Show sharing for the first saved recording
-            onShare={(platform, url) => {
-              console.log(`Shared to ${platform}:`, url);
-              // TODO: Track sharing analytics
+            userId={account?.address}
+            generateReferralCode={async (userId, recordingId) => {
+              const code = await mobileEngagementService.generateReferralCode(userId, recordingId);
+              return code.code;
+            }}
+            onShare={async (platform, url, referralCode) => {
+              if (account?.address && referralCode) {
+                try {
+                  await mobileEngagementService.trackShare(
+                    account.address,
+                    savedRecordings[0].id,
+                    platform as any,
+                    referralCode
+                  );
+                } catch (error) {
+                  console.warn('Failed to track share:', error);
+                }
+              }
             }}
           />
         )}

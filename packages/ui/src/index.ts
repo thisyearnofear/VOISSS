@@ -1,7 +1,6 @@
 // Shared UI components for VOISSS platform - Web Compatible
 export * from './components/Button';
 export * from './components/RecordingCard';
-export * from './components/WalletConnector';
 export * from './components/AudioPlayer';
 export * from './components/WaveformVisualization';
 
@@ -12,10 +11,11 @@ export type {
     ShareableRecording
 } from './components/SocialShare.web';
 
+// Engagement components
+export { NotificationBell } from './components/NotificationBell';
+export type { NotificationItem, NotificationBellProps } from './components/NotificationBell';
+export { StreakDisplay } from './components/StreakDisplay';
+export type { StreakDisplayProps } from './components/StreakDisplay';
+
 import { colors } from './theme/colors';
-import { theme, globalStyles, buttonStyles } from './theme/theme';
-import type { Theme } from './theme/theme';
-import type { Variant } from './types';
-export { colors, theme, globalStyles, buttonStyles };
-export type { Theme, Variant };
-export * from './utils/cn';
+export { colors };

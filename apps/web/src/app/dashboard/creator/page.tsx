@@ -1,10 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { MissionResponse } from "@voisss/shared/types/socialfi";
 import SubmissionCard from "@/components/submissions/SubmissionCard";
+import { StreakDisplay } from "@voisss/ui/components/StreakDisplay";
+import { webEngagementService } from "@/services/engagement";
+import { UserStreak } from "@voisss/shared/types/engagement";
 
 type RewardDistribution = {
   id: string;
@@ -23,6 +26,14 @@ export default function CreatorDashboardPage() {
   const { address, isAuthenticated } = useAuth();
   const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d" | "all">("30d");
   const [selectedSubmission, setSelectedSubmission] = useState<MissionResponse | null>(null);
+  const [streak, setStreak] = useState<UserStreak | null>(null);
+
+  // Load streak data
+  useEffect(() => {
+    if (address) {
+      webEngagementService.getStreak(address).then(setStreak).catch(console.error);
+    }
+  }, [address]);
 
   // Fetch user's submissions
   const { data: submissionsData, isLoading: submissionsLoading } = useQuery({
@@ -94,6 +105,18 @@ export default function CreatorDashboardPage() {
             {address.slice(0, 6)}...{address.slice(-4)}
           </p>
         </div>
+
+        {/* Streak Display */}
+        {streak && (
+          <div className="mb-6">
+            <StreakDisplay
+              currentStreak={streak.currentStreak}
+              longestStreak={streak.longestStreak}
+              hasFreeze={!streak.streakFreezeUsed}
+              variant="web"
+            />
+          </div>
+        )}
 
         {/* Stats Grid */}
         <div className="voisss-responsive-grid">

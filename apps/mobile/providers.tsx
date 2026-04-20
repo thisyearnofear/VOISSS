@@ -1,7 +1,7 @@
-
 import React from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/query-client";
+import { AuthProvider } from "./contexts/AuthContext";
 
 /**
  * React Native Providers
@@ -15,7 +15,9 @@ import { queryClient } from "./lib/query-client";
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
+      <AuthProvider>
+        {children}
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

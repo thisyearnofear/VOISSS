@@ -7,9 +7,14 @@ import { useBasename } from "../hooks/useBasename";
 import { useBaseAccount } from "../hooks/useBaseAccount";
 import { useAssistant } from "../contexts/AssistantContext";
 import { Sparkles } from "lucide-react";
+import { NotificationBell } from "@voisss/ui";
+import { useEngagement } from "@voisss/shared";
+import { webEngagementService } from "../services/engagement";
+import { useRouter } from "next/navigation";
 
 
 export default function Nav() {
+  const router = useRouter();
   const { address, isAuthenticated, isAuthenticating, isCheckingSession, signIn, signOut } = useAuth();
   const { isExpanded, toggleAssistant } = useAssistant();
 
@@ -21,6 +26,13 @@ export default function Nav() {
   } = useBaseAccount();
   const [showWalletMenu, setShowWalletMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // ENHANCEMENT: Engagement hooks
+  const { notifications, unreadCount, markRead } = useEngagement(webEngagementService, {
+    userId: address || undefined,
+    autoRefresh: true,
+    refreshInterval: 30000, // 30 seconds
+  });
 
   // Refresh permissions when menu opens (optional - already auto-refreshed by hook)
   useEffect(() => {
@@ -120,6 +132,28 @@ export default function Nav() {
               <Sparkles className={`w-5 h-5 transition-transform duration-500 ${isExpanded ? 'rotate-180 scale-110' : 'group-hover:rotate-12'}`} />
               <span className="hidden lg:inline text-xs font-bold uppercase tracking-widest">Assistant</span>
             </button>
+
+            {/* ENHANCEMENT: Notification Bell */}
+            {isAuthenticated && address && (
+              <NotificationBell
+                notifications={notifications.map(n => ({
+                  id: n.id,
+                  title: n.title,
+                  body: n.body,
+                  read: n.read,
+                  createdAt: n.createdAt,
+                  priority: n.priority,
+                  actionUrl: n.actionUrl,
+                }))}
+                unreadCount={unreadCount}
+                onMarkRead={markRead}
+                onNotificationClick={(notif) => {
+                  if (notif.actionUrl) {
+                    router.push(notif.actionUrl);
+                  }
+                }}
+              />
+            )}
 
             {/* Authentication / Profile Area */}
             <div className="flex items-center gap-3 min-w-[120px] justify-end">

@@ -76,6 +76,16 @@ export const COLLECTIONS = {
   USER_PROFILES: 'user_profiles',
   SESSIONS: 'sessions',
   MARKET_INTELLIGENCE_REPORTS: 'market_intelligence_reports',
+  // Engagement collections
+  REFERRAL_CODES: 'referral_codes',
+  REFERRAL_CONVERSIONS: 'referral_conversions',
+  SHARE_EVENTS: 'share_events',
+  USER_STREAKS: 'user_streaks',
+  ACHIEVEMENTS: 'achievements',
+  USER_ACHIEVEMENTS: 'user_achievements',
+  NOTIFICATIONS: 'notifications',
+  USER_ENGAGEMENT_METRICS: 'user_engagement_metrics',
+  DAILY_REWARD_PROGRESS: 'daily_reward_progress',
 } as const;
 
 export type CollectionName = typeof COLLECTIONS[keyof typeof COLLECTIONS];

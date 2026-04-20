@@ -3,6 +3,7 @@ import { Inter, Anton, Syne, Courier_Prime } from "next/font/google";
 import { BaseProvider } from "./providers";
 import Nav from "../components/Nav";
 import VoiceAssistant from "../components/VoiceAssistant";
+import { ReferralTracker } from "./referral-tracker";
 import "./globals.css";
 import { validateX402Config } from "@/lib/x402-startup-check";
 
@@ -164,6 +165,7 @@ export default function RootLayout({
         suppressHydrationWarning={true}
       >
         <BaseProvider>
+          <ReferralTracker />
           <Nav />
           {children}
           <VoiceAssistant />

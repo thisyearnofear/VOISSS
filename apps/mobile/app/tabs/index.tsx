@@ -24,10 +24,13 @@ import {
   ImportEmptyState,
   SearchEmptyState,
 } from "@/components/EmptyState";
+import { StreakBanner } from "@/components/StreakBanner";
+import { useBase } from "@/hooks/useBase";
 
 export default function RecordingsScreen() {
   const router = useRouter();
   const recordings = useFilteredRecordings();
+  const { account } = useBase();
 
   // State from data store
   const filter = useRecordingsStore((state) => state.filter);
@@ -173,6 +176,9 @@ export default function RecordingsScreen() {
           onFilterPress={handleFilterPress}
           filterActive={isFilterActive}
         />
+
+        {/* ENHANCEMENT: Streak Banner */}
+        <StreakBanner userId={account?.address} />
 
         <FlatList
           data={recordings}
