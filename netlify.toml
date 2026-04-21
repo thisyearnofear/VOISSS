@@ -13,6 +13,18 @@
 
 # ElevenLabs voice processing
 [[redirects]]
+  from = "/api/agents/vocalize"
+  to = "https://voisss.famile.xyz/api/agents/vocalize"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/agents/vocalize/quote"
+  to = "https://voisss.famile.xyz/api/agents/vocalize/quote"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/voices"
   to = "https://voisss.famile.xyz/api/voices"
   status = 200
