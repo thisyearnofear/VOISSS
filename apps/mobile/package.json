@@ -37,7 +37,7 @@
     "expo-linking": "~8.0.10",
     "expo-router": "~6.0.19",
     "expo-splash-screen": "~31.0.12",
-    "expo-standard-web-crypto": "3.0.8",
+    "expo-standard-web-crypto": "56.0.2",
     "expo-status-bar": "~3.0.9",
     "https-browserify": "1.0.0",
     "lucide-react-native": "^0.561.0",
