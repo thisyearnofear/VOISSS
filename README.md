@@ -78,6 +78,7 @@ pnpm dev:web      # http://localhost:4445
 ### AI-Powered Features
 - **Voice Assistant** — Gemini-powered context-aware assistant
 - **Content Analysis** — Automatic insights and humanity verification
+- **AI Memory Archive** — Decentralized Arkiv storage for voice insights and humanity certificates
 - **Multi-Language** — 29+ languages supported
 - **Mission System** — Creator economy with $PAPAJAMS rewards
 
@@ -105,7 +106,7 @@ pnpm dev:web      # http://localhost:4445
 - **Frontend:** Next.js 15, React Native, Flutter
 - **Blockchain:** Base (Web), Scroll (Mobile), Solidity
 - **AI:** Google Gemini, ElevenLabs, Venice AI
-- **Storage:** IPFS (Pinata)
+- **Storage:** IPFS (Pinata), Arkiv Braga Testnet (decentralized insights)
 - **Payments:** x402 protocol, OWS multi-chain
 
 ---
@@ -119,6 +120,7 @@ pnpm dev:web      # http://localhost:4445
 - Agent API with tier-based pricing
 - AI-powered voice assistant
 - Comprehensive engagement system (referrals, streaks, leaderboards, achievements)
+- Arkiv Braga Testnet integration — decentralized voice insight and humanity certificate archive
 
 ### 🔄 In Progress (Q2 2026)
 - Official JavaScript/TypeScript SDK

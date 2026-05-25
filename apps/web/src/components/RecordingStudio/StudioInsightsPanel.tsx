@@ -12,7 +12,14 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
+  Database,
+  ExternalLink,
 } from "lucide-react";
+import {
+  saveVoiceInsight,
+  saveHumanityCertificate,
+  getBragaExplorerUrl,
+} from "@/services/arkivService";
 
 interface StudioInsightsPanelProps {
   audioBlob: Blob | null;
@@ -25,6 +32,7 @@ interface StudioInsightsPanelProps {
     model?: string;
   }) => void;
   isVisible: boolean;
+  ownerAddress?: string | null;
 }
 
 interface HumanityCertificate {
@@ -114,6 +122,7 @@ export default function StudioInsightsPanel({
   audioBlob,
   onApplyInsights,
   isVisible,
+  ownerAddress,
 }: StudioInsightsPanelProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [insights, setInsights] = useState<InsightsData | null>(null);
@@ -122,6 +131,16 @@ export default function StudioInsightsPanel({
   const [transcript, setTranscript] = useState<string | null>(null);
   const [showTranscript, setShowTranscript] = useState(false);
   const [showPipeline, setShowPipeline] = useState(false);
+  const [arkivSaveStatus, setArkivSaveStatus] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >( "idle");
+  const [arkivResult, setArkivResult] = useState<{
+    insightKey?: string;
+    insightTx?: string;
+    certKey?: string;
+    certTx?: string;
+  } | null>(null);
+  const [arkivSaveError, setArkivSaveError] = useState<string | null>(null);
 
   const handleGenerateInsights = useCallback(async () => {
     if (!audioBlob) return;
@@ -209,6 +228,56 @@ export default function StudioInsightsPanel({
                 }
                 if (parsed.transcript && !transcript) {
                   setTranscript(parsed.transcript);
+                }
+
+                // Auto-save to Arkiv if wallet is connected
+                if (ownerAddress && parsed.insights) {
+                  (async () => {
+                    setArkivSaveStatus("saving");
+                    setArkivSaveError(null);
+                    try {
+                      const insightResult = await saveVoiceInsight(
+                        {
+                          transcript: parsed.transcript || "",
+                          title: parsed.insights.title,
+                          summary: parsed.insights.summary,
+                          tags: parsed.insights.tags,
+                          actionItems: parsed.insights.actionItems,
+                          provider: parsed.provider,
+                          model: parsed.model,
+                          mode: parsed.mode,
+                        },
+                        ownerAddress
+                      );
+
+                      let certResult:
+                        | { entityKey: string; txHash: string }
+                        | undefined;
+                      if (parsed.humanityCertificate) {
+                        certResult = await saveHumanityCertificate(
+                          parsed.humanityCertificate,
+                          insightResult.entityKey,
+                          ownerAddress
+                        );
+                      }
+
+                      setArkivResult({
+                        insightKey: insightResult.entityKey,
+                        insightTx: insightResult.txHash,
+                        certKey: certResult?.entityKey,
+                        certTx: certResult?.txHash,
+                      });
+                      setArkivSaveStatus("saved");
+                    } catch (arkivErr) {
+                      console.error("Arkiv save failed:", arkivErr);
+                      setArkivSaveStatus("error");
+                      setArkivSaveError(
+                        arkivErr instanceof Error
+                          ? arkivErr.message
+                          : "Failed to archive to Arkiv"
+                      );
+                    }
+                  })();
                 }
                 break;
 
@@ -490,6 +559,77 @@ export default function StudioInsightsPanel({
                       )
                     )}
                   </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Arkiv Archive Status */}
+          {ownerAddress && (
+            <div className="bg-gradient-to-r from-indigo-900/20 to-purple-900/20 p-4 rounded-2xl border border-indigo-500/10">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                  <Database className="w-4 h-4 text-indigo-400" />
+                </div>
+                <div className="flex-1">
+                  {arkivSaveStatus === "idle" && (
+                    <p className="text-xs text-gray-500">
+                      Ready to archive insights to Arkiv Braga Testnet
+                    </p>
+                  )}
+                  {arkivSaveStatus === "saving" && (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-3 h-3 animate-spin text-indigo-400" />
+                      <p className="text-xs text-indigo-300 font-medium">
+                        Archiving to Arkiv Braga Testnet...
+                      </p>
+                    </div>
+                  )}
+                  {arkivSaveStatus === "saved" && arkivResult && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-emerald-300 font-bold flex items-center gap-1.5">
+                        <Check className="w-3 h-3" />
+                        Archived to Arkiv Braga Testnet
+                      </p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {arkivResult.insightTx && (
+                          <a
+                            href={getBragaExplorerUrl(arkivResult.insightTx)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] text-indigo-400 hover:text-indigo-300 underline underline-offset-2"
+                          >
+                            Insight Tx
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        )}
+                        {arkivResult.certTx && (
+                          <a
+                            href={getBragaExplorerUrl(arkivResult.certTx)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] text-emerald-400 hover:text-emerald-300 underline underline-offset-2"
+                          >
+                            Certificate Tx
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {arkivSaveStatus === "error" && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-red-300 font-medium flex items-center gap-1.5">
+                        <AlertTriangle className="w-3 h-3" />
+                        Arkiv archive failed
+                      </p>
+                      {arkivSaveError && (
+                        <p className="text-[10px] text-red-400/70">
+                          {arkivSaveError}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

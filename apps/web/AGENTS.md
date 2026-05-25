@@ -23,14 +23,20 @@ apps/web/
 │   ├── app/              # Next.js 14 App Router
 │   │   ├── api/          # API routes
 │   │   │   ├── agents/   # External agent integration (OpenClaw, etc.)
+│   │   │   ├── arkiv/    # Arkiv Braga Testnet data layer
 │   │   │   ├── elevenlabs/
 │   │   │   ├── missions/
 │   │   │   └── tools/    # Webhook tools for ElevenLabs agent
 │   │   └── (pages)/      # UI pages
 │   ├── components/       # React components
+│   │   └── RecordingStudio/
+│   │       └── ArkivMemoryExplorer.tsx  # Historical insight archive UI
 │   ├── hooks/            # React hooks
-│   ├── lib/              # Utilities (rate-limit, etc.)
+│   ├── lib/              # Utilities (rate-limit, studio-db, etc.)
+│   │   ├── arkiv-service.ts   # Wallet client for Arkiv writes
+│   │   └── arkiv-query.ts     # Public client for Arkiv reads
 │   ├── services/         # Client-side services
+│   │   └── arkivService.ts    # Client API wrappers
 │   └── store/            # Zustand stores
 ├── contracts/            # Solidity contracts
 └── public/
@@ -51,6 +57,9 @@ The app exposes APIs for AI agents (OpenClaw, etc.) to interact programmatically
 | `/api/agents/submit` | POST | Submit recording to theme |
 | `/api/agents/register` | POST/GET | Register agent for API access |
 | `/api/tools/platform-stats` | GET | Platform statistics |
+| `/api/arkiv/save-insight` | POST | Save VoiceInsight to Arkiv Braga |
+| `/api/arkiv/save-certificate` | POST | Save HumanityCertificate to Arkiv |
+| `/api/arkiv/query` | GET | Query Arkiv entities by owner/type |
 
 ### Payment Methods
 1. **Prepaid credits** - Agents deposit USDC
@@ -98,6 +107,9 @@ PINATA_API_SECRET=
 CDP_API_KEY_ID=               # Coinbase Developer Platform API key ID
 CDP_API_KEY_SECRET=           # Coinbase Developer Platform API key secret
 
+# Arkiv Braga Testnet
+ARKIV_PRIVATE_KEY=            # Private key for Arkiv entity writes (Braga Testnet)
+
 # Optional
 X402_PAY_TO_ADDRESS=          # x402 payment receiver
 ELEVENLABS_TOOL_SECRET_KEY=   # Webhook auth
@@ -109,6 +121,7 @@ ELEVENLABS_TOOL_SECRET_KEY=   # Webhook auth
 - **Base**: Gasless transactions via Sub Accounts
 - **IPFS/Pinata**: Decentralized audio storage
 - **x402**: Micropayments on Base (USDC) via Coinbase CDP Facilitator
+- **Arkiv Braga Testnet**: Decentralized data layer for voice insights and humanity certificates (chain ID 60138453102)
 
 ## Testing Agent Endpoints
 

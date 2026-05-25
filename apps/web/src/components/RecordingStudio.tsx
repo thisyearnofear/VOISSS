@@ -35,6 +35,7 @@ import { useRecordingSave } from "@/hooks/useRecordingSave";
 const AIVoicePanel = React.lazy(() => import("@/components/RecordingStudio/AIVoicePanel"));
 const DubbingPanel = React.lazy(() => import("@/components/dubbing/DubbingPanel"));
 const TranscriptComposer = React.lazy(() => import("@/components/RecordingStudio/TranscriptComposer"));
+const ArkivMemoryExplorer = React.lazy(() => import("@/components/RecordingStudio/ArkivMemoryExplorer"));
 
 // Loading fallback for lazy components
 const PanelLoadingFallback = () => (
@@ -177,7 +178,7 @@ export default function RecordingStudio({
   const [showSaveOptions, setShowSaveOptions] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<
-    "voice" | "dub" | "script" | "insights" | null
+    "voice" | "dub" | "script" | "insights" | "memory" | null
   >(null);
 
   // Agent mode — isolated state (CLEAN/MODULAR)
@@ -455,13 +456,15 @@ export default function RecordingStudio({
   });
 
   const handleOpenTool = useCallback(
-    (tool: "voice" | "dub" | "script" | "insights", versionId: string) => {
-      const version = getVersion(versionId);
-      if (!version) {
-        console.error(`Version ${versionId} not found`);
-        return;
+    (tool: "voice" | "dub" | "script" | "insights" | "memory", versionId?: string) => {
+      if (versionId) {
+        const version = getVersion(versionId);
+        if (!version) {
+          console.error(`Version ${versionId} not found`);
+          return;
+        }
+        setActiveVersion(versionId);
       }
-      setActiveVersion(versionId);
       setActiveTool(tool);
     },
     [getVersion, setActiveVersion]
@@ -921,6 +924,7 @@ export default function RecordingStudio({
                     {activeTool === "dub" && "🌍 Global Dubbing"}
                     {activeTool === "script" && "📝 Transcript & Forge"}
                     {activeTool === "insights" && "🧠 Gemini Insights"}
+                    {activeTool === "memory" && "🧬 AI Memory Archive"}
                   </h3>
                   <button
                     onClick={() => setActiveTool(null)}
@@ -1000,7 +1004,14 @@ export default function RecordingStudio({
                     audioBlob={activeVersion?.blob || audioBlob}
                     onApplyInsights={handleApplyInsights}
                     isVisible={true}
+                    ownerAddress={address}
                   />
+                )}
+
+                {activeTool === "memory" && (
+                  <Suspense fallback={<PanelLoadingFallback />}>
+                    <ArkivMemoryExplorer ownerAddress={address} />
+                  </Suspense>
                 )}
               </div>
             </>

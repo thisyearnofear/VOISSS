@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { AudioVersion } from "@voisss/shared";
-import { Trash2, Zap, Mic, Globe, FileText } from "lucide-react";
+import { Trash2, Zap, Mic, Globe, FileText, Database } from "lucide-react";
 import VersionComparison from "./VersionComparison";
 
 interface VersionSelectionProps {
@@ -14,7 +14,7 @@ interface VersionSelectionProps {
   ) => void;
   onSetActive: (versionId: string) => void;
   onDeleteVersion: (versionId: string) => void;
-  onOpenTool: (tool: "voice" | "dub" | "script", versionId: string) => void;
+  onOpenTool: (tool: "voice" | "dub" | "script" | "memory", versionId?: string) => void;
 }
 
 export default function VersionSelection({
@@ -83,19 +83,29 @@ export default function VersionSelection({
             Select versions to save to Base/IPFS
           </p>
         </div>
-        {userTier === "free" && (
-          <div className="text-right text-xs">
-            <span
-              className={
-                selectedVersionIds.size > remainingQuota.saves
-                  ? "text-red-400"
-                  : "text-green-400"
-              }
-            >
-              {selectedVersionIds.size} of {remainingQuota.saves} saves
-            </span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onOpenTool("memory")}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-lg text-xs font-bold text-indigo-300 hover:text-indigo-200 transition-colors"
+            title="Open AI Memory Archive"
+          >
+            <Database className="w-3.5 h-3.5" />
+            Memory Archive
+          </button>
+          {userTier === "free" && (
+            <div className="text-right text-xs">
+              <span
+                className={
+                  selectedVersionIds.size > remainingQuota.saves
+                    ? "text-red-400"
+                    : "text-green-400"
+                }
+              >
+                {selectedVersionIds.size} of {remainingQuota.saves} saves
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Version List */}

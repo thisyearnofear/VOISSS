@@ -332,8 +332,16 @@ apps/mobile/ios/Podfile.lock
 .gemini/
 .junie/
 .kiro/
+.claude
+.kiro/
+.qoder/
+.gemini
 
 # AI Assistant output files
 .output.txt
 output.txt
 *.output.txt
+.blackboxcli/
+
+# pnpm store
+.pnpm/
