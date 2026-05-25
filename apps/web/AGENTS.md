@@ -59,7 +59,8 @@ The app exposes APIs for AI agents (OpenClaw, etc.) to interact programmatically
 | `/api/tools/platform-stats` | GET | Platform statistics |
 | `/api/arkiv/save-insight` | POST | Save VoiceInsight to Arkiv Braga |
 | `/api/arkiv/save-certificate` | POST | Save HumanityCertificate to Arkiv |
-| `/api/arkiv/query` | GET | Query Arkiv entities by owner/type |
+| `/api/arkiv/save-batch` | POST | Batch create insight + certificate + ownership transfer |
+| `/api/arkiv/query` | GET | Query Arkiv entities by owner/type/filters |
 
 ### Payment Methods
 1. **Prepaid credits** - Agents deposit USDC

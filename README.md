@@ -82,6 +82,24 @@ pnpm dev:web      # http://localhost:4445
 - **Multi-Language** — 29+ languages supported
 - **Mission System** — Creator economy with $PAPAJAMS rewards
 
+### Arkiv × ETHNS Builder Challenge Integration
+
+**Chain:** Braga Testnet (Chain ID `60138453102`)
+
+**Entity Schema:**
+| Entity Type | Attributes | Expiration | Purpose |
+|-------------|-----------|------------|---------|
+| `VoiceInsight` | `project`, `title`, `createdAt` (numeric), `entityType` | 365 days | AI-generated voice analysis, emotional insights, sentiment |
+| `HumanityCertificate` | `project`, `badge`, `status`, `parentInsightId`, `createdAt` (numeric) | 730 days | Humanity verification attestation linked to parent insight |
+
+**Advanced Features:**
+- **User Ownership** — Server wallet creates entities, then transfers `$owner` to user's wallet atomically via `mutateEntities`
+- **Batch Operations** — Create insight + certificate + ownership transfer in a single transaction (`/api/arkiv/save-batch`)
+- **Numeric Time Attributes** — `createdAt` stored as `Date.now()` for `gt()` / `lt()` range queries
+- **Differentiated Expiration** — 30-day working drafts, 365-day insights, 730-day certificates
+- **Advanced Querying** — Combinable filters: `ownerAddress`, `createdAfter`, `createdBefore`, `searchTerm`, pagination with cursor
+- **Explorer Links** — Every entity links to `https://explorer.braga.hoodi.arkiv.network/entity/{entityKey}`
+
 ### Engagement & Virality
 - **Referral System** — Automatic tracking, conversion rewards, viral bonuses
 - **Streak Mechanics** — Daily recording streaks with milestone rewards and freeze protection
