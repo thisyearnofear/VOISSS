@@ -79,6 +79,9 @@ export default function PlatformPage() {
               <a href="/studio" className="px-4 py-3 rounded-xl bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white font-semibold text-center">
                 Open Studio
               </a>
+              <a href="/arkiv" className="px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold text-center hover:from-blue-700 hover:to-cyan-700">
+                🔗 Arkiv Explorer
+              </a>
               <a href="/features" className="px-4 py-3 rounded-xl bg-[#2A2A2A] border border-[#3A3A3A] text-white font-semibold text-center hover:bg-[#3A3A3A]">
                 Choose transcript template
               </a>
