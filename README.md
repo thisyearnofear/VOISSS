@@ -118,6 +118,7 @@ pnpm dev:web      # http://localhost:4445
 | [AGENT_API.md](./docs/AGENT_API.md) | Voice generation API, OWS payments, security, events |
 | [BLOCKCHAIN.md](./docs/BLOCKCHAIN.md) | Smart contracts, tokens, x402, marketplace, gasless txns |
 | [HACKATHON.md](./docs/HACKATHON.md) | OWS hackathon strategy, demo script, submission materials |
+| [CHALLENGE.md](./docs/CHALLENGE.md) | Arkiv builder challenge: entity schema, demo, features |
 
 ## Tech Stack
 
