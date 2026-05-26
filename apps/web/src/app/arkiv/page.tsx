@@ -55,7 +55,9 @@ export default function ArkivExplorerPage() {
     <div className="min-h-screen bg-[#0A0A0A] text-white">
       <div className="max-w-4xl mx-auto p-8">
         <h1 className="text-3xl font-bold mb-2">Arkiv Explorer</h1>
-        <p className="text-gray-400 mb-6">Create and explore VoiceInsight entities on Braga Testnet.</p>
+        <p className="text-gray-400 mb-6">
+          Create and explore VoiceInsight entities on Braga Testnet (Chain ID: 60138453102).
+        </p>
         
         <div className="space-y-6">
           {showForm && (
@@ -68,8 +70,13 @@ export default function ArkivExplorerPage() {
             </div>
           )}
           
-          <button onClick={() => setShowForm(!showForm)} className="px-4 py-2 bg-gray-800 rounded">{showForm ? "Cancel" : "+ Create"}</button>
+          <div className="flex gap-2 mb-6">
+          <button onClick={() => setShowForm(!showForm)} className="px-4 py-2 bg-blue-600 rounded">
+            {showForm ? "Cancel" : "+ Create Entity"}
+          </button>
           <button onClick={fetchEntities} className="px-4 py-2 bg-gray-800 rounded">Refresh</button>
+          <a href="/api/health" target="_blank" className="px-4 py-2 bg-gray-800 rounded">Health Check</a>
+        </div>
 
           {savedEntities.map((e: any, i) => (
             <div key={i} className="p-4 bg-[#1A1A1A] rounded-lg">
