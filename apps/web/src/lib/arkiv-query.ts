@@ -5,12 +5,63 @@
  * - Numeric time-range queries via gt()/lt() on createdAt
  * - Pagination with hasNextPage / next()
  * - Combinable filters (owner + type + time range + search)
+ * - In-memory caching with TTL for repeated queries
  */
 
 import { createPublicClient, http } from "@arkiv-network/sdk";
 import { braga } from "@arkiv-network/sdk/chains";
 import { eq, gt, lt } from "@arkiv-network/sdk/query";
 import { PROJECT_ATTRIBUTE } from "./arkiv-service";
+
+/**
+ * Simple in-memory cache for Arkiv query results.
+ * Reduces RPC calls for frequently accessed queries.
+ */
+class ArkivQueryCache {
+  private cache = new Map<string, { result: any; expiresAt: number }>();
+  private lastCleanup = Date.now();
+  private readonly CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
+  private readonly TTL = 30 * 1000; // 30 seconds — short TTL since data changes
+
+  private getCacheKey(endpoint: string, filters: Record<string, any>): string {
+    return `${endpoint}:${JSON.stringify(filters)}`;
+  }
+
+  get(endpoint: string, filters: Record<string, any>): any | undefined {
+    this.maybeCleanup();
+    const key = this.getCacheKey(endpoint, filters);
+    const entry = this.cache.get(key);
+    if (entry && entry.expiresAt > Date.now()) {
+      return entry.result;
+    }
+    return undefined;
+  }
+
+  set(endpoint: string, filters: Record<string, any>, result: any): void {
+    const key = this.getCacheKey(endpoint, filters);
+    this.cache.set(key, {
+      result,
+      expiresAt: Date.now() + this.TTL,
+    });
+  }
+
+  invalidate(): void {
+    this.cache.clear();
+  }
+
+  private maybeCleanup(): void {
+    const now = Date.now();
+    if (now - this.lastCleanup < this.CLEANUP_INTERVAL) return;
+    for (const [key, entry] of this.cache) {
+      if (entry.expiresAt < now) {
+        this.cache.delete(key);
+      }
+    }
+    this.lastCleanup = now;
+  }
+}
+
+const queryCache = new ArkivQueryCache();
 
 const publicClient = createPublicClient({
   chain: braga,
@@ -91,6 +142,14 @@ function applyFilters(
 export async function queryVoiceInsights(
   filters: QueryFilters = {}
 ): Promise<QueryResult> {
+  const cacheKey = "queryVoiceInsights";
+
+  // Check cache first
+  const cached = queryCache.get(cacheKey, filters);
+  if (cached) {
+    return cached;
+  }
+
   const query = publicClient.buildQuery();
   applyFilters(query, "VoiceInsight", filters);
 
@@ -108,12 +167,12 @@ export async function queryVoiceInsights(
     });
   }
 
-  return {
+  const output: QueryResult = {
     entities,
     hasNextPage: result.hasNextPage(),
     nextPage: result.hasNextPage()
       ? async () => {
-          await result.next(); // mutates result in place, returns void
+          await result.next();
           return {
             entities: result.entities.map(mapEntity),
             hasNextPage: result.hasNextPage(),
@@ -121,11 +180,24 @@ export async function queryVoiceInsights(
         }
       : undefined,
   };
+
+  // Cache the result
+  queryCache.set(cacheKey, filters, output);
+
+  return output;
 }
 
 export async function queryHumanityCertificates(
   filters: QueryFilters & { parentInsightId?: string } = {}
 ): Promise<QueryResult> {
+  const cacheKey = "queryHumanityCertificates";
+
+  // Check cache first
+  const cached = queryCache.get(cacheKey, filters);
+  if (cached) {
+    return cached;
+  }
+
   const query = publicClient.buildQuery();
   applyFilters(query, "HumanityCertificate", filters);
 
@@ -146,12 +218,12 @@ export async function queryHumanityCertificates(
     });
   }
 
-  return {
+  const output: QueryResult = {
     entities,
     hasNextPage: result.hasNextPage(),
     nextPage: result.hasNextPage()
       ? async () => {
-          await result.next(); // mutates result in place, returns void
+          await result.next();
           return {
             entities: result.entities.map(mapEntity),
             hasNextPage: result.hasNextPage(),
@@ -159,4 +231,9 @@ export async function queryHumanityCertificates(
         }
       : undefined,
   };
+
+  // Cache the result
+  queryCache.set(cacheKey, filters, output);
+
+  return output;
 }

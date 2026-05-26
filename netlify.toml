@@ -1,7 +1,7 @@
 [build]
   base = "apps/web"
   command = "cd ../.. && pnpm install && pnpm build:web"
-  publish = "."
+  publish = "apps/web/.next"
 
 [build.environment]
   NODE_VERSION = "18"

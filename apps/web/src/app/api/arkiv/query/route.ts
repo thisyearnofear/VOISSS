@@ -4,6 +4,7 @@ import {
   queryHumanityCertificates,
   type QueryFilters,
 } from "@/lib/arkiv-query";
+import { getArkivExplorerUrl } from "@/lib/arkiv-service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,17 +34,25 @@ export async function GET(req: NextRequest): Promise<Response> {
         parentInsightId:
           searchParams.get("parentInsightId") || undefined,
       });
+      const entitiesWithExplorer = result.entities.map((e) => ({
+        ...e,
+        explorerUrl: getArkivExplorerUrl(e.key),
+      }));
       return Response.json({
         success: true,
-        entities: result.entities,
+        entities: entitiesWithExplorer,
         hasNextPage: result.hasNextPage,
       });
     }
 
     const result = await queryVoiceInsights(filters);
+    const entitiesWithExplorer = result.entities.map((e) => ({
+      ...e,
+      explorerUrl: getArkivExplorerUrl(e.key),
+    }));
     return Response.json({
       success: true,
-      entities: result.entities,
+      entities: entitiesWithExplorer,
       hasNextPage: result.hasNextPage,
     });
   } catch (error) {

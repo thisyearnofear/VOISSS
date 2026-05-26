@@ -151,10 +151,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
     if (preview === true) {
       console.log(`✨ Preview request detected: Lowering agent verification barrier for magic moment.`);
       
-      // Ensure we have a valid payTo address for the quote even in preview
-      // If X402_PAY_TO_ADDRESS is missing, we use a platform fallback for the preview quote
+      // Validate payment configuration early
       if (!process.env.X402_PAY_TO_ADDRESS) {
-        process.env.X402_PAY_TO_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base USDC Address as placeholder
+        console.warn('⚠️ X402_PAY_TO_ADDRESS not configured — preview will use cost=0 but quote generation may fail');
       }
     } else if (agentAddress && agentProof) {
       const proofResult = await verificationService.verifyAgentProof(agentAddress, agentProof, timestamp || '');
@@ -389,7 +388,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
       }
 
       // Create payment requirements for verification
-        const owsRequirements = createOWSPaymentRequirements(
+        const owsRequirements = await createOWSPaymentRequirements(
           owsWallet,
           actualCost,
           `Voice generation: ${characterCount} characters (Discount: ${quote.discountPercent}%)`,
@@ -630,7 +629,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
     // Return 402 Payment Required
     // If OWS wallet detected, return OWS-specific payment requirements
     if (isOWSRequest && owsWallet) {
-      const owsRequirements = createOWSPaymentRequirements(
+      const owsRequirements = await createOWSPaymentRequirements(
         owsWallet,
         actualCost,
         `Voice generation: ${characterCount} characters (Discount: ${quote.discountPercent}%)`,
@@ -1055,9 +1054,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
 // Helper functions
 function generateContentHash(text: string, voiceId: string, agentAddress: string): string {
-  const crypto = require('crypto');
   const data = `${text}:${voiceId}:${agentAddress}:${Date.now()}`;
-  return crypto.createHash('sha256').update(data).digest('hex');
+  return createHash('sha256').update(data).digest('hex');
 }
 
 /**

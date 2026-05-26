@@ -11,6 +11,7 @@
  *    to enable gt()/lt() range queries.
  * 3. Differentiated expiration: working memory expires faster than archive.
  * 4. Batch operations: insight + certificate + ownership transfer in one tx.
+ * 5. Idempotency: write operations are idempotent via Idempotency-Key header.
  */
 
 import { createWalletClient, http } from "@arkiv-network/sdk";
@@ -19,6 +20,7 @@ import { privateKeyToAccount } from "@arkiv-network/sdk/accounts";
 import { ExpirationTime, jsonToPayload } from "@arkiv-network/sdk/utils";
 
 export const PROJECT_ATTRIBUTE = "VOISSS_BRAGA_CHALLENGE_V1";
+export const ARKIV_EXPLORER_BASE = "https://explorer.braga.hoodi.arkiv.network/entity";
 
 /** Default expiration: long-term archive */
 const EXPIRY_ARCHIVE = ExpirationTime.fromDays(365);
@@ -26,6 +28,67 @@ const EXPIRY_ARCHIVE = ExpirationTime.fromDays(365);
 const EXPIRY_WORKING = ExpirationTime.fromDays(30);
 /** Permanent attestation expiration: certificates should outlast insights */
 const EXPIRY_PERMANENT = ExpirationTime.fromDays(730);
+
+/**
+ * Idempotency cache for Arkiv write operations.
+ * Prevents duplicate entity creation when the same Idempotency-Key is reused.
+ */
+class ArkivIdempotencyCache {
+  private cache = new Map<string, { result: any; expiresAt: number }>();
+  private lastCleanup = Date.now();
+  private readonly CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
+  private readonly TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+  get(key: string): { result: any; expiresAt: number } | undefined {
+    this.maybeCleanup();
+    return this.cache.get(key);
+  }
+
+  set(key: string, result: any): void {
+    this.cache.set(key, {
+      result,
+      expiresAt: Date.now() + this.TTL,
+    });
+  }
+
+  private maybeCleanup(): void {
+    const now = Date.now();
+    if (now - this.lastCleanup < this.CLEANUP_INTERVAL) return;
+    for (const [key, entry] of this.cache) {
+      if (entry.expiresAt < now) {
+        this.cache.delete(key);
+      }
+    }
+    this.lastCleanup = now;
+  }
+}
+
+/** Shared idempotency cache instance */
+export const arkivIdempotencyCache = new ArkivIdempotencyCache();
+
+/**
+ * Get the explorer URL for an entity key.
+ * Enables judges to verify entities directly on the Arkiv explorer.
+ */
+export function getArkivExplorerUrl(entityKey: string): string {
+  return `${ARKIV_EXPLORER_BASE}/${entityKey}`;
+}
+
+/**
+ * Get explorer URL for a transaction hash.
+ */
+export function getArkivTxExplorerUrl(txHash: string): string {
+  return `https://explorer.braga.hoodi.arkiv.network/tx/${txHash}`;
+}
+
+/**
+ * Human-readable labels for entity expiry durations.
+ */
+export const EXPIRY_LABELS = {
+  [EXPIRY_ARCHIVE.toString()]: { label: 'Archive (1 year)', days: 365, color: 'blue' },
+  [EXPIRY_WORKING.toString()]: { label: 'Working Memory (30 days)', days: 30, color: 'yellow' },
+  [EXPIRY_PERMANENT.toString()]: { label: 'Permanent Certificate (2 years)', days: 730, color: 'green' },
+};
 
 function getWalletClient() {
   const privateKey =
