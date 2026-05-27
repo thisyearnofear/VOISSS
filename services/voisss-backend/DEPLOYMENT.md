@@ -1,301 +1,190 @@
 # VOISSS Backend Deployment Guide
 
-## Deployment Method: Artifact-Based with Releases Symlink
+## Deployment Method: Rsync + Symlink Swap
 
-This service uses **immutable artifact-based deployments** for efficiency and reliability:
+This service uses **rsync-based deployments** with atomic symlink switching:
 
-- **CI builds the artifact** (including `node_modules/`) - no server-side npm install
-- **Server runs releases** from timestamped directories
+- **Source is rsynced** from local/CI to the server (no tarball artifacts)
+- **`npm ci` runs on-server** (required for native binaries like `sharp` on linux-x64)
 - **Symlink switching** enables atomic updates and instant rollbacks
-- **Automatic cleanup** keeps only the last 5 releases
+- **Automatic cleanup** keeps the current + 2 previous releases
 
 ### Server Directory Structure
 
 ```
-<deploy-path>/
+/opt/voisss-processing/
 ├── releases/
-│   ├── release-TIMESTAMP-COMMIT/
+│   ├── release-20260527-184033-f5b1766/
 │   └── ...
-├── current -> releases/release-TIMESTAMP-COMMIT  (symlink)
-├── .env                    (shared config, not in repo)
-├── logs/                   (shared logs)
-└── data/                   (if any local state)
+├── current -> releases/release-...  (symlink)
+├── .env                             (shared config, not in repo)
+└── logs/                            (shared logs)
 ```
 
-## CI/CD Setup
+## Quick Deploy
 
-This service uses GitHub Actions for automated deployment.
+```bash
+cd services/voisss-backend
+./deploy.sh            # deploy latest code
+./deploy.sh --rollback # revert to previous release
+```
+
+## CI/CD
+
+Automated via GitHub Actions on push to `services/voisss-backend/**`.
 
 ### Required GitHub Secrets
 
-Configure these secrets in your GitHub repository settings:
-
-1. **HETZNER_HOST** - Server hostname or IP
-2. **VOISSS_DEPLOY_KEY** - Dedicated deploy SSH key (not root)
-
-### Security Notes
-
-- Deployments use a dedicated user with restricted sudo access
-- Databases (PostgreSQL, Redis) are bound to localhost only
-- Environment files are not readable by the deploy user
+1. **HETZNER_HOST** — Server hostname or IP
+2. **VOISSS_DEPLOY_KEY** — SSH private key for `deploy` user
 
 ### SSH Key Setup
 
-Generate a dedicated deployment key (not your personal key):
-
 ```bash
 ssh-keygen -t ed25519 -C "deploy-voisss" -f deploy_key
-cat deploy_key      # Add to GitHub secrets
-cat deploy_key.pub  # Add to server's authorized_keys
+# Add deploy_key to GitHub secrets as VOISSS_DEPLOY_KEY
+# Add deploy_key.pub to server: ~deploy/.ssh/authorized_keys
 ```
 
-## Manual Deployment
+## Infrastructure
 
-If you need to deploy manually:
+| Service | How | Port | Notes |
+|---------|-----|------|-------|
+| Node.js API | pm2 `voisss-server` | 5577 | Express, ElevenLabs proxy, blockchain routes |
+| Export Worker | pm2 `voisss-export-worker` | — | FFmpeg processing queue |
+| PostgreSQL | Host-level (apt) | 5432 | `voisss` database, `voisss_user` role |
+| Redis | Docker `voisss-redis` | 6380 | Export job queue, 64MB max |
+| Nginx | SSL termination | 443 | `voisss.famile.xyz` → localhost:5577 |
 
-```bash
-# 1. Build the artifact
-cd services/voisss-backend
-npm ci --omit=dev
+### Public URL
 
-RELEASE_NAME="release-$(date +%Y-%m-%d_%H-%M-%S)-manual"
-mkdir -p ../artifacts/${RELEASE_NAME}
-cp -r src/ node_modules/ ../artifacts/${RELEASE_NAME}/
-cp package.json package-lock.json ecosystem.config.js ../artifacts/${RELEASE_NAME}/
-cd ../artifacts
-tar -czf ${RELEASE_NAME}.tar.gz ${RELEASE_NAME}
-
-# 2. Upload and deploy
-scp ${RELEASE_NAME}.tar.gz deploy@your-server:/tmp/
-ssh deploy@your-server "cd /tmp && tar -xzf ${RELEASE_NAME}.tar.gz"
-# ... rest of deployment via CI or manual steps
 ```
-
-### Rollback
-
-To rollback to the previous release:
-
-```bash
-ssh deploy@your-server
-
-# List available releases
-ls -lt releases/
-
-# Switch to previous release
-PREVIOUS=$(ls -1t releases/ | head -2 | tail -1)
-sudo ln -sfn releases/${PREVIOUS} current_new
-sudo mv -Tf current_new current
-
-# Reload PM2
-cd current
-sudo pm2 reload ecosystem.config.js
+https://voisss.famile.xyz/health
 ```
-
-## PostgreSQL Setup (Required)
-
-The backend requires PostgreSQL for mission storage:
-
-```bash
-# Run PostgreSQL bound to localhost only
-docker run -d --name postgres --restart unless-stopped \
-  -p 127.0.0.1:5432:5432 \
-  -e POSTGRES_USER=<user> -e POSTGRES_PASSWORD=<password> -e POSTGRES_DB=<db> \
-  -v postgres-data:/var/lib/postgresql/data \
-  postgres:15-alpine
-```
-
----
 
 ## First-Time Server Setup
 
-### 1. Create Deployment Directory Structure
+### 1. Directory Structure
 ```bash
-mkdir -p <deploy-path>/{releases,logs}
+sudo mkdir -p /opt/voisss-processing/{releases,logs}
+sudo chown deploy:deploy /opt/voisss-processing
 ```
 
-### 2. Setup Infrastructure
+### 2. PostgreSQL
 ```bash
-# Redis (bound to localhost)
-docker run -d --name redis --restart unless-stopped \
-  -p 127.0.0.1:6379:6379 \
-  redis:7-alpine
-
-# FFmpeg for audio processing
-apt-get install ffmpeg
+sudo -u postgres psql -c "CREATE USER voisss_user WITH PASSWORD '<password>' CREATEDB;"
+sudo -u postgres psql -c "CREATE DATABASE voisss OWNER voisss_user;"
 ```
 
-### 3. Configure Environment
+### 3. Redis
 ```bash
-# Create .env file in deploy root (use .env.example as template)
-# Ensure permissions restrict access: chmod 600 .env
+sudo docker run -d --name voisss-redis --restart unless-stopped \
+  -p 127.0.0.1:6380:6379 \
+  -v voisss-redis-data:/data \
+  redis:7-alpine redis-server --appendonly yes --maxmemory 64mb --maxmemory-policy allkeys-lru
 ```
 
-### 4. First Deployment
+### 4. Environment
 ```bash
-# Trigger the GitHub Actions workflow, or deploy manually (see above)
-# The first deployment will create the 'current' symlink
+cp .env.example /opt/voisss-processing/.env
+# Edit with real values
+sudo chmod 640 /opt/voisss-processing/.env
+sudo chown root:deploy /opt/voisss-processing/.env
 ```
 
-### 5. Start Services
+### 5. First Deploy
 ```bash
-# Both API and export worker processes
-pm2 start ecosystem.config.js
-pm2 save
-pm2 startup  # Enable auto-start on server reboot
-
-# Verify
-pm2 status  # Should show voisss-processing + voisss-export-worker x2
+./deploy.sh
 ```
 
-### 6. Verify Setup
+### 6. PM2 Auto-Start
 ```bash
-# Health check
-curl http://localhost:5577/health
-
-# Check logs
-pm2 logs voisss-processing --lines 20
-pm2 logs voisss-export-worker --lines 20
+pm2 startup   # generates systemd service
+pm2 save      # saves current process list
 ```
 
-### 7. Configure Nginx (Optional)
+### 7. Nginx
 ```bash
-# Set up your nginx configuration
-# Add export file serving location (optional):
-# location /exports/ {
-#   alias /var/www/voisss-exports/;
-#   expires 24h;
-# }
-# Configure SSL with certbot
-# Reload nginx
+# Config is at /etc/nginx/sites-enabled/voisss
+# SSL via certbot for voisss.famile.xyz
+sudo nginx -t && sudo systemctl reload nginx
 ```
 
-## Monitoring
+## Operations
 
+### View Logs
 ```bash
-# View all logs (API + worker)
-pm2 logs
-
-# API logs only
-pm2 logs voisss-processing --lines 50
-
-# Worker logs only
-pm2 logs voisss-export-worker --lines 50
-
-# Real-time monitoring (CPU, memory)
-pm2 monit
-
-# Check status
-pm2 status
-
-# Restart all services
-pm2 restart ecosystem.config.js
-
-# Restart specific service
-pm2 restart voisss-processing
-pm2 restart voisss-export-worker
+ssh snel-bot "pm2 logs voisss-server --lines 50"
+ssh snel-bot "pm2 logs voisss-export-worker --lines 50"
 ```
 
-## Export Service Specific
+### Restart
+```bash
+ssh snel-bot "pm2 restart voisss-server voisss-export-worker"
+```
+
+### Monitor
+```bash
+ssh snel-bot "pm2 monit"
+```
+
+### Rollback
+```bash
+./deploy.sh --rollback
+```
+
+## Export Service
 
 ```bash
+# Check Redis connectivity
+ssh snel-bot "redis-cli -p 6380 ping"
+
 # Check queue depth
-redis-cli LLEN bull:voisss-export:
+ssh snel-bot "redis-cli -p 6380 LLEN bull:voisss-export:"
 
-# Check job counts by status
-psql -h localhost -U postgres -d voisss \
-  -c "SELECT status, COUNT(*) FROM export_jobs GROUP BY status;"
-
-# View recent jobs
-psql -h localhost -U postgres -d voisss \
-  -c "SELECT id, kind, status, created_at FROM export_jobs ORDER BY created_at DESC LIMIT 10;"
+# Check job counts
+ssh snel-bot "psql -h localhost -U voisss_user -d voisss \
+  -c \"SELECT status, COUNT(*) FROM export_jobs GROUP BY status;\""
 ```
 
 ## Troubleshooting
 
 ### Service won't start
 ```bash
-pm2 logs voisss-processing --lines 50
+pm2 logs voisss-server --lines 50
 pm2 logs voisss-export-worker --lines 50
 ```
 
-### Worker not processing jobs
+### Database connection failed
 ```bash
-# Check Redis is running
-redis-cli ping  # Should return PONG
+# Verify postgres is running
+sudo systemctl status postgresql
+
+# Test connection
+psql -h localhost -U voisss_user -d voisss -c "SELECT 1"
+```
+
+### Worker not processing
+```bash
+# Check Redis
+redis-cli -p 6380 ping
 
 # Check worker process
 pm2 status | grep export
-
-# Check for errors
-pm2 logs voisss-export-worker --lines 100 --err
 ```
-
-### Jobs stuck in processing
-```bash
-# Query stuck jobs (older than 1 hour)
-psql -h localhost -U postgres -d voisss \
-  -c "SELECT id, created_at, started_at FROM export_jobs WHERE status='processing' AND created_at < NOW() - INTERVAL '1 hour';"
-
-# Reset job to pending (if needed)
-psql -h localhost -U postgres -d voisss \
-  -c "UPDATE export_jobs SET status='pending' WHERE id='export_xxx';"
-```
-
-### Check if port is available
-```bash
-netstat -tuln | grep 5577
-```
-
-### Verify environment variables
-```bash
-cd /opt/voisss-processing
-cat .env
-
-# Verify each is set
-echo $DATABASE_URL
-echo $REDIS_HOST
-echo $REDIS_PORT
-```
-
-## Scaling Workers
-
-To increase export processing capacity:
-
-```bash
-# Edit ecosystem.config.js
-nano ecosystem.config.js
-
-# Change WORKER_INSTANCES (default is 2)
-WORKER_INSTANCES=4  # for 4 workers
-
-# Restart
-pm2 restart ecosystem.config.js
-
-# Verify
-pm2 status | grep export  # Should show 4 instances
-```
-
-**Performance**: Each FFmpeg worker uses ~200-300MB RAM
-- 2 workers: ~20 MP3/hr or ~7 MP4/hr
-- 4 workers: ~40 MP3/hr or ~14 MP4/hr
 
 ## Cleanup & Maintenance
 
 ```bash
-# Delete old completed jobs (older than 7 days)
-psql -h localhost -U postgres -d voisss \
+# Old releases are auto-cleaned by deploy.sh (keeps 3)
+
+# Delete old completed export jobs (>7 days)
+psql -h localhost -U voisss_user -d voisss \
   -c "DELETE FROM export_jobs WHERE created_at < NOW() - INTERVAL '7 days' AND status IN ('completed', 'failed');"
 
 # Clear old temp files
-find /tmp/voisss-exports -type f -mtime +1 -delete
+find /tmp/voisss-exports -type f -mtime +1 -delete 2>/dev/null
+
+# Check disk space
+df -h /
 ```
-
-## Security Notes
-
-- Never commit `.env` files
-- Keep SSH keys secure
-- Use GitHub secrets for sensitive data
-- Rotate API keys periodically
-- Monitor access logs
-- Restrict Redis to localhost only (127.0.0.1)
-- Set file permissions on /var/www/voisss-exports
