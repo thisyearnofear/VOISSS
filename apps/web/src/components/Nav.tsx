@@ -118,6 +118,12 @@ export default function Nav() {
               >
                 Missions
               </Link>
+              <Link
+                href="/arkiv"
+                className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
+              >
+                Vault
+              </Link>
             </div>
 
             {/* AI Assistant Toggle */}

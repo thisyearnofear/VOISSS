@@ -19,8 +19,8 @@ import { braga } from "@arkiv-network/sdk/chains";
 import { privateKeyToAccount } from "@arkiv-network/sdk/accounts";
 import { ExpirationTime, jsonToPayload } from "@arkiv-network/sdk/utils";
 
-export const PROJECT_ATTRIBUTE = "VOISSS_BRAGA_CHALLENGE_V1";
-export const ARKIV_EXPLORER_BASE = "https://explorer.braga.hoodi.arkiv.network/entity";
+import { PROJECT_ATTRIBUTE } from "./arkiv-constants";
+export { PROJECT_ATTRIBUTE, ARKIV_EXPLORER_BASE, EXPIRY_CONFIG, getExpiryCountdown, getArkivExplorerUrl, getArkivTxExplorerUrl } from "./arkiv-constants";
 
 /** Default expiration: long-term archive */
 const EXPIRY_ARCHIVE = ExpirationTime.fromDays(365);
@@ -66,46 +66,6 @@ class ArkivIdempotencyCache {
 /** Shared idempotency cache instance */
 export const arkivIdempotencyCache = new ArkivIdempotencyCache();
 
-/**
- * Get the explorer URL for an entity key.
- * Enables judges to verify entities directly on the Arkiv explorer.
- */
-export function getArkivExplorerUrl(entityKey: string): string {
-  return `${ARKIV_EXPLORER_BASE}/${entityKey}`;
-}
-
-/**
- * Get explorer URL for a transaction hash.
- */
-export function getArkivTxExplorerUrl(txHash: string): string {
-  return `https://explorer.braga.hoodi.arkiv.network/tx/${txHash}`;
-}
-
-/**
- * Expiry duration constants for UI display.
- */
-export const EXPIRY_CONFIG = {
-  WORKING: { days: 30, color: 'yellow', label: 'Working (30 days)' },
-  ARCHIVE: { days: 365, color: 'blue', label: 'Archive (1 year)' },
-  PERMANENT: { days: 730, color: 'green', label: 'Certificate (2 years)' },
-} as const;
-
-/**
- * Calculate remaining time until expiry.
- * @param expiresAt - Unix timestamp in milliseconds
- * @param totalDays - Total expiry duration in days
- */
-export function getExpiryCountdown(expiresAt: number, totalDays: number): string {
-  const now = Date.now();
-  const remaining = expiresAt - now;
-  const daysRemaining = Math.floor(remaining / (1000 * 60 * 60 * 24));
-  const totalMs = totalDays * 24 * 60 * 60 * 1000;
-  const percent = Math.max(0, (remaining / totalMs) * 100);
-
-  if (daysRemaining <= 0) return "Expired";
-  if (daysRemaining >= totalDays) return `${totalDays}d`;
-  return `${daysRemaining}d left (${Math.round(percent)}%)`;
-}
 
 function getWalletClient() {
   const privateKey =

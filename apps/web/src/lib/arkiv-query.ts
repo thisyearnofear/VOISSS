@@ -11,7 +11,7 @@
 import { createPublicClient, http } from "@arkiv-network/sdk";
 import { braga } from "@arkiv-network/sdk/chains";
 import { eq, gt, lt } from "@arkiv-network/sdk/query";
-import { PROJECT_ATTRIBUTE } from "./arkiv-service";
+import { PROJECT_ATTRIBUTE } from "./arkiv-constants";
 
 /**
  * Simple in-memory cache for Arkiv query results.
