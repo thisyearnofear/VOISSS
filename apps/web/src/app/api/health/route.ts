@@ -9,7 +9,6 @@ export async function GET() {
     timestamp: new Date().toISOString(),
     version: "0.1.0",
     services: {
-      arkiv: { status: "unknown", message: "Check individual endpoints for connectivity" },
       payment: {
         status: process.env.X402_PAY_TO_ADDRESS ? "configured" : "not_configured",
         message: process.env.X402_PAY_TO_ADDRESS

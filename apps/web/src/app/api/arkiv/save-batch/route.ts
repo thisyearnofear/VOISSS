@@ -39,8 +39,8 @@ export async function POST(req: NextRequest): Promise<Response> {
       insightEntityKey: result.insightEntityKey,
       certEntityKey: result.certEntityKey,
       txHash: result.txHash,
-      insightExplorerUrl: result.insightExplorerUrl,
-      certExplorerUrl: result.certExplorerUrl,
+      insightExplorerUrl: getArkivExplorerUrl(result.insightEntityKey),
+      certExplorerUrl: getArkivExplorerUrl(result.certEntityKey),
       txExplorerUrl: getArkivTxExplorerUrl(result.txHash),
     };
 

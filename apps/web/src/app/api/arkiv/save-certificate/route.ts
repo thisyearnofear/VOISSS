@@ -38,7 +38,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       success: true,
       entityKey: result.entityKey,
       txHash: result.txHash,
-      explorerUrl: result.explorerUrl,
+      explorerUrl: getArkivExplorerUrl(result.entityKey),
       txExplorerUrl: getArkivTxExplorerUrl(result.txHash),
     };
 
