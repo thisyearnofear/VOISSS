@@ -4,7 +4,7 @@ import { config } from 'dotenv';
 // Load environment variables
 config();
 
-const PROVIDER_URL = 'https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_7/iwvOBCfQU1TQzUSouRsw2';
+const PROVIDER_URL = process.env.STARKNET_RPC_URL;
 const ACCOUNT_ADDRESS = process.env.STARKNET_ACCOUNT_ADDRESS;
 
 async function checkAccountType() {

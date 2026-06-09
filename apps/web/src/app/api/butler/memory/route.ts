@@ -5,7 +5,7 @@ import {
   getVoiceRecommendations,
   getProactiveSuggestions,
   type ButlerUserPreference,
-} from '../../../../../../../packages/shared/src/services/butler-memory-service';
+} from '@voisss/shared';
 
 /**
  * Butler Memory API
@@ -16,7 +16,33 @@ import {
  * POST /api/butler/suggestions - Get proactive suggestions
  */
 
+function verifyAuth(request: NextRequest): boolean {
+  const authHeader = request.headers.get('authorization');
+  const apiKey = request.headers.get('x-api-key');
+  const adminKey = process.env.ADMIN_API_KEY;
+
+  // Allow bearer token or x-api-key header
+  if (adminKey) {
+    if (authHeader === `Bearer ${adminKey}`) return true;
+    if (apiKey === adminKey) return true;
+  }
+
+  // Allow authenticated users (wallet-based auth)
+  const userId = request.headers.get('x-user-id');
+  const walletAddress = request.headers.get('x-wallet-address');
+  if (userId && walletAddress) return true;
+
+  return false;
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  if (!verifyAuth(request)) {
+    return NextResponse.json(
+      { success: false, error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { action, userId, walletAddress, preferences } = body;
@@ -112,6 +138,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  if (!verifyAuth(request)) {
+    return NextResponse.json(
+      { success: false, error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');

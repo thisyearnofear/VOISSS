@@ -10,7 +10,7 @@ import {
   CairoCustomEnum 
 } from 'starknet';
 
-const PROVIDER_URL = 'https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_7/iwvOBCfQU1TQzUSouRsw2';
+const PROVIDER_URL = process.env.STARKNET_RPC_URL;
 
 async function createStandardArgentAccount() {
   console.log('🚀 Creating a standard ArgentX account for contract deployment...');

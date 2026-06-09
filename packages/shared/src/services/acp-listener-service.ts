@@ -13,7 +13,7 @@
  * 6. Deliver results and collect USDC payment
  */
 
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, execFile, ChildProcess } from 'child_process';
 
 export interface AcpJob {
   id: string;
@@ -22,6 +22,7 @@ export interface AcpJob {
   offeringId: string;
   offeringName: string;
   clientAgentId: string;
+  providerAgentId?: string; // The agent assigned to execute the job
   clientAgentName?: string;
   budget?: {
     type: 'fixed' | 'range';
@@ -302,8 +303,13 @@ export class AcpListenerService {
    * Execute job when assigned to VOISSS
    */
   private async handleJobAssigned(job: AcpJob): Promise<void> {
-    if (job.clientAgentId !== this.config.agentId) {
-      return; // Not assigned to us
+    // Check if assigned to us: either providerAgentId matches, or we bid on this job
+    const isAssignedToUs =
+      job.providerAgentId === this.config.agentId ||
+      this.processedJobs.has(job.id);
+
+    if (!isAssignedToUs) {
+      return;
     }
 
     console.log(`[ACP Listener] 🎯 Job assigned! Executing: ${job.id}`);
@@ -322,7 +328,11 @@ export class AcpListenerService {
    * Track completed jobs for analytics
    */
   private async handleJobCompleted(job: AcpJob): Promise<void> {
-    if (job.clientAgentId !== this.config.agentId) {
+    const isAssignedToUs =
+      job.providerAgentId === this.config.agentId ||
+      this.processedJobs.has(job.id);
+
+    if (!isAssignedToUs) {
       return;
     }
 
@@ -380,11 +390,17 @@ export class AcpListenerService {
     const bidAmount = job.budget?.value || 0.05;
 
     try {
-      const { execSync } = await import('child_process');
-      const result = execSync(
-        `npx @virtuals-protocol/acp-cli provider set-budget --job-id ${job.id} --amount ${bidAmount} --json`,
-        { encoding: 'utf-8' }
-      );
+      const result = await new Promise<string>((resolve, reject) => {
+        execFile('npx', [
+          '@virtuals-protocol/acp-cli', 'provider', 'set-budget',
+          '--job-id', job.id,
+          '--amount', String(bidAmount),
+          '--json',
+        ], { encoding: 'utf-8' }, (err, stdout, stderr) => {
+          if (err) reject(err);
+          else resolve(stdout);
+        });
+      });
 
       const response = JSON.parse(result);
       console.log(`[ACP Listener] ✓ Bid submitted: ${response.message || 'success'}`);
@@ -482,13 +498,19 @@ export class AcpListenerService {
     console.log(`[ACP Listener] Delivering result for job ${job.id}...`);
 
     try {
-      const { execSync } = await import('child_process');
       const deliverable = result.ipfsUrl || result.recordingId || 'completed';
 
-      execSync(
-        `npx @virtuals-protocol/acp-cli provider deliver --job-id ${job.id} --deliverable "${deliverable}" --json`,
-        { encoding: 'utf-8' }
-      );
+      await new Promise<void>((resolve, reject) => {
+        execFile('npx', [
+          '@virtuals-protocol/acp-cli', 'provider', 'deliver',
+          '--job-id', job.id,
+          '--deliverable', deliverable,
+          '--json',
+        ], { encoding: 'utf-8' }, (err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
 
       console.log(`[ACP Listener] ✓ Result delivered`);
     } catch (error) {

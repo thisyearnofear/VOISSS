@@ -7,9 +7,13 @@ import { config } from 'dotenv';
 config();
 
 // Configuration
-const PROVIDER_URL = 'https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_7/iwvOBCfQU1TQzUSouRsw2';
+const PROVIDER_URL = process.env.STARKNET_RPC_URL;
 const ACCOUNT_ADDRESS = process.env.STARKNET_ACCOUNT_ADDRESS;
 const PRIVATE_KEY = process.env.STARKNET_PRIVATE_KEY;
+
+if (!PROVIDER_URL) {
+  throw new Error('STARKNET_RPC_URL environment variable is required');
+}
 
 interface DeploymentResult {
   contractName: string;

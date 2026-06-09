@@ -9,7 +9,7 @@
  * - Maintain conversation history across sessions
  */
 
-import { createWalletClient, http } from "@arkiv-network/sdk";
+import { createWalletClient, createPublicClient, http } from "@arkiv-network/sdk";
 import { braga } from "@arkiv-network/sdk/chains";
 import { privateKeyToAccount } from "@arkiv-network/sdk/accounts";
 import { ExpirationTime, jsonToPayload } from "@arkiv-network/sdk/utils";
@@ -68,8 +68,7 @@ export interface ButlerMemoryQuery {
 }
 
 function getWalletClient() {
-  const privateKey =
-    process.env.ARKIV_PRIVATE_KEY || process.env.NEXT_PUBLIC_ARKIV_PRIVATE_KEY;
+  const privateKey = process.env.ARKIV_PRIVATE_KEY;
   if (!privateKey) {
     throw new Error(
       "ARKIV_PRIVATE_KEY not configured. Add it to .env.local to enable Butler memory."
@@ -82,6 +81,13 @@ function getWalletClient() {
     chain: braga,
     transport: http(),
     account: privateKeyToAccount(privateKey as `0x${string}`),
+  });
+}
+
+function getPublicClient() {
+  return createPublicClient({
+    chain: braga,
+    transport: http(),
   });
 }
 
@@ -146,28 +152,35 @@ export async function getUserPreferences(
   query: ButlerMemoryQuery
 ): Promise<ButlerUserPreference | null> {
   try {
-    // This would use the Arkiv query API
-    // For now, return a mock structure
-    // In production, implement proper Arkiv read queries
-
     if (!query.userId && !query.walletAddress) {
       throw new Error("Must provide userId or walletAddress");
     }
 
-    // TODO: Implement actual Arkiv query
-    // const client = getPublicClient();
-    // const entities = await client.readEntities({
-    //   filter: {
-    //     project: PROJECT_ATTRIBUTE,
-    //     type: "butler-preference",
-    //     [query.userId ? "userId" : "walletAddress"]: query.userId || query.walletAddress,
-    //   },
-    //   limit: 1,
-    //   orderBy: "createdAt",
-    //   orderDirection: "desc",
-    // });
+    const client = getPublicClient();
+    const entities = await client.readEntities({
+      filter: {
+        project: PROJECT_ATTRIBUTE,
+        type: "butler-preference",
+      },
+      limit: 10,
+      orderBy: "createdAt",
+      orderDirection: "desc",
+    });
 
-    return null; // Return null if no preferences found
+    // Find the matching entity by userId or walletAddress
+    for (const entity of entities) {
+      const json = entity.json as ButlerUserPreference | undefined;
+      if (!json) continue;
+
+      if (query.userId && json.userId === query.userId) {
+        return json;
+      }
+      if (query.walletAddress && json.walletAddress === query.walletAddress) {
+        return json;
+      }
+    }
+
+    return null;
   } catch (error) {
     console.error("Failed to retrieve user preferences:", error);
     return null;
