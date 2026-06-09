@@ -7,6 +7,7 @@
 
 import { spawn, execFile, ChildProcess } from 'child_process';
 import { promisify } from 'util';
+import { getAgentReputationService } from './agent-reputation';
 
 const execFileAsync = promisify(execFile);
 
@@ -66,8 +67,8 @@ const DEFAULT_KEYWORDS = [
 // Actual Marketplace Offering IDs
 const OFFERING_IDS = {
   VOCALIZE: '019e98e8-f262-7aa9-938b-73664bae4fcd',
-  INSIGHT: '019eac6e-e239-7265-bec2-185c9f5b3d20',
-  CLONE: '019eac74-e5af-725c-801a-3ef0cb5e3352',
+  INSIGHT: '019e9bb1-5f8c-76c9-8f92-685af00b8c22',
+  CLONE: '019e9bb1-9e4d-7fb1-bb47-adb879d978c0',
 };
 
 export class AcpListenerService {
@@ -138,8 +139,10 @@ export class AcpListenerService {
   private async handleEventOutput(output: string): Promise<void> {
     const lines = output.trim().split('\n');
     for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || !trimmed.startsWith('{')) continue;
       try {
-        const event: AcpEvent = JSON.parse(line);
+        const event: AcpEvent = JSON.parse(trimmed);
         await this.handleEvent(event);
       } catch (error) {
         console.error('[ACP Listener] Failed to parse event:', error);

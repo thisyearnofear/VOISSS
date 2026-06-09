@@ -43,50 +43,38 @@ export default function AchievementsPage() {
     (ach) => filter === "all" || ach.category === filter
   );
 
-  const getTierColor = (tier: Achievement["tier"]) => {
-    switch (tier) {
-      case "bronze": return "text-orange-600 bg-orange-50";
-      case "silver": return "text-gray-600 bg-gray-50";
-      case "gold": return "text-yellow-600 bg-yellow-50";
-      case "platinum": return "text-purple-600 bg-purple-50";
-      default: return "text-gray-600 bg-gray-50";
-    }
-  };
-
   const unlockedCount = achievements.filter((ach) => userAchievements.has(ach.id)).length;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-[#0A0A0A] voisss-bg-grid voisss-bg-noise text-white py-8 px-4">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-4">🏆 Achievements</h1>
-        <p className="text-gray-600 mb-8">
+        <h1 className="text-4xl font-bold mb-2 voisss-gradient-text">Achievements</h1>
+        <p className="text-gray-400 mb-8">
           {unlockedCount} of {achievements.length} unlocked
         </p>
 
-        {/* Filter */}
-        <div className="bg-white rounded-lg shadow p-4 mb-6">
-          <div className="flex flex-wrap gap-2">
-            {(["all", "recordings", "earnings", "streak", "social", "quality", "special"] as const).map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setFilter(cat)}
-                className={`px-4 py-2 rounded-lg transition ${
-                  filter === cat
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                {cat.charAt(0).toUpperCase() + cat.slice(1)}
-              </button>
-            ))}
-          </div>
+        {/* Filter — sharp inline strip */}
+        <div className="flex flex-wrap gap-1 mb-8 border-b border-[#2A2A2A] pb-4">
+          {(["all", "recordings", "earnings", "streak", "social", "quality", "special"] as const).map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setFilter(cat)}
+              className={`px-4 py-2 text-sm transition ${
+                filter === cat
+                  ? "bg-indigo-600 text-white"
+                  : "text-gray-500 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              {cat.charAt(0).toUpperCase() + cat.slice(1)}
+            </button>
+          ))}
         </div>
 
-        {/* Achievements Grid */}
+        {/* Achievements List */}
         {loading ? (
-          <div className="text-center py-12">Loading...</div>
+          <div className="text-center py-12 text-gray-400">Loading...</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-0 divide-y divide-[#2A2A2A]">
             {filteredAchievements.map((achievement) => {
               const userAch = userAchievements.get(achievement.id);
               const isUnlocked = !!userAch;
@@ -95,48 +83,50 @@ export default function AchievementsPage() {
               return (
                 <div
                   key={achievement.id}
-                  className={`bg-white rounded-lg shadow p-6 transition ${
-                    isUnlocked ? "border-2 border-green-400" : "opacity-60"
-                  }`}
+                  className={`flex items-start gap-5 py-5 px-4 transition ${
+                    isUnlocked ? "opacity-100" : "opacity-50"
+                  } ${isUnlocked ? "border-l-2 border-l-green-500/60 pl-[14px]" : "border-l-2 border-l-transparent pl-[14px]"}`}
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="text-4xl">{isSecret ? "🔒" : achievement.icon}</div>
-                    <span className={`px-2 py-1 rounded text-xs font-semibold ${getTierColor(achievement.tier)}`}>
-                      {achievement.tier.toUpperCase()}
-                    </span>
+                  <div className="text-3xl flex-shrink-0 mt-0.5">
+                    {isSecret ? "🔒" : achievement.icon}
                   </div>
 
-                  <h3 className="text-lg font-bold mb-2">
-                    {isSecret ? "Secret Achievement" : achievement.title}
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    {isSecret ? "Complete hidden requirements to unlock" : achievement.description}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-1">
+                      <h3 className="text-base font-bold text-white">
+                        {isSecret ? "Secret Achievement" : achievement.title}
+                      </h3>
+                      <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${
+                        achievement.tier === 'platinum' ? 'text-purple-400 bg-purple-500/10' :
+                        achievement.tier === 'gold' ? 'text-yellow-400 bg-yellow-500/10' :
+                        achievement.tier === 'silver' ? 'text-gray-300 bg-gray-500/10' :
+                        'text-orange-400 bg-orange-500/10'
+                      }`}>
+                        {achievement.tier}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      {isSecret ? "Complete hidden requirements to unlock" : achievement.description}
+                    </p>
+                  </div>
 
-                  {!isSecret && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Reward:</span>
-                        <span className="font-semibold">{achievement.reward.tokens} tokens</span>
+                  <div className="flex-shrink-0 text-right">
+                    {!isSecret && (
+                      <div className="text-sm font-mono text-gray-400">
+                        {achievement.reward.tokens} tok
                       </div>
-                      {achievement.reward.multiplier && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Bonus:</span>
-                          <span className="font-semibold text-green-600">
-                            {((achievement.reward.multiplier - 1) * 100).toFixed(0)}% multiplier
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {isUnlocked && userAch && (
-                    <div className="mt-4 pt-4 border-t">
-                      <p className="text-xs text-green-600 font-semibold">
-                        ✓ Unlocked {new Date(userAch.unlockedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  )}
+                    )}
+                    {achievement.reward.multiplier && (
+                      <div className="text-xs text-green-400 font-mono">
+                        +{((achievement.reward.multiplier - 1) * 100).toFixed(0)}%
+                      </div>
+                    )}
+                    {isUnlocked && userAch && (
+                      <div className="text-[10px] text-green-500 mt-1 font-mono">
+                        {new Date(userAch.unlockedAt).toLocaleDateString()}
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}

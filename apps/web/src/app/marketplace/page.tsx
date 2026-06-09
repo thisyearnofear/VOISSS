@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { VoiceCard } from "@/components/marketplace/VoiceCard";
 import { VoiceMarketTrends } from "@/components/marketplace/VoiceMarketTrends";
+import { LicensePurchaseModal } from "@/components/payment/LicensePurchaseModal";
 import { useBaseAccount } from "@/hooks/useBaseAccount";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -12,12 +13,12 @@ export default function MarketplacePage() {
   const [voices, setVoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [purchasingId, setPurchasingId] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     language: "",
     tone: "",
     licenseType: "",
   });
+  const [modalVoice, setModalVoice] = useState<any>(null);
 
   useEffect(() => {
     fetchVoices();
@@ -53,76 +54,52 @@ export default function MarketplacePage() {
     }
   };
 
-  const handlePurchase = async (voiceId: string) => {
-    const activeAddress = universalAddress || authAddress;
-
+  const handlePurchaseClick = (voiceId: string) => {
     if (!isConnected && !isAuthenticated) {
-      if (confirm("Please connect your wallet to purchase a license.")) {
-        connect();
-      }
+      connect();
       return;
     }
+    const voice = voices.find((v) => v.id === voiceId) || null;
+    setModalVoice(voice);
+  };
 
-    try {
-      setPurchasingId(voiceId);
+  const executePurchase = async (voiceId: string): Promise<{ success: boolean; licenseId?: string; error?: string }> => {
+    const activeAddress = universalAddress || authAddress;
+    if (!activeAddress) return { success: false, error: "No wallet connected" };
 
-      const response = await fetch("/api/marketplace/license", {
+    const response = await fetch("/api/marketplace/license", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ voiceId, licenseeAddress: activeAddress, licenseType: "non-exclusive" }),
+    });
+
+    if (response.status === 402) {
+      const paymentData = await response.json();
+      const txHash = `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`;
+
+      const finalizeResponse = await fetch("/api/marketplace/license", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          voiceId,
-          licenseeAddress: activeAddress,
-          licenseType: "non-exclusive",
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          "x-402-payment": JSON.stringify({
+            txHash,
+            amount: paymentData.requirements?.amount || "49000000",
+            currency: "USDC",
+          }),
+        },
+        body: JSON.stringify({ voiceId, licenseeAddress: activeAddress, licenseType: "non-exclusive" }),
       });
 
-      if (response.status === 402) {
-        const paymentData = await response.json();
-
-        alert(
-          `x402 Payment Required: ${paymentData.paymentRequired.amount} USDC for ${paymentData.paymentRequired.reason}\n\nThis will trigger a Base transaction via the x402 protocol.`
-        );
-
-        const mockTxHash = `0x${Math.random()
-          .toString(16)
-          .slice(2)
-          .padStart(64, "0")}`;
-
-        const finalizeResponse = await fetch("/api/marketplace/license", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-402-payment": JSON.stringify({
-              txHash: mockTxHash,
-              amount: paymentData.paymentRequired.amount,
-              currency: "USDC",
-            }),
-          },
-          body: JSON.stringify({
-            voiceId,
-            licenseeAddress: activeAddress,
-            licenseType: "non-exclusive",
-          }),
-        });
-
-        const result = await finalizeResponse.json();
-        if (result.success) {
-          alert(`License Activated! ID: ${result.data.licenseId}`);
-        } else {
-          alert(`Activation failed: ${result.error}`);
-        }
-      } else {
-        const result = await response.json();
-        if (result.success) {
-          alert(`License already active! ID: ${result.data.licenseId}`);
-        }
-      }
-    } catch (purchaseError) {
-      console.error("Purchase flow failed:", purchaseError);
-      alert("License purchase failed. Please check console.");
-    } finally {
-      setPurchasingId(null);
+      const result = await finalizeResponse.json();
+      return result.success
+        ? { success: true, licenseId: result.data?.licenseId }
+        : { success: false, error: result.error || "Activation failed" };
     }
+
+    const result = await response.json();
+    return result.success
+      ? { success: true, licenseId: result.data?.licenseId }
+      : { success: false, error: result.error || "Purchase failed" };
   };
 
   const totalVoices = voices.length;
@@ -152,42 +129,36 @@ export default function MarketplacePage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A]">
-      <div className="border-b border-[#2A2A2A]">
+    <div className="min-h-screen bg-[#0A0A0A] voisss-bg-grid voisss-bg-noise">
+      <div className="border-b border-[#2A2A2A] voisss-bg-mesh">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center gap-3 mb-3">
             <h1 className="text-4xl font-bold text-white">Voice Marketplace</h1>
-            <span className="text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30 px-2.5 py-1 rounded-full">
-              🔴 Live on Base
+            <span className="text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30 px-2.5 py-1 rounded-sm">
+              LIVE ON BASE
             </span>
           </div>
-          <p className="text-lg text-gray-400 mb-4">
+          <p className="text-lg text-gray-400 mb-6">
             License authentic human voices for your AI agents
           </p>
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
-            Indexer Bridge active
-            <span className="text-emerald-200/60">
-              Live contract state with provenance badges
-            </span>
-          </div>
-          <div className="flex items-center gap-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-white">{totalVoices}</div>
-              <div className="text-xs text-gray-500">Voices</div>
+
+          {/* Stats bar — terminal style, sharp corners */}
+          <div className="flex items-center gap-0 border border-[#2A2A2A] rounded-sm overflow-hidden w-fit">
+            <div className="px-5 py-3 border-r border-[#2A2A2A] bg-[#0A0A0A]/80">
+              <div className="text-2xl font-bold text-white font-mono">{totalVoices}</div>
+              <div className="text-[10px] text-gray-500 uppercase tracking-widest">Voices</div>
             </div>
-            <div className="w-px h-8 bg-[#2A2A2A]" />
-            <div className="text-center">
-              <div className="text-2xl font-bold text-white">
+            <div className="px-5 py-3 border-r border-[#2A2A2A] bg-[#0A0A0A]/80">
+              <div className="text-2xl font-bold text-white font-mono">
                 {totalLicenses}
               </div>
-              <div className="text-xs text-gray-500">Licenses Sold</div>
+              <div className="text-[10px] text-gray-500 uppercase tracking-widest">Licenses Sold</div>
             </div>
-            <div className="w-px h-8 bg-[#2A2A2A]" />
-            <div className="text-center">
-              <div className="text-2xl font-bold text-white">
+            <div className="px-5 py-3 bg-[#0A0A0A]/80">
+              <div className="text-2xl font-bold text-white font-mono">
                 {totalUsage.toLocaleString()}
               </div>
-              <div className="text-xs text-gray-500">Total Uses</div>
+              <div className="text-[10px] text-gray-500 uppercase tracking-widest">Total Uses</div>
             </div>
           </div>
         </div>
@@ -202,7 +173,7 @@ export default function MarketplacePage() {
           </div>
         )}
 
-        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 mb-6">
+        <div className="border border-[#2A2A2A] rounded-sm p-4 mb-6 bg-[#0A0A0A]/60 backdrop-blur-sm">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">
@@ -279,14 +250,12 @@ export default function MarketplacePage() {
               <VoiceCard
                 key={voice.id}
                 voice={voice}
-                onPurchase={
-                  purchasingId ? undefined : () => handlePurchase(voice.id)
-                }
+                onPurchase={() => handlePurchaseClick(voice.id)}
               />
             ))}
           </div>
         ) : (
-          <div className="rounded-2xl border border-[#2A2A2A] bg-[#121212] px-6 py-12 text-center">
+          <div className="border border-[#2A2A2A] bg-[#121212]/60 px-6 py-12 text-center rounded-sm">
             <div className="text-lg font-semibold text-white">
               No live listings matched these filters
             </div>
@@ -298,6 +267,14 @@ export default function MarketplacePage() {
           </div>
         )}
       </div>
+
+      <LicensePurchaseModal
+        visible={!!modalVoice}
+        onClose={() => setModalVoice(null)}
+        voice={modalVoice}
+        licenseType="non-exclusive"
+        onPurchase={executePurchase}
+      />
     </div>
   );
 }

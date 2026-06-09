@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { Play, Square, Loader2, Sparkles, MessageSquare } from "lucide-react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { Play, Square, Loader2, Sparkles, MessageSquare, Share2 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence } from "framer-motion";
+import { SocialShare, type ShareableRecording } from "@voisss/ui";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface MarketplaceVoice {
   id: string;
@@ -17,6 +19,7 @@ interface MarketplaceVoice {
 }
 
 export default function QuickVoicePreview() {
+  const { address } = useAuth();
   const [text, setText] = useState("License authentic human voices for your AI agents. Instant API access. Built on Base.");
   const [voices, setVoices] = useState<MarketplaceVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<MarketplaceVoice | null>(null);
@@ -25,6 +28,17 @@ export default function QuickVoicePreview() {
   const [error, setError] = useState<string | null>(null);
   const [hasSynthesized, setHasSynthesized] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const shareRecording = useMemo<ShareableRecording | null>(() => {
+    if (!selectedVoice) return null;
+    const tone = selectedVoice.voiceProfile.tone || "Voice";
+    return {
+      id: selectedVoice.id,
+      title: `I just synthesized speech with a ${tone} voice on VOISSS`,
+      duration: 0,
+      createdAt: new Date().toISOString(),
+    };
+  }, [selectedVoice]);
 
   // Fallback voices for demo/development if indexer is empty
   const FALLBACK_VOICES: MarketplaceVoice[] = [
@@ -263,6 +277,41 @@ export default function QuickVoicePreview() {
             )}
           </motion.button>
         </div>
+
+        {/* Share Card — appears after first synthesis */}
+        <AnimatePresence>
+          {hasSynthesized && shareRecording && (
+            <motion.div
+              initial={{ opacity: 0, y: 16, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: "auto" }}
+              exit={{ opacity: 0, y: -8, height: 0 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+              className="overflow-hidden"
+            >
+              <div className="bg-gradient-to-br from-blue-600/10 to-purple-600/10 border border-white/10 rounded-xl p-5 space-y-4">
+                <div className="flex items-center gap-2 text-white font-semibold">
+                  <Share2 className="w-4 h-4 text-blue-400" />
+                  Share this voice
+                </div>
+                <p className="text-xs text-gray-400">
+                  Loved the {selectedVoice?.voiceProfile.tone || "voice"}? Share it and earn referral rewards.
+                </p>
+                <SocialShare
+                  recording={shareRecording}
+                  userId={address || undefined}
+                  generateReferralCode={async (userId: string, recordingId: string) => {
+                    const hash = btoa(`${userId}:${recordingId}`).slice(0, 8);
+                    return hash;
+                  }}
+                  onShare={(platform: string, url: string) => {
+                    console.log(`Shared to ${platform}:`, url);
+                  }}
+                  className="justify-center"
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <p className="text-center text-[10px] text-gray-500 uppercase tracking-widest font-medium">
           Powered by VOISSS x402 Protocol • Gasless Preview

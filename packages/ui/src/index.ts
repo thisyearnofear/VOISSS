@@ -11,6 +11,9 @@ export type {
     ShareableRecording
 } from './components/SocialShare.web';
 
+export { BaseModal } from './components/BaseModal.web';
+export type { BaseModalProps } from './components/BaseModal.web';
+
 // Engagement components
 export { NotificationBell } from './components/NotificationBell';
 export type { NotificationItem, NotificationBellProps } from './components/NotificationBell';

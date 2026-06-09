@@ -372,10 +372,11 @@ async function startServer() {
   try {
     await runMigrations();
 
-    const server = app.listen(PORT, "0.0.0.0", () => {
+    const HOST = process.env.HOST || "127.0.0.1";
+    const server = app.listen(PORT, HOST, () => {
       logger.info(
         `\n${"=".repeat(60)}\n` +
-        `VOISSS Processing Service running on port ${PORT}\n` +
+        `VOISSS Processing Service running on ${HOST}:${PORT}\n` +
         `Health check: http://localhost:${PORT}/health\n` +
         `Environment: ${process.env.NODE_ENV || "development"}\n` +
         `${"=".repeat(60)}\n`

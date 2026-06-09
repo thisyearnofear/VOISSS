@@ -44,7 +44,7 @@ export default function EnhancedLandingHero() {
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-6">
             <a
               href="/marketplace"
               className="px-8 py-4 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-xl text-white text-lg font-semibold hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 flex items-center gap-3"
@@ -57,6 +57,18 @@ export default function EnhancedLandingHero() {
               className="px-8 py-4 border border-gray-600 rounded-xl text-white text-lg font-semibold hover:border-gray-400 transition-all duration-300 hover:bg-white/5"
             >
               List Your Voice
+            </a>
+          </div>
+
+          {/* Persona Paths */}
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center text-sm mb-16">
+            <a href="/studio" className="text-gray-500 hover:text-purple-400 transition-colors flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-purple-500 rounded-full" />
+              I create voices
+            </a>
+            <a href="/marketplace" className="text-gray-500 hover:text-blue-400 transition-colors flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+              I need voices for my agent
             </a>
           </div>
 

@@ -7,7 +7,7 @@ import { useBasename } from "../hooks/useBasename";
 import { useBaseAccount } from "../hooks/useBaseAccount";
 import { useAssistant } from "../contexts/AssistantContext";
 import { Sparkles } from "lucide-react";
-import { NotificationBell } from "@voisss/ui";
+import { NotificationBell, StreakDisplay } from "@voisss/ui";
 import { useEngagement } from "@voisss/shared/hooks/useEngagement";
 import { webEngagementService } from "../services/engagement";
 import { useRouter } from "next/navigation";
@@ -25,14 +25,25 @@ export default function Nav() {
     status: baseAccountStatus,
   } = useBaseAccount();
   const [showWalletMenu, setShowWalletMenu] = useState(false);
+  const [showCommunityMenu, setShowCommunityMenu] = useState(false);
+  const [dismissedNudge, setDismissedNudge] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const communityRef = useRef<HTMLDivElement>(null);
 
   // ENHANCEMENT: Engagement hooks
-  const { notifications, unreadCount, markRead } = useEngagement(webEngagementService, {
+  const { notifications, unreadCount, markRead, streak } = useEngagement(webEngagementService, {
     userId: address || undefined,
     autoRefresh: true,
     refreshInterval: 30000, // 30 seconds
   });
+
+  const needsStreakNudge =
+    isAuthenticated &&
+    !dismissedNudge &&
+    streak &&
+    streak.currentStreak > 0 &&
+    streak.lastRecordingDate &&
+    !streak.lastRecordingDate.toString().startsWith(new Date().toISOString().split("T")[0]);
 
   // Refresh permissions when menu opens (optional - already auto-refreshed by hook)
   useEffect(() => {
@@ -57,6 +68,20 @@ export default function Nav() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showWalletMenu]);
+
+  useEffect(() => {
+    const handleCommunityOutside = (event: MouseEvent) => {
+      if (communityRef.current && !communityRef.current.contains(event.target as Node)) {
+        setShowCommunityMenu(false);
+      }
+    };
+    if (showCommunityMenu) {
+      document.addEventListener('mousedown', handleCommunityOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleCommunityOutside);
+    };
+  }, [showCommunityMenu]);
 
   const formatAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
@@ -98,7 +123,13 @@ export default function Nav() {
                 href="/marketplace"
                 className="text-white hover:text-blue-400 transition-colors text-sm font-bold uppercase tracking-wider"
               >
-                Browse Voices
+                Marketplace
+              </Link>
+              <Link
+                href="/studio"
+                className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
+              >
+                Studio
               </Link>
               <Link
                 href="/agents"
@@ -106,24 +137,30 @@ export default function Nav() {
               >
                 API Docs
               </Link>
-              <Link
-                href="/marketplace/dashboard"
-                className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
-              >
-                List Your Voice
-              </Link>
-              <Link
-                href="/missions"
-                className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
-              >
-                Missions
-              </Link>
-              <Link
-                href="/arkiv"
-                className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
-              >
-                Vault
-              </Link>
+              <div className="relative" ref={communityRef}>
+                <button
+                  onClick={() => setShowCommunityMenu(!showCommunityMenu)}
+                  className="text-gray-400 hover:text-white transition-colors text-sm font-medium flex items-center gap-1"
+                >
+                  Community
+                  <svg className={`w-3 h-3 transition-transform ${showCommunityMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {showCommunityMenu && (
+                  <div className="absolute left-0 mt-2 w-44 bg-[#1A1A1A] border border-[#2A2A2A] rounded-sm shadow-xl py-1 z-50">
+                    <Link href="/missions" onClick={() => setShowCommunityMenu(false)} className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
+                      Missions
+                    </Link>
+                    <Link href="/leaderboard" onClick={() => setShowCommunityMenu(false)} className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
+                      Leaderboard
+                    </Link>
+                    <Link href="/achievements" onClick={() => setShowCommunityMenu(false)} className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
+                      Achievements
+                    </Link>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* AI Assistant Toggle */}
@@ -139,26 +176,36 @@ export default function Nav() {
               <span className="hidden lg:inline text-xs font-bold uppercase tracking-widest">Assistant</span>
             </button>
 
-            {/* ENHANCEMENT: Notification Bell */}
+            {/* ENHANCEMENT: Streak + Notifications */}
             {isAuthenticated && address && (
-              <NotificationBell
-                notifications={notifications.map(n => ({
-                  id: n.id,
-                  title: n.title,
-                  body: n.body,
-                  read: n.read,
-                  createdAt: n.createdAt,
-                  priority: n.priority,
-                  actionUrl: n.actionUrl,
-                }))}
-                unreadCount={unreadCount}
-                onMarkRead={markRead}
-                onNotificationClick={(notif) => {
-                  if (notif.actionUrl) {
-                    router.push(notif.actionUrl);
-                  }
-                }}
-              />
+              <div className="flex items-center gap-3">
+                {streak && streak.currentStreak > 0 && (
+                  <StreakDisplay
+                    currentStreak={streak.currentStreak}
+                    longestStreak={streak.longestStreak}
+                    compact
+                    className="hidden md:flex"
+                  />
+                )}
+                <NotificationBell
+                  notifications={notifications.map(n => ({
+                    id: n.id,
+                    title: n.title,
+                    body: n.body,
+                    read: n.read,
+                    createdAt: n.createdAt,
+                    priority: n.priority,
+                    actionUrl: n.actionUrl,
+                  }))}
+                  unreadCount={unreadCount}
+                  onMarkRead={markRead}
+                  onNotificationClick={(notif) => {
+                    if (notif.actionUrl) {
+                      router.push(notif.actionUrl);
+                    }
+                  }}
+                />
+              </div>
             )}
 
             {/* Authentication / Profile Area */}
@@ -225,7 +272,7 @@ export default function Nav() {
 
             {/* Enhanced Wallet Dropdown Menu */}
             {showWalletMenu && (
-              <div className="absolute right-0 mt-3 w-80 bg-gradient-to-br from-[#1A1A1A] to-[#0F0F0F] border border-[#3A3A3A] rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="absolute right-0 mt-3 w-80 bg-gradient-to-br from-[#1A1A1A] to-[#0F0F0F] border border-[#3A3A3A] rounded-sm shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                 {/* Header with Gradient */}
                 <div className="p-5 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-b border-[#2A2A2A]">
                   <div className="flex items-center gap-2 mb-3">
@@ -262,7 +309,7 @@ export default function Nav() {
                       </p>
                     )}
                   </div>
-                  <div className="p-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg">
+                  <div className="p-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-sm">
                     <p className="text-gray-400 text-xs mb-1">Identity</p>
                     <div className="text-white font-mono text-xs break-all leading-relaxed">
                       {isResolvingBasename ? (
@@ -280,7 +327,7 @@ export default function Nav() {
 
                   {/* Base Account Status */}
                   {isConnected && universalAddress && (
-                    <div className="p-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg mt-3">
+                    <div className="p-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-sm mt-3">
                       <p className="text-gray-400 text-xs mb-1">Base Account</p>
                       <div className="text-white font-mono text-xs break-all leading-relaxed mb-2">
                         {universalAddress}
@@ -303,9 +350,9 @@ export default function Nav() {
                 <div className="p-3">
                   <button
                     onClick={copyAddress}
-                    className="w-full px-4 py-3 text-left text-sm text-white hover:bg-[#2A2A2A] rounded-xl transition-all duration-200 flex items-center gap-3 group mb-1"
+                    className="w-full px-4 py-3 text-left text-sm text-white hover:bg-[#2A2A2A] rounded-sm transition-all duration-200 flex items-center gap-3 group mb-1"
                   >
-                    <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
+                    <div className="w-8 h-8 bg-blue-500/10 rounded-sm flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
                       <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
@@ -320,9 +367,9 @@ export default function Nav() {
                     href={`https://basescan.org/address/${address}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full px-4 py-3 text-left text-sm text-white hover:bg-[#2A2A2A] rounded-xl transition-all duration-200 flex items-center gap-3 group mb-1"
+                    className="w-full px-4 py-3 text-left text-sm text-white hover:bg-[#2A2A2A] rounded-sm transition-all duration-200 flex items-center gap-3 group mb-1"
                   >
-                    <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center group-hover:bg-purple-500/20 transition-colors">
+                    <div className="w-8 h-8 bg-purple-500/10 rounded-sm flex items-center justify-center group-hover:bg-purple-500/20 transition-colors">
                       <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                       </svg>
@@ -340,9 +387,9 @@ export default function Nav() {
 
                   <button
                     onClick={handleDisconnect}
-                    className="w-full px-4 py-3 text-left text-sm text-white hover:bg-red-500/10 rounded-xl transition-all duration-200 flex items-center gap-3 group"
+                    className="w-full px-4 py-3 text-left text-sm text-white hover:bg-red-500/10 rounded-sm transition-all duration-200 flex items-center gap-3 group"
                   >
-                    <div className="w-8 h-8 bg-red-500/10 rounded-lg flex items-center justify-center group-hover:bg-red-500/20 transition-colors">
+                    <div className="w-8 h-8 bg-red-500/10 rounded-sm flex items-center justify-center group-hover:bg-red-500/20 transition-colors">
                       <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                       </svg>
@@ -365,6 +412,30 @@ export default function Nav() {
           </div>
         </div>
       </div>
+
+      {/* Daily Streak Nudge Banner */}
+      {needsStreakNudge && (
+        <div className="bg-gradient-to-r from-orange-500/10 to-amber-500/10 border-t border-orange-500/20">
+          <div className="voisss-container py-2 flex items-center justify-between">
+            <Link href="/studio" className="flex items-center gap-2 text-sm text-orange-300 hover:text-orange-200 transition-colors">
+              <span className="text-lg">🔥</span>
+              <span>
+                <strong>{streak?.currentStreak}-day streak!</strong>{" "}
+                Record today to keep it going.
+              </span>
+            </Link>
+            <button
+              onClick={() => setDismissedNudge(true)}
+              className="text-gray-500 hover:text-gray-300 transition-colors p-1"
+              aria-label="Dismiss"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
