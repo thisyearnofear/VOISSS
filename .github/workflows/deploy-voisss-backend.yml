@@ -12,6 +12,8 @@ on:
 env:
   DEPLOY_PATH: /opt/voisss-processing
   KEEP_RELEASES: 3
+  HEALTH_RETRIES: 5
+  HEALTH_INTERVAL: 2
 
 jobs:
   deploy:
@@ -20,6 +22,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: services/voisss-backend/package-lock.json
 
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
@@ -31,34 +40,43 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.HETZNER_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Build locally
+        working-directory: services/voisss-backend
+        run: |
+          echo "Building backend..."
+          npm ci --omit=dev 2>&1 | tail -5
+          echo "Build complete"
+          echo "ARTIFACT_SIZE=$(du -sh . | cut -f1)" >> $GITHUB_ENV
+
       - name: Deploy via rsync + symlink swap
         env:
           SERVER: deploy@${{ secrets.HETZNER_HOST }}
         run: |
           RELEASE_NAME="release-$(date +%Y%m%d-%H%M%S)-${GITHUB_SHA:0:7}"
-          echo "Deploying: ${RELEASE_NAME}"
+          echo "Deploying: ${RELEASE_NAME} (artifact: ${{ env.ARTIFACT_SIZE }})"
 
           # Create release dir
-          ssh $SERVER "mkdir -p ${{ env.DEPLOY_PATH }}/releases/${RELEASE_NAME}/src ${{ env.DEPLOY_PATH }}/logs"
+          ssh $SERVER "mkdir -p ${{ env.DEPLOY_PATH }}/releases/${RELEASE_NAME} ${{ env.DEPLOY_PATH }}/logs"
 
-          # Rsync source
+          # Rsync built artifact (source + node_modules + config)
           rsync -az --delete \
             services/voisss-backend/src/ \
             $SERVER:${{ env.DEPLOY_PATH }}/releases/${RELEASE_NAME}/src/
 
-          # Rsync package files
           rsync -az \
             services/voisss-backend/package.json \
             services/voisss-backend/package-lock.json \
             services/voisss-backend/ecosystem.config.js \
             $SERVER:${{ env.DEPLOY_PATH }}/releases/${RELEASE_NAME}/
 
-          # Install deps, symlink shared resources, swap, restart
+          rsync -az --delete \
+            services/voisss-backend/node_modules/ \
+            $SERVER:${{ env.DEPLOY_PATH }}/releases/${RELEASE_NAME}/node_modules/
+
+          # Symlink shared resources + atomic swap + restart
           ssh $SERVER << ENDSSH
             set -e
             cd ${{ env.DEPLOY_PATH }}/releases/${RELEASE_NAME}
-
-            npm ci --omit=dev 2>&1 | tail -5
 
             ln -sf ${{ env.DEPLOY_PATH }}/.env .env
             ln -sf ${{ env.DEPLOY_PATH }}/logs logs
@@ -69,10 +87,26 @@ jobs:
             pm2 delete voisss-server voisss-export-worker 2>/dev/null || true
             pm2 start ecosystem.config.js
             pm2 save
+          ENDSSH
 
-            sleep 3
-            curl -sf http://localhost:5577/health || exit 1
-            echo "Health check passed"
+      - name: Health check with retry
+        env:
+          SERVER: deploy@${{ secrets.HETZNER_HOST }}
+        run: |
+          ssh $SERVER << ENDSSH
+            set -e
+            attempt=1
+            while [ \$attempt -le ${{ env.HEALTH_RETRIES }} ]; do
+              if curl -sf http://localhost:5577/health > /dev/null 2>&1; then
+                echo "Health check passed (attempt \$attempt)"
+                exit 0
+              fi
+              echo "Health check attempt \$attempt/${{ env.HEALTH_RETRIES }} failed, waiting ${{ env.HEALTH_INTERVAL }}s..."
+              sleep ${{ env.HEALTH_INTERVAL }}
+              attempt=\$((attempt + 1))
+            done
+            echo "Health check failed after ${{ env.HEALTH_RETRIES }} attempts"
+            exit 1
           ENDSSH
 
       - name: Cleanup old releases
@@ -88,3 +122,10 @@ jobs:
               rm -rf "$old"
             done
           ENDSSH
+
+      - name: Deploy summary
+        run: |
+          echo "## Deploy Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release:** release-$(date +%Y%m%d-%H%M%S)-${GITHUB_SHA:0:7}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Artifact size:** ${{ env.ARTIFACT_SIZE }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Health:** https://voisss.famile.xyz/health" >> $GITHUB_STEP_SUMMARY

@@ -1,17 +1,19 @@
 #!/bin/bash
-# VOISSS Backend Deploy — local build, rsync artifact, symlink swap
-# Usage: ./deploy.sh [--rollback]
+# VOISSS Backend Deploy — build locally, rsync artifact, symlink swap
 #
-# Model:
-#   - Rsyncs src/ + package files to a timestamped release dir on server
-#   - Runs npm ci --omit=dev on server (needed for native binaries like sharp)
-#   - Symlinks .env and logs from shared location
-#   - Atomic symlink swap of /opt/voisss-processing/current
-#   - Restarts pm2 processes
-#   - Keeps 2 previous releases for rollback
+# Space-optimized flow:
+#   1. Build locally (npm ci + npm run build)
+#   2. Rsync only the built artifact to server
+#   3. Symlink .env and logs from shared location
+#   4. Atomic symlink swap of /opt/voisss-processing/current
+#   5. Restart pm2 processes
+#   6. Health check with retry
 #
-# Rollback: ./deploy.sh --rollback
-#   Swaps current symlink to the previous release and restarts pm2.
+# Usage:
+#   ./deploy.sh              # Full deploy (build + push)
+#   ./deploy.sh --push       # Skip build, push existing dist/
+#   ./deploy.sh --rollback   # Swap to previous release
+#   ./deploy.sh --cleanup    # Remove old releases
 
 set -euo pipefail
 
@@ -20,12 +22,35 @@ DEPLOY_PATH="/opt/voisss-processing"
 RELEASES_DIR="${DEPLOY_PATH}/releases"
 SHARED_ENV="${DEPLOY_PATH}/.env"
 SHARED_LOGS="${DEPLOY_PATH}/logs"
-KEEP_RELEASES=3  # current + 2 rollbacks
+KEEP_RELEASES=3
+HEALTH_RETRIES=5
+HEALTH_INTERVAL=2
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="${SCRIPT_DIR}/../.."
+DIST_DIR="${SCRIPT_DIR}/dist"
+
+# --- Helpers ---
+info()  { echo -e "\033[36m→ $*\033[0m"; }
+ok()    { echo -e "\033[32m✓ $*\033[0m"; }
+fail()  { echo -e "\033[31m✗ $*\033[0m"; exit 1; }
+
+health_check() {
+  local attempt=1
+  while [ $attempt -le $HEALTH_RETRIES ]; do
+    if curl -sf http://localhost:5577/health > /dev/null 2>&1; then
+      ok "Health check passed (attempt $attempt)"
+      return 0
+    fi
+    info "Health check attempt $attempt/$HEALTH_RETRIES failed, waiting ${HEALTH_INTERVAL}s..."
+    sleep $HEALTH_INTERVAL
+    attempt=$((attempt + 1))
+  done
+  fail "Health check failed after $HEALTH_RETRIES attempts"
+}
 
 # --- Rollback mode ---
 if [[ "${1:-}" == "--rollback" ]]; then
-  echo "=== Rolling back ==="
+  info "Rolling back..."
   ssh "$SERVER" bash -s <<'ROLLBACK'
     set -euo pipefail
     DEPLOY_PATH="/opt/voisss-processing"
@@ -45,70 +70,116 @@ if [[ "${1:-}" == "--rollback" ]]; then
 
     cd "$DEPLOY_PATH/current"
     pm2 restart voisss-server voisss-export-worker
-    sleep 3
-    curl -sf http://localhost:5577/health && echo " OK" || echo " FAILED"
 ROLLBACK
+  health_check
   exit $?
 fi
 
+# --- Cleanup mode ---
+if [[ "${1:-}" == "--cleanup" ]]; then
+  info "Cleaning old releases (keeping $KEEP_RELEASES)..."
+  ssh "$SERVER" bash -s <<CLEANUP
+    set -euo pipefail
+    cd ${RELEASES_DIR}
+    CURRENT_NAME=\$(basename \$(readlink ${DEPLOY_PATH}/current))
+    ls -1t | grep -v "\$CURRENT_NAME" | tail -n +${KEEP_RELEASES} | while read old; do
+      echo "  Removing: \$old"
+      rm -rf "\$old"
+    done
+CLEANUP
+  ok "Cleanup done"
+  exit 0
+fi
+
 # --- Deploy mode ---
-COMMIT=$(git -C "$SCRIPT_DIR/../.." rev-parse --short HEAD 2>/dev/null || echo "unknown")
+COMMIT=$(git -C "$PROJECT_ROOT" rev-parse --short HEAD 2>/dev/null || echo "unknown")
 RELEASE_NAME="release-$(date +%Y%m%d-%H%M%S)-${COMMIT}"
 
-echo "=== Deploying ${RELEASE_NAME} ==="
-echo "Server: ${SERVER}"
+info "Deploy: ${RELEASE_NAME}"
+info "Server: ${SERVER}"
 echo ""
 
-# 1. Create release dir on server
-echo "[1/5] Creating release directory..."
-ssh "$SERVER" "mkdir -p ${RELEASES_DIR}/${RELEASE_NAME}/src ${SHARED_LOGS}"
+# 1. Build locally (unless --push flag)
+if [[ "${1:-}" != "--push" ]]; then
+  info "[1/6] Building locally..."
 
-# 2. Rsync source + package files
-echo "[2/5] Syncing files..."
+  # Clean previous dist
+  rm -rf "$DIST_DIR"
+  mkdir -p "$DIST_DIR"
+
+  # Install production deps only
+  cd "$SCRIPT_DIR"
+  npm ci --omit=dev --ignore-scripts=false 2>&1 | tail -3
+
+  # Copy built files to dist/
+  cp package.json package-lock.json ecosystem.config.js "$DIST_DIR/"
+  cp -r src "$DIST_DIR/src/"
+  cp -r node_modules "$DIST_DIR/node_modules/"
+
+  # Calculate artifact size
+  ARTIFACT_SIZE=$(du -sh "$DIST_DIR" | cut -f1)
+  ok "Build complete (${ARTIFACT_SIZE})"
+else
+  if [[ ! -d "$DIST_DIR" ]]; then
+    fail "No dist/ directory found. Run without --push first."
+  fi
+  info "[1/6] Skipping build, using existing dist/"
+fi
+
+# 2. Create release dir on server
+info "[2/6] Creating release directory..."
+ssh "$SERVER" "mkdir -p ${RELEASES_DIR}/${RELEASE_NAME} ${SHARED_LOGS}"
+
+# 3. Rsync the built artifact
+info "[3/6] Syncing artifact..."
 rsync -az --delete \
-  "${SCRIPT_DIR}/src/" \
-  "${SERVER}:${RELEASES_DIR}/${RELEASE_NAME}/src/"
-
-rsync -az \
-  "${SCRIPT_DIR}/package.json" \
-  "${SCRIPT_DIR}/package-lock.json" \
-  "${SCRIPT_DIR}/ecosystem.config.js" \
+  "${DIST_DIR}/" \
   "${SERVER}:${RELEASES_DIR}/${RELEASE_NAME}/"
 
-# 3. Install deps + symlink shared resources on server
-echo "[3/5] Installing dependencies on server..."
+# 4. Symlink shared resources
+info "[4/6] Linking shared resources..."
 ssh "$SERVER" bash -s <<REMOTE
   set -euo pipefail
   cd ${RELEASES_DIR}/${RELEASE_NAME}
-  npm ci --omit=dev --ignore-scripts=false 2>&1 | tail -3
   ln -sf ${SHARED_ENV} .env
   ln -sf ${SHARED_LOGS} logs
 REMOTE
 
-# 4. Atomic symlink swap
-echo "[4/5] Swapping symlink..."
-ssh "$SERVER" "sudo ln -sfn ${RELEASES_DIR}/${RELEASE_NAME} ${DEPLOY_PATH}/current"
-
-# 5. Restart pm2
-echo "[5/5] Restarting services..."
+# 5. Atomic symlink swap + restart
+info "[5/6] Swapping symlink and restarting..."
 ssh "$SERVER" bash -s <<'RESTART'
   set -euo pipefail
-  cd /opt/voisss-processing/current
+  DEPLOY_PATH="/opt/voisss-processing"
+  sudo ln -sfn "$DEPLOY_PATH/releases/$(basename RELEASE_NAME_PLACEHOLDER)" "$DEPLOY_PATH/current"
+  cd "$DEPLOY_PATH/current"
   pm2 delete voisss-server voisss-export-worker 2>/dev/null || true
   pm2 start ecosystem.config.js
   pm2 save
-  sleep 3
-  if curl -sf http://localhost:5577/health > /dev/null; then
-    echo "Health check: OK"
-  else
-    echo "Health check: FAILED — check pm2 logs voisss-server"
-    exit 1
-  fi
 RESTART
+# Fix the RELEASE_NAME placeholder (heredoc can't expand both local and remote vars)
+ssh "$SERVER" "sudo ln -sfn ${RELEASES_DIR}/${RELEASE_NAME} ${DEPLOY_PATH}/current"
+ssh "$SERVER" bash -c "cd ${DEPLOY_PATH}/current && pm2 delete voisss-server voisss-export-worker 2>/dev/null; pm2 start ecosystem.config.js && pm2 save"
 
-# 6. Cleanup old releases (keep KEEP_RELEASES)
-echo ""
-echo "Cleaning old releases (keeping ${KEEP_RELEASES})..."
+# 6. Health check with retry
+info "[6/6] Running health check..."
+ssh "$SERVER" bash -s <<HEALTH
+  set -euo pipefail
+  attempt=1
+  while [ \$attempt -le ${HEALTH_RETRIES} ]; do
+    if curl -sf http://localhost:5577/health > /dev/null 2>&1; then
+      echo "Health check passed (attempt \$attempt)"
+      exit 0
+    fi
+    echo "Health check attempt \$attempt/${HEALTH_RETRIES} failed, waiting ${HEALTH_INTERVAL}s..."
+    sleep ${HEALTH_INTERVAL}
+    attempt=\$((attempt + 1))
+  done
+  echo "Health check failed after ${HEALTH_RETRIES} attempts"
+  exit 1
+HEALTH
+
+# 7. Cleanup old releases
+info "Cleaning old releases (keeping $KEEP_RELEASES)..."
 ssh "$SERVER" bash -s <<CLEANUP
   set -euo pipefail
   cd ${RELEASES_DIR}
@@ -120,5 +191,7 @@ ssh "$SERVER" bash -s <<CLEANUP
 CLEANUP
 
 echo ""
-echo "=== Deploy complete: ${RELEASE_NAME} ==="
-echo "Health: https://voisss.famile.xyz/health"
+ok "Deploy complete: ${RELEASE_NAME}"
+echo "  Artifact: ${ARTIFACT_SIZE:-'skipped'}"
+echo "  Health: https://voisss.famile.xyz/health"
+echo "  Rollback: ./deploy.sh --rollback"
