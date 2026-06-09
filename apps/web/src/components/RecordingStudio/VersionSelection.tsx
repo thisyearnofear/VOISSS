@@ -1,6 +1,14 @@
 import React, { useState } from "react";
 import { AudioVersion } from "@voisss/shared";
-import { Trash2, Zap, Mic, Globe, FileText, Database } from "lucide-react";
+import {
+  Trash2,
+  Zap,
+  Mic,
+  Globe,
+  FileText,
+  Database,
+  Fingerprint,
+} from "lucide-react";
 import VersionComparison from "./VersionComparison";
 
 interface VersionSelectionProps {
@@ -14,7 +22,10 @@ interface VersionSelectionProps {
   ) => void;
   onSetActive: (versionId: string) => void;
   onDeleteVersion: (versionId: string) => void;
-  onOpenTool: (tool: "voice" | "dub" | "script" | "memory", versionId?: string) => void;
+  onOpenTool: (
+    tool: "voice" | "clone" | "dub" | "script" | "memory",
+    versionId?: string
+  ) => void;
 }
 
 export default function VersionSelection({
@@ -219,6 +230,16 @@ export default function VersionSelection({
                       title="Transform Voice"
                     >
                       <Mic className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenTool("clone", version.id);
+                      }}
+                      className="p-1.5 hover:bg-[#2A2A2A] rounded text-gray-400 hover:text-white transition-colors"
+                      title="Create contributor clone"
+                    >
+                      <Fingerprint className="w-4 h-4" />
                     </button>
                     <button
                       onClick={(e) => {

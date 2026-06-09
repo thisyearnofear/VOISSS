@@ -33,6 +33,7 @@ import { useRecordingSave } from "@/hooks/useRecordingSave";
 
 // Lazy load heavy components
 const AIVoicePanel = React.lazy(() => import("@/components/RecordingStudio/AIVoicePanel"));
+const ContributorClonePanel = React.lazy(() => import("@/components/RecordingStudio/ContributorClonePanel"));
 const DubbingPanel = React.lazy(() => import("@/components/dubbing/DubbingPanel"));
 const TranscriptComposer = React.lazy(() => import("@/components/RecordingStudio/TranscriptComposer"));
 const ArkivMemoryExplorer = React.lazy(() => import("@/components/RecordingStudio/ArkivMemoryExplorer"));
@@ -178,7 +179,7 @@ export default function RecordingStudio({
   const [showSaveOptions, setShowSaveOptions] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<
-    "voice" | "dub" | "script" | "insights" | "memory" | null
+    "voice" | "clone" | "dub" | "script" | "insights" | "memory" | null
   >(null);
 
   // Agent mode — isolated state (CLEAN/MODULAR)
@@ -456,7 +457,7 @@ export default function RecordingStudio({
   });
 
   const handleOpenTool = useCallback(
-    (tool: "voice" | "dub" | "script" | "insights" | "memory", versionId?: string) => {
+    (tool: "voice" | "clone" | "dub" | "script" | "insights" | "memory", versionId?: string) => {
       if (versionId) {
         const version = getVersion(versionId);
         if (!version) {
@@ -921,6 +922,7 @@ export default function RecordingStudio({
                 <div className="flex items-center justify-between mb-6 sticky top-0 bg-[#141414] md:bg-transparent z-10 py-2 -mt-2 md:mt-0 md:py-0 border-b border-[#2A2A2A] md:border-none">
                   <h3 className="text-xl font-bold text-white flex items-center gap-2">
                     {activeTool === "voice" && "✨ Voice Alchemy"}
+                    {activeTool === "clone" && "Contributor Clone"}
                     {activeTool === "dub" && "🌍 Global Dubbing"}
                     {activeTool === "script" && "📝 Transcript & Forge"}
                     {activeTool === "insights" && "🧠 Gemini Insights"}
@@ -959,6 +961,19 @@ export default function RecordingStudio({
                       onToastType={setToastType}
                       onAddVersion={addVersion}
                       onSetSelectedVersionIds={setSelectedVersionIds}
+                    />
+                  </Suspense>
+                )}
+
+                {activeTool === "clone" && (
+                  <Suspense fallback={<PanelLoadingFallback />}>
+                    <ContributorClonePanel
+                      audioBlob={activeVersion?.blob || audioBlob}
+                      durationSeconds={activeVersion?.metadata.duration || duration / 1000}
+                      defaultName={recordingTitle || activeVersion?.label}
+                      contributorAddress={address}
+                      onToastMessage={setToastMessage}
+                      onToastType={setToastType}
                     />
                   </Suspense>
                 )}
