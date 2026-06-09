@@ -114,6 +114,10 @@ Multi-layer: Verification → Rate Limiting → Security Analysis → Business L
 
 **Event Types:** `voice.generation.*`, `mission.*`, `payment.*`, `system.*`, `agent.*`
 
+## ACP Integration (Virtuals Protocol)
+
+Agents can also hire VOISSS as a service via the **Agent Commerce Protocol (ACP)**. This provides USDC-escrowed job lifecycles and global discovery on the Virtuals marketplace. See [ACP_SPECIFICATION.md](./ACP_SPECIFICATION.md) for details.
+
 ## Mission Posting API
 
 **Auth:** `Authorization: Bearer <wallet_address>`
@@ -126,6 +130,46 @@ Multi-layer: Verification → Rate Limiting → Security Analysis → Business L
 **`GET /api/marketplace/voices`** — Browse voices (query: `language`, `tone`, `licenseType`, `minPrice`, `maxPrice`)  
 **`POST /api/marketplace/license`** — Request license (manual approval MVP)  
 **`GET /api/marketplace/license?licenseeAddress=0x...`** — Get your licenses
+
+## Contributor Voice Clone API
+
+**`POST /api/elevenlabs/clone-voice`** — Create a contributor-owned ElevenLabs voice from reference audio.
+
+**Auth:** signed-in contributor session required.
+
+**Request:** `multipart/form-data`
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Voice display name, 2-80 chars |
+| `consent` | Yes | Must be `true`; confirms the contributor controls the voice |
+| `samples` | Yes | One or more audio files; max 25 files, 10 MB each, 50 MB total |
+| `description` | No | Voice or licensing context |
+| `labels` | No | JSON object merged into provider labels |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "voiceId": "elevenlabs_voice_id",
+    "requiresVerification": false,
+    "contributor": "0x...",
+    "referenceSamples": [
+      {
+        "hash": "Qm...",
+        "url": "https://gateway.pinata.cloud/ipfs/Qm...",
+        "filename": "voisss-reference.webm"
+      }
+    ]
+  }
+}
+```
+
+The endpoint archives every reference sample to IPFS before calling ElevenLabs. The returned `voiceId` should be stored with the contributor wallet, IPFS reference CIDs, and license/review status before marketplace listing.
+
+**Required env:** `ELEVENLABS_API_KEY`, `PINATA_API_KEY`, `PINATA_API_SECRET`.
 
 ### Pricing
 

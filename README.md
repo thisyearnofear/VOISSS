@@ -20,7 +20,7 @@ cp apps/web/.env.example apps/web/.env.local
 pnpm dev:web      # http://localhost:4445
 ```
 
-**New to VOISSS?** See [GETTING_STARTED.md](./GETTING_STARTED.md) for a 5-minute guide.
+**New to VOISSS?** See [GETTING_STARTED.md](./docs/GETTING_STARTED.md) for a 5-minute guide.
 
 ---
 
@@ -78,6 +78,7 @@ pnpm dev:web      # http://localhost:4445
 ### AI-Powered Features
 - **Voice Assistant** — Gemini-powered context-aware assistant
 - **Content Analysis** — Automatic insights and humanity verification
+- **Contributor Voice Cloning** — Studio flow creates ElevenLabs voice IDs with IPFS-archived reference samples
 - **AI Memory Archive** — Decentralized Arkiv storage for voice insights and humanity certificates
 - **Multi-Language** — 29+ languages supported
 - **Mission System** — Creator economy with $PAPAJAMS rewards
@@ -116,6 +117,7 @@ pnpm dev:web      # http://localhost:4445
 |-----|----------|
 | [QUICKSTART.md](./docs/QUICKSTART.md) | Setup, run commands, monorepo structure, troubleshooting |
 | [AGENT_API.md](./docs/AGENT_API.md) | Voice generation API, OWS payments, security, events |
+| [ACP_SPECIFICATION.md](./docs/ACP_SPECIFICATION.md) | Autonomous Agent Commerce Protocol (ACP) integration |
 | [BLOCKCHAIN.md](./docs/BLOCKCHAIN.md) | Smart contracts, tokens, x402, marketplace, gasless txns |
 | [HACKATHON.md](./docs/HACKATHON.md) | OWS hackathon strategy, demo script, submission materials |
 | [CHALLENGE.md](./docs/CHALLENGE.md) | Arkiv builder challenge: entity schema, demo, features |
@@ -146,10 +148,10 @@ pnpm dev:web      # http://localhost:4445
 - Interactive API playground
 - Advanced marketplace filters
 - Instant licensing (remove manual approval)
+- Contributor cloning marketplace binding and review workflow
 - Mobile app consolidation
 
 ### 🎯 Planned (Q3-Q4 2026)
-- Voice cloning for contributors
 - Enterprise white-label solution
 - 50+ language support
 - Agent reputation system

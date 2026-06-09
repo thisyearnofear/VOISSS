@@ -29,7 +29,8 @@ cp .env.example .env
 |----------|---------|
 | `NEXT_PUBLIC_BASE_CHAIN_ID` | 8453 (Base Mainnet) |
 | `SPENDER_PRIVATE_KEY` | Gasless tx wallet |
-| `NEXT_PUBLIC_ELEVENLABS_API_KEY` | Voice synthesis |
+| `ELEVENLABS_API_KEY` | Server-side voice synthesis and contributor cloning |
+| `NEXT_PUBLIC_ELEVENLABS_API_KEY` | Optional client-side ElevenLabs features |
 | `PINATA_API_KEY` / `PINATA_API_SECRET` | IPFS storage |
 | `CDP_API_KEY_ID` / `CDP_API_KEY_SECRET` | x402 payments |
 | `X402_PAY_TO_ADDRESS` | Payment recipient wallet |
@@ -95,6 +96,8 @@ voisss/
 | "Invalid x402PayTo address" | Ensure valid 0x + 42 char address |
 | "Payment verification failed" | Check CDP keys, verify agent has USDC on Base |
 | "Facilitator error (401)" | Regenerate CDP keys at portal.cdp.coinbase.com |
+| "Voice cloning is not configured" | Set `ELEVENLABS_API_KEY` |
+| "Failed to archive reference samples to IPFS" | Set `PINATA_API_KEY` and `PINATA_API_SECRET` |
 
 ## Network Config
 
@@ -116,7 +119,7 @@ voisss/
 
 - **GitHub:** https://github.com/thisyearnofear/VOISSS
 - **Live App:** https://voisss.netlify.app
-- **Getting Started:** [GETTING_STARTED.md](../GETTING_STARTED.md)
+- **Getting Started:** [GETTING_STARTED.md](./GETTING_STARTED.md)
 - **Telegram:** https://t.me/+jG3_jEJF8YFmOTY1
 - **CDP Portal:** https://portal.cdp.coinbase.com
 - **Base Sepolia Faucet:** https://www.coinbase.com/faucets/base-ethereum-sepolia-faucet

@@ -43,7 +43,28 @@ apps/web/
     └── .well-known/      # Agent discovery (ai-plugin.json)
 ```
 
-## External Agent API
+### Agent Protocol Integrations
+
+VOISSS supports multiple discovery and commerce protocols for autonomous agents:
+
+| Protocol | Purpose | Documentation |
+|----------|---------|---------------|
+| **ACP (Virtuals)** | Global discovery, hiring, USDC escrow, and **autonomous job bidding** | [ACP Specification](../../docs/ACP_SPECIFICATION.md) |
+| **OpenClaw** | Agent-to-agent task delegation | [AGENT_API.md](../../docs/AGENT_API.md) |
+| **OWS** | Multi-chain payment interoperability | [AGENT_API.md](../../docs/AGENT_API.md) |
+
+### Proactive Agent Capabilities
+
+VOISSS includes an **autonomous job discovery system** that:
+- Listens to ACP marketplace events in real-time
+- Matches voice/audio/narration opportunities using keyword scoring
+- Auto-bids on qualified jobs (configurable: manual or automatic)
+- Executes vocalize API when hired
+- Delivers results and collects USDC payments
+
+**Control:** `POST /api/acp/listener` (requires ADMIN_API_KEY)
+
+### External Agent API
 
 The app exposes APIs for AI agents (OpenClaw, etc.) to interact programmatically:
 
@@ -56,6 +77,7 @@ The app exposes APIs for AI agents (OpenClaw, etc.) to interact programmatically
 | `/api/agents/themes/[id]` | GET | Get theme details |
 | `/api/agents/submit` | POST | Submit recording to theme |
 | `/api/agents/register` | POST/GET | Register agent for API access |
+| `/api/acp/listener` | POST/GET | Control autonomous job listener (admin only) |
 | `/api/tools/platform-stats` | GET | Platform statistics |
 | `/api/arkiv/save-insight` | POST | Save VoiceInsight to Arkiv Braga |
 | `/api/arkiv/save-certificate` | POST | Save HumanityCertificate to Arkiv |
