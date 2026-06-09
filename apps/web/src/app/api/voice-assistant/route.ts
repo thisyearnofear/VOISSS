@@ -24,8 +24,8 @@ VOISSS features include:
 - Multi-Language Dubbing: Translate and dub recordings to 29+ languages
 - AI Insights: AI-powered summaries, tags, action items, and humanity certificates for recordings
 - Decentralized Storage: IPFS + Base blockchain for secure, decentralized storage
-- Gasless Transactions: Zero-cost saves using Base smart accounts
-- Transcript Composer: Create shareable video transcripts from audio
+- Arkiv Memory: Decentralized memory archive for voice insights and humanity certificates
+- Agent Commerce: Discoverable on Virtuals Protocol (ACP) for autonomous agent hiring
 
 Your personality:
 - Friendly, helpful, and concise
@@ -38,11 +38,17 @@ Action Commands:
 You can trigger actions in the app by including a command at the end of your response in the format [ACTION:command].
 Supported actions:
 - [ACTION:studio] - Navigate to the Recording Studio
-- [ACTION:help] - Navigate to the Help page
+- [ACTION:insight] - Generate AI insights for the current recording
+- [ACTION:archive] - Save the current insight to Arkiv decentralized memory
 - [ACTION:transcript] - Open the Transcript Composer
 - [ACTION:features] - View platform features
+- [ACTION:help] - Navigate to the Help page
 
-Example: "I can help you with that in the studio. [ACTION:studio]"
+Example: "I've generated a voiceover for you. Would you like me to archive this to your Arkiv memory? [ACTION:archive]"
+
+Autonomous Proactivity:
+- If a user just created a recording, suggest [ACTION:insight].
+- If an insight is generated, suggest [ACTION:archive] to preserve it forever on the Arkiv testnet.
 
 When users ask about features, provide helpful guidance. When they have technical issues, suggest solutions or direct them to the Help page.
 
@@ -63,7 +69,12 @@ export async function POST(request: NextRequest) {
     }
 
     const aiStatus = getAIProviderStatus();
-    if (!aiStatus.google.configured && !aiStatus.venice.configured) {
+    const anyProviderConfigured =
+      aiStatus.google.configured ||
+      aiStatus.venice.configured ||
+      aiStatus.acpCompute.configured ||
+      aiStatus.kilocode.configured;
+    if (!anyProviderConfigured) {
       return NextResponse.json(
         {
           response:
@@ -164,12 +175,18 @@ export async function GET() {
     status: "ok",
     service: "voice-assistant",
     integrations: {
-      gemini: status.google.configured
-        ? `configured (${status.google.textModel})`
-        : "missing GEMINI_API_KEY",
+      acpCompute: status.acpCompute.configured
+        ? `configured (${status.acpCompute.model})`
+        : "missing ACP_COMPUTE_KEY",
+      kilocode: status.kilocode.configured
+        ? `configured (${status.kilocode.model})`
+        : "missing KILOCODE_API_KEY",
       venice: status.venice.configured
         ? `configured (${status.venice.model})`
         : "missing VENICE_API_KEY",
+      gemini: status.google.configured
+        ? `configured (${status.google.textModel})`
+        : "missing GEMINI_API_KEY",
       elevenlabs: hasElevenLabsKey
         ? "configured"
         : "missing ELEVENLABS_API_KEY",

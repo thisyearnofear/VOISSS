@@ -14,6 +14,7 @@ import {
 import { createPostgresDatabase } from './postgres-database';
 import { DatabaseService } from './database-service';
 import type { MissionService } from './mission-service';
+import { InferenceService, StudioAnalysisService, InferenceConfig } from './ai';
 
 /**
  * Initialize mission service for server environments.
@@ -72,4 +73,57 @@ export function getMissionService(): MissionService {
     globalMissionService = initializeMissionService();
   }
   return globalMissionService;
+}
+
+// Singleton for server-wide AI services
+let globalInferenceService: InferenceService | null = null;
+let globalStudioAnalysisService: StudioAnalysisService | null = null;
+
+/**
+ * Get or create the global inference service singleton.
+ */
+export function getInferenceService(): InferenceService {
+  if (!globalInferenceService) {
+    const config: InferenceConfig = {
+      google: {
+        apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '',
+        textModel: process.env.GEMINI_TEXT_MODEL,
+        audioModel: process.env.GEMINI_AUDIO_MODEL,
+      },
+      acpCompute: {
+        apiKey: process.env.ACP_COMPUTE_KEY || '',
+        agentId: process.env.ACP_AGENT_ID,
+        baseUrl: process.env.ACP_COMPUTE_URL,
+        model: process.env.ACP_COMPUTE_MODEL,
+      },
+      venice: {
+        apiKey: process.env.VENICE_API_KEY || '',
+        baseUrl: process.env.VENICE_API_URL,
+        model: process.env.VENICE_MODEL,
+      },
+      kilocode: {
+        apiKey: process.env.KILOCODE_API_KEY || '',
+        baseUrl: process.env.KILOCODE_API_URL,
+        model: process.env.KILOCODE_MODEL,
+      },
+      routeway: {
+        apiKey: process.env.ROUTEWAY_API_KEY || '',
+        baseUrl: process.env.ROUTEWAY_API_URL,
+        model: process.env.ROUTEWAY_MODEL,
+      },
+      fallbackOrder: ["acpCompute", "kilocode", "venice", "google"],
+    };
+    globalInferenceService = new InferenceService(config);
+  }
+  return globalInferenceService;
+}
+
+/**
+ * Get or create the global studio analysis service singleton.
+ */
+export function getStudioAnalysisService(): StudioAnalysisService {
+  if (!globalStudioAnalysisService) {
+    globalStudioAnalysisService = new StudioAnalysisService(getInferenceService());
+  }
+  return globalStudioAnalysisService;
 }

@@ -54,6 +54,31 @@ module.exports = {
       max_restarts: 10,
       restart_delay: 4000,
       kill_timeout: 10000
+    },
+    {
+      name: 'voisss-acp-listener',
+      script: './src/workers/acp-listener-worker.js',
+      cwd: __dirname,
+      instances: 1,
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '1G',
+      env: {
+        NODE_ENV: 'production',
+        ACP_AGENT_ID: process.env.ACP_AGENT_ID,
+        ACP_AUTO_BID: process.env.ACP_AUTO_BID || 'false',
+        ACP_MIN_BUDGET: process.env.ACP_MIN_BUDGET || '0.01',
+        DATABASE_URL: process.env.DATABASE_URL,
+      },
+      error_file: path.join(LOG_DIR, 'acp-error.log'),
+      out_file: path.join(LOG_DIR, 'acp-out.log'),
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      merge_logs: true,
+      min_uptime: '10s',
+      max_restarts: 10,
+      restart_delay: 10000, // Longer delay for listener restarts
+      kill_timeout: 5000
     }
   ]
 };

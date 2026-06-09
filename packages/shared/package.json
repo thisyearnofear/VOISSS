@@ -30,6 +30,7 @@
   "dependencies": {
     "@arkiv-network/sdk": "^0.6.0",
     "@coinbase/cdp-sdk": "1.44.0",
+    "@google/generative-ai": "0.24.1",
     "@neynar/nodejs-sdk": "^1.71.0",
     "axios": "1.14.0",
     "pg": "8.16.3",

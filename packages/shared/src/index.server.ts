@@ -24,9 +24,20 @@ export {
   PersistentMissionService 
 } from './services/persistent-mission-service';
 
+// Server-only AI services
+export * from './services/ai';
+
+// ACP services
+export { AcpListenerService, getAcpListener } from './services/acp-listener-service';
+export type { AcpJob, AcpEvent, AcpListenerConfig } from './services/acp-listener-service';
+export { AgentReputationService, getAgentReputationService } from './services/agent-reputation';
+export type { ReputationMetrics, ReputationProfile } from './services/agent-reputation';
+
 // Server initialization helpers (recommended for API routes)
 export {
   initializeMissionService,
   createMissionServiceWithDatabase,
-  getMissionService
+  getMissionService,
+  getInferenceService,
+  getStudioAnalysisService
 } from './services/server-initialization';
