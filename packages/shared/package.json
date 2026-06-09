@@ -28,6 +28,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@arkiv-network/sdk": "^0.6.0",
     "@coinbase/cdp-sdk": "1.44.0",
     "@neynar/nodejs-sdk": "^1.71.0",
     "axios": "1.14.0",

@@ -63,6 +63,11 @@ const googleTextModel =
 const googleAudioModel =
   process.env.GEMINI_AUDIO_MODEL || "gemini-3.1-flash-preview";
 
+const acpComputeKey = process.env.ACP_COMPUTE_KEY;
+const acpAgentId = process.env.ACP_AGENT_ID;
+const acpBaseUrl = process.env.ACP_COMPUTE_URL || "https://api.venice.ai/api/v1";
+const acpModel = process.env.ACP_COMPUTE_MODEL || "llama-3.3-70b";
+
 const veniceApiKey = process.env.VENICE_API_KEY;
 const veniceBaseUrl =
   process.env.VENICE_API_URL || "https://api.venice.ai/api/v1";
@@ -84,9 +89,9 @@ const kilocodeModels = [
 ];
 const kilocodeDefaultModel = process.env.KILOCODE_MODEL || kilocodeModels[0].id;
 
-if (!googleApiKey && !veniceApiKey && !kilocodeApiKey && typeof process !== "undefined" && !process.env.NEXT_RUNTIME) {
+if (!googleApiKey && !acpComputeKey && !veniceApiKey && !kilocodeApiKey && typeof process !== "undefined" && !process.env.NEXT_RUNTIME) {
   console.warn(
-    "No AI providers (Gemini, Venice, Kilocode) are configured in environment variables"
+    "No AI providers (ACP Compute, Gemini, Venice, Kilocode) are configured in environment variables"
   );
 }
 
@@ -219,6 +224,40 @@ async function runKilocodeChat(messages: ChatMessage[]): Promise<string> {
   return content.trim();
 }
 
+async function runAcpComputeChat(messages: ChatMessage[]): Promise<string> {
+  if (!acpComputeKey) {
+    throw new Error("ACP Compute is not configured");
+  }
+
+  const response = await fetch(`${acpBaseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${acpComputeKey}`,
+      "X-ACP-Agent-Id": acpAgentId || "",
+    },
+    body: JSON.stringify({
+      model: acpModel,
+      messages,
+      temperature: 0.4,
+      max_tokens: 1000,
+      venice_parameters: {
+        include_venice_system_prompt: false,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`ACP Compute request failed: ${response.status} ${details}`);
+  }
+
+  const data = (await response.json()) as any;
+  const content = data?.choices?.[0]?.message?.content;
+
+  return content.trim();
+}
+
 async function transcribeWithElevenLabs(file: File): Promise<{ transcript: string; provider: string; model: string }> {
   if (!elevenLabsApiKey) {
     throw new Error("ElevenLabs is not configured (ELEVENLABS_API_KEY missing)");
@@ -261,6 +300,11 @@ export function getAIProviderStatus() {
       textModel: googleTextModel,
       audioModel: googleAudioModel,
     },
+    acpCompute: {
+      configured: Boolean(acpComputeKey),
+      agentId: acpAgentId,
+      model: acpModel,
+    },
     venice: {
       configured: Boolean(veniceApiKey),
       model: veniceModel,
@@ -273,16 +317,35 @@ export function getAIProviderStatus() {
       configured: Boolean(elevenLabsApiKey),
       sttModel: elevenLabsSTTModel,
     },
-    fallbackOrder: ["kilocode", "venice", "google"],
+    fallbackOrder: ["acpCompute", "kilocode", "venice", "google"],
   };
 }
 
 export async function generateAssistantReply(prompt: string): Promise<{
   text: string;
-  provider: "google" | "venice" | "kilocode";
+  provider: "acpCompute" | "kilocode" | "venice" | "google";
   model: string;
 }> {
-  // Try Kilocode first (primary)
+  // Try ACP Compute first (primary - free Venice credits)
+  if (acpComputeKey) {
+    try {
+      return {
+        text: await runAcpComputeChat([
+          {
+            role: "system",
+            content: "You are the VOISSS assistant. Keep responses concise, natural, and ready for text-to-speech.",
+          },
+          { role: "user", content: prompt },
+        ]),
+        provider: "acpCompute",
+        model: acpModel,
+      };
+    } catch (error) {
+      console.error("ACP Compute failed, trying Kilocode:", error);
+    }
+  }
+
+  // Try Kilocode second (secondary)
   if (kilocodeApiKey) {
     try {
       return {
@@ -301,7 +364,7 @@ export async function generateAssistantReply(prompt: string): Promise<{
     }
   }
 
-  // Try Venice second (secondary)
+  // Try Venice third (direct API fallback)
   if (veniceApiKey) {
     try {
       return {
@@ -347,7 +410,21 @@ const studioAnalysisSchema = z.object({
 });
 
 export async function runJsonPrompt<T>(prompt: string, schema: z.ZodSchema<T>): Promise<{ data: T; provider: string; model: string }> {
-  // Try Kilocode first (primary)
+  // Try ACP Compute first (primary - free Venice credits)
+  if (acpComputeKey) {
+    try {
+      const content = await runAcpComputeChat([
+        { role: "system", content: "You are a specialized AI assistant that returns ONLY raw JSON. No talk, just JSON." },
+        { role: "user", content: `${prompt}\n\nReturn strict JSON.` }
+      ]);
+      const data = parseJsonResponse<T>(content);
+      return { data, provider: "acpCompute", model: acpModel };
+    } catch (error) {
+      console.error("ACP Compute JSON prompt failed:", error);
+    }
+  }
+
+  // Try Kilocode second (secondary)
   if (kilocodeApiKey) {
     try {
       const content = await runKilocodeChat([
@@ -361,7 +438,7 @@ export async function runJsonPrompt<T>(prompt: string, schema: z.ZodSchema<T>): 
     }
   }
 
-  // Try Venice second (secondary)
+  // Try Venice third (direct API fallback)
   if (veniceApiKey) {
     try {
       const content = await runVeniceChat([

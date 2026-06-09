@@ -3,7 +3,53 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:async';
 
-/// Venice AI Client
+/// ACP Compute Client (Virtuals Protocol - Free Venice AI Credits)
+class AcpComputeClient {
+  final String apiKey;
+  final String agentId;
+  final String baseUrl;
+  
+  AcpComputeClient({
+    required this.apiKey,
+    required this.agentId,
+    this.baseUrl = 'https://api.venice.ai/api/v1',
+  });
+  
+  Future<String> chatCompletion(List<Map<String, String>> messages, {String model = 'llama-3.3-70b'}) async {
+    final client = HttpClient();
+    try {
+      final request = await client.postUrl(Uri.parse('$baseUrl/chat/completions'));
+      request.headers.set('Content-Type', 'application/json');
+      request.headers.set('Authorization', 'Bearer $apiKey');
+      request.headers.set('X-ACP-Agent-Id', agentId);
+      
+      final body = jsonEncode({
+        'model': model,
+        'messages': messages,
+        'temperature': 0.4,
+        'max_tokens': 1000,
+        'venice_parameters': {
+          'include_venice_system_prompt': false,
+        },
+      });
+      
+      request.write(body);
+      final response = await request.close();
+      
+      if (response.statusCode == 200) {
+        final responseBody = await response.transform(utf8.decoder).join();
+        final data = jsonDecode(responseBody);
+        return data['choices'][0]['message']['content'] ?? 'No response';
+      } else {
+        throw Exception('ACP Compute Error: ${response.statusCode}');
+      }
+    } finally {
+      client.close();
+    }
+  }
+}
+
+/// Venice AI Client (Fallback - Direct API)
 class VeniceAIClient {
   final String apiKey;
   final String baseUrl = 'https://api.venice.ai/api/v1';
@@ -41,9 +87,11 @@ class VeniceAIClient {
 }
 
 class ButlerEndpoint extends Endpoint {
+  AcpComputeClient? _acpClient;
   VeniceAIClient? _veniceClient;
   final Map<String, List<Map<String, String>>> _chatHistories = {};
   bool _aiEnabled = false;
+  String _activeProvider = 'none';
   
   @override
   bool get requireLogin => false;
@@ -52,19 +100,41 @@ class ButlerEndpoint extends Endpoint {
   void initialize(Server server, String endpointName, String? methodName) {
     super.initialize(server, endpointName, methodName);
     
-    // Initialize Venice AI
-    final apiKey = Platform.environment['VENICE_API_KEY'] ?? '';
-    if (apiKey.isNotEmpty) {
-      _veniceClient = VeniceAIClient(apiKey: apiKey);
+    // Try ACP Compute first (primary - free Venice credits)
+    final acpKey = Platform.environment['ACP_COMPUTE_KEY'] ?? '';
+    final acpAgentId = Platform.environment['ACP_AGENT_ID'] ?? '';
+    
+    if (acpKey.isNotEmpty && acpAgentId.isNotEmpty) {
+      _acpClient = AcpComputeClient(
+        apiKey: acpKey,
+        agentId: acpAgentId,
+        baseUrl: Platform.environment['ACP_COMPUTE_URL'] ?? 'https://api.venice.ai/api/v1',
+      );
       _aiEnabled = true;
-      print('Venice AI initialized successfully');
-    } else {
-      print('WARNING: VENICE_API_KEY not set. AI features will not work.');
+      _activeProvider = 'acpCompute';
+      print('ACP Compute initialized successfully (primary provider)');
+    }
+    
+    // Initialize Venice AI as fallback
+    final veniceKey = Platform.environment['VENICE_API_KEY'] ?? '';
+    if (veniceKey.isNotEmpty) {
+      _veniceClient = VeniceAIClient(apiKey: veniceKey);
+      if (!_aiEnabled) {
+        _aiEnabled = true;
+        _activeProvider = 'venice';
+        print('Venice AI initialized (fallback provider)');
+      } else {
+        print('Venice AI initialized as fallback');
+      }
+    }
+    
+    if (!_aiEnabled) {
+      print('WARNING: No AI providers configured. Set ACP_COMPUTE_KEY or VENICE_API_KEY.');
     }
   }
 
   Future<String> health(Session session) async {
-    return 'Butler is ready to serve! AI enabled: $_aiEnabled';
+    return 'Butler is ready to serve! AI enabled: $_aiEnabled, Provider: $_activeProvider';
   }
 
   Future<Map<String, dynamic>> chat(
@@ -73,10 +143,10 @@ class ButlerEndpoint extends Endpoint {
     String? recordingId,
     Map<String, dynamic>? context,
   }) async {
-    if (!_aiEnabled || _veniceClient == null) {
+    if (!_aiEnabled || (_acpClient == null && _veniceClient == null)) {
       return {
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'content': 'AI is not configured. Please set VENICE_API_KEY.',
+        'content': 'AI is not configured. Please set ACP_COMPUTE_KEY or VENICE_API_KEY.',
         'isFromUser': false,
         'type': 'text',
         'timestamp': DateTime.now().toIso8601String(),
@@ -103,8 +173,24 @@ class ButlerEndpoint extends Endpoint {
       }
       messages.add({'role': 'user', 'content': userMessage});
       
-      // Get AI response from Venice
-      final responseText = await _veniceClient!.chatCompletion(messages);
+      // Try ACP Compute first, then Venice fallback
+      String responseText;
+      try {
+        if (_acpClient != null) {
+          responseText = await _acpClient!.chatCompletion(messages);
+          _activeProvider = 'acpCompute';
+        } else {
+          throw Exception('ACP Compute not available');
+        }
+      } catch (e) {
+        print('ACP Compute failed, falling back to Venice: $e');
+        if (_veniceClient != null) {
+          responseText = await _veniceClient!.chatCompletion(messages);
+          _activeProvider = 'venice';
+        } else {
+          throw Exception('All AI providers failed');
+        }
+      }
       
       // Add assistant response to history
       messages.add({'role': 'assistant', 'content': responseText});
@@ -121,6 +207,7 @@ class ButlerEndpoint extends Endpoint {
         'type': 'text',
         'timestamp': DateTime.now().toIso8601String(),
         'recordingId': recordingId,
+        'provider': _activeProvider,
       };
       
     } catch (e) {
@@ -142,7 +229,7 @@ class ButlerEndpoint extends Endpoint {
     required String audioUrl,
     String? prompt,
   }) async {
-    if (!_aiEnabled || _veniceClient == null) {
+    if (!_aiEnabled || (_acpClient == null && _veniceClient == null)) {
       return {
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'content': 'AI is not configured.',
@@ -166,7 +253,24 @@ class ButlerEndpoint extends Endpoint {
         {'role': 'user', 'content': analysisPrompt},
       ];
       
-      final responseText = await _veniceClient!.chatCompletion(messages);
+      // Try ACP Compute first, then Venice fallback
+      String responseText;
+      try {
+        if (_acpClient != null) {
+          responseText = await _acpClient!.chatCompletion(messages);
+          _activeProvider = 'acpCompute';
+        } else {
+          throw Exception('ACP Compute not available');
+        }
+      } catch (e) {
+        print('ACP Compute failed, falling back to Venice: $e');
+        if (_veniceClient != null) {
+          responseText = await _veniceClient!.chatCompletion(messages);
+          _activeProvider = 'venice';
+        } else {
+          throw Exception('All AI providers failed');
+        }
+      }
       
       return {
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
@@ -175,6 +279,7 @@ class ButlerEndpoint extends Endpoint {
         'type': 'transcription',
         'timestamp': DateTime.now().toIso8601String(),
         'recordingId': recordingId,
+        'provider': _activeProvider,
         'metadata': {
           'audioUrl': audioUrl,
           'analyzed': true,

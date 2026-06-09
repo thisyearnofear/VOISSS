@@ -48,6 +48,8 @@ export * from './services/payment/x402Client';
 export * from './services/payment/PaymentRouter';
 export * from './services/market-intelligence/firecrawl-service';
 export * from './services/audio/ai/elevenlabs-service';
+export * from './services/butler-memory-service';
+export * from './services/acp-listener-service';
 
 // Hooks - use deep imports to avoid pulling React into server bundles
 // e.g. import { useTokenAccess } from '@voisss/shared/hooks/useTokenAccess'
