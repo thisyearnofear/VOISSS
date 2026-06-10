@@ -22,7 +22,6 @@ import {
 import { getRewardForMilestone } from '../config/platform';
 import { MissionService } from './mission-service';
 import { DatabaseService, COLLECTIONS, DatabaseOperationError, DatabaseValidationError } from './database-service';
-import { createLocalStorageDatabase } from './localStorage-database';
 import { createInMemoryDatabase } from './memory-database';
 
 export class PersistentMissionService implements MissionService {
@@ -30,7 +29,7 @@ export class PersistentMissionService implements MissionService {
   private initialized = false;
 
   constructor(database?: DatabaseService) {
-    this.db = database || createLocalStorageDatabase('voisss');
+    this.db = database || createInMemoryDatabase();
   }
 
   private async ensureInitialized(): Promise<void> {
@@ -1078,19 +1077,8 @@ export function createMissionService(database: DatabaseService): MissionService 
 }
 
 /**
- * Factory function to create mission service with LocalStorage database.
- * This is the recommended way to create a mission service for browser environments.
- * 
- * @param namespace - The namespace to use for LocalStorage keys
- * @returns MissionService instance
- */
-export function createMissionServiceWithLocalStorage(namespace: string = 'voisss'): MissionService {
-  return new PersistentMissionService(createLocalStorageDatabase(namespace));
-}
-
-/**
  * Factory function to create mission service with in-memory database.
- * This is suitable for testing and development environments.
+ * This is suitable for testing, development, and fallback environments.
  * 
  * @returns MissionService instance
  */

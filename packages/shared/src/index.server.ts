@@ -19,7 +19,6 @@ export { PostgresDatabase, createPostgresDatabase } from './services/postgres-da
 export { 
   createMissionService,
   createPersistentMissionService,
-  createMissionServiceWithLocalStorage,
   createMissionServiceWithMemoryDatabase,
   PersistentMissionService 
 } from './services/persistent-mission-service';

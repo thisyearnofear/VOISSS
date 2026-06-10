@@ -10,9 +10,16 @@ export * from './components/WaveformVisualization';
 export { SocialShare } from './components/SocialShare.native';
 export type { SocialShareProps, ShareableRecording } from './components/SocialShare.native';
 
-import { colors } from './theme/colors';
-import { theme, globalStyles, buttonStyles } from './theme/theme';
-import type { Theme } from './theme/theme';
-import type { Variant } from './types';
-export { colors, theme, globalStyles, buttonStyles };
-export type { Theme, Variant };
+// Canonical design tokens — single source of truth
+export {
+  colors,
+  theme,
+  globalStyles,
+  buttonStyles,
+  spacing,
+  borderRadius,
+  typography,
+  shadows,
+} from './theme/index';
+export type { Theme } from './theme/index';
+export type { Variant } from './types';

@@ -1,83 +1,32 @@
 /**
  * Cross-Platform Storage Service
  *
- * Unified storage API that works across web (localStorage) and mobile (AsyncStorage)
- * Follows DRY principle by providing single source of truth for storage operations
- * Enhances existing database service pattern with platform awareness
+ * In-memory storage adapter that provides a unified DatabaseService-compatible API.
+ * Previously provided platform-specific storage (localStorage on web, AsyncStorage on mobile).
+ * 
+ * For production persistence, use PostgresDatabase via API routes.
+ * For client-side caching, use the DatabaseService interface with InMemoryDatabase directly.
+ *
+ * Follows DRY principle by providing single source of truth for storage operations.
  */
 
 import { DatabaseService } from "./database-service";
+import { InMemoryDatabase } from "./memory-database";
 
 /**
- * Cross-platform storage adapter that automatically selects the appropriate
- * storage backend based on the runtime environment
+ * Cross-platform storage adapter backed by an in-memory database.
+ * 
+ * Previously provided platform-specific storage (localStorage on web, AsyncStorage on mobile).
+ * Now uses InMemoryDatabase as the single source of truth, with the recommendation that
+ * production apps use PostgresDatabase for persistent server-side storage via API calls.
+ * 
+ * The setItem/getItem/removeItem convenience API is preserved for backward compatibility.
  */
 export class CrossPlatformStorage implements DatabaseService {
   private innerService: DatabaseService;
-  private isMobile: boolean;
 
-  constructor(namespace: string = "default") {
-    // Detect mobile environment
-    this.isMobile = this.detectMobileEnvironment();
-
-    // Initialize appropriate storage backend
-    this.innerService = this.createStorageService(namespace);
-  }
-
-  /**
-   * Detect if running in mobile environment (React Native)
-   * Uses feature detection rather than platform detection for reliability
-   */
-  private detectMobileEnvironment(): boolean {
-    // Check for React Native global object
-    if (
-      typeof global !== "undefined" &&
-      ((global as any).__DEV__ !== undefined ||
-        (global as any).nativeRequire !== undefined)
-    ) {
-      return true;
-    }
-
-    // Check for Node.js environment (used in React Native)
-    if (
-      typeof process !== "undefined" &&
-      process.versions !== undefined &&
-      process.versions.node !== undefined
-    ) {
-      // But exclude browser environments that have process shim
-      if (typeof window === "undefined" || typeof document === "undefined") {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Create the appropriate storage service based on environment
-   */
-  private createStorageService(namespace: string): DatabaseService {
-    if (this.isMobile) {
-      return this.createMobileStorage(namespace);
-    } else {
-      return this.createWebStorage(namespace);
-    }
-  }
-
-  /**
-   * Create web storage service (localStorage-based)
-   */
-  private createWebStorage(namespace: string): DatabaseService {
-    const { createLocalStorageDatabase } = require("./localStorage-database");
-    return createLocalStorageDatabase(namespace);
-  }
-
-  /**
-   * Create mobile storage service (AsyncStorage-based)
-   */
-  private createMobileStorage(namespace: string): DatabaseService {
-    const { createAsyncStorageDatabase } = require("./asyncStorage-database");
-    return createAsyncStorageDatabase(namespace);
+  constructor(_namespace: string = "default") {
+    this.innerService = new InMemoryDatabase();
   }
 
   /**
@@ -217,8 +166,8 @@ export class CrossPlatformStorage implements DatabaseService {
    */
   public getEnvironmentInfo(): { isMobile: boolean; platform: string } {
     return {
-      isMobile: this.isMobile,
-      platform: this.isMobile ? "react-native" : "web",
+      isMobile: false,
+      platform: "in-memory",
     };
   }
 }

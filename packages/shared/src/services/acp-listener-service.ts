@@ -80,12 +80,14 @@ export class AcpListenerService {
 
   constructor(config: AcpListenerConfig) {
     this.config = {
-      autoBid: false,
-      minBudget: 0.01,
-      maxResponseTimeMs: 30000,
-      keywords: DEFAULT_KEYWORDS,
-      offeringRoutes: {},
-      ...config,
+      agentId: config.agentId ?? '',
+      offeringIds: config.offeringIds ?? [],
+      autoBid: config.autoBid ?? false,
+      minBudget: config.minBudget ?? 0.01,
+      maxResponseTimeMs: config.maxResponseTimeMs ?? 30000,
+      keywords: config.keywords ?? DEFAULT_KEYWORDS,
+      webhookUrl: config.webhookUrl,
+      offeringRoutes: config.offeringRoutes ?? {},
     };
   }
 
@@ -274,11 +276,12 @@ export function getAcpListener(config?: Partial<AcpListenerConfig>): AcpListener
     listenerInstance = new AcpListenerService({
       agentId: process.env.ACP_AGENT_ID || '',
       offeringIds,
-      autoBid: process.env.ACP_AUTO_BID === 'true',
-      minBudget: 0.01,
-      maxResponseTimeMs: 30000,
-      keywords: DEFAULT_KEYWORDS,
-      ...config,
+      autoBid: config?.autoBid ?? process.env.ACP_AUTO_BID === 'true',
+      minBudget: config?.minBudget ?? 0.01,
+      maxResponseTimeMs: config?.maxResponseTimeMs ?? 30000,
+      keywords: config?.keywords ?? DEFAULT_KEYWORDS,
+      webhookUrl: config?.webhookUrl,
+      offeringRoutes: config?.offeringRoutes,
     });
   }
   return listenerInstance;

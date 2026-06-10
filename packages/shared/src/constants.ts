@@ -29,30 +29,21 @@ export const STARKNET_CONFIG = {
   },
 } as const;
 
-// UI Constants
-export const UI_CONFIG = {
-  COLORS: {
-    PRIMARY: '#3B82F6',
-    SECONDARY: '#8B5CF6',
-    SUCCESS: '#10B981',
-    WARNING: '#F59E0B',
-    ERROR: '#EF4444',
-    BACKGROUND: '#FFFFFF',
-    SURFACE: '#F9FAFB',
-    TEXT_PRIMARY: '#111827',
-    TEXT_SECONDARY: '#6B7280',
-  },
-  BREAKPOINTS: {
-    SM: 640,
-    MD: 768,
-    LG: 1024,
-    XL: 1280,
-  },
-  ANIMATIONS: {
-    DURATION_FAST: 150,
-    DURATION_NORMAL: 300,
-    DURATION_SLOW: 500,
-  },
+// UI Constants — the canonical source of truth is packages/ui/src/theme/index.ts.
+// Do NOT add design tokens here; import theme from '@voisss/ui' instead.
+export const UI_CONFIG_DEPRECATED = null as const;
+
+export const BREAKPOINTS = {
+  sm: 640,
+  md: 768,
+  lg: 1024,
+  xl: 1280,
+} as const;
+
+export const ANIMATION_DURATIONS = {
+  fast: 150,
+  normal: 300,
+  slow: 500,
 } as const;
 
 // API Configuration

@@ -20,5 +20,17 @@ export type { NotificationItem, NotificationBellProps } from './components/Notif
 export { StreakDisplay } from './components/StreakDisplay';
 export type { StreakDisplayProps } from './components/StreakDisplay';
 
-import { colors } from './theme/colors';
-export { colors };
+// Canonical design tokens — single source of truth
+export {
+  colors,
+  theme,
+  globalStyles,
+  buttonStyles,
+  spacing,
+  borderRadius,
+  typography,
+  shadows,
+  breakpoints,
+  animations,
+} from './theme/index';
+export type { Theme } from './theme/index';

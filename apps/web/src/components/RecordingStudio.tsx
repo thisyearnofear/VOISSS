@@ -28,6 +28,7 @@ import StudioInsightsPanel from "@/components/RecordingStudio/StudioInsightsPane
 import { useStudioSettings } from "@/hooks/useStudioSettings";
 import { useAgentVerification } from "@/hooks/useAgentVerification";
 import { saveVersionLedger, getVersionLedger } from "@/lib/studio-db";
+import { downloadBlob, formatFileSize, createObjectUrl } from "@/lib/browser-utils";
 import { useAgentMode } from "@/hooks/useAgentMode";
 import { useRecordingSave } from "@/hooks/useRecordingSave";
 
@@ -283,19 +284,16 @@ export default function RecordingStudio({
   // activeTool moved up for persistence access
 
   // Memoize active version URL to prevent re-renders
-  const activePreviewUrl = useMemo(() => {
-    if (!activeVersion?.blob) return null;
-    return URL.createObjectURL(activeVersion.blob);
-  }, [activeVersion?.blob]);
-
-  // Cleanup active version URL
+  const [activePreviewUrl, setActivePreviewUrl] = useState<string | null>(null);
   useEffect(() => {
-    return () => {
-      if (activePreviewUrl) {
-        URL.revokeObjectURL(activePreviewUrl);
-      }
-    };
-  }, [activePreviewUrl]);
+    if (!activeVersion?.blob) {
+      setActivePreviewUrl(null);
+      return;
+    }
+    const [url, cleanup] = createObjectUrl(activeVersion.blob);
+    setActivePreviewUrl(url);
+    return cleanup;
+  }, [activeVersion?.blob]);
 
   // Freemium state
   const {
@@ -317,11 +315,9 @@ export default function RecordingStudio({
       setPreviewUrl(null);
       return;
     }
-    const url = URL.createObjectURL(audioBlob);
+    const [url, cleanup] = createObjectUrl(audioBlob);
     setPreviewUrl(url);
-    return () => {
-      URL.revokeObjectURL(url);
-    };
+    return cleanup;
   }, [audioBlob]);
 
   // Show toast when max recording duration is reached
@@ -420,26 +416,11 @@ export default function RecordingStudio({
     []
   );
 
-  // Utilities
-  const formatFileSize = useCallback((bytes: number): string => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-  }, []);
-
   const handleDownload = useCallback(() => {
     if (audioBlob) {
-      const url = URL.createObjectURL(audioBlob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download =
+      const filename =
         recordingTitle || `recording-${new Date().toISOString()}.webm`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      downloadBlob(audioBlob, filename);
     }
   }, [audioBlob, recordingTitle]);
 

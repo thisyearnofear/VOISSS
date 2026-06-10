@@ -155,9 +155,6 @@ declare module '@voisss/shared' {
   export const createAIServiceClient: any;
 
   // Utility types
-  export const useMemoryContext: any;
-  export const useCrossPlatformStorage: any;
-
   // Constants
   export const languages: any;
   export const constants: any;

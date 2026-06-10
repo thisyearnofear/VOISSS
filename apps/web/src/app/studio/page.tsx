@@ -1,57 +1,42 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { useMemo, useState, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import RecordingStudio from "../../components/RecordingStudio";
-import {
-  RecordingCard,
-  SocialShare,
-  BaseModal,
-  type ShareableRecording,
-} from "@voisss/ui";
+import StudioRecordingsList from "../../components/StudioRecordingsList";
 import { useRecordings } from "../../hooks/queries/useRecordings";
 import { useAuth } from "../../contexts/AuthContext";
-export const dynamic = "force-dynamic";
 
 function StudioPageInner() {
   const searchParams = useSearchParams();
   const templateId = useMemo(
     () => searchParams.get("templateId") || undefined,
-    [searchParams]
+    [searchParams],
   );
   const mode = useMemo(
     () => searchParams.get("mode") || undefined,
-    [searchParams]
+    [searchParams],
   );
   const missionId = useMemo(
     () => searchParams.get("missionId") || undefined,
-    [searchParams]
+    [searchParams],
   );
-  // Legacy local recordings state (for backward compatibility)
+
+  // Local recordings state (for guest users)
   const [localRecordings, setLocalRecordings] = useState<
     Array<{
       id: string;
       title: string;
       duration: number;
       blob: Blob;
-      createdAt: string; // Now always a string to match Recording interface
+      createdAt: string;
     }>
   >([]);
 
   // Enhanced recordings from hook (local + on-chain)
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, address } = useAuth();
   const { data: allRecordings = [], isLoading: isLoadingRecordings } =
     useRecordings();
-
-  // Audio playback state
-  const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
-  const [audioElements, setAudioElements] = useState<
-    Map<string, HTMLAudioElement>
-  >(new Map());
-
-  // Sharing state
-  const [sharingRecording, setSharingRecording] =
-    useState<ShareableRecording | null>(null);
 
   const handleRecordingComplete = (audioBlob: Blob, duration: number) => {
     const newRecording = {
@@ -59,95 +44,19 @@ function StudioPageInner() {
       title: `Recording ${localRecordings.length + 1}`,
       duration,
       blob: audioBlob,
-      createdAt: new Date().toISOString(), // Convert to string to match Recording interface
+      createdAt: new Date().toISOString(),
     };
     setLocalRecordings((prev) => [newRecording, ...prev]);
   };
 
-  // Enhanced audio playback with IPFS support
-  const handlePlayRecording = async (recordingId: string) => {
-    try {
-      // Stop currently playing audio
-      if (currentlyPlaying && audioElements.has(currentlyPlaying)) {
-        const currentAudio = audioElements.get(currentlyPlaying);
-        currentAudio?.pause();
-        setCurrentlyPlaying(null);
-      }
-
-      const onChainRecording = allRecordings.find((r) => r.id === recordingId);
-      const localRecording = localRecordings.find((r) => r.id === recordingId);
-
-      if (!onChainRecording && !localRecording) return;
-
-      let audioUrl: string;
-
-      if (localRecording?.blob) {
-        // Local recording with blob
-        audioUrl = URL.createObjectURL(localRecording.blob);
-      } else if (onChainRecording?.ipfsHash) {
-        // On-chain recording from IPFS
-        audioUrl = `https://gateway.pinata.cloud/ipfs/${onChainRecording.ipfsHash}`;
-      } else {
-        throw new Error("No audio source available");
-      }
-
-      // Create or reuse audio element
-      let audio = audioElements.get(recordingId);
-      if (!audio) {
-        audio = new Audio(audioUrl);
-        audio.addEventListener("ended", () => setCurrentlyPlaying(null));
-        audio.addEventListener("error", (e) => {
-          console.error("Audio playback error:", e);
-          setCurrentlyPlaying(null);
-        });
-        setAudioElements((prev) => new Map(prev).set(recordingId, audio!));
-      }
-
-      await audio.play();
-      setCurrentlyPlaying(recordingId);
-    } catch (error) {
-      console.error("Failed to play recording:", error);
-      setCurrentlyPlaying(null);
-    }
-  };
-
-  const handlePauseRecording = (recordingId: string) => {
-    const audio = audioElements.get(recordingId);
-    if (audio) {
-      audio.pause();
-      setCurrentlyPlaying(null);
-    }
-  };
-
-  const handleDeleteRecording = (recordingId: string) => {
-    // Only allow deletion of local recordings for now
+  const handleDeleteLocal = useCallback((recordingId: string) => {
     setLocalRecordings((prev) => prev.filter((r) => r.id !== recordingId));
-
-    // Clean up audio element
-    const audio = audioElements.get(recordingId);
-    if (audio) {
-      audio.pause();
-      audio.src = "";
-      setAudioElements((prev) => {
-        const newMap = new Map(prev);
-        newMap.delete(recordingId);
-        return newMap;
-      });
-    }
-
-    if (currentlyPlaying === recordingId) {
-      setCurrentlyPlaying(null);
-    }
-  };
-
-  const handleShareRecording = (recording: ShareableRecording) => {
-    setSharingRecording(recording);
-  };
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white">
       <div className="voisss-container py-8 sm:py-12">
-        {/* Unified Recording Studio - Works for both connected and unconnected users */}
+        {/* Recording Studio */}
         <div id="recording-section" className="mb-12">
           <RecordingStudio
             onRecordingComplete={handleRecordingComplete}
@@ -163,15 +72,27 @@ function StudioPageInner() {
             href="/agents"
             className="flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 rounded-xl hover:border-indigo-500/50 hover:from-indigo-600/30 hover:to-purple-600/30 transition-all duration-300 group"
           >
-            <svg className="w-5 h-5 text-indigo-400 group-hover:text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            <svg
+              className="w-5 h-5 text-indigo-400 group-hover:text-indigo-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
             </svg>
-            <span className="text-indigo-300 font-medium">Discover Agent Commentary</span>
-            <span className="text-indigo-400/60 text-sm">→</span>
+            <span className="text-indigo-300 font-medium">
+              Discover Agent Commentary
+            </span>
+            <span className="text-indigo-400/60 text-sm">&rarr;</span>
           </a>
         </div>
 
-        {/* Enhanced Recordings List - Shows both local and on-chain recordings */}
+        {/* Recordings List — authenticated users */}
         {isAuthenticated &&
           (allRecordings.length > 0 || isLoadingRecordings) && (
             <div className="max-w-4xl mx-auto">
@@ -181,64 +102,34 @@ function StudioPageInner() {
                 </h2>
                 {isLoadingRecordings && (
                   <div className="flex items-center gap-2 text-gray-400">
-                    <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
                     <span className="text-sm">Loading...</span>
                   </div>
                 )}
               </div>
-
-              {allRecordings.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {allRecordings.map((recording) => (
-                    <RecordingCard
-                      key={recording.id}
-                      recording={{
-                        id: recording.id,
-                        title: recording.title,
-                        duration: recording.duration,
-                        createdAt:
-                          typeof recording.createdAt === "string"
-                            ? recording.createdAt
-                            : recording.createdAt instanceof Date
-                            ? recording.createdAt.toISOString()
-                            : new Date().toISOString(),
-                        tags: recording.onChain ? ["on-chain"] : ["local"],
-                        isPlaying: currentlyPlaying === recording.id,
-                        onChain: recording.onChain,
-                      }}
-                      onPlay={handlePlayRecording}
-                      onPause={handlePauseRecording}
-                      onDelete={
-                        recording.onChain ? undefined : handleDeleteRecording
-                      }
-                      onShare={handleShareRecording}
-                      className=""
-                    />
-                  ))}
-                </div>
-              ) : !isLoadingRecordings ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-gray-800 rounded-full flex items-center justify-center">
-                    <svg
-                      className="w-8 h-8 text-gray-400"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-medium text-white mb-2">
-                    No recordings yet
-                  </h3>
-                  <p className="text-gray-400 text-sm">
-                    Start recording above to create your first voice recording!
-                  </p>
-                </div>
-              ) : null}
+              <StudioRecordingsList
+                recordings={allRecordings.map((r) => ({
+                  id: r.id,
+                  title: r.title,
+                  duration: r.duration,
+                  createdAt:
+                    typeof r.createdAt === "string"
+                      ? r.createdAt
+                      : r.createdAt instanceof Date
+                        ? r.createdAt.toISOString()
+                        : new Date().toISOString(),
+                  tags: r.onChain ? ["on-chain"] : ["local"],
+                  onChain: r.onChain,
+                  ipfsHash: (r as any).ipfsHash,
+                }))}
+                isLoading={isLoadingRecordings}
+                isAuthenticated={isAuthenticated}
+                userId={address || undefined}
+              />
             </div>
           )}
 
-        {/* Legacy Local Recordings - Only show for guest users */}
+        {/* Legacy Local Recordings — guest users */}
         {!isAuthenticated && localRecordings.length > 0 && (
           <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4 sm:mb-6">
@@ -247,64 +138,34 @@ function StudioPageInner() {
                 (Sign in to save permanently)
               </span>
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {localRecordings.map((recording) => (
-                <RecordingCard
-                  key={recording.id}
-                  recording={{
-                    id: recording.id,
-                    title: recording.title,
-                    duration: recording.duration,
-                    createdAt:
-                      typeof recording.createdAt === "string"
-                        ? recording.createdAt
-                        : new Date().toISOString(),
-                    tags: ["session"],
-                    isPlaying: currentlyPlaying === recording.id,
-                    onChain: false,
-                  }}
-                  onPlay={handlePlayRecording}
-                  onPause={handlePauseRecording}
-                  onDelete={handleDeleteRecording}
-                  onShare={handleShareRecording}
-                  className=""
-                />
-              ))}
-            </div>
+            <StudioRecordingsList
+              recordings={localRecordings.map((r) => ({
+                id: r.id,
+                title: r.title,
+                duration: r.duration,
+                createdAt: r.createdAt,
+                tags: ["session"],
+              }))}
+              localRecordings={localRecordings}
+              isAuthenticated={isAuthenticated}
+              onDeleteLocal={handleDeleteLocal}
+              userId={address || undefined}
+            />
           </div>
         )}
-
-        {/* Sharing Modal */}
-        <BaseModal
-          visible={!!sharingRecording}
-          onClose={() => setSharingRecording(null)}
-          title="Share Recording"
-        >
-          {sharingRecording && (
-            <SocialShare
-              recording={sharingRecording}
-              userId={address || undefined}
-              generateReferralCode={async (userId: string, recordingId: string) => {
-                const hash = btoa(`${userId}:${recordingId}`).slice(0, 8);
-                return hash;
-              }}
-              onShare={(platform: string, url: string) => {
-                console.log(`Shared to ${platform}:`, url);
-              }}
-            />
-          )}
-        </BaseModal>
       </div>
     </div>
   );
 }
 
-export default function RecordPage() {
+export default function StudioPage() {
   return (
     <Suspense
       fallback={
         <div className="min-h-screen bg-[#0A0A0A] text-white">
-          <div className="voisss-container py-8 sm:py-12">Loadingstudio...</div>
+          <div className="voisss-container py-8 sm:py-12">
+            Loading studio...
+          </div>
         </div>
       }
     >

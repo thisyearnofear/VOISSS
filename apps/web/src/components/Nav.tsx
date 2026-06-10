@@ -6,7 +6,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useBasename } from "../hooks/useBasename";
 import { useBaseAccount } from "../hooks/useBaseAccount";
 import { useAssistant } from "../contexts/AssistantContext";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Menu, X } from "lucide-react";
 import { NotificationBell, StreakDisplay } from "@voisss/ui";
 import { useEngagement } from "@voisss/shared/hooks/useEngagement";
 import { webEngagementService } from "../services/engagement";
@@ -25,10 +25,10 @@ export default function Nav() {
     status: baseAccountStatus,
   } = useBaseAccount();
   const [showWalletMenu, setShowWalletMenu] = useState(false);
-  const [showCommunityMenu, setShowCommunityMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [dismissedNudge, setDismissedNudge] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const communityRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   // ENHANCEMENT: Engagement hooks
   const { notifications, unreadCount, markRead, streak } = useEngagement(webEngagementService, {
@@ -52,7 +52,7 @@ export default function Nav() {
     }
   }, [showWalletMenu, isConnected, universalAddress]);
 
-  // Close menu when clicking outside
+  // Close wallet menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -69,19 +69,25 @@ export default function Nav() {
     };
   }, [showWalletMenu]);
 
+  // Close mobile menu when clicking outside
   useEffect(() => {
-    const handleCommunityOutside = (event: MouseEvent) => {
-      if (communityRef.current && !communityRef.current.contains(event.target as Node)) {
-        setShowCommunityMenu(false);
+    const handleMobileOutside = (event: MouseEvent) => {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+        setShowMobileMenu(false);
       }
     };
-    if (showCommunityMenu) {
-      document.addEventListener('mousedown', handleCommunityOutside);
+
+    if (showMobileMenu) {
+      document.addEventListener('mousedown', handleMobileOutside);
+      // Prevent body scroll when mobile menu is open
+      document.body.style.overflow = 'hidden';
     }
+
     return () => {
-      document.removeEventListener('mousedown', handleCommunityOutside);
+      document.removeEventListener('mousedown', handleMobileOutside);
+      document.body.style.overflow = '';
     };
-  }, [showCommunityMenu]);
+  }, [showMobileMenu]);
 
   const formatAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
@@ -109,6 +115,14 @@ export default function Nav() {
     isTestnet: false
   };
 
+  const navLinks = [
+    { href: "/studio", label: "Studio", className: "text-white hover:text-[#9C88FF] transition-colors text-sm font-bold uppercase tracking-wider" },
+    { href: "/marketplace", label: "Voices", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
+    { href: "/agents", label: "For Agents", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
+    { href: "/missions", label: "Missions", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
+    { href: "/leaderboard", label: "Leaderboard", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium hidden lg:inline" },
+  ];
+
   return (
     <nav className="border-b border-[#2A2A2A] bg-[#0A0A0A]/95 backdrop-blur-sm sticky top-0 z-50">
       <div className="voisss-container">
@@ -118,49 +132,13 @@ export default function Nav() {
           </Link>
 
           <div className="flex items-center gap-6">
+            {/* Desktop Nav Links */}
             <div className="hidden sm:flex items-center gap-6">
-              <Link
-                href="/marketplace"
-                className="text-white hover:text-blue-400 transition-colors text-sm font-bold uppercase tracking-wider"
-              >
-                Marketplace
-              </Link>
-              <Link
-                href="/studio"
-                className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
-              >
-                Studio
-              </Link>
-              <Link
-                href="/agents"
-                className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
-              >
-                API Docs
-              </Link>
-              <div className="relative" ref={communityRef}>
-                <button
-                  onClick={() => setShowCommunityMenu(!showCommunityMenu)}
-                  className="text-gray-400 hover:text-white transition-colors text-sm font-medium flex items-center gap-1"
-                >
-                  Community
-                  <svg className={`w-3 h-3 transition-transform ${showCommunityMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {showCommunityMenu && (
-                  <div className="absolute left-0 mt-2 w-44 bg-[#1A1A1A] border border-[#2A2A2A] rounded-sm shadow-xl py-1 z-50">
-                    <Link href="/missions" onClick={() => setShowCommunityMenu(false)} className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-                      Missions
-                    </Link>
-                    <Link href="/leaderboard" onClick={() => setShowCommunityMenu(false)} className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-                      Leaderboard
-                    </Link>
-                    <Link href="/achievements" onClick={() => setShowCommunityMenu(false)} className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-                      Achievements
-                    </Link>
-                  </div>
-                )}
-              </div>
+              {navLinks.map((link) => (
+                <Link key={link.href} href={link.href} className={link.className}>
+                  {link.label}
+                </Link>
+              ))}
             </div>
 
             {/* AI Assistant Toggle */}
@@ -209,37 +187,44 @@ export default function Nav() {
             )}
 
             {/* Authentication / Profile Area */}
-            <div className="flex items-center gap-3 min-w-[120px] justify-end">
+            <div className="flex items-center gap-3 justify-end">
+              {/* Mobile Hamburger */}
+              <button
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                className="sm:hidden p-2 text-gray-400 hover:text-white transition-colors"
+                aria-label="Toggle menu"
+              >
+                {showMobileMenu ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+
               {isCheckingSession ? (
                 <div className="flex items-center gap-2 px-3 py-2 text-gray-500 text-xs font-medium">
                   <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin"></div>
                   <span className="hidden sm:inline">Syncing...</span>
                 </div>
               ) : !isAuthenticated ? (
-                <div className="flex items-center gap-3">
+                <div className="hidden sm:flex items-center gap-3">
                   <Link
                     href="/studio"
-                    className="px-3 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium hidden md:inline"
+                    className="px-4 py-2 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-lg text-white text-sm font-medium hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-200 shadow-lg hover:shadow-purple-500/25"
                   >
-                    Studio
+                    Start Recording
                   </Link>
                   <button
                     onClick={signIn}
                     disabled={isAuthenticating}
-                    className="px-4 py-2 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-lg text-white text-sm font-medium hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium flex items-center gap-1.5"
                   >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
                     {isAuthenticating ? (
                       <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
                         <span className="hidden sm:inline">Connecting...</span>
                       </>
                     ) : (
-                      <>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                        <span>Sign In</span>
-                      </>
+                      <span>Sign In</span>
                     )}
                   </button>
                 </div>
@@ -412,6 +397,80 @@ export default function Nav() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Navigation Menu */}
+      {showMobileMenu && (
+        <div className="fixed inset-0 z-50 sm:hidden" onClick={() => setShowMobileMenu(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+          <div
+            ref={mobileMenuRef}
+            onClick={(e) => e.stopPropagation()}
+            className="absolute right-0 top-0 h-full w-72 max-w-[85vw] bg-[#0A0A0A] border-l border-[#2A2A2A] shadow-2xl animate-in slide-in-from-right duration-300"
+          >
+            <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
+              <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">Menu</span>
+              <button
+                onClick={() => setShowMobileMenu(false)}
+                className="p-2 text-gray-400 hover:text-white transition-colors"
+                aria-label="Close menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="py-4">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setShowMobileMenu(false)}
+                  className="flex items-center px-6 py-4 text-white hover:bg-white/5 transition-colors text-lg font-medium"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+
+            <div className="border-t border-[#2A2A2A] p-6 space-y-4">
+              {!isAuthenticated ? (
+                <>
+                  <Link
+                    href="/studio"
+                    onClick={() => setShowMobileMenu(false)}
+                    className="block w-full text-center px-6 py-3 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-lg text-white font-semibold hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all"
+                  >
+                    Start Recording
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      signIn();
+                    }}
+                    disabled={isAuthenticating}
+                    className="block w-full text-center px-6 py-3 border border-[#3A3A3A] rounded-lg text-gray-400 font-medium hover:border-gray-600 hover:text-white transition-all"
+                  >
+                    {isAuthenticating ? "Connecting..." : "Sign In"}
+                  </button>
+                </>
+              ) : (
+                <div className="text-center text-sm text-gray-500">
+                  <p className="mb-2">Connected as</p>
+                  <p className="text-white font-mono text-xs break-all">{address}</p>
+                  <button
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      handleDisconnect();
+                    }}
+                    className="mt-4 text-red-400 hover:text-red-300 transition-colors text-sm font-medium"
+                  >
+                    Disconnect
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Daily Streak Nudge Banner */}
       {needsStreakNudge && (

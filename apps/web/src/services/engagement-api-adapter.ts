@@ -21,51 +21,51 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
 
 class ApiEngagementAdapter {
   async getStreak(userId: string): Promise<UserStreak> {
-    return apiFetch<UserStreak>(`/api/engagement/streak?userId=${encodeURIComponent(userId)}`);
+    return apiFetch<UserStreak>(`/api/engagement?action=streak&userId=${encodeURIComponent(userId)}`);
   }
 
   async updateStreak(userId: string): Promise<UserStreak> {
-    return apiFetch<UserStreak>("/api/engagement/streak", {
+    return apiFetch<UserStreak>("/api/engagement", {
       method: "POST",
-      body: JSON.stringify({ userId }),
+      body: JSON.stringify({ action: "update-streak", userId }),
     });
   }
 
   async getUserNotifications(userId: string): Promise<Notification[]> {
-    return apiFetch<Notification[]>(`/api/engagement/notifications?userId=${encodeURIComponent(userId)}`);
+    return apiFetch<Notification[]>(`/api/engagement?action=notifications&userId=${encodeURIComponent(userId)}`);
   }
 
   async markNotificationRead(notificationId: string): Promise<void> {
-    await apiFetch("/api/engagement/notifications/read", {
+    await apiFetch("/api/engagement", {
       method: "POST",
-      body: JSON.stringify({ notificationId }),
+      body: JSON.stringify({ action: "mark-read", notificationId }),
     });
   }
 
   async getUserMetrics(userId: string): Promise<UserEngagementMetrics> {
-    return apiFetch<UserEngagementMetrics>(`/api/engagement/metrics?userId=${encodeURIComponent(userId)}`);
+    return apiFetch<UserEngagementMetrics>(`/api/engagement?action=metrics&userId=${encodeURIComponent(userId)}`);
   }
 
   async updateUserMetrics(userId: string): Promise<UserEngagementMetrics> {
-    return apiFetch<UserEngagementMetrics>(`/api/engagement/metrics?userId=${encodeURIComponent(userId)}`);
+    return apiFetch<UserEngagementMetrics>(`/api/engagement?action=metrics&userId=${encodeURIComponent(userId)}`);
   }
 
   async checkAchievements(userId: string): Promise<UserAchievement[]> {
-    return apiFetch<UserAchievement[]>("/api/engagement/achievements", {
+    return apiFetch<UserAchievement[]>("/api/engagement", {
       method: "POST",
-      body: JSON.stringify({ userId }),
+      body: JSON.stringify({ action: "check-achievements", userId }),
     });
   }
 
   async getLeaderboard(period: Leaderboard["period"], category?: Leaderboard["category"]): Promise<Leaderboard> {
-    const params = new URLSearchParams({ period, category: category || "earnings" });
-    const { leaderboard } = await apiFetch<{ leaderboard: Leaderboard }>(`/api/engagement/leaderboard?${params}`);
+    const params = new URLSearchParams({ action: "leaderboard", period, category: category || "earnings" });
+    const { leaderboard } = await apiFetch<{ leaderboard: Leaderboard }>(`/api/engagement?${params}`);
     return leaderboard;
   }
 
   async getUserRank(userId: string, period: Leaderboard["period"], category?: Leaderboard["category"]): Promise<number | null> {
-    const params = new URLSearchParams({ period, category: category || "earnings", userId });
-    const { userRank } = await apiFetch<{ userRank: number | null }>(`/api/engagement/leaderboard?${params}`);
+    const params = new URLSearchParams({ action: "leaderboard", period, category: category || "earnings", userId });
+    const { userRank } = await apiFetch<{ userRank: number | null }>(`/api/engagement?${params}`);
     return userRank;
   }
 

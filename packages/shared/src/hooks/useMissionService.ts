@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { createMissionServiceWithLocalStorage } from '../services/persistent-mission-service';
+import { createMissionServiceWithMemoryDatabase } from '../services/persistent-mission-service';
 import type { MissionService } from '../services/mission-service';
 import type { Mission, MissionResponse } from '../types/socialfi';
 import type { AudioVersion, VersionLedgerState } from '../types/audio-version';
@@ -34,7 +34,7 @@ export interface MissionServiceHook {
 
 export function useMissionService(userId: string | null): MissionServiceHook {
   const [missionService] = useState<MissionService>(() => 
-    createMissionServiceWithLocalStorage('voisss_missions')
+    createMissionServiceWithMemoryDatabase()
   );
   const [activeMissions, setActiveMissions] = useState<Mission[]>([]);
   const [userMissions, setUserMissions] = useState<{

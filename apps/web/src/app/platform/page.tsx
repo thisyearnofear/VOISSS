@@ -88,8 +88,8 @@ export default function PlatformPage() {
               <a href="/missions" className="px-4 py-3 rounded-xl bg-[#2A2A2A] border border-[#3A3A3A] text-white font-semibold text-center hover:bg-[#3A3A3A]">
                 Explore missions
               </a>
-              <a href="/farcaster-miniapp/player" className="px-4 py-3 rounded-xl bg-[#2A2A2A] border border-[#3A3A3A] text-white font-semibold text-center hover:bg-[#3A3A3A]">
-                Open player
+              <a href="/leaderboard" className="px-4 py-3 rounded-xl bg-[#2A2A2A] border border-[#3A3A3A] text-white font-semibold text-center hover:bg-[#3A3A3A]">
+                View Leaderboard
               </a>
             </div>
           </div>

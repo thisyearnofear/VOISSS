@@ -39,7 +39,6 @@ export * from './services/mission-service';
 export * from './services/persistent-mission-service';
 export * from './services/engagement-service';
 export * from './services/database-service';
-export * from './services/localStorage-database';
 export * from './services/memory-database';
 export * from './services/cross-platform-storage';
 export * from './services/ipfs-service';

@@ -32,7 +32,6 @@ export * from './utils/session';
 export * from './services/ipfs-service';
 export * from './services/mission-service';
 export * from './services/database-service';
-export * from './services/localStorage-database';
 export * from './services/persistent-mission-service';
 
 // Audio services (safe - client-side only)
