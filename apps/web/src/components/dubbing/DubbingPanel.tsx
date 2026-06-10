@@ -4,7 +4,8 @@ import React, { useState, useCallback, useRef } from "react";
 import LanguageSelector from "./LanguageSelector";
 import AudioComparison from "./AudioComparison";
 import ToastNotification from "../RecordingStudio/ToastNotification";
-import type { LanguageInfo, AudioVersion, AudioVersionSource, AudioVersionMetadata } from "@voisss/shared";
+import type { LanguageInfo } from "@voisss/shared";
+import type { AudioVersion, AudioVersionSource, AudioVersionMetadata } from "@voisss/shared/types/audio-version";
 import {
   useDubbingLanguages,
   useAudioDubbing,

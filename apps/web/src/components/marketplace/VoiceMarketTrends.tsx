@@ -2,7 +2,15 @@
 
 import React, { useEffect, useState } from "react";
 import { TrendingUp, Globe, Briefcase, Info, RefreshCw, BarChart3, Tag } from "lucide-react";
-import { MarketTrendResult, MarketTrend } from "@/lib/ai-inference";
+import { MarketTrendResult } from "@/lib/ai-inference";
+
+interface TrendItem {
+  title: string;
+  demandLevel: string;
+  description: string;
+  topTags: string[];
+  growth: string;
+}
 
 export function VoiceMarketTrends() {
   const [trends, setTrends] = useState<MarketTrendResult | null>(null);
@@ -84,7 +92,7 @@ export function VoiceMarketTrends() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {trends.trends.map((trend, idx) => (
+            {(trends.trends as TrendItem[]).map((trend: TrendItem, idx: number) => (
               <div 
                 key={idx} 
                 className="p-5 bg-[#151515] border border-white/[0.03] rounded-2xl hover:border-cyan-500/30 transition-all group/card"
@@ -105,7 +113,7 @@ export function VoiceMarketTrends() {
                   {trend.description}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {trend.topTags.map(tag => (
+                  {trend.topTags.map((tag: string) => (
                     <span key={tag} className="px-2 py-1 bg-white/[0.03] border border-white/[0.05] rounded-md text-[9px] text-gray-400 font-medium">
                       #{tag}
                     </span>
@@ -140,7 +148,7 @@ export function VoiceMarketTrends() {
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">High-Demand Languages</span>
               </div>
               <div className="flex flex-wrap gap-2">
-                {trends.topLanguages.map(lang => (
+                {(trends.topLanguages as string[]).map((lang: string) => (
                   <span key={lang} className="px-3 py-1.5 bg-[#1A1A1A] border border-white/[0.05] rounded-lg text-xs text-gray-300 font-medium">
                     {lang}
                   </span>
@@ -154,7 +162,7 @@ export function VoiceMarketTrends() {
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Top Categories</span>
               </div>
               <div className="flex flex-wrap gap-2">
-                {trends.topCategories.map(cat => (
+                {(trends.topCategories as string[]).map((cat: string) => (
                   <span key={cat} className="px-3 py-1.5 bg-[#1A1A1A] border border-white/[0.05] rounded-lg text-xs text-gray-300 font-medium">
                     {cat}
                   </span>

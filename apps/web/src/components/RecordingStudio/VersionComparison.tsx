@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Play, Pause, Volume2 } from "lucide-react";
-import { AudioVersion } from "@voisss/shared";
+import type { AudioVersion } from "@voisss/shared/types/audio-version";
 
 interface VersionComparisonProps {
   versions: AudioVersion[];

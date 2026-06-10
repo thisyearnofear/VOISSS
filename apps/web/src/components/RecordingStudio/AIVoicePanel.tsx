@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
-import { AudioVersion, AudioVersionSource, AudioVersionMetadata } from '@voisss/shared';
+import type { AudioVersion, AudioVersionSource, AudioVersionMetadata } from '@voisss/shared/types/audio-version';
 
 interface AIVoicePanelProps {
   voicesFree: { voiceId: string; name?: string }[];

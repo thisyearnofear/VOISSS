@@ -9,7 +9,7 @@
  */
 
 import { useState } from 'react';
-import type { AgentCategory } from '@voisss/shared';
+import type { AgentCategory } from '@voisss/shared/types';
 
 export interface AgentModeState {
   isAgentMode: boolean;

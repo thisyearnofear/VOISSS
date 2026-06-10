@@ -2,20 +2,17 @@
  * Butler Memory Service - Personalized Agent Experience
  *
  * Uses Arkiv Braga Testnet to store user preferences, voice history,
- * and interaction patterns. Enables the Butler to:
- * - Remember user's favorite voices and styles
- * - Track usage patterns and suggest optimizations
- * - Provide proactive recommendations based on context
- * - Maintain conversation history across sessions
+ * and interaction patterns.
  */
 
 import { createWalletClient, createPublicClient, http } from "@arkiv-network/sdk";
 import { braga } from "@arkiv-network/sdk/chains";
 import { privateKeyToAccount } from "@arkiv-network/sdk/accounts";
 import { ExpirationTime, jsonToPayload } from "@arkiv-network/sdk/utils";
+import { eq } from "@arkiv-network/sdk/query";
 
 const PROJECT_ATTRIBUTE = "voisss-butler-memory";
-const EXPIRY_MEMORY = ExpirationTime.fromDays(180); // 6 months
+const EXPIRY_MEMORY = ExpirationTime.fromDays(180);
 
 export interface ButlerUserPreference {
   userId: string;
@@ -27,9 +24,9 @@ export interface ButlerUserPreference {
   totalRecordings: number;
   lastInteraction: number;
   context: {
-    useCase?: string; // e.g., "podcast", "commercial", "narration"
-    tone?: string; // e.g., "professional", "casual", "energetic"
-    audience?: string; // e.g., "enterprise", "consumer", "children"
+    useCase?: string;
+    tone?: string;
+    audience?: string;
   };
 }
 
@@ -55,7 +52,7 @@ export interface ButlerConversationMemory {
 export interface VoiceRecommendation {
   voiceId: string;
   voiceName: string;
-  score: number; // 0-100 relevance
+  score: number;
   reason: string;
   useCase: string;
 }
@@ -91,51 +88,40 @@ function getPublicClient() {
   });
 }
 
-/**
- * Save or update user preferences to Arkiv
- */
+function buildCreateParams(jsonData: object, entityType: string, userId: string) {
+  return {
+    payload: jsonToPayload(jsonData),
+    contentType: "application/json" as const,
+    attributes: [
+      { key: "project", value: PROJECT_ATTRIBUTE },
+      { key: "type", value: entityType },
+      { key: "userId", value: userId },
+    ],
+    expiresIn: EXPIRY_MEMORY,
+  };
+}
+
 export async function saveUserPreferences(
   preferences: ButlerUserPreference
 ): Promise<{ success: boolean; entityId?: string; error?: string }> {
   try {
     const client = getWalletClient();
-    const now = Date.now();
 
-    const attributes = [
-      { key: "project", value: PROJECT_ATTRIBUTE },
-      { key: "type", value: "butler-preference" },
-      { key: "userId", value: preferences.userId },
-      { key: "walletAddress", value: preferences.walletAddress },
-      { key: "favoriteVoices", value: JSON.stringify(preferences.favoriteVoices) },
-      { key: "preferredStyles", value: JSON.stringify(preferences.preferredStyles) },
-      { key: "defaultLanguage", value: preferences.defaultLanguage },
-      { key: "usageCount", value: preferences.usageCount },
-      { key: "totalRecordings", value: preferences.totalRecordings },
-      { key: "lastInteraction", value: now },
-      { key: "context", value: JSON.stringify(preferences.context) },
-      { key: "createdAt", value: now },
-    ];
-
-    const result = await client.writeEntities({
-      metadata: {
-        collection: "butler-preferences",
-        name: `pref-${preferences.userId}-${now}`,
-        description: `Butler preferences for ${preferences.userId}`,
-      },
-      attributes,
-      json: preferences,
-      expirationTime: EXPIRY_MEMORY,
+    const result = await client.mutateEntities({
+      creates: [buildCreateParams(preferences, "butler-preference", preferences.userId)],
+      ownershipChanges: [],
     });
 
-    // Transfer ownership to user
-    if (result.entities && result.entities.length > 0) {
-      await client.mutateEntities({
-        entityIds: result.entities.map((e: any) => e.id),
-        owner: preferences.walletAddress as `0x${string}`,
+    const entityKey = result.createdEntities?.[0];
+
+    if (entityKey) {
+      await client.changeOwnership({
+        entityKey,
+        newOwner: preferences.walletAddress as `0x${string}`,
       });
     }
 
-    return { success: true, entityId: result.entities?.[0]?.id };
+    return { success: true, entityId: entityKey };
   } catch (error) {
     console.error("Failed to save user preferences:", error);
     return {
@@ -145,9 +131,6 @@ export async function saveUserPreferences(
   }
 }
 
-/**
- * Retrieve user preferences from Arkiv
- */
 export async function getUserPreferences(
   query: ButlerMemoryQuery
 ): Promise<ButlerUserPreference | null> {
@@ -157,27 +140,23 @@ export async function getUserPreferences(
     }
 
     const client = getPublicClient();
-    const entities = await client.readEntities({
-      filter: {
-        project: PROJECT_ATTRIBUTE,
-        type: "butler-preference",
-      },
-      limit: 10,
-      orderBy: "createdAt",
-      orderDirection: "desc",
-    });
+    const q = client.buildQuery();
 
-    // Find the matching entity by userId or walletAddress
+    q.where(eq("project", PROJECT_ATTRIBUTE));
+    q.where(eq("type", "butler-preference"));
+    q.withPayload(true);
+    q.limit(10);
+
+    const result = await q.fetch();
+    const entities = result.entities || [];
+
     for (const entity of entities) {
-      const json = entity.json as ButlerUserPreference | undefined;
-      if (!json) continue;
+      const payload = entity.toJson();
+      if (!payload) continue;
+      const pref = payload as ButlerUserPreference;
 
-      if (query.userId && json.userId === query.userId) {
-        return json;
-      }
-      if (query.walletAddress && json.walletAddress === query.walletAddress) {
-        return json;
-      }
+      if (query.userId && pref.userId === query.userId) return pref;
+      if (query.walletAddress && pref.walletAddress === query.walletAddress) return pref;
     }
 
     return null;
@@ -187,39 +166,17 @@ export async function getUserPreferences(
   }
 }
 
-/**
- * Save conversation memory to Arkiv
- */
 export async function saveConversationMemory(
   memory: ButlerConversationMemory
 ): Promise<{ success: boolean; entityId?: string; error?: string }> {
   try {
     const client = getWalletClient();
-    const now = Date.now();
 
-    const attributes = [
-      { key: "project", value: PROJECT_ATTRIBUTE },
-      { key: "type", value: "conversation-memory" },
-      { key: "userId", value: memory.userId },
-      { key: "sessionId", value: memory.sessionId },
-      { key: "messageCount", value: memory.messages.length },
-      { key: "summary", value: memory.summary },
-      { key: "actionItems", value: JSON.stringify(memory.actionItems) },
-      { key: "createdAt", value: now },
-    ];
-
-    const result = await client.writeEntities({
-      metadata: {
-        collection: "butler-conversations",
-        name: `conv-${memory.sessionId}`,
-        description: `Conversation memory for session ${memory.sessionId}`,
-      },
-      attributes,
-      json: memory,
-      expirationTime: EXPIRY_MEMORY,
+    const result = await client.mutateEntities({
+      creates: [buildCreateParams(memory, "conversation-memory", memory.userId)],
     });
 
-    return { success: true, entityId: result.entities?.[0]?.id };
+    return { success: true, entityId: result.createdEntities?.[0] };
   } catch (error) {
     console.error("Failed to save conversation memory:", error);
     return {
@@ -229,27 +186,21 @@ export async function saveConversationMemory(
   }
 }
 
-/**
- * Generate personalized voice recommendations based on user history
- */
 export async function getVoiceRecommendations(
   preferences: ButlerUserPreference,
   availableVoices: Array<{ id: string; name: string; tags: string[] }>
 ): Promise<VoiceRecommendation[]> {
   const recommendations: VoiceRecommendation[] = [];
 
-  // Score each voice based on user preferences
   for (const voice of availableVoices) {
-    let score = 50; // Base score
+    let score = 50;
     const reasons: string[] = [];
 
-    // Boost if in favorites
     if (preferences.favoriteVoices.includes(voice.id)) {
       score += 30;
       reasons.push("favorite voice");
     }
 
-    // Boost if matches preferred styles
     const matchingStyles = voice.tags.filter(tag =>
       preferences.preferredStyles.includes(tag)
     );
@@ -258,22 +209,19 @@ export async function getVoiceRecommendations(
       reasons.push(`matches ${matchingStyles.join(", ")}`);
     }
 
-    // Boost if matches use case context
     if (preferences.context.useCase && voice.tags.includes(preferences.context.useCase)) {
       score += 15;
       reasons.push(`ideal for ${preferences.context.useCase}`);
     }
 
-    // Boost if matches tone
     if (preferences.context.tone && voice.tags.includes(preferences.context.tone)) {
       score += 10;
       reasons.push(`${preferences.context.tone} tone`);
     }
 
-    // Cap score at 100
     score = Math.min(score, 100);
 
-    if (score >= 60) { // Only recommend if score is good
+    if (score >= 60) {
       recommendations.push({
         voiceId: voice.id,
         voiceName: voice.name,
@@ -284,15 +232,9 @@ export async function getVoiceRecommendations(
     }
   }
 
-  // Sort by score and return top 3
-  return recommendations
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 3);
+  return recommendations.sort((a, b) => b.score - a.score).slice(0, 3);
 }
 
-/**
- * Generate proactive Butler suggestions based on user context
- */
 export function getProactiveSuggestions(
   preferences: ButlerUserPreference,
   recentActivity?: {
@@ -303,12 +245,10 @@ export function getProactiveSuggestions(
 ): string[] {
   const suggestions: string[] = [];
 
-  // Suggest based on usage patterns
   if (preferences.usageCount > 10) {
     suggestions.push("You're a power user! Want to explore premium voice cloning?");
   }
 
-  // Suggest based on time since last interaction
   if (recentActivity?.timeSinceLastInteraction) {
     const hours = recentActivity.timeSinceLastInteraction / (1000 * 60 * 60);
     if (hours > 24 && hours < 72) {
@@ -318,29 +258,23 @@ export function getProactiveSuggestions(
     }
   }
 
-  // Suggest based on favorite voices
   if (preferences.favoriteVoices.length > 0) {
-    suggestions.push(`Want to try a variation of your favorite voice?`);
+    suggestions.push("Want to try a variation of your favorite voice?");
   }
 
-  // Suggest Arkiv integration
   if (preferences.totalRecordings > 5) {
     suggestions.push("You have great content! Want to publish it to the Arkiv memory vault?");
   }
 
-  // Suggest based on context
   if (preferences.context.useCase === "podcast") {
     suggestions.push("Need help with podcast intro/outro music?");
   } else if (preferences.context.useCase === "commercial") {
     suggestions.push("Want to A/B test different voice styles for your ad?");
   }
 
-  return suggestions.slice(0, 3); // Max 3 suggestions
+  return suggestions.slice(0, 3);
 }
 
-/**
- * Update preferences after a voice generation
- */
 export async function trackVoiceUsage(
   userId: string,
   walletAddress: string,
@@ -362,12 +296,10 @@ export async function trackVoiceUsage(
       context: {},
     };
 
-    // Update stats
     updated.usageCount += 1;
     updated.totalRecordings += 1;
     updated.lastInteraction = Date.now();
 
-    // Add to favorites if used 3+ times
     const voiceUsageCount = updated.favoriteVoices.filter(v => v === voiceId).length;
     if (voiceUsageCount >= 2 && !updated.favoriteVoices.includes(voiceId)) {
       updated.favoriteVoices.push(voiceId);

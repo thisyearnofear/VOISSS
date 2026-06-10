@@ -38,6 +38,15 @@ function StudioPageInner() {
   const { data: allRecordings = [], isLoading: isLoadingRecordings } =
     useRecordings();
 
+  interface RecordingWithIpfs {
+    id: string;
+    title: string;
+    duration: number;
+    createdAt: string | Date;
+    onChain?: boolean;
+    ipfsHash?: string;
+  }
+
   const handleRecordingComplete = (audioBlob: Blob, duration: number) => {
     const newRecording = {
       id: Date.now().toString(),
@@ -108,7 +117,7 @@ function StudioPageInner() {
                 )}
               </div>
               <StudioRecordingsList
-                recordings={allRecordings.map((r) => ({
+                recordings={allRecordings.map((r: RecordingWithIpfs) => ({
                   id: r.id,
                   title: r.title,
                   duration: r.duration,
@@ -120,7 +129,7 @@ function StudioPageInner() {
                         : new Date().toISOString(),
                   tags: r.onChain ? ["on-chain"] : ["local"],
                   onChain: r.onChain,
-                  ipfsHash: (r as any).ipfsHash,
+                  ipfsHash: r.ipfsHash,
                 }))}
                 isLoading={isLoadingRecordings}
                 isAuthenticated={isAuthenticated}

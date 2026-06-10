@@ -21,15 +21,15 @@ export default function AchievementsPage() {
     try {
       // Get all achievements from database
       const allAchievements = await webEngagementService.db.getAll<Achievement>("achievements");
-      setAchievements(allAchievements.sort((a, b) => a.order - b.order));
+      setAchievements(allAchievements.sort((a: Achievement, b: Achievement) => a.order - b.order));
 
       if (address) {
         // Get user's unlocked achievements
         const userAchs = await webEngagementService.db.getWhere<UserAchievement>(
           "user_achievements",
-          (ua) => ua.userId === address
+          (ua: UserAchievement) => ua.userId === address
         );
-        const map = new Map(userAchs.map((ua) => [ua.achievementId, ua]));
+        const map = new Map<string, UserAchievement>(userAchs.map((ua: UserAchievement) => [ua.achievementId, ua]));
         setUserAchievements(map);
       }
     } catch (error) {
@@ -72,7 +72,20 @@ export default function AchievementsPage() {
 
         {/* Achievements List */}
         {loading ? (
-          <div className="text-center py-12 text-gray-400">Loading...</div>
+          <div className="space-y-0 divide-y divide-[#2A2A2A]">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-start gap-5 py-5 px-4 animate-pulse">
+                <div className="w-10 h-10 bg-[#2A2A2A] rounded-lg flex-shrink-0" />
+                <div className="flex-1 min-w-0 space-y-2">
+                  <div className="h-4 w-48 bg-[#2A2A2A] rounded" />
+                  <div className="h-3 w-32 bg-[#2A2A2A] rounded" />
+                </div>
+                <div className="flex-shrink-0">
+                  <div className="h-4 w-16 bg-[#2A2A2A] rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="space-y-0 divide-y divide-[#2A2A2A]">
             {filteredAchievements.map((achievement) => {

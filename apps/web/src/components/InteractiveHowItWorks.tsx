@@ -8,7 +8,7 @@ const steps = [
     title: "Contributors Record & List",
     description: "Voice artists and contributors use our Recording Studio to capture high-quality voice samples. These are processed and indexed with unique voice fingerprints.",
     icon: Mic,
-    color: "purple",
+    color: "purple" as const,
     details: [
       "Secure recording studio directly in the browser",
       "Automatic voice fingerprinting for blockchain provenance",
@@ -20,7 +20,7 @@ const steps = [
     title: "AI Agents Browse & License",
     description: "Developers and AI agents browse the marketplace to find the perfect voice. They can license it instantly using x402 payments on the Base network.",
     icon: Search,
-    color: "blue",
+    color: "blue" as const,
     details: [
       "Advanced search by tone, accent, age, and style",
       "One-click licensing via smart contracts",
@@ -32,7 +32,7 @@ const steps = [
     title: "Automatic Royalty Payments",
     description: "Every time a voice is used, royalties are automatically distributed via smart contracts. 70% of revenue goes directly to the contributor.",
     icon: CreditCard,
-    color: "green",
+    color: "green" as const,
     details: [
       "Real-time payment tracking on the dashboard",
       "Transparent revenue sharing via blockchain",
@@ -41,6 +41,54 @@ const steps = [
     ]
   }
 ];
+
+type StepColor = "purple" | "blue" | "green";
+
+const colorStyles: Record<StepColor, {
+  borderActive: string;
+  shadowActive: string;
+  iconBg: string;
+  iconText: string;
+  chevronText: string;
+  detailBg: string;
+  detailIcon: string;
+  dotBg: string;
+  linkText: string;
+}> = {
+  purple: {
+    borderActive: "border-purple-500/50",
+    shadowActive: "shadow-purple-500/10",
+    iconBg: "bg-purple-500",
+    iconText: "text-purple-400",
+    chevronText: "text-purple-400",
+    detailBg: "bg-purple-500/10",
+    detailIcon: "text-purple-400",
+    dotBg: "bg-purple-500",
+    linkText: "text-purple-400",
+  },
+  blue: {
+    borderActive: "border-blue-500/50",
+    shadowActive: "shadow-blue-500/10",
+    iconBg: "bg-blue-500",
+    iconText: "text-blue-400",
+    chevronText: "text-blue-400",
+    detailBg: "bg-blue-500/10",
+    detailIcon: "text-blue-400",
+    dotBg: "bg-blue-500",
+    linkText: "text-blue-400",
+  },
+  green: {
+    borderActive: "border-green-500/50",
+    shadowActive: "shadow-green-500/10",
+    iconBg: "bg-green-500",
+    iconText: "text-green-400",
+    chevronText: "text-green-400",
+    detailBg: "bg-green-500/10",
+    detailIcon: "text-green-400",
+    dotBg: "bg-green-500",
+    linkText: "text-green-400",
+  },
+};
 
 const CompatibleChevronRight = ChevronRight as React.ComponentType<{ className?: string }>;
 
@@ -59,6 +107,7 @@ export default function InteractiveHowItWorks() {
           {steps.map((step, index) => {
             const Icon = step.icon;
             const isActive = activeStep === index;
+            const cs = colorStyles[step.color];
             
             return (
               <button
@@ -66,12 +115,12 @@ export default function InteractiveHowItWorks() {
                 onClick={() => setActiveStep(index)}
                 className={`w-full text-left p-6 rounded-2xl border transition-all duration-300 flex items-start gap-4 ${
                   isActive 
-                    ? `bg-[#1A1A1A] border-${step.color}-500/50 shadow-lg shadow-${step.color}-500/10` 
+                    ? `bg-[#1A1A1A] ${cs.borderActive} shadow-lg ${cs.shadowActive}`
                     : "bg-transparent border-[#2A2A2A] hover:border-gray-700"
                 }`}
               >
                 <div className={`mt-1 p-2 rounded-lg ${
-                  isActive ? `bg-${step.color}-500 text-white` : "bg-gray-800 text-gray-400"
+                  isActive ? `${cs.iconBg} text-white` : "bg-gray-800 text-gray-400"
                 }`}>
                   <Icon size={24} />
                 </div>
@@ -84,7 +133,7 @@ export default function InteractiveHowItWorks() {
                   </p>
                 </div>
                 {isActive && (
-                  <div className={`text-${step.color}-400 mt-1`}>
+                  <div className={`${cs.chevronText} mt-1`}>
                     <CompatibleChevronRight className="w-5 h-5 animate-pulse" />
                   </div>
                 )}
@@ -95,9 +144,9 @@ export default function InteractiveHowItWorks() {
 
         {/* Right Side: Progressive Disclosure (Details) */}
         <div className="bg-[#111111] border border-[#2A2A2A] rounded-3xl p-8 sm:p-12 min-h-[400px] flex flex-col justify-center animate-in fade-in slide-in-from-right-8 duration-500" key={activeStep}>
-          <div className={`w-20 h-20 rounded-2xl bg-${steps[activeStep].color}-500/10 flex items-center justify-center mb-8`}>
+          <div className={`w-20 h-20 rounded-2xl ${colorStyles[steps[activeStep].color].detailBg} flex items-center justify-center mb-8`}>
             {React.createElement(steps[activeStep].icon, { 
-              className: `w-10 h-10 text-${steps[activeStep].color}-400` 
+              className: `w-10 h-10 ${colorStyles[steps[activeStep].color].detailIcon}` 
             })}
           </div>
           
@@ -108,7 +157,7 @@ export default function InteractiveHowItWorks() {
           <ul className="space-y-4">
             {steps[activeStep].details.map((detail, idx) => (
               <li key={idx} className="flex items-start gap-3 text-gray-300">
-                <div className={`mt-1.5 w-1.5 h-1.5 rounded-full bg-${steps[activeStep].color}-500 flex-shrink-0`}></div>
+                <div className={`mt-1.5 w-1.5 h-1.5 rounded-full ${colorStyles[steps[activeStep].color].dotBg} flex-shrink-0`}></div>
                 <span>{detail}</span>
               </li>
             ))}
@@ -117,7 +166,7 @@ export default function InteractiveHowItWorks() {
           <div className="mt-10 pt-8 border-t border-[#2A2A2A]">
             <a 
               href={activeStep === 0 ? "/studio" : "/marketplace"} 
-              className={`inline-flex items-center gap-2 text-${steps[activeStep].color}-400 font-bold hover:underline`}
+              className={`inline-flex items-center gap-2 ${colorStyles[steps[activeStep].color].linkText} font-bold hover:underline`}
             >
               {activeStep === 0 ? "Open Recording Studio" : "Browse the Marketplace"}
               <CompatibleChevronRight className="w-4 h-4" />

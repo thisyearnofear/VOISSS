@@ -21,7 +21,7 @@ import { base } from 'viem/chains';
 import { createIPFSService } from '@voisss/shared';
 import { VoiceRecordsABI } from '@/contracts/VoiceRecordsABI';
 import { VoiceLicenseMarketABI, VOICE_LICENSE_MARKET_ADDRESS } from '@/contracts/VoiceLicenseMarketABI';
-import type { AgentCategory } from '@voisss/shared';
+import type { AgentCategory } from '@voisss/shared/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { AudioVersion } from "@voisss/shared";
+import type { AudioVersion } from "@voisss/shared/types/audio-version";
 import {
   Trash2,
   Zap,

@@ -1,5 +1,5 @@
 import { openDB, IDBPDatabase } from "idb";
-import { AudioVersion } from "@voisss/shared";
+import type { AudioVersion } from "@voisss/shared/types/audio-version";
 
 const DB_NAME = "voisss-studio";
 const STORE_NAME = "forge-drafts";

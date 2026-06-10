@@ -9,7 +9,8 @@ import { useWebAudioRecording } from "@/hooks/useWebAudioRecording";
 import { useFreemiumStore, useSyncUserTier } from "@/store/freemiumStore";
 import { useMission, useCompleteMission } from "@/hooks/queries/useMissions";
 import { Mission } from "@voisss/shared/types/socialfi";
-import { AudioVersion, AgentCategory } from "@voisss/shared";
+import type { AudioVersion, AudioVersionSource, AudioVersionMetadata } from "@voisss/shared/types/audio-version";
+import type { AgentCategory } from "@voisss/shared/types";
 import { useVersionLedger } from "@voisss/shared/hooks/useVersionLedger";
 import { SocialShare } from "@voisss/ui";
 import { Zap, UserX, Crown } from "lucide-react";
@@ -331,6 +332,7 @@ export default function RecordingStudio({
   }, [maxDurationReached]);
 
   const remainingQuota = getRemainingQuota();
+  const remainingSaves = remainingQuota.saves;
 
   // Recording handlers
   const handleStartRecording = useCallback(async () => {
@@ -489,7 +491,7 @@ export default function RecordingStudio({
     }
 
     // Check if user has enough quota (for free tier)
-    if (userTier === "free" && versionsToSave > remainingQuota.saves) {
+    if (userTier === "free" && versionsToSave > remainingSaves) {
       setToastType("error");
       setToastMessage(
         `Not enough saves remaining. You have ${remainingQuota.saves} saves left but selected ${versionsToSave} versions.`
@@ -691,7 +693,7 @@ export default function RecordingStudio({
     duration,
     canSaveRecording,
     userTier,
-    remainingQuota.saves,
+    remainingSaves,
     incrementSaveUsage,
     onRecordingComplete,
     saveRecordingToBase,
@@ -701,8 +703,6 @@ export default function RecordingStudio({
     marketplacePrice,
     marketplaceExclusive,
     recordingAnalysis,
-    setToastType,
-    setToastMessage,
     isConnected,
     hasSubAccount,
     signIn,
@@ -722,7 +722,7 @@ export default function RecordingStudio({
       {/* Header */}
       <div className="text-center mb-8 relative">
         <div className="absolute top-0 right-0 sm:right-4 flex justify-end">
-          <AlchemyModeBadge mode={activeMode as any} />
+          <AlchemyModeBadge mode={(activeMode as "standard" | "ghost" | "pro" | "vip") || "standard"} />
         </div>
 
         {mission && (

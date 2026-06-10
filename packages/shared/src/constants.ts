@@ -31,7 +31,7 @@ export const STARKNET_CONFIG = {
 
 // UI Constants — the canonical source of truth is packages/ui/src/theme/index.ts.
 // Do NOT add design tokens here; import theme from '@voisss/ui' instead.
-export const UI_CONFIG_DEPRECATED = null as const;
+export const UI_CONFIG_DEPRECATED: null = null;
 
 export const BREAKPOINTS = {
   sm: 640,

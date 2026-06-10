@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Anton, Syne, Courier_Prime } from "next/font/google";
 import { BaseProvider } from "./providers";
 import Nav from "../components/Nav";
+import MobileBottomNav from "../components/MobileBottomNav";
 import VoiceAssistant from "../components/VoiceAssistant";
 import { ReferralTracker } from "./referral-tracker";
 import "./globals.css";
@@ -168,6 +169,7 @@ export default function RootLayout({
           <ReferralTracker />
           <Nav />
           {children}
+          <MobileBottomNav />
           <VoiceAssistant />
         </BaseProvider>
       </body>

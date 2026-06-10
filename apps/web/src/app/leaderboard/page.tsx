@@ -86,7 +86,22 @@ export default function LeaderboardPage() {
         {/* Leaderboard Table — terminal style, no card wrapper */}
         <div className="border border-[#2A2A2A] rounded-sm overflow-hidden">
           {loading ? (
-            <div className="p-8 text-center text-gray-400">Loading...</div>
+            <div className="animate-pulse p-4">
+              {[...Array(8)].map((_, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-4 px-4 py-4 border-t border-[#1A1A1A]"
+                  style={{ animationDelay: `${i * 50}ms` }}
+                >
+                  <div className="w-8 h-8 bg-[#2A2A2A] rounded-full" />
+                  <div className="flex-1">
+                    <div className="h-4 w-36 bg-[#2A2A2A] rounded" />
+                  </div>
+                  <div className="h-4 w-16 bg-[#2A2A2A] rounded" />
+                  <div className="h-4 w-12 bg-[#2A2A2A] rounded" />
+                </div>
+              ))}
+            </div>
           ) : leaderboard && leaderboard.entries.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">

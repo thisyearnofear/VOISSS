@@ -344,4 +344,11 @@ body {
   font-family: var(--font-inter), system-ui, sans-serif;
 }
 
+/* Mobile bottom nav safe area - prevents content from hiding behind fixed nav */
+@media (max-width: 639px) {
+  body {
+    padding-bottom: 5rem;
+  }
+}
+
 
