@@ -155,15 +155,6 @@ export default function HelpPage() {
           </a>
         </div>
 
-        {/* Hackathon Badge */}
-        <div className="mt-10 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/20 rounded-lg text-gray-400 text-xs">
-            <Sparkles className="w-3 h-3 text-purple-400" />
-            <span>Built for AI Partner Catalyst Hackathon</span>
-            <span className="text-gray-600">•</span>
-            <span>Google Cloud + ElevenLabs</span>
-          </div>
-        </div>
       </div>
     </div>
   );

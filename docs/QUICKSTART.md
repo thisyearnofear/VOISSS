@@ -75,7 +75,7 @@ voisss/
 │   ├── shared/           # Common utilities, types, services
 │   ├── contracts/        # Solidity smart contracts
 │   └── ui/               # Shared UI components
-├── docs/                 # 4 consolidated docs
+├── docs/                 # Documentation
 ├── scripts/              # Test and utility scripts
 └── services/             # Backend services
 ```
@@ -113,7 +113,7 @@ voisss/
 |-----|----------|
 | [AGENT_API.md](./AGENT_API.md) | Agent API, OWS payments, security, events |
 | [BLOCKCHAIN.md](./BLOCKCHAIN.md) | Contracts, tokens, x402, marketplace |
-| [HACKATHON.md](./HACKATHON.md) | OWS hackathon strategy, demo, submission |
+| [ARKIV_INTEGRATION.md](./ARKIV_INTEGRATION.md) | Arkiv Braga Testnet: entity schema, API endpoints, query patterns |
 
 ## Links
 

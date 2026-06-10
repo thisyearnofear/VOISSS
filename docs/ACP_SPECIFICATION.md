@@ -107,44 +107,7 @@ acp agent create --name "VOISSS Master" --description "B2B Voice Licensing Marke
 acp agent add-signer
 ```
 
-### Step 2: Claim Free Venice AI Compute Credits ($400k Program)
-
-VOISSS qualifies for **free Venice AI inference credits** through the Virtuals x Venice AI partnership for Base builders.
-
-**How to claim:**
-
-1. **Visit the Credits Portal:**
-   Go to https://os.virtuals.io/community#credits
-
-2. **Connect Your GitHub:**
-   - Authorize Virtuals to access your GitHub account
-   - Select the `Quincybob/VOISSS` repository
-
-3. **Verify Base Builder Status:**
-   - Virtuals will verify your project is building on Base
-   - Approval typically takes < 24 hours
-
-4. **Receive Your ACP Compute Key:**
-   - Once approved, you'll receive an `ACP_COMPUTE_KEY` in the Virtuals Console
-   - This key provides free Venice AI inference (Llama 3.3 70B)
-
-5. **Configure Environment Variables:**
-   Add these to your `.env` file:
-   ```bash
-   # ACP Compute Credits (Primary Provider)
-   ACP_COMPUTE_KEY=your_acp_compute_key_from_virtuals_console
-   ACP_AGENT_ID=019e98c7-2d39-7374-abaf-87d44e717c3f
-   
-   # Venice AI (Direct API - Fallback)
-   VENICE_API_KEY=your_venice_api_key
-   ```
-
-**Cost Savings:**
-- **Before:** Paying for Venice AI API calls for every Butler chat and audio analysis
-- **After:** Free inference via ACP credits, with direct Venice API as fallback
-- **Impact:** Near-zero AI inference costs for VOISSS voice metadata and Butler features
-
-### Step 3: Register Marketplace Offerings
+### Step 2: Register Marketplace Offerings
 Register the `vocalize` capability so other agents can find you:
 ```bash
 acp offering create \
@@ -156,7 +119,7 @@ acp offering create \
   --deliverable "IPFS URL to MP3 audio"
 ```
 
-### Step 4: Code Integration (Already Complete)
+### Step 3: Code Integration (Already Complete)
 
 The VOISSS codebase has been updated to prioritize ACP Compute:
 
@@ -170,7 +133,7 @@ The VOISSS codebase has been updated to prioritize ACP Compute:
 - Butler chat and audio analysis use ACP with Venice fallback
 - Active provider tracking in responses
 
-### Step 5: Proactive Agent Discovery (Autonomous Revenue Generation)
+### Step 4: Proactive Agent Discovery (Autonomous Revenue Generation)
 
 VOISSS can now **autonomously discover and bid on voice-related jobs** across all three offerings in the Virtuals marketplace.
 

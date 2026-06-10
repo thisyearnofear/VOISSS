@@ -364,9 +364,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
     if (isOWSRequest && owsWallet && owsPaymentHeader) {
       console.log(`[vocalize] Processing OWS payment on ${owsWallet.chainName}`);
 
-      // Magic signature for hackathon demo (Track 1 & 2)
-      if (owsPaymentHeader === 'HACKATHON_DEMO_MAGIC_SIG_VALID') {
-        console.log(`[vocalize] 🌟 HACKATHON DEMO: Validating magic signature for ${owsWallet.address}`);
+      // Demo mode: bypass real payment in development only
+      if (process.env.NODE_ENV !== 'production' && owsPaymentHeader === 'demo_mode_active') {
+        console.log(`[vocalize] 🧪 Demo mode: generating voice for ${owsWallet.address} (development only)`);
         const response = await generateAndReturnVoice(
           text,
           voiceId,

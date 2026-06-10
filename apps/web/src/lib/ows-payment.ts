@@ -13,7 +13,7 @@
 
 import { getAddress, isAddress } from 'viem';
 
-// Supported chains via OWS (from hackathon docs)
+// Supported chains via OWS (multi-chain interoperability)
 export const OWS_SUPPORTED_CHAINS = {
   // EVM chains
   'eip155:1': { name: 'Ethereum', shortName: 'eth', type: 'evm' },
@@ -204,8 +204,8 @@ export async function createOWSPaymentRequirements(
 /**
  * Get recipient address for a specific chain
  * 
- * In production, you'd have different recipient addresses per chain.
- * For the hackathon, we'll use the same address for all EVM chains.
+ * Each chain may have a different recipient address.
+ * EVM chains share the configured x402 recipient; non-EVM chains use chain-specific env vars.
  */
 function getRecipientForChain(chainId: ChainId): string {
   const chainInfo = OWS_SUPPORTED_CHAINS[chainId];
@@ -347,11 +347,11 @@ async function verifyEVMPayment(
  * Status: ⚠️ DEVELOPMENT MODE — Solana mainnet verification is prepared but requires
  * @solana/web3.js and an active RPC connection to verify transactions on-chain.
  * 
- * For the Web3 Database Builder Challenge, EVM chains (Base, Arbitrum, Optimism, Polygon)
- * are fully functional with production x402 verification. Solana integration is structured
- * and ready for RPC connection — simply install @solana/web3.js and configure the RPC URL.
+ * EVM chains (Base, Arbitrum, Optimism, Polygon) are fully functional with production
+ * x402 verification. Solana integration is structured and ready for RPC connection —
+ * simply install @solana/web3.js and configure the RPC URL.
  * 
- * The magic signature 'HACKATHON_DEMO_SOLANA_SIG' is available for demo/testing in development.
+ * Development mode: NODE_ENV=development allows 'demo_mode_active' signature for testing.
  */
 async function verifySolanaPayment(
   wallet: OWSWalletInfo,
@@ -367,8 +367,8 @@ async function verifySolanaPayment(
     };
   }
 
-  // Development/demo mode: accept magic signature for testing
-  if (process.env.NODE_ENV === 'development' && signature === 'HACKATHON_DEMO_SOLANA_SIG') {
+  // Development/demo mode: accept demo signature for testing
+  if (process.env.NODE_ENV === 'development' && signature === 'demo_mode_active') {
     console.log('[OWS] ⚠️ Solana demo signature accepted (development mode only)');
     return {
       success: true,

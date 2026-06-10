@@ -1,8 +1,8 @@
 /**
- * Hackathon Analytics API
+ * Platform Analytics API
  * 
  * Provides real-time analytics for OWS multi-chain voice generation
- * Used by the hackathon dashboard to display:
+ * Used by the analytics dashboard to display:
  * - Total agents using the service
  * - Voice generations in last 24h
  * - Revenue by chain
@@ -49,7 +49,7 @@ interface RecentActivity {
   reputation?: number;
 }
 
-interface HackathonAnalytics {
+interface PlatformAnalytics {
   overview: {
     totalAgents: number;
     totalRequests24h: number;
@@ -70,9 +70,9 @@ interface HackathonAnalytics {
 /**
  * GET /api/analytics/hackathon
  * 
- * Returns analytics for the hackathon dashboard
+ * Returns platform analytics for voice generation activity
  */
-export async function GET(req: NextRequest): Promise<NextResponse<HackathonAnalytics | { error: string }>> {
+export async function GET(req: NextRequest): Promise<NextResponse<PlatformAnalytics | { error: string }>> {
   try {
     const { searchParams } = new URL(req.url);
     const hours = parseInt(searchParams.get('hours') || '24', 10);
@@ -113,7 +113,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<HackathonAnaly
 /**
  * Process events into analytics data
  */
-function processEvents(events: any[], startTime: number, endTime: number): HackathonAnalytics {
+function processEvents(events: any[], startTime: number, endTime: number): PlatformAnalytics {
   const securityService = getAgentSecurityService();
   
   // Track unique agents

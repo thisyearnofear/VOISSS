@@ -111,7 +111,7 @@ function OWSAgentDemoContent() {
     addLog("📤 Sending signed authorization in X-OWS-Payment header");
 
     try {
-      // Simulate real call for demo purposes (using dev-mode magic signature)
+      // Simulate real call — bypass payment in development only
       const response = await fetch('/api/agents/vocalize', {
         method: 'POST',
         headers: {
@@ -120,7 +120,7 @@ function OWSAgentDemoContent() {
           'X-OWS-Chain': 'eip155:8453',
           'X-OWS-Signature': '0x5e2b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b', // Mock OWS signature
           'X-OWS-Timestamp': Date.now().toString(),
-          'X-OWS-Payment': 'HACKATHON_DEMO_MAGIC_SIG_VALID'
+          'X-OWS-Payment': 'demo_mode_active' 
         },
         body: JSON.stringify({
           text: "I am an autonomous agent running end-to-end commerce. I just purchased this voice using my OWS wallet and x402 payment rails.",
@@ -159,7 +159,7 @@ function OWSAgentDemoContent() {
             className="flex items-center gap-2 text-blue-500 mb-2"
           >
             <Bot className="w-5 h-5" />
-            <span className="font-bold tracking-widest text-xs uppercase">OWS Hackathon 2026 Demo</span>
+            <span className="font-bold tracking-widest text-xs uppercase">OWS Agent Commerce Demo</span>
           </motion.div>
           <motion.h1 
             initial={{ opacity: 0, x: -20 }}

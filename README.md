@@ -83,23 +83,11 @@ pnpm dev:web      # http://localhost:4445
 - **Multi-Language** — 29+ languages supported
 - **Mission System** — Creator economy with $PAPAJAMS rewards
 
-### Arkiv × ETHNS Builder Challenge Integration
+### Arkiv Integration (Braga Testnet)
 
-**Chain:** Braga Testnet (Chain ID `60138453102`)
+VOISSS uses Arkiv Braga Testnet as a decentralized data layer for voice insights, humanity verification, and agent memory. Entities are user-owned via on-chain ownership transfer, with numeric timestamps for range queries, idempotent writes, and cursor-based pagination.
 
-**Entity Schema:**
-| Entity Type | Attributes | Expiration | Purpose |
-|-------------|-----------|------------|---------|
-| `VoiceInsight` | `project`, `title`, `createdAt` (numeric), `entityType` | 365 days | AI-generated voice analysis, emotional insights, sentiment |
-| `HumanityCertificate` | `project`, `badge`, `status`, `parentInsightId`, `createdAt` (numeric) | 730 days | Humanity verification attestation linked to parent insight |
-
-**Advanced Features:**
-- **User Ownership** — Server wallet creates entities, then transfers `$owner` to user's wallet atomically via `mutateEntities`
-- **Batch Operations** — Create insight + certificate + ownership transfer in a single transaction (`/api/arkiv/save-batch`)
-- **Numeric Time Attributes** — `createdAt` stored as `Date.now()` for `gt()` / `lt()` range queries
-- **Differentiated Expiration** — 30-day working drafts, 365-day insights, 730-day certificates
-- **Advanced Querying** — Combinable filters: `ownerAddress`, `createdAfter`, `createdBefore`, `searchTerm`, pagination with cursor
-- **Explorer Links** — Every entity links to `https://explorer.braga.hoodi.arkiv.network/entity/{entityKey}`
+**Docs:** [Arkiv Integration Guide](./docs/ARKIV_INTEGRATION.md)
 
 ### Engagement & Virality
 - **Referral System** — Automatic tracking, conversion rewards, viral bonuses
@@ -119,8 +107,7 @@ pnpm dev:web      # http://localhost:4445
 | [AGENT_API.md](./docs/AGENT_API.md) | Voice generation API, OWS payments, security, events |
 | [ACP_SPECIFICATION.md](./docs/ACP_SPECIFICATION.md) | Autonomous Agent Commerce Protocol (ACP) integration |
 | [BLOCKCHAIN.md](./docs/BLOCKCHAIN.md) | Smart contracts, tokens, x402, marketplace, gasless txns |
-| [HACKATHON.md](./docs/HACKATHON.md) | OWS hackathon strategy, demo script, submission materials |
-| [CHALLENGE.md](./docs/CHALLENGE.md) | Arkiv builder challenge: entity schema, demo, features |
+| [ARKIV_INTEGRATION.md](./docs/ARKIV_INTEGRATION.md) | Arkiv Braga Testnet: entity schema, API endpoints, query patterns |
 
 ## Tech Stack
 
@@ -129,33 +116,6 @@ pnpm dev:web      # http://localhost:4445
 - **AI:** Google Gemini, ElevenLabs, Venice AI
 - **Storage:** IPFS (Pinata), Arkiv Braga Testnet (decentralized insights)
 - **Payments:** x402 protocol, OWS multi-chain
-
----
-
-## Roadmap
-
-### ✅ Completed (Q1 2026)
-- Production deployment on Base mainnet
-- Multi-chain payment support (x402 + OWS)
-- Voice marketplace with 21+ voices
-- Agent API with tier-based pricing
-- AI-powered voice assistant
-- Comprehensive engagement system (referrals, streaks, leaderboards, achievements)
-- Arkiv Braga Testnet integration — decentralized voice insight and humanity certificate archive
-
-### 🔄 In Progress (Q2 2026)
-- Official JavaScript/TypeScript SDK
-- Interactive API playground
-- Advanced marketplace filters
-- Instant licensing (remove manual approval)
-- Contributor cloning marketplace binding and review workflow
-- Mobile app consolidation
-
-### 🎯 Planned (Q3-Q4 2026)
-- Enterprise white-label solution
-- 50+ language support
-- Agent reputation system
-- Community governance
 
 ---
 

@@ -5,7 +5,7 @@ import EnhancedLandingHero from "../components/EnhancedLandingHero";
 const InteractiveHowItWorks = lazy(() => import("../components/InteractiveHowItWorks"));
 const FAQSection = lazy(() => import("../components/FAQSection"));
 const NewsletterSection = lazy(() => import("../components/NewsletterSection"));
-const OWSHackathonSection = lazy(() => import("../components/OWSHackathonSection"));
+const ProtocolIntegrationsSection = lazy(() => import("../components/ProtocolIntegrationsSection"));
 
 /** Minimal skeleton while a lazy section loads */
 function SectionFallback() {
@@ -30,9 +30,9 @@ export default function Home() {
         {/* Interactive How It Works (Progressive Disclosure) */}
         <Suspense fallback={<SectionFallback />}>
           <InteractiveHowItWorks />
-        </Suspense>          {/* OWS Hackathon Integration Section */}
+        </Suspense>          {/* Protocol & Integrations Section */}
         <Suspense fallback={<SectionFallback />}>
-          <OWSHackathonSection />
+          <ProtocolIntegrationsSection />
         </Suspense>
 
         {/* FAQ Section (Secondary Information) */}

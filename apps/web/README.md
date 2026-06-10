@@ -86,6 +86,6 @@ npx tsc --noEmit
 
 ## 📚 Documentation
 
-- [Main Project README](../../README.md) - Hackathon submission and overview
+- [Main Project README](../../README.md) — Project overview and documentation index
 - [Architecture](../../docs/ARCHITECTURE.md) - Deep dive into the tech stack
 - [Roadmap](../../docs/ROADMAP.md) - Future vision for VOISSS

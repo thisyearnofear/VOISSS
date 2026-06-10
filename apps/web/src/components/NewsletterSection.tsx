@@ -82,7 +82,7 @@ export default function NewsletterSection() {
                   disabled={status === "loading"}
                   className="px-6 py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group"
                 >
-                  {status === "loading" ? "Joining..." : "Join Waitlist"}
+                  {status === "loading" ? "Joining..." : "Subscribe"}
                   <CompatibleSend className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
