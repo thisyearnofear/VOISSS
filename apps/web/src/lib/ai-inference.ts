@@ -7,18 +7,20 @@ import {
   AnalysisStep,
   AnalysisStepId,
   MarketTrendResult,
+  MarketTrendItem,
   StudioInsights,
   HumanityCertificate
 } from "@voisss/shared/server";
 
-export type { 
-  StudioInsights, 
-  HumanityCertificate, 
+export type {
+  StudioInsights,
+  HumanityCertificate,
   StudioAnalysisResult,
   AnalysisStep,
   AnalysisStepId,
   PipelineAnalysisResult,
-  MarketTrendResult
+  MarketTrendResult,
+  MarketTrendItem
 };
 
 export function getAIProviderStatus() {

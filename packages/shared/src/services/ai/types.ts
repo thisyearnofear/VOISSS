@@ -82,3 +82,29 @@ export interface PipelineAnalysisResult extends StudioAnalysisResult {
   mode: "transcript-pipeline" | "audio-native-fallback";
   steps: AnalysisStep[];
 }
+
+// =============================================================================
+// Market trends
+// =============================================================================
+// Schemas are the runtime source of truth; the TypeScript types are derived
+// from them so the two cannot drift. Use the schema with runJsonPrompt to
+// get real validation; the exported type is for consumers that don't need
+// the Zod parser.
+
+export const marketTrendItemSchema = z.object({
+  title: z.string(),
+  demandLevel: z.string(),
+  description: z.string(),
+  topTags: z.array(z.string()),
+  growth: z.string(),
+});
+
+export const marketTrendResultSchema = z.object({
+  trends: z.array(marketTrendItemSchema),
+  summary: z.string(),
+  topLanguages: z.array(z.string()),
+  topCategories: z.array(z.string()),
+});
+
+export type MarketTrendItem = z.infer<typeof marketTrendItemSchema>;
+export type MarketTrendResult = z.infer<typeof marketTrendResultSchema>;

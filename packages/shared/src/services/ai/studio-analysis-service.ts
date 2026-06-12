@@ -1,12 +1,14 @@
 import { z } from "zod";
 import { InferenceService } from "./inference-service";
-import { 
-  StudioInsights, 
-  HumanityCertificate, 
-  StudioAnalysisResult, 
+import {
+  StudioInsights,
+  HumanityCertificate,
+  StudioAnalysisResult,
   PipelineAnalysisResult,
   AnalysisStep,
-  AnalysisStepId
+  AnalysisStepId,
+  MarketTrendResult,
+  marketTrendResultSchema
 } from "./types";
 
 const studioAnalysisSchema = z.object({
@@ -286,7 +288,7 @@ Rules:
     }
   }
 
-  async analyzeMarketTrends(markdown: string): Promise<any> {
+  async analyzeMarketTrends(markdown: string): Promise<MarketTrendResult> {
     const prompt = `
 Analyze the following markdown content from a voice-over job board and extract the current market trends.
 Return a structured JSON object.
@@ -294,11 +296,28 @@ Return a structured JSON object.
 Markdown Content:
 ${markdown.substring(0, 10000)}
 
+Return exactly this JSON structure:
+{
+  "trends": [
+    {
+      "title": "string (vocal style name)",
+      "demandLevel": "High|Medium|Low",
+      "description": "string (what's driving demand)",
+      "topTags": ["tag1", "tag2"],
+      "growth": "string (growth indicator)"
+    }
+  ],
+  "summary": "string (one-line market insight)",
+  "topLanguages": ["lang1", "lang2"],
+  "topCategories": ["category1", "category2"]
+}
+
 Rules:
 - Be specific about vocal styles (tones, accents, demographics).
 - Return ONLY valid JSON.
 `;
 
-    return this.inferenceService.runJsonPrompt(prompt);
+    const result = await this.inferenceService.runJsonPrompt(prompt, marketTrendResultSchema);
+    return result.data;
   }
 }

@@ -2,15 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { TrendingUp, Globe, Briefcase, Info, RefreshCw, BarChart3, Tag } from "lucide-react";
-import { MarketTrendResult } from "@/lib/ai-inference";
-
-interface TrendItem {
-  title: string;
-  demandLevel: string;
-  description: string;
-  topTags: string[];
-  growth: string;
-}
+import { MarketTrendResult, MarketTrendItem } from "@/lib/ai-inference";
 
 export function VoiceMarketTrends() {
   const [trends, setTrends] = useState<MarketTrendResult | null>(null);
@@ -92,7 +84,7 @@ export function VoiceMarketTrends() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {(trends.trends as TrendItem[]).map((trend: TrendItem, idx: number) => (
+            {(trends.trends as MarketTrendItem[]).map((trend: MarketTrendItem, idx: number) => (
               <div 
                 key={idx} 
                 className="p-5 bg-[#151515] border border-white/[0.03] rounded-2xl hover:border-cyan-500/30 transition-all group/card"
