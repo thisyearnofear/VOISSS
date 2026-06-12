@@ -125,6 +125,25 @@ export class AcpListenerService {
     }
   }
 
+  /**
+   * Public status snapshot for HTTP admin endpoints.
+   */
+  getStatus(): {
+    isRunning: boolean;
+    agentId: string;
+    autoBid: boolean;
+    minBudget: number;
+    offeringIds: string[];
+  } {
+    return {
+      isRunning: this.isRunning,
+      agentId: this.config.agentId,
+      autoBid: this.config.autoBid,
+      minBudget: this.config.minBudget,
+      offeringIds: [...this.config.offeringIds],
+    };
+  }
+
   private startEventListener(): void {
     const args = ['@virtuals-protocol/acp-cli', 'events', 'listen', '--all', '--json'];
     this.listenerProcess = spawn('npx', args, {

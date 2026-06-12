@@ -242,6 +242,25 @@ export const ROUTES: readonly RouteDefinition[] = [
     summary: 'OpenAPI 3.0 spec (legacy hand-written; auto-gen coming)',
     auth: 'none',
   },
+  {
+    method: 'POST',
+    path: '/api/agents/voice-clone',
+    status: 'live',
+    group: 'agent',
+    summary: 'Voice-clone alias (returns 410 pointing to canonical path)',
+    auth: 'none',
+    description:
+      'Documented ACP default path. Returns 410 Gone with Location header pointing to /api/elevenlabs/clone-voice. GET returns the same pointer as JSON.',
+  },
+  {
+    method: 'GET',
+    path: '/api/agents/voice-clone',
+    status: 'live',
+    group: 'agent',
+    summary: 'Voice-clone alias pointer (GET version)',
+    auth: 'none',
+    description: 'GET returns the canonical-path pointer as JSON.',
+  },
 
   // ---------- marketplace ----------
   {
@@ -761,21 +780,20 @@ export const ROUTES: readonly RouteDefinition[] = [
     auth: 'none',
   },
 
-  // ---------- planned (documented but not yet implemented) ----------
   {
     method: 'POST',
     path: '/api/acp/listener',
-    status: 'planned',
+    status: 'live',
     group: 'system',
     summary: 'Control the ACP autonomous-job listener (admin)',
     auth: 'admin',
     description:
-      'Documented in apps/web/AGENTS.md and docs/ACP_SPECIFICATION.md. Will wrap getAcpListener() once Phase 1A lands.',
+      'Wraps getAcpListener() in @voisss/shared/server. Admin auth via ADMIN_API_KEY.',
   },
   {
     method: 'GET',
     path: '/api/acp/listener',
-    status: 'planned',
+    status: 'live',
     group: 'system',
     summary: 'Get ACP listener status (admin)',
     auth: 'admin',
@@ -783,17 +801,17 @@ export const ROUTES: readonly RouteDefinition[] = [
   {
     method: 'GET',
     path: '/api/butler/memory',
-    status: 'planned',
+    status: 'live',
     group: 'system',
     summary: 'Get a user\'s butler preferences',
     auth: 'none',
     description:
-      'Documented in docs/ACP_SPECIFICATION.md. The butler-memory-service.ts is implemented in shared; this route will expose it.',
+      'Query: userId or walletAddress. Wraps butler-memory-service.ts (Arkiv-backed).',
   },
   {
     method: 'POST',
     path: '/api/butler/memory',
-    status: 'planned',
+    status: 'live',
     group: 'system',
     summary:
       'Butler memory actions: save-preferences, get-recommendations, get-suggestions, track-usage',
