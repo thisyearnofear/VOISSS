@@ -1,11 +1,9 @@
 /**
  * React Native compatible exports for VOISSS shared package
- * 
+ *
  * This file excludes Node.js-specific dependencies that are incompatible
  * with React Native's Hermes engine:
- * - starknet (uses node:crypto)
  * - @neynar/nodejs-sdk (Node.js only)
- * - recording-service (depends on starknet)
  */
 
 // Core types (safe - no Node.js dependencies)
@@ -50,22 +48,14 @@ export * from './utils/safe-routeway-input';
 
 // Blockchain - only export types and safe chain configurations (no wallet/adapter logic)
 export * from './blockchain/chains/base';
-export * from './blockchain/chains/starknet';
 export * from './blockchain/chains/scroll';
-
-// Legacy Starknet exports - NOT exported for React Native to avoid SDK dependencies
-// export * from './starknet/index';
 
 /**
  * Note: The following are NOT exported for React Native:
- * 
- * - createStarknetRecordingService (uses starknet SDK with node:crypto)
- * - StarknetRecordingService (uses starknet SDK with node:crypto)
- * - createRecordingService (depends on StarknetRecordingService)
- * - RecordingService (depends on StarknetRecordingService)
+ *
  * - FarcasterSocialService (uses @neynar/nodejs-sdk)
  * - blockchainService (uses adapters with potential Node.js deps)
  * - audio-converter (uses Web Audio API - browser only)
- * 
+ *
  * For mobile, use the mobile-specific implementations in apps/mobile/services/
  */

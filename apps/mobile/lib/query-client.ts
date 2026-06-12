@@ -55,15 +55,7 @@ export const queryKeys = {
     models: () => [...queryKeys.ai.all, 'models'] as const,
     languages: () => [...queryKeys.ai.all, 'languages'] as const,
   },
-  
-  // Starknet-related queries
-  starknet: {
-    all: ['starknet'] as const,
-    balance: (address: string) => [...queryKeys.starknet.all, 'balance', address] as const,
-    transactions: (address: string) => [...queryKeys.starknet.all, 'transactions', address] as const,
-    userProfile: (address: string) => [...queryKeys.starknet.all, 'profile', address] as const,
-  },
-  
+
   // Sync-related queries
   sync: {
     all: ['sync'] as const,

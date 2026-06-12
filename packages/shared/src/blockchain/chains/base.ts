@@ -75,7 +75,7 @@ export interface TipTransaction {
   message?: string;
 }
 
-export type SupportedChains = 'base' | 'starknet' | 'scroll' | 'ethereum';
+export type SupportedChains = 'base' | 'scroll' | 'ethereum';
 
 // Base chain configurations
 export const BASE_CHAINS = {

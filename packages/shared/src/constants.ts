@@ -10,24 +10,8 @@ export const AUDIO_CONFIG = {
   MAX_FILE_SIZE: 100 * 1024 * 1024, // 100MB
 } as const;
 
-// Starknet Configuration
-export const STARKNET_CONFIG = {
-  NETWORKS: {
-    MAINNET: 'mainnet',
-    TESTNET: 'testnet',
-    DEVNET: 'devnet',
-  },
-  CONTRACT_ADDRESSES: {
-    VOICE_STORAGE: '0x545b48dd76469e984b5622e5841d2affa30155980829399e7ec7447012922e2',
-    USER_REGISTRY: '0x52bb03f52e7c07d6f7053b0fc7c52c9e0c7d73ceb36fab93db3d7bbc578bb63',
-    ACCESS_CONTROL: '0x5db925a0dfe7ab9137121613ef66a32ceb48acbc9cc33091d804dd9feb983b5',
-  },
-  RPC_URLS: {
-    MAINNET: 'https://starknet-mainnet.public.blastapi.io',
-    TESTNET: 'https://starknet-testnet.public.blastapi.io',
-    DEVNET: 'http://localhost:5050',
-  },
-} as const;
+// Starknet / Cairo path removed — see docs/adr/0001-starknet-cairo-removal.md
+// (Previously: export const STARKNET_CONFIG = { ... })
 
 // UI Constants — the canonical source of truth is packages/ui/src/theme/index.ts.
 // Do NOT add design tokens here; import theme from '@voisss/ui' instead.
@@ -67,7 +51,6 @@ export const API_CONFIG = {
 
 // Feature Flags
 export const FEATURES = {
-  STARKNET_INTEGRATION: true,
   IPFS_STORAGE: true,
   COMMUNITY_FEATURES: true,
   MOBILE_APP: true,

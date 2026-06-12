@@ -47,7 +47,7 @@ export interface ScrollVoiceChallenge {
     minSeconds: number;
     maxSeconds: number;
   };
-  chainSpecific: 'scroll' | 'starknet' | 'both';
+  chainSpecific: 'scroll' | 'both';
   startDate: string;
   endDate: string;
   isActive: boolean;
@@ -94,7 +94,7 @@ export interface ScrollAchievement {
   criteria: string;
   points: number;
   isSecret?: boolean;
-  chainSpecific: 'scroll' | 'starknet' | 'both';
+  chainSpecific: 'scroll' | 'both';
 }
 
 /**

@@ -179,7 +179,7 @@ export class MockChainAdapter implements ChainAdapter, GasOptimizedChainAdapter,
 /**
  * Create mock blockchain service for testing
  */
-export function createMockBlockchainService(chain: 'scroll' | 'starknet' = 'scroll'): any {
+export function createMockBlockchainService(chain: 'scroll' = 'scroll'): any {
   const mockAdapter = new MockChainAdapter();
   
   return {

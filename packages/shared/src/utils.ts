@@ -8,13 +8,6 @@ export function generateRecordingId(): string {
 }
 
 /**
- * Validate Starknet address format
- */
-export function isValidStarknetAddress(address: string): boolean {
-  return /^0x[0-9a-fA-F]{63,64}$/.test(address);
-}
-
-/**
  * Truncate text with ellipsis
  */
 export function truncateText(text: string, maxLength: number): string {

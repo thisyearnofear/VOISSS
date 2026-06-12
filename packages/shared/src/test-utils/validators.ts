@@ -41,7 +41,7 @@ export function validateScrollVoiceChallenge(challenge: ScrollVoiceChallenge): b
   }
 
   // Validate chainSpecific
-  const validChains = ['scroll', 'starknet', 'both'];
+  const validChains = ['scroll', 'both'];
   if (!validChains.includes(challenge.chainSpecific)) {
     console.error(`Invalid chainSpecific in ScrollVoiceChallenge: ${challenge.chainSpecific}`);
     return false;
@@ -147,7 +147,7 @@ export function validateScrollAchievement(achievement: ScrollAchievement): boole
   }
 
   // Validate chainSpecific
-  const validChains = ['scroll', 'starknet', 'both'];
+  const validChains = ['scroll', 'both'];
   if (!validChains.includes(achievement.chainSpecific)) {
     console.error(`Invalid chainSpecific in ScrollAchievement: ${achievement.chainSpecific}`);
     return false;

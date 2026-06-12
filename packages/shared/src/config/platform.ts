@@ -10,7 +10,7 @@ export interface PapajamsTokenConfig {
   symbol: string;
   address: `0x${string}`;
   decimals: number;
-  chain: 'base' | 'starknet';
+  chain: 'base';
 }
 
 export interface CreatorRequirements {
