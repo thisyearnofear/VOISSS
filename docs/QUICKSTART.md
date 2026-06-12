@@ -72,12 +72,15 @@ voisss/
 │   ├── mobile/           # React Native + Expo + Scroll
 │   └── mobile-flutter/   # Flutter + Serverpod + Venice AI
 ├── packages/
-│   ├── shared/           # Common utilities, types, services
-│   ├── contracts/        # Solidity smart contracts
+│   ├── shared/           # Common utilities, types, services, route registry
+│   ├── sdk/              # Public TypeScript SDK (@voisss/sdk)
 │   └── ui/               # Shared UI components
+├── services/
+│   └── voisss-backend/   # Express service: dubbing, ACP listener worker
 ├── docs/                 # Documentation
-├── scripts/              # Test and utility scripts
-└── services/             # Backend services
+│   └── adr/              # Architecture decision records
+├── scripts/              # Test and utility scripts (incl. check:routes)
+└── netlify.toml          # Web app deploy config
 ```
 
 ## Platform Status

@@ -222,8 +222,7 @@ The mobile app will automatically use these credentials to upload recordings to 
 
 - [Main Project README](../../README.md) - Project overview and setup
 - [Web App README](../web/README.md) - Web app documentation
-- [Blockchain Inventory](../../BLOCKCHAIN_INVENTORY.md) - Complete chain/platform mapping across VOISSS
-- [Scroll Deployment Guide](../../packages/contracts/SCROLL_SEPOLIA_DEPLOYED.md) - Contract details
+- [Blockchain Inventory](../../docs/BLOCKCHAIN.md) - Complete chain/platform mapping across VOISSS
 - [Scroll Documentation](https://scroll.io/docs) - Scroll network info
 - [Expo Documentation](https://docs.expo.dev/) - React Native framework
 - [Viem Documentation](https://viem.sh/) - Web3 library used for blockchain

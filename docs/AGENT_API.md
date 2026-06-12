@@ -108,9 +108,9 @@ Multi-layer: Verification → Rate Limiting → Security Analysis → Business L
 
 ## Event Subscription
 
-**WebSocket:** `wss://voisss.netlify.app/api/agents/events/ws`  
 **Webhook:** POST subscription with URL  
-**Polling:** GET with `since` parameter
+**Polling:** GET with `since` parameter  
+**WebSocket** *(planned — see `packages/shared/src/api/routes.ts`)*: `wss://voisss.netlify.app/api/agents/events/ws`
 
 **Event Types:** `voice.generation.*`, `mission.*`, `payment.*`, `system.*`, `agent.*`
 

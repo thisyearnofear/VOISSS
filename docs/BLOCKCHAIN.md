@@ -110,12 +110,7 @@ pnpm deploy:marketplace:sepolia  # Base Sepolia
 
 ## Scroll Contracts (Mobile — Development)
 
-| Contract | Address | Purpose |
-|----------|---------|---------|
-| ScrollVRF | `0x50a0365A3BD6a3Ab4bC31544A955Ba4974Fc7208` | Fair randomness |
-| ScrollPrivacy | `0x0abD2343311985Fd1e0159CE39792483b908C03a` | Private zk-proof storage |
-
-**Functions:** `requestRandomness()`, `storePrivateContent()`, `grantAccess()`, `revokeAccess()`, `createShareLink()`
+> **Removed June 2026 (Phase 0.1, see [docs/adr/0001-starknet-cairo-removal.md](./adr/0001-starknet-cairo-removal.md)):** the `ScrollVRF` and `ScrollPrivacy` Solidity sources lived in the now-deleted `packages/contracts/` package. They are not redeployed from this monorepo; the mobile app's own README describes Scroll integration as "in progress." If you need to revive this work, see the historical `packages/contracts/src/scroll/*.sol` contents in git history.
 
 ## Environment Variables
 

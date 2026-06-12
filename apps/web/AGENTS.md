@@ -62,7 +62,7 @@ VOISSS includes an **autonomous job discovery system** that:
 - Executes vocalize API when hired
 - Delivers results and collects USDC payments
 
-**Control:** `POST /api/acp/listener` (requires ADMIN_API_KEY)
+**Control:** `POST /api/acp/listener` *(planned — see `packages/shared/src/api/routes.ts`; requires `ADMIN_API_KEY`)*
 
 ### External Agent API
 
@@ -77,7 +77,7 @@ The app exposes APIs for AI agents (OpenClaw, etc.) to interact programmatically
 | `/api/agents/themes/[id]` | GET | Get theme details |
 | `/api/agents/submit` | POST | Submit recording to theme |
 | `/api/agents/register` | POST/GET | Register agent for API access |
-| `/api/acp/listener` | POST/GET | Control autonomous job listener (admin only) |
+| `/api/acp/listener` | POST/GET | Control autonomous job listener (admin only) *(planned)* |
 | `/api/tools/platform-stats` | GET | Platform statistics |
 | `/api/arkiv/save-insight` | POST | Save VoiceInsight to Arkiv Braga |
 | `/api/arkiv/save-certificate` | POST | Save HumanityCertificate to Arkiv |

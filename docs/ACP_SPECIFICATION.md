@@ -135,6 +135,8 @@ The VOISSS codebase has been updated to prioritize ACP Compute:
 
 ### Step 4: Proactive Agent Discovery (Autonomous Revenue Generation)
 
+> **Status note (June 2026):** The HTTP control API at `POST /api/acp/listener` and the `agents/voice-clone` route are listed as `planned` in the route registry (`packages/shared/src/api/routes.ts`). The standalone listener worker is implemented and runnable via the `voisss-acp-listener` PM2 process. Phase 1A will expose the HTTP controls.
+
 VOISSS can now **autonomously discover and bid on voice-related jobs** across all three offerings in the Virtuals marketplace.
 
 **Architecture:**
@@ -269,6 +271,8 @@ User Interaction → Butler Memory Service → Arkiv Braga → Personalization E
 - **Proactive Suggestions:** Context-aware feature recommendations
 
 **3. Butler Memory API** (`/api/butler/memory`)
+
+> **Status note (June 2026):** Listed as `planned` in the route registry. The underlying `butler-memory-service.ts` exists in `packages/shared/src`; the HTTP routes are queued for Phase 1A.
 
 ```bash
 # Save user preferences
