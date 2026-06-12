@@ -38,5 +38,6 @@ export {
   createMissionServiceWithDatabase,
   getMissionService,
   getInferenceService,
-  getStudioAnalysisService
+  getStudioAnalysisService,
+  startAcpListenerWorker
 } from './services/server-initialization';

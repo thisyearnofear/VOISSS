@@ -57,7 +57,7 @@ module.exports = {
     },
     {
       name: 'voisss-acp-listener',
-      script: './src/workers/acp-listener-worker.js',
+      script: './src/workers/acp-listener-shim.js',
       cwd: __dirname,
       instances: 1,
       exec_mode: 'fork',

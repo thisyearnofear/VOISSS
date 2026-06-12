@@ -127,3 +127,43 @@ export function getStudioAnalysisService(): StudioAnalysisService {
   }
   return globalStudioAnalysisService;
 }
+
+/**
+ * Start the ACP listener as a long-running worker.
+ *
+ * Used by the Express backend (`services/voisss-backend`) via a tiny shim
+ * that calls this function and registers signal handlers. Centralising the
+ * startup logic here means there is exactly one place where the listener's
+ * env vars are interpreted and the process is bound.
+ */
+export async function startAcpListenerWorker(): Promise<void> {
+  const { getAcpListener } = await import('./acp-listener-service');
+  const agentId = process.env.ACP_AGENT_ID;
+  if (!agentId) {
+    console.error('[ACP Worker] ACP_AGENT_ID not set — exiting');
+    process.exit(1);
+  }
+
+  console.log('[ACP Worker] Initializing...');
+  console.log(`[ACP Worker] Agent: ${agentId}`);
+  console.log(
+    `[ACP Worker] Auto-bid: ${process.env.ACP_AUTO_BID === 'true' ? 'ENABLED' : 'disabled (monitoring only)'}`
+  );
+
+  const listener = getAcpListener({
+    agentId,
+    autoBid: process.env.ACP_AUTO_BID === 'true',
+    minBudget: parseFloat(process.env.ACP_MIN_BUDGET || '0.01'),
+    webhookUrl: process.env.ACP_WEBHOOK_URL || undefined,
+  });
+
+  await listener.start();
+
+  const shutdown = async (signal: string) => {
+    console.log(`[ACP Worker] ${signal} received`);
+    await listener.stop();
+    process.exit(0);
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+}
