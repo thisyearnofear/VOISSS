@@ -6,6 +6,9 @@ export * from './types/audio-version';
 export * from './types/api.types';
 export * from './types/market-intelligence';
 
+// API route registry (single source of truth for HTTP endpoints)
+export * from './api/routes';
+
 // Re-export from ./types excluding ApiResponse/ApiResponseSchema (conflicts with api.types)
 export {
   MissionContextSchema, type MissionContext,

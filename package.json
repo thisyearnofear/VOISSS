@@ -12,12 +12,11 @@
     "dev:mobile": "turbo run dev --filter=@voisss/mobile",
     "dev:flutter": "cd apps/mobile-flutter && flutter run -d chrome",
     "dev:flutter:macos": "cd apps/mobile-flutter && flutter run -d macos",
-    "build": "turbo run build --filter=!@voisss/contracts",
+    "build": "turbo run build",
     "build:web": "turbo run build --filter=@voisss/web",
     "build:all": "pnpm build:packages && pnpm build:apps",
     "build:packages": "turbo run build --filter=@voisss/shared --filter=@voisss/ui --filter=@voisss/sdk",
     "build:apps": "turbo run build --filter=@voisss/web --filter=@voisss/mobile",
-    "build:contracts": "cd packages/contracts && scarb build",
     "build:flutter": "cd apps/mobile-flutter && flutter build ios",
     "test": "turbo run test",
     "test:flutter": "cd apps/mobile-flutter && flutter test",
@@ -28,7 +27,8 @@
     "check:flutter": "cd apps/mobile-flutter && flutter doctor",
     "x402:test": "tsx scripts/test-x402.ts",
     "x402:debug": "tsx scripts/debug-x402.ts",
-    "x402:mock": "tsx scripts/mock-cdp-facilitator.ts"
+    "x402:mock": "tsx scripts/mock-cdp-facilitator.ts",
+    "check:routes": "tsx scripts/check-routes.ts"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
