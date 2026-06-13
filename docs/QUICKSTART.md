@@ -136,3 +136,29 @@ After setup, consider:
 2. **Try the API** with the preview endpoint (no payment required)
 3. **Read the agent API docs** at [AGENT_API.md](./AGENT_API.md)
 4. **Join the community** on Telegram for support and updates
+
+## Recent Progress (June 2026)
+
+The repository is on a planned path from "hackathon prototype" (~6/10) to "solid production" (~9/10). The full plan lives in [adr/0001-starknet-cairo-removal.md](./adr/0001-starknet-cairo-removal.md) and following ADRs.
+
+| Phase | Status | What landed |
+|---|---|---|
+| 0.1 | ✅ | Starknet / Cairo removed per [ADR 0001](./adr/0001-starknet-cairo-removal.md). 28 files deleted, 14 edited. Mobile app entanglement (UI only) deferred. |
+| 0.2 | ✅ | ACP listener unified. JS worker replaced by a 20-line shim that calls `startAcpListenerWorker()` in `packages/shared`. PM2 still runs the same process. |
+| 0.3 | ✅ | Route registry (`packages/shared/src/api/routes.ts`) is the canonical list of 84 endpoints, with `live` / `planned` / `deprecated` status. `pnpm run check:routes` validates the filesystem matches. |
+| 1A | ✅ | The 4 documented-but-missing routes are live: `/api/acp/listener` (admin), `/api/butler/memory` (action-based GET/POST), `/api/agents/voice-clone` (410 alias to canonical). All have happy-path tests. |
+| 2B (start) | 🚧 | Critical-path tests in place: `x402Client` (32), `PaymentRouter` (10), `agent-rate-limiter` (11). **73 tests, 0 flakes** across `apps/web` and `packages/shared`. |
+
+### Up next (in order of leverage)
+
+1. **More critical-path tests.** `agent-security`, `agent-event-hub`, `engagement-service`, and `persistent-mission-service` still have zero coverage. The security and event-hub tests are highest-leverage because they guard the most-trafficked route (`/api/agents/vocalize`).
+2. **Smart contract tests.** `apps/web/contracts/` has 5 Solidity contracts and zero Hardhat tests. Phase 3 of the plan.
+3. **Strict TypeScript across the repo.** Move to `"strict": true`, `"noUncheckedIndexedAccess": true`, and fix the resulting errors. Catches a class of bugs at compile time.
+4. **CI pipeline.** The repo has only one workflow (`deploy-voisss-backend.yml`). Plan calls for typecheck + lint + tests + route check + Hardhat tests on every PR.
+5. **OpenAPI from the route registry.** The hand-written `/api/agents/openapi.json` is six endpoints. The registry has 84. Auto-generate.
+6. **E2E tests.** Playwright on the marketplace / studio / agent-vocalize flows.
+
+For each, the work is mechanical and reviewable. None require a fundamental redesign.
+
+---
+

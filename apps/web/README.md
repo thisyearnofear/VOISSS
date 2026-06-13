@@ -52,6 +52,7 @@ VOISSS is a cutting-edge platform for transforming, securing, and insights-drive
 - **Styling**: Tailwind CSS
 - **State**: React Context + Zustand
 - **Web3 Tools**: Viem + Wagmi + Base Account SDK
+- **Route registry**: `packages/shared/src/api/routes.ts` (single source of truth for all 84 endpoints; `pnpm run check:routes` validates the filesystem matches)
 
 ## ✨ Key Features
 
@@ -82,7 +83,18 @@ pnpm start
 
 # Run type check
 npx tsc --noEmit
+
+# Run unit tests (route handlers; mock shared services)
+pnpm test
+
+# Run tests in watch mode
+pnpm test:watch
+
+# Run with coverage
+pnpm test:coverage
 ```
+
+Tests live next to the route they exercise: `src/app/api/<area>/<route>/route.test.ts`. They run under Vitest in node env and use `vi.mock()` to stub the shared services so no network calls happen.
 
 ## 📚 Documentation
 
