@@ -196,100 +196,88 @@ Posted to AI Updates mission! 🎙️
 
 ## Engagement & Virality Features
 
-### 🎯 Referral System
-Generate referral codes and track conversions:
+> **Important — the engagement endpoints are unified at `/api/engagement` with action-based dispatch.** All GETs and POSTs use the same path; the `action` query/body parameter selects the operation. The `engagement-api-adapter` in the web app already wraps this pattern.
+>
+> Referral operations live at their own paths under `/api/referral/*`, not under `/api/engagement`.
+
+### GET `/api/engagement`
+
 
 ```bash
-# Generate referral code for a recording
-POST /api/engagement/referral/generate
-{
-  "userId": "0xYourAddress",
-  "recordingId": "rec_123"
-}
+# Example: get a user's streak
+curl "https://voisss.netlify.app/api/engagement?action=streak&userId=0xYourAddress"
 
-# Track referral conversion
-POST /api/engagement/referral/convert
-{
-  "referralCode": "ABC123_xyz",
-  "newUserId": "0xNewUserAddress"
-}
+# Example: get the weekly earnings leaderboard
+curl "https://voisss.netlify.app/api/engagement?action=leaderboard&period=weekly&category=earnings"
 ```
 
-**Rewards:**
-- Referrer: 100 tokens
-- Referee: 50 tokens (signup bonus)
-- Viral bonus: 500 tokens at 100 clicks
-
-### 🔥 Streak System
-Track daily recording streaks with milestone rewards:
+### POST `/api/engagement`
 
 ```bash
-# Get user streak
-GET /api/engagement/streak?userId=0xYourAddress
+# Check whether the user just unlocked new achievements
+curl -X POST https://voisss.netlify.app/api/engagement \
+  -H "Content-Type: application/json" \
+  -d '{"action":"check-achievements","userId":"0xYourAddress"}'
 
-# Update streak (automatic after recording)
-POST /api/engagement/streak/update
-{
-  "userId": "0xYourAddress"
-}
+# Update the user's daily-recording streak
+curl -X POST https://voisss.netlify.app/api/engagement \
+  -H "Content-Type: application/json" \
+  -d '{"action":"update-streak","userId":"0xYourAddress"}'
+
+# Mark a notification as read
+curl -X POST https://voisss.netlify.app/api/engagement \
+  -H "Content-Type: application/json" \
+  -d '{"action":"mark-read","notificationId":"notif_123"}'
 ```
 
-**Milestones:**
-- 7 days: 100 tokens
-- 30 days: 500 tokens
-- 100 days: 2000 tokens
-- 365 days: 10000 tokens
-
-**Streak Freeze:** One free pass per month if you miss a day
-
-### 🏆 Leaderboards
-View rankings across multiple categories:
+### Referral
 
 ```bash
-# Get leaderboard
-GET /api/engagement/leaderboard?period=weekly&category=earnings
+# Generate a referral code
+curl -X POST https://voisss.netlify.app/api/referral/generate \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"0xYourAddress","recordingId":"rec_123"}'
 
-# Get user rank
-GET /api/engagement/rank?userId=0xYourAddress&period=weekly
+# Track a referral click (logs only at present)
+curl -X POST https://voisss.netlify.app/api/referral/track \
+  -H "Content-Type: application/json" \
+  -d '{"code":"ABC123","visitorId":"optional-fingerprint"}'
 ```
 
-**Categories:** earnings, quality, volume, streak  
-**Periods:** daily, weekly, monthly, all-time
+### Rewards & Milestones (canonical values)
 
-### 🎖️ Achievements
-Unlock achievements and earn rewards:
+| Event | Reward |
+|---|---|
+| First share of the day | 5 tokens |
+| Streak @ 7 days | 100 tokens |
+| Streak @ 30 days | 500 tokens |
+| Streak @ 100 days | 2000 tokens |
+| Streak @ 365 days | 10000 tokens |
+| Referral conversion | Referrer 100, Referee 50 |
+| Viral bonus (100 clicks) | 500 tokens |
+| Achievement tier Bronze | 10-50 tokens |
+| Achievement tier Silver | 50-100 tokens |
+| Achievement tier Gold | 100-500 tokens |
+| Achievement tier Platinum | 500-2000 tokens + multipliers |
 
-```bash
-# Check achievements
-GET /api/engagement/achievements?userId=0xYourAddress
+**Streak Freeze:** one free pass per month if the user misses a day.
 
-# Get all available achievements
-GET /api/engagement/achievements/all
-```
+**Leaderboard categories:** `earnings`, `quality`, `volume`, `streak`
+**Leaderboard periods:** `daily`, `weekly`, `monthly`, `all-time`
 
-**Achievement Tiers:**
-- Bronze: 10-50 tokens
-- Silver: 50-100 tokens
-- Gold: 100-500 tokens
-- Platinum: 500-2000 tokens + multipliers
+**Notification types:** `achievement_unlocked`, `referral_converted`, `streak_milestone`, `reward_ready`, `streak_reminder`, `streak_broken`
 
-### 🔔 Notifications
-In-app notification system:
+### Deprecated paths (do not use)
 
-```bash
-# Get notifications
-GET /api/engagement/notifications?userId=0xYourAddress&unreadOnly=true
+The following paths appeared in earlier versions of this document. They are not implemented; use the unified endpoint above instead.
 
-# Mark as read
-POST /api/engagement/notifications/read
-{
-  "notificationId": "notif_123"
-}
-```
-
-**Notification Types:**
-- Achievement unlocked
-- Referral converted
-- Streak milestone
-- Reward ready
-- Streak reminder/broken
+- `POST /api/engagement/referral/generate` → use `POST /api/referral/generate`
+- `POST /api/engagement/referral/convert` → not implemented; the service lives in `EngagementService.convertReferral()` and will be exposed in a future release
+- `GET /api/engagement/streak` → use `GET /api/engagement?action=streak&userId=…`
+- `POST /api/engagement/streak/update` → use `POST /api/engagement` with `action=update-streak`
+- `GET /api/engagement/leaderboard` → use `GET /api/engagement?action=leaderboard&…`
+- `GET /api/engagement/rank` → use `GET /api/engagement?action=leaderboard&userId=…&…` (the user's row in the leaderboard)
+- `GET /api/engagement/achievements` → use `GET /api/engagement?action=achievements&userId=…`
+- `GET /api/engagement/achievements/all` → the all-achievements list is internal; the service exposes it via `EngagementService.achievementsCache`
+- `GET /api/engagement/notifications` → use `GET /api/engagement?action=notifications&userId=…`
+- `POST /api/engagement/notifications/read` → use `POST /api/engagement` with `action=mark-read`
