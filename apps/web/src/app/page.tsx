@@ -1,5 +1,6 @@
 import { Suspense, lazy } from "react";
 import EnhancedLandingHero from "../components/EnhancedLandingHero";
+import OriginalVsAiShowcase from "../components/OriginalVsAiShowcase";
 
 // Code-split below-fold sections for faster initial load
 const InteractiveHowItWorks = lazy(() => import("../components/InteractiveHowItWorks"));
@@ -26,6 +27,12 @@ export default function Home() {
       <div className="voisss-container py-8 sm:py-12">
         {/* Enhanced Hero Section — always loaded, above fold */}
         <EnhancedLandingHero />
+
+        {/* Original vs. AI — side-by-side waveform comparison of a real
+            human narrator and a licensed AI voice saying the same line.
+            Sits between the hero CTAs and the interactive playground
+            so visitors see the value prop before the call-to-action. */}
+        <OriginalVsAiShowcase />
 
         {/* Interactive How It Works (Progressive Disclosure) */}
         <Suspense fallback={<SectionFallback />}>
