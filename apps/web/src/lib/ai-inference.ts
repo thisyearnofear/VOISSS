@@ -50,7 +50,7 @@ export function getAIProviderStatus() {
       configured: Boolean(config.routeway?.apiKey),
       model: config.routeway?.model || "kimi-k2-0905:free",
     },
-    fallbackOrder: config.fallbackOrder || ["acpCompute", "kilocode", "venice", "google"],
+    fallbackOrder: config.fallbackOrder || ["acpCompute", "kilocode", "venice", "routeway", "google"],
   };
 }
 

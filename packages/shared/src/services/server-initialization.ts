@@ -111,9 +111,19 @@ export function getInferenceService(): InferenceService {
         baseUrl: process.env.ROUTEWAY_API_URL,
         model: process.env.ROUTEWAY_MODEL,
       },
-      fallbackOrder: ["acpCompute", "kilocode", "venice", "google"],
+      fallbackOrder: ["acpCompute", "kilocode", "venice", "routeway", "google"],
     };
     globalInferenceService = new InferenceService(config);
+
+    const active = [
+      config.acpCompute?.apiKey ? "acpCompute" : null,
+      config.kilocode?.apiKey ? "kilocode" : null,
+      config.venice?.apiKey ? "venice" : null,
+      config.routeway?.apiKey ? "routeway" : null,
+      config.google?.apiKey ? "google" : null,
+    ].filter(Boolean);
+    console.log(`[InferenceService] Active providers: ${active.join(" → ") || "none"}`);
+    console.log(`[InferenceService] Fallback order: ${config.fallbackOrder?.join(" → ")}`);
   }
   return globalInferenceService;
 }

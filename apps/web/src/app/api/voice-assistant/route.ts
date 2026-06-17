@@ -184,6 +184,9 @@ export async function GET() {
       venice: status.venice.configured
         ? `configured (${status.venice.model})`
         : "missing VENICE_API_KEY",
+      routeway: status.routeway.configured
+        ? `configured (${status.routeway.model})`
+        : "missing ROUTEWAY_API_KEY",
       gemini: status.google.configured
         ? `configured (${status.google.textModel})`
         : "missing GEMINI_API_KEY",
