@@ -14,6 +14,32 @@ import { Play, Square, Sparkles, Info, User2, Cpu, ChevronDown, ChevronUp } from
  *
  * Both waveforms are driven by AnalyserNodes (Web Audio API) so the
  * bars reflect real amplitude of the playing audio, not a fake animation.
+ *
+ * --------------------------------------------------------------------------
+ * SWAPPING IN A REAL CONTRIBUTOR RECORDING
+ * --------------------------------------------------------------------------
+ * The current human sample is a LibriVox placeholder so the component
+ * works without a recorded contributor. When a real contributor gives
+ * consent to use their voice in the showcase:
+ *
+ *   1. Get the recording (WAV or MP3, ~6-10 seconds, single sentence).
+ *   2. Loudness-normalize to ~-16 LUFS for visual parity with the AI
+ *      side. A reasonable ffmpeg incantation:
+ *        ffmpeg -i input.mp3 -af \
+ *          "loudnorm=I=-16:TP=-1.5:LRA=11,highpass=f=80,lowpass=f=12000" \
+ *          -ar 44100 -ac 1 -b:a 128k voice-human.mp3
+ *   3. Replace apps/web/public/showcase/voice-human.mp3
+ *   4. Re-run the AI synthesis with the same sentence via ElevenLabs
+ *      (or whichever TTS the marketplace uses for the contributor's
+ *      voice) and replace apps/web/public/showcase/voice-ai.mp3.
+ *   5. Update HUMAN_VOICE_LABEL and HUMAN_VOICE_SUB below to reflect
+ *      the real contributor (e.g. "Mara · Audiobook narrator").
+ *   6. If the sentence changes, update SENTENCE (also shown in the
+ *      centered quote) and re-record both sides.
+ *
+ * The component itself is voice- and sentence-agnostic — no other
+ * changes needed.
+ * --------------------------------------------------------------------------
  */
 
 const SENTENCE =
@@ -381,9 +407,15 @@ export default function OriginalVsAiShowcase() {
                   <p>
                     VOISSS exists because the best AI voices aren&apos;t synthetic —
                     they&apos;re <em>licensed</em>. Contributors record themselves,
-                    set their own terms, and earn 70% of every character an AI
-                    agent speaks in their voice. The marketplace, the provenance,
-                    and the payment rails are all on Base.
+                    set their own terms, and earn{" "}
+                    <a
+                      href="/studio"
+                      className="text-purple-300 underline underline-offset-2 hover:text-purple-200 transition-colors font-medium"
+                    >
+                      70% of every character
+                    </a>{" "}
+                    an AI agent speaks in their voice. The marketplace, the
+                    provenance, and the payment rails are all on Base.
                   </p>
                 </div>
               </motion.div>

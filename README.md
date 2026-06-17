@@ -108,6 +108,7 @@ VOISSS uses Arkiv Braga Testnet as a decentralized data layer for voice insights
 | [ACP_SPECIFICATION.md](./docs/ACP_SPECIFICATION.md) | Autonomous Agent Commerce Protocol (ACP) integration |
 | [BLOCKCHAIN.md](./docs/BLOCKCHAIN.md) | Smart contracts, tokens, x402, marketplace, gasless txns |
 | [ARKIV_INTEGRATION.md](./docs/ARKIV_INTEGRATION.md) | Arkiv Braga Testnet: entity schema, API endpoints, query patterns |
+| [HOMEPAGE_SHOWCASE.md](./docs/HOMEPAGE_SHOWCASE.md) | Hero "real human vs. licensed AI" waveform comparison — assets, swap procedure, attribution |
 
 ## Tech Stack
 
