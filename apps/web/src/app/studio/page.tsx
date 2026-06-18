@@ -4,6 +4,7 @@ import { useMemo, useState, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import RecordingStudio from "../../components/RecordingStudio";
 import StudioRecordingsList from "../../components/StudioRecordingsList";
+import StudioEarningsHero from "../../components/StudioEarningsHero";
 import { useRecordings } from "../../hooks/queries/useRecordings";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -65,6 +66,11 @@ function StudioPageInner() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white">
       <div className="voisss-container py-8 sm:py-12">
+        {/* "Earn 70%" hero — closes the click-through from the homepage
+            showcase (OriginalVsAiShowcase links "70%" to /studio).
+            Anchors the visitor before the recording tool loads. */}
+        <StudioEarningsHero />
+
         {/* Recording Studio */}
         <div id="recording-section" className="mb-12">
           <RecordingStudio
