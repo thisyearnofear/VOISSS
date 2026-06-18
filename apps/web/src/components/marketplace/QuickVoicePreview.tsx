@@ -155,9 +155,7 @@ export default function QuickVoicePreview() {
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+    <div
       className="w-full max-w-2xl mx-auto bg-[#141414]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl"
     >
       <div className="flex items-center gap-2 mb-6 text-blue-400 font-bold uppercase tracking-widest text-xs">
@@ -319,7 +317,7 @@ export default function QuickVoicePreview() {
       </div>
 
       {error && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-center"
@@ -327,6 +325,6 @@ export default function QuickVoicePreview() {
           {error}
         </motion.div>
       )}
-    </motion.div>
+    </div>
   );
 }
