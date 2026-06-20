@@ -128,8 +128,8 @@ export const SERVICE_COSTS: Record<ServiceType, ServiceCost> = {
     baseCost: 0n,
     unit: 'per_character',
     unitCost: 1n, // $0.000001 per character (1 micro-USDC)
-    minCost: 100n, // $0.0001 minimum
-    maxCost: 100000n, // $0.10 maximum per request
+    minCost: 10n, // $0.00001 minimum
+    maxCost: 10000n, // $0.01 maximum per request
   },
   voice_transformation: {
     service: 'voice_transformation',

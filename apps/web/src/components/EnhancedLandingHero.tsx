@@ -40,7 +40,7 @@ export default function EnhancedLandingHero() {
             License authentic human voices for your AI agents. Pay-per-character with blockchain provenance.
           </p>
           <p className="text-gray-400 mb-12 max-w-2xl mx-auto">
-            ~$0.000001/character • 70% to contributors • Instant API access
+            ~$0.000001/character • 70% to contributors • Instant API access • No monthly fees
           </p>
 
           {/* CTA Buttons */}
@@ -65,6 +65,10 @@ export default function EnhancedLandingHero() {
             <a href="/studio" className="text-gray-500 hover:text-purple-400 transition-colors flex items-center gap-2">
               <span className="w-1.5 h-1.5 bg-purple-500 rounded-full" />
               I create voices
+            </a>
+            <a href="/import" className="text-gray-500 hover:text-green-400 transition-colors flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+              Import from ElevenLabs
             </a>
             <a href="/marketplace" className="text-gray-500 hover:text-blue-400 transition-colors flex items-center gap-2">
               <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" />

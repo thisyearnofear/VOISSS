@@ -70,8 +70,8 @@ export default function Home() {
             <a href="https://github.com/thisyearnofear/VOISSS" target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white transition-colors">
               GitHub
             </a>
-            <a href="/leaderboard" className="text-zinc-400 hover:text-white transition-colors">
-              Leaderboard
+            <a href="/import" className="text-zinc-400 hover:text-white transition-colors">
+              Import Voices
             </a>
           </div>
           <p className="mt-12 text-zinc-600 text-[10px] tracking-widest uppercase">

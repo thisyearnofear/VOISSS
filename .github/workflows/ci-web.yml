@@ -1,0 +1,53 @@
+name: CI Web App
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/web/**'
+      - 'packages/shared/**'
+      - 'packages/ui/**'
+      - 'packages/sdk/**'
+      - '.github/workflows/ci-web.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'apps/web/**'
+      - 'packages/shared/**'
+      - 'packages/ui/**'
+      - 'packages/sdk/**'
+
+jobs:
+  lint-test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.4
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build:packages
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build web app
+        run: pnpm build:web
+        env:
+          NEXT_PUBLIC_BASE_CHAIN_ID: 84532
+          ELEVENLABS_API_KEY: test-key
+          SPENDER_PRIVATE_KEY: '0x0000000000000000000000000000000000000000000000000000000000000001'

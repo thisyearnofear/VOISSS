@@ -7,6 +7,9 @@ import StudioRecordingsList from "../../components/StudioRecordingsList";
 import StudioEarningsHero from "../../components/StudioEarningsHero";
 import { useRecordings } from "../../hooks/queries/useRecordings";
 import { useAuth } from "../../contexts/AuthContext";
+import { Mic, Upload, ArrowRight } from "lucide-react";
+
+type StudioStep = "choose" | "record" | "import" | "manage";
 
 function StudioPageInner() {
   const searchParams = useSearchParams();
@@ -23,7 +26,6 @@ function StudioPageInner() {
     [searchParams],
   );
 
-  // Local recordings state (for guest users)
   const [localRecordings, setLocalRecordings] = useState<
     Array<{
       id: string;
@@ -33,8 +35,8 @@ function StudioPageInner() {
       createdAt: string;
     }>
   >([]);
+  const [activeStep, setActiveStep] = useState<StudioStep>("choose");
 
-  // Enhanced recordings from hook (local + on-chain)
   const { isAuthenticated, address } = useAuth();
   const { data: allRecordings = [], isLoading: isLoadingRecordings } =
     useRecordings();
@@ -57,57 +59,75 @@ function StudioPageInner() {
       createdAt: new Date().toISOString(),
     };
     setLocalRecordings((prev) => [newRecording, ...prev]);
+    setActiveStep("manage");
   };
 
   const handleDeleteLocal = useCallback((recordingId: string) => {
     setLocalRecordings((prev) => prev.filter((r) => r.id !== recordingId));
   }, []);
 
+  const showStepIndicator = !mode && !missionId;
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white">
       <div className="voisss-container py-8 sm:py-12">
-        {/* "Earn 70%" hero — closes the click-through from the homepage
-            showcase (OriginalVsAiShowcase links "70%" to /studio).
-            Anchors the visitor before the recording tool loads. */}
         <StudioEarningsHero />
 
-        {/* Recording Studio */}
-        <div id="recording-section" className="mb-12">
-          <RecordingStudio
-            onRecordingComplete={handleRecordingComplete}
-            initialTranscriptTemplateId={templateId}
-            initialMode={mode}
-            missionId={missionId}
-          />
-        </div>
+        {showStepIndicator && activeStep === "choose" && (
+          <div className="max-w-3xl mx-auto mb-12">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <button
+                onClick={() => setActiveStep("record")}
+                className="group p-8 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl hover:border-purple-500/40 hover:bg-purple-500/5 transition-all text-left"
+              >
+                <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mb-4">
+                  <Mic className="w-6 h-6 text-purple-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">Record New Voice</h3>
+                <p className="text-sm text-gray-400 mb-4">
+                  Use the studio to record clean voice samples. Pick from curated scripts or read your own.
+                </p>
+                <span className="text-sm text-purple-400 group-hover:text-purple-300 flex items-center gap-1">
+                  Start recording <ArrowRight className="w-3 h-3" />
+                </span>
+              </button>
 
-        {/* Discover Agent Content CTA */}
-        <div className="max-w-4xl mx-auto mb-12">
-          <a
-            href="/agents"
-            className="flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 rounded-xl hover:border-indigo-500/50 hover:from-indigo-600/30 hover:to-purple-600/30 transition-all duration-300 group"
-          >
-            <svg
-              className="w-5 h-5 text-indigo-400 group-hover:text-indigo-300"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+              <a
+                href="/import"
+                className="group p-8 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl hover:border-green-500/40 hover:bg-green-500/5 transition-all text-left block"
+              >
+                <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mb-4">
+                  <Upload className="w-6 h-6 text-green-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">Import from ElevenLabs</h3>
+                <p className="text-sm text-gray-400 mb-4">
+                  Already have voices on ElevenLabs? Import them in one click and start earning 70% revenue share.
+                </p>
+                <span className="text-sm text-green-400 group-hover:text-green-300 flex items-center gap-1">
+                  Import voices <ArrowRight className="w-3 h-3" />
+                </span>
+              </a>
+            </div>
+          </div>
+        )}
+
+        {activeStep === "record" && (
+          <div id="recording-section" className="mb-12">
+            <button
+              onClick={() => setActiveStep("choose")}
+              className="text-sm text-gray-400 hover:text-white mb-4 transition-colors"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-              />
-            </svg>
-            <span className="text-indigo-300 font-medium">
-              Discover Agent Commentary
-            </span>
-            <span className="text-indigo-400/60 text-sm">&rarr;</span>
-          </a>
-        </div>
+              &larr; Back to options
+            </button>
+            <RecordingStudio
+              onRecordingComplete={handleRecordingComplete}
+              initialTranscriptTemplateId={templateId}
+              initialMode={mode}
+              missionId={missionId}
+            />
+          </div>
+        )}
 
-        {/* Recordings List — authenticated users */}
         {isAuthenticated &&
           (allRecordings.length > 0 || isLoadingRecordings) && (
             <div className="max-w-4xl mx-auto">
@@ -144,7 +164,6 @@ function StudioPageInner() {
             </div>
           )}
 
-        {/* Legacy Local Recordings — guest users */}
         {!isAuthenticated && localRecordings.length > 0 && (
           <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4 sm:mb-6">

@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Mic, Store, Target, Trophy, Sparkles } from "lucide-react";
+import { Mic, Store, Upload } from "lucide-react";
 
 const BOTTOM_LINKS = [
   { href: "/marketplace", label: "Voices", icon: Store },
   { href: "/studio", label: "Record", icon: Mic, primary: true },
-  { href: "/missions", label: "Missions", icon: Target },
-  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  { href: "/import", label: "Import", icon: Upload },
 ];
 
 export default function MobileBottomNav() {

@@ -423,6 +423,16 @@ export const ROUTES: readonly RouteDefinition[] = [
   // ---------- elevenlabs ----------
   {
     method: 'POST',
+    path: '/api/elevenlabs/import',
+    status: 'live',
+    group: 'elevenlabs',
+    summary: 'Import voices from an ElevenLabs account via API key',
+    auth: 'none',
+    description:
+      'Takes an ElevenLabs API key and optional voice IDs. Fetches the user\'s voices and returns them as importable VOISSS listings.',
+  },
+  {
+    method: 'POST',
     path: '/api/elevenlabs/list-voices',
     status: 'live',
     group: 'elevenlabs',

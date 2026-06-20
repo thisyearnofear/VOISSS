@@ -7,9 +7,6 @@ import { useBasename } from "../hooks/useBasename";
 import { useBaseAccount } from "../hooks/useBaseAccount";
 import { useAssistant } from "../contexts/AssistantContext";
 import { Sparkles, Menu, X } from "lucide-react";
-import { NotificationBell, StreakDisplay } from "@voisss/ui";
-import { useEngagement } from "@voisss/shared/hooks/useEngagement";
-import { webEngagementService } from "../services/engagement";
 import { useRouter } from "next/navigation";
 
 
@@ -26,31 +23,9 @@ export default function Nav() {
   } = useBaseAccount();
   const [showWalletMenu, setShowWalletMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [dismissedNudge, setDismissedNudge] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
-  // ENHANCEMENT: Engagement hooks
-  const { notifications, unreadCount, markRead, streak } = useEngagement(webEngagementService, {
-    userId: address || undefined,
-    autoRefresh: true,
-    refreshInterval: 30000, // 30 seconds
-  });
-
-  const needsStreakNudge =
-    isAuthenticated &&
-    !dismissedNudge &&
-    streak &&
-    streak.currentStreak > 0 &&
-    streak.lastRecordingDate &&
-    !streak.lastRecordingDate.toString().startsWith(new Date().toISOString().split("T")[0]);
-
-  // Refresh permissions when menu opens (optional - already auto-refreshed by hook)
-  useEffect(() => {
-    if (showWalletMenu && isConnected && universalAddress) {
-      // TODO: Implement permission refresh if needed
-    }
-  }, [showWalletMenu, isConnected, universalAddress]);
 
   // Close wallet menu when clicking outside
   useEffect(() => {
@@ -118,9 +93,8 @@ export default function Nav() {
   const navLinks = [
     { href: "/studio", label: "Studio", className: "text-white hover:text-[#9C88FF] transition-colors text-sm font-bold uppercase tracking-wider" },
     { href: "/marketplace", label: "Voices", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
+    { href: "/import", label: "Import", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
     { href: "/agents", label: "For Agents", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
-    { href: "/missions", label: "Missions", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
-    { href: "/leaderboard", label: "Leaderboard", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium hidden lg:inline" },
   ];
 
   return (
@@ -153,38 +127,6 @@ export default function Nav() {
               <Sparkles className={`w-5 h-5 transition-transform duration-500 ${isExpanded ? 'rotate-180 scale-110' : 'group-hover:rotate-12'}`} />
               <span className="hidden lg:inline text-xs font-bold uppercase tracking-widest">Assistant</span>
             </button>
-
-            {/* ENHANCEMENT: Streak + Notifications */}
-            {isAuthenticated && address && (
-              <div className="flex items-center gap-3">
-                {streak && streak.currentStreak > 0 && (
-                  <StreakDisplay
-                    currentStreak={streak.currentStreak}
-                    longestStreak={streak.longestStreak}
-                    compact
-                    className="hidden md:flex"
-                  />
-                )}
-                <NotificationBell
-                  notifications={notifications.map(n => ({
-                    id: n.id,
-                    title: n.title,
-                    body: n.body,
-                    read: n.read,
-                    createdAt: n.createdAt,
-                    priority: n.priority,
-                    actionUrl: n.actionUrl,
-                  }))}
-                  unreadCount={unreadCount}
-                  onMarkRead={markRead}
-                  onNotificationClick={(notif) => {
-                    if (notif.actionUrl) {
-                      router.push(notif.actionUrl);
-                    }
-                  }}
-                />
-              </div>
-            )}
 
             {/* Authentication / Profile Area */}
             <div className="flex items-center gap-3 justify-end">
@@ -472,29 +414,6 @@ export default function Nav() {
         </div>
       )}
 
-      {/* Daily Streak Nudge Banner */}
-      {needsStreakNudge && (
-        <div className="bg-gradient-to-r from-orange-500/10 to-amber-500/10 border-t border-orange-500/20">
-          <div className="voisss-container py-2 flex items-center justify-between">
-            <Link href="/studio" className="flex items-center gap-2 text-sm text-orange-300 hover:text-orange-200 transition-colors">
-              <span className="text-lg">🔥</span>
-              <span>
-                <strong>{streak?.currentStreak}-day streak!</strong>{" "}
-                Record today to keep it going.
-              </span>
-            </Link>
-            <button
-              onClick={() => setDismissedNudge(true)}
-              className="text-gray-500 hover:text-gray-300 transition-colors p-1"
-              aria-label="Dismiss"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
     </nav>
   );
 }
