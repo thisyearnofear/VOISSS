@@ -1,8 +1,10 @@
 "use client";
 
-import React from "react";
-import { Shield, Zap, TrendingUp } from "lucide-react";
+import React, { useState } from "react";
+import { Shield, Zap, TrendingUp, Sparkles } from "lucide-react";
 import QuickVoicePreview from "./marketplace/QuickVoicePreview";
+import VoissMascot from "./VoissMascot";
+import OnboardingQuiz from "./OnboardingQuiz";
 
 // Type-safe icon wrappers to resolve React 18/19 compatibility issues
 const CompatibleShield = Shield as React.ComponentType<{ className?: string }>;
@@ -10,6 +12,24 @@ const CompatibleZap = Zap as React.ComponentType<{ className?: string }>;
 const CompatibleTrendingUp = TrendingUp as React.ComponentType<{ className?: string }>;
 
 export default function EnhancedLandingHero() {
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  if (showOnboarding) {
+    return (
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0A0A0A] via-[#1A1A1A] to-[#0A0A0A]" />
+        <div className="relative z-10 voisss-container py-8">
+          <button
+            onClick={() => setShowOnboarding(false)}
+            className="text-sm text-gray-400 hover:text-white mb-4 transition-colors"
+          >
+            &larr; Back to homepage
+          </button>
+          <OnboardingQuiz />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative overflow-hidden">
@@ -23,6 +43,11 @@ export default function EnhancedLandingHero() {
       <div className="relative z-10 voisss-container py-16 sm:py-24">
         {/* Main Hero Content */}
         <div className="text-center mb-16">
+          {/* Mascot */}
+          <div className="flex justify-center mb-6">
+            <VoissMascot mood="wave" size="lg" interactive />
+          </div>
+
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 rounded-full mb-6">
             <CompatibleZap className="w-4 h-4 text-yellow-400" />
             <span className="text-sm font-medium text-white">
@@ -45,6 +70,13 @@ export default function EnhancedLandingHero() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-6">
+            <button
+              onClick={() => setShowOnboarding(true)}
+              className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl text-white text-lg font-semibold hover:from-purple-500 hover:to-pink-500 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 flex items-center gap-3"
+            >
+              <Sparkles className="w-5 h-5" />
+              Get Started
+            </button>
             <a
               href="/marketplace"
               className="px-8 py-4 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-xl text-white text-lg font-semibold hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 flex items-center gap-3"

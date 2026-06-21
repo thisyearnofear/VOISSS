@@ -94,7 +94,8 @@ export default function Nav() {
     { href: "/studio", label: "Studio", className: "text-white hover:text-[#9C88FF] transition-colors text-sm font-bold uppercase tracking-wider" },
     { href: "/marketplace", label: "Voices", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
     { href: "/import", label: "Import", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
-    { href: "/agents", label: "For Agents", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
+    { href: "/for-agents", label: "Devs", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
+    { href: "/acp-dashboard", label: "ACP", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
   ];
 
   return (

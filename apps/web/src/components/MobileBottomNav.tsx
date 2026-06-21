@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Mic, Store, Upload } from "lucide-react";
+import { Mic, Store, Upload, Code2 } from "lucide-react";
 
 const BOTTOM_LINKS = [
   { href: "/marketplace", label: "Voices", icon: Store },
   { href: "/studio", label: "Record", icon: Mic, primary: true },
+  { href: "/for-agents", label: "Devs", icon: Code2 },
   { href: "/import", label: "Import", icon: Upload },
 ];
 
