@@ -12,17 +12,10 @@
 # Netlify matches top-down, first match wins
 
 # ElevenLabs voice processing
-[[redirects]]
-  from = "/api/agents/vocalize"
-  to = "https://voisss.famile.xyz/api/agents/vocalize"
-  status = 200
-  force = true
+# Note: /api/agents/vocalize is handled directly by Next.js (self-contained API route)
+# NOT proxied to Hetzner — the backend has no route for this endpoint
 
-[[redirects]]
-  from = "/api/agents/vocalize/quote"
-  to = "https://voisss.famile.xyz/api/agents/vocalize/quote"
-  status = 200
-  force = true
+# Voice listing proxied to Hetzner backend
 
 [[redirects]]
   from = "/api/voices"
@@ -62,6 +55,14 @@
   to = "https://voisss.famile.xyz/api/export/:splat"
   status = 200
   force = true
+
+# Stripe payment routes — handled by Next.js, NOT proxied to Hetzner
+# CRITICAL: Stripe webhook needs raw body for signature verification
+[[redirects]]
+  from = "/api/payments/*"
+  to = "/.netlify/functions/nextjs_function"
+  status = 200
+  force = false
 
 # ─── All other /api/* → Next.js API routes (fallback) ───
 

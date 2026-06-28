@@ -4,6 +4,8 @@
 [![Next.js](https://img.shields.io/badge/Next.js-15.3.2-black)](https://nextjs.org/)
 [![Flutter](https://img.shields.io/badge/Flutter-3.32.0-blue)](https://flutter.dev/)
 [![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
+[![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Gemini-4285F4)](https://cloud.google.com/)
+[![Hackathon](https://img.shields.io/badge/🏆-Hackathon%20Submission-FF6F00)](./docs/SUBMISSION_NARRATIVE.md)
 
 **VOISSS** is a B2B voice licensing marketplace where AI agents purchase authentic human voices with blockchain provenance and instant API access.
 

@@ -2,7 +2,7 @@
 # VOISSS Backend Deploy — build locally, rsync artifact, symlink swap
 #
 # Space-optimized flow:
-#   1. Build locally (npm ci + npm run build)
+#   1. Build locally (pnpm deploy --prod with linux-x64 platform targeting)
 #   2. Rsync only the built artifact to server
 #   3. Symlink .env and logs from shared location
 #   4. Atomic symlink swap of /opt/voisss-processing/current
@@ -16,6 +16,11 @@
 #   ./deploy.sh --cleanup    # Remove old releases
 
 set -euo pipefail
+
+# Check prerequisites
+if ! command -v pnpm &> /dev/null; then
+  fail "pnpm is required but not installed. Install it: npm install -g pnpm"
+fi
 
 SERVER="snel-bot"
 DEPLOY_PATH="/opt/voisss-processing"
@@ -103,18 +108,40 @@ echo ""
 if [[ "${1:-}" != "--push" ]]; then
   info "[1/6] Building locally..."
 
-  # Clean previous dist
+  # Clean previous dist (pnpm deploy will recreate)
   rm -rf "$DIST_DIR"
-  mkdir -p "$DIST_DIR"
 
-  # Install production deps only
-  cd "$SCRIPT_DIR"
-  npm ci --omit=dev --ignore-scripts=false 2>&1 | tail -3
+  # Build using pnpm deploy
+  cd "$PROJECT_ROOT"
+  # pnpm deploy creates a self-contained production directory resolving all
+  # workspace deps (@voisss/shared). --ignore-scripts skips native module
+  # compilation (node-gyp) which is fragile cross-platform.
+  pnpm deploy --filter=voisss-processing-service --prod --ignore-scripts "$DIST_DIR" 2>&1 | tail -5
 
-  # Copy built files to dist/
-  cp package.json package-lock.json ecosystem.config.js "$DIST_DIR/"
-  cp -r src "$DIST_DIR/src/"
-  cp -r node_modules "$DIST_DIR/node_modules/"
+  # Post-build: swap macOS native binaries for linux-x64 (sharp uses platform-
+  # specific optional deps selected at install time via process.platform, so we
+  # must force-install the linux variant separately).
+  info "  Installing linux-x64 native binaries..."
+  cd "$DIST_DIR"
+  rm -rf node_modules/@img/sharp-darwin-arm64 node_modules/@img/sharp-libvips-darwin-arm64 2>/dev/null || true
+  # Use a temp dir to avoid workspace:* protocol issues in npm install
+  SHARP_TMP="$(mktemp -d)"
+  cd "$SHARP_TMP"
+  npm init -y > /dev/null 2>&1
+  npm install @img/sharp-linux-x64 @img/sharp-libvips-linux-x64 --os=linux --cpu=x64 --force --ignore-scripts 2>&1 | tail -3
+  cp -r "$SHARP_TMP/node_modules/@img/sharp-linux-x64" "$DIST_DIR/node_modules/@img/"
+  cp -r "$SHARP_TMP/node_modules/@img/sharp-libvips-linux-x64" "$DIST_DIR/node_modules/@img/"
+  rm -rf "$SHARP_TMP"
+
+  # Verify sharp linux-x64 binaries are in place (fails fast if sharp's
+  # package layout changes in a future version)
+  if ! ls "$DIST_DIR/node_modules/@img/" | grep -q sharp-linux-x64; then
+    fail "@img/sharp-linux-x64 not found in dist — check sharp version compatibility"
+  fi
+  cd "$PROJECT_ROOT"
+
+  # Copy PM2 ecosystem config (not included by pnpm deploy)
+  cp "$SCRIPT_DIR/ecosystem.config.js" "$DIST_DIR/"
 
   # Calculate artifact size
   ARTIFACT_SIZE=$(du -sh "$DIST_DIR" | cut -f1)
@@ -147,18 +174,7 @@ REMOTE
 
 # 5. Atomic symlink swap + restart
 info "[5/6] Swapping symlink and restarting..."
-ssh "$SERVER" bash -s <<'RESTART'
-  set -euo pipefail
-  DEPLOY_PATH="/opt/voisss-processing"
-  sudo ln -sfn "$DEPLOY_PATH/releases/$(basename RELEASE_NAME_PLACEHOLDER)" "$DEPLOY_PATH/current"
-  cd "$DEPLOY_PATH/current"
-  pm2 delete voisss-server voisss-export-worker 2>/dev/null || true
-  pm2 start ecosystem.config.js
-  pm2 save
-RESTART
-# Fix the RELEASE_NAME placeholder (heredoc can't expand both local and remote vars)
-ssh "$SERVER" "sudo ln -sfn ${RELEASES_DIR}/${RELEASE_NAME} ${DEPLOY_PATH}/current"
-ssh "$SERVER" bash -c "cd ${DEPLOY_PATH}/current && pm2 delete voisss-server voisss-export-worker 2>/dev/null; pm2 start ecosystem.config.js && pm2 save"
+ssh "$SERVER" "sudo ln -sfn ${RELEASES_DIR}/${RELEASE_NAME} ${DEPLOY_PATH}/current && cd ${DEPLOY_PATH}/current && pm2 delete voisss-server voisss-export-worker 2>/dev/null; pm2 start ecosystem.config.js && pm2 save && echo 'Restart complete'"
 
 # 6. Health check with retry
 info "[6/6] Running health check..."

@@ -8,6 +8,7 @@ const DeveloperSnippets = lazy(() => import("../components/DeveloperSnippets"));
 const FAQSection = lazy(() => import("../components/FAQSection"));
 const NewsletterSection = lazy(() => import("../components/NewsletterSection"));
 const ProtocolIntegrationsSection = lazy(() => import("../components/ProtocolIntegrationsSection"));
+const PersonaConversionSection = lazy(() => import("../components/PersonaConversionSection"));
 
 /** Minimal skeleton while a lazy section loads */
 function SectionFallback() {
@@ -34,6 +35,11 @@ export default function Home() {
             Sits between the hero CTAs and the interactive playground
             so visitors see the value prop before the call-to-action. */}
         <OriginalVsAiShowcase />
+
+        {/* Persona-driven conversion — who is this for? */}
+        <Suspense fallback={<SectionFallback />}>
+          <PersonaConversionSection />
+        </Suspense>
 
         {/* Interactive How It Works (Progressive Disclosure) */}
         <Suspense fallback={<SectionFallback />}>
@@ -66,7 +72,10 @@ export default function Home() {
             VOICE LICENSING FOR AI AGENTS • BLOCKCHAIN PROVENANCE • INSTANT API ACCESS
           </p>
           <div className="flex flex-wrap justify-center gap-x-12 gap-y-4 text-sm font-bold uppercase tracking-widest">
-            <a href="/marketplace" className="text-white hover:text-blue-500 transition-colors">
+            <a href="/demo" className="text-white hover:text-purple-400 transition-colors">
+              Try Demo
+            </a>
+            <a href="/marketplace" className="text-zinc-400 hover:text-white transition-colors">
               Browse Voices
             </a>
             <a href="/for-agents" className="text-zinc-400 hover:text-white transition-colors">
@@ -75,15 +84,15 @@ export default function Home() {
             <a href="/studio" className="text-zinc-400 hover:text-white transition-colors">
               Start Recording
             </a>
+            <a href="/hackathon" className="text-amber-500 hover:text-amber-400 transition-colors">
+              🏆 Hackathon
+            </a>
             <a href="https://github.com/thisyearnofear/VOISSS" target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white transition-colors">
               GitHub
             </a>
-            <a href="/import" className="text-zinc-400 hover:text-white transition-colors">
-              Import Voices
-            </a>
           </div>
           <p className="mt-12 text-zinc-600 text-[10px] tracking-widest uppercase">
-            © 2026 VOISSS. Built on Base • Open Source • MIT License
+            © 2026 VOISSS. Built on Base • Open Source • MIT License • Powered by Google Gemini
           </p>
         </div>
       </div>

@@ -256,6 +256,9 @@ importers:
       react-dom:
         specifier: 18.2.0
         version: 18.2.0(react@18.2.0)
+      stripe:
+        specifier: 22.3.0
+        version: 22.3.0(@types/node@20.17.50)
       thirdweb:
         specifier: ^5.103.1
         version: 5.111.10(@hey-api/openapi-ts@0.87.2)(@solana/sysvars@2.3.0)(@types/react-dom@18.3.7)(@types/react@18.3.27)(ethers@6.15.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@18.2.0)(react@18.2.0)(typescript@5.8.3)(ws@8.19.0)
@@ -22593,6 +22596,18 @@ packages:
   /strip-json-comments@5.0.3:
     resolution: {integrity: sha512-1tB5mhVo7U+ETBKNf92xT4hrQa3pm0MZ0PQvuDnWgAAGHDsfp4lPSpiS6psrSiet87wyGPh9ft6wmhOMQ0hDiw==}
     engines: {node: '>=14.16'}
+    dev: false
+
+  /stripe@22.3.0(@types/node@20.17.50):
+    resolution: {integrity: sha512-ypO6xjVrMWs9SmIMeHr8naCx3dAQ0clxMdUTxn7Ejd7hmY9meBGfE+N4pVHkf9sUNebAHp6uJo6mV3GxDIc2cA==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@types/node': '>=18'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+    dependencies:
+      '@types/node': 20.17.50
     dev: false
 
   /strtok3@10.3.4:
