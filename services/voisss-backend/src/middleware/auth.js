@@ -9,8 +9,10 @@ const VALID_API_KEYS = new Set(
 );
 
 const SKIP_AUTH_PATHS = new Set([
+  // Root-level routes (before /api mount)
   '/health',
-  '/api/health'
+  // Sub-paths under /api (matched relative to mount point)
+  '/voices',
 ]);
 
 function authMiddleware(req, res, next) {
