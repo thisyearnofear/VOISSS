@@ -73,6 +73,21 @@ export function BuyCreditsModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Check for active referral bonus
+  const [referralBonus] = useState(() => {
+    try {
+      const refCode = sessionStorage.getItem("voisss_referral_code");
+      if (refCode) {
+        return {
+          active: true,
+          bonusPercent: 10,
+          code: refCode,
+        };
+      }
+    } catch { /* noop */ }
+    return { active: false, bonusPercent: 0, code: null };
+  });
+
   const handlePurchase = async () => {
     if (!walletAddress || !walletAddress.startsWith("0x")) {
       setError("Please enter your wallet address (starts with 0x)");
@@ -214,6 +229,23 @@ export function BuyCreditsModal({
               )}
             </div>
           </div>
+
+          {/* Referral bonus banner */}
+          {referralBonus.active && (
+            <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-amber-900/30 to-green-900/30 border border-amber-500/30 rounded-xl">
+              <div className="w-8 h-8 bg-amber-500/20 rounded-lg flex items-center justify-center shrink-0">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-amber-200">
+                  🎉 +10% referral bonus active!
+                </p>
+                <p className="text-xs text-amber-300/70">
+                  You get <span className="font-bold text-green-300">10% more credits</span> on any purchase — thanks to the person who referred you.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Wallet address */}
           <div>

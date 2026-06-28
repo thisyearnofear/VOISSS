@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Mic,
   Play,
@@ -10,10 +10,15 @@ import {
   Zap,
   CheckCircle,
   ArrowRight,
-  ChevronDown,
   Volume2,
+  Share2,
+  Copy,
+  Check,
+  Gift,
 } from "lucide-react";
 import { BuyCreditsModal } from "../../components/payment/BuyCreditsModal";
+
+const DEMO_GENERATIONS_KEY = "voisss_demo_generations";
 
 const SAMPLE_TEXTS = [
   {
@@ -52,12 +57,69 @@ export default function DemoPage() {
   const [generationsLeft, setGenerationsLeft] = useState(3);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [charCount, setCharCount] = useState(SAMPLE_TEXTS[0].text.length);
+  const [copied, setCopied] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // Persist free generation count in localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(DEMO_GENERATIONS_KEY);
+      if (stored !== null) {
+        const parsed = parseInt(stored, 10);
+        if (!isNaN(parsed) && parsed >= 0 && parsed <= 3) {
+          setGenerationsLeft(parsed);
+        }
+      }
+    } catch {
+      // localStorage unavailable — use default
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(DEMO_GENERATIONS_KEY, String(generationsLeft));
+    } catch {
+      // silent
+    }
+  }, [generationsLeft]);
 
   useEffect(() => {
     setCharCount(text.length);
   }, [text]);
+
+  // Generate a stable referral link once on mount
+  const [referralLink] = useState(() => {
+    if (typeof window === "undefined") return "";
+    const existingRef = sessionStorage.getItem("voisss_referral_code");
+    const code = existingRef || `demo-${Date.now().toString(36)}`;
+    if (!existingRef) {
+      sessionStorage.setItem("voisss_referral_code", code);
+    }
+    return `${window.location.origin}/demo?ref=${code}`;
+  });
+
+  const copyReferralLink = useCallback(() => {
+    navigator.clipboard.writeText(referralLink).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {
+      // Clipboard unavailable
+    });
+  }, [referralLink]);
+
+  // Share the generated audio
+  const shareAudio = useCallback(() => {
+    if (!audioUrl) return;
+    const shareText = `I just generated this voice on VOISSS using the "${selectedVoice.name}" voice: "${text.slice(0, 100)}${text.length > 100 ? "..." : ""}"\n\nTry it free: ${referralLink}`;
+    navigator.clipboard.writeText(shareText).then(() => {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    }).catch(() => {
+      // Clipboard unavailable
+    });
+  }, [audioUrl, selectedVoice.name, text, referralLink]);
 
   const handleGenerate = async () => {
     if (generationsLeft <= 0) {
@@ -82,7 +144,7 @@ export default function DemoPage() {
           "X-Demo-Mode": "true",
         },
         body: JSON.stringify({
-          text: text.trim().slice(0, 500), // Cap demo at 500 chars
+          text: text.trim().slice(0, 500),
           voiceId: selectedVoice.id,
           agentAddress: "0xDEMO0000000000000000000000000000000000001",
           demo: true,
@@ -160,7 +222,7 @@ export default function DemoPage() {
             Powered by licensed human voices and AI synthesis.
           </p>
 
-          {/* Free generation counter */}
+          {/* Free generation counter — persisted across visits */}
           <div className="inline-flex items-center gap-2 text-sm text-gray-400 mb-2">
             <Sparkles className="w-4 h-4 text-yellow-400" />
             <span>
@@ -320,27 +382,47 @@ export default function DemoPage() {
               />
             )}
 
-            {/* Success state */}
+            {/* Success state with share */}
             {step === "ready" && (
-              <div className="mt-4 p-4 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-green-300">
-                    Audio ready! Hit play ▶
-                  </p>
-                  <p className="text-xs text-green-400/60 truncate">
-                    Stored on IPFS •{" "}
-                    <a
-                      href={audioUrl!}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline hover:text-green-300 transition-colors"
-                    >
-                      View file
-                    </a>
-                  </p>
+              <div className="mt-4 space-y-3">
+                <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-green-300">
+                      Audio ready! Hit play ▶
+                    </p>
+                    <p className="text-xs text-green-400/60 truncate">
+                      Stored on IPFS •{" "}
+                      <a
+                        href={audioUrl!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline hover:text-green-300 transition-colors"
+                      >
+                        View file
+                      </a>
+                    </p>
+                  </div>
+                  <Volume2 className="w-4 h-4 text-green-400 shrink-0" />
                 </div>
-                <Volume2 className="w-4 h-4 text-green-400" />
+
+                {/* Share button */}
+                <button
+                  onClick={shareAudio}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#1A1A1A] border border-[#2A2A2A] hover:border-purple-500/40 rounded-xl text-sm text-gray-300 hover:text-white transition-all"
+                >
+                  {shareCopied ? (
+                    <>
+                      <Check className="w-4 h-4 text-green-400" />
+                      <span className="text-green-400">Copied to clipboard!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Share2 className="w-4 h-4" />
+                      <span>Share this voice — copy text + link</span>
+                    </>
+                  )}
+                </button>
               </div>
             )}
 
@@ -361,6 +443,47 @@ export default function DemoPage() {
             )}
           </div>
         </div>
+
+        {/* Referral share — show after first generation */}
+        {generationsLeft < 3 && (
+          <div className="mt-6 bg-gradient-to-br from-amber-900/20 to-orange-900/10 border border-amber-500/20 rounded-2xl p-5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center shrink-0">
+                <Gift className="w-5 h-5 text-amber-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-bold text-white mb-1">
+                  Share & Earn — 10% bonus credits
+                </h3>
+                <p className="text-sm text-gray-400 mb-3">
+                  Share your referral link. When someone buys credits, you get
+                  10% added to your account.
+                </p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 px-3 py-2 bg-black/40 border border-[#2A2A2A] rounded-lg text-xs text-gray-300 font-mono truncate">
+                    {referralLink}
+                  </code>
+                  <button
+                    onClick={copyReferralLink}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-amber-600 hover:bg-amber-500 rounded-lg text-xs text-white font-semibold transition-colors whitespace-nowrap"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        Copy Link
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Conversion section — shown after first generation or when out of credits */}
         {(generationsLeft < 3 || generationsLeft === 0) && (
