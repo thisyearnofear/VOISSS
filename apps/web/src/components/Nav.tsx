@@ -9,6 +9,15 @@ import { useAssistant } from "../contexts/AssistantContext";
 import { Sparkles, Menu, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+const ONBOARDING_STORAGE_KEY = "voisss_onboarding_profile";
+
+interface OnboardingProfile {
+  role: "creator" | "developer" | "exploring";
+  goal: string;
+  style: string;
+  completedAt: number;
+  redirectUrl: string;
+}
 
 export default function Nav() {
   const router = useRouter();
@@ -90,13 +99,42 @@ export default function Nav() {
     isTestnet: false
   };
 
-  const navLinks = [
-    { href: "/studio", label: "Studio", className: "text-white hover:text-[#9C88FF] transition-colors text-sm font-bold uppercase tracking-wider" },
+  // Load onboarding persona from localStorage to tailor nav
+  const [personaRole, setPersonaRole] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+      if (raw) {
+        const profile: OnboardingProfile = JSON.parse(raw);
+        if (profile.role) setPersonaRole(profile.role);
+      }
+    } catch {
+      // localStorage unavailable — use default nav
+    }
+  }, []);
+
+  // Build nav links based on persona
+  // Developer → first link is "API Docs" (replaces "Studio" + "Devs" deduplicated)
+  // Creator / default → first link is "Studio", "Devs" shown as normal
+  const baseLinks = [
+    {
+      href: personaRole === "developer" ? "/for-agents" : "/studio",
+      label: personaRole === "developer" ? "API Docs" : "Studio",
+      className: "text-white hover:text-[#9C88FF] transition-colors text-sm font-bold uppercase tracking-wider",
+    },
     { href: "/marketplace", label: "Voices", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
     { href: "/import", label: "Import", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
-    { href: "/for-agents", label: "Devs", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
-    { href: "/acp-dashboard", label: "ACP", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
   ];
+
+  // "Devs" link — skipped for developer persona since "API Docs" already points to /for-agents
+  const extraLinks = personaRole === "developer"
+    ? [{ href: "/acp-dashboard", label: "ACP", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" }]
+    : [
+        { href: "/for-agents", label: "Devs", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
+        { href: "/acp-dashboard", label: "ACP", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
+      ];
+
+  const navLinks = [...baseLinks, ...extraLinks];
 
   return (
     <nav className="border-b border-[#2A2A2A] bg-[#0A0A0A]/95 backdrop-blur-sm sticky top-0 z-50">

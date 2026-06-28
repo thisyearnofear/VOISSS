@@ -2,17 +2,46 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Mic, Store, Upload, Code2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Mic, Store, Upload, Code2, FileText, Cpu } from "lucide-react";
 
-const BOTTOM_LINKS = [
-  { href: "/marketplace", label: "Voices", icon: Store },
-  { href: "/studio", label: "Record", icon: Mic, primary: true },
-  { href: "/for-agents", label: "Devs", icon: Code2 },
-  { href: "/import", label: "Import", icon: Upload },
-];
+const ONBOARDING_STORAGE_KEY = "voisss_onboarding_profile";
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
+  const [personaRole, setPersonaRole] = useState<string | null>(null);
+
+  // Load onboarding persona from localStorage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+      if (raw) {
+        const profile = JSON.parse(raw);
+        if (profile.role) setPersonaRole(profile.role);
+      }
+    } catch {
+      // localStorage unavailable
+    }
+  }, []);
+
+  const isDev = personaRole === "developer";
+
+  // Bottom links — primary action changes based on persona
+  const BOTTOM_LINKS = [
+    { href: "/marketplace", label: "Voices", icon: Store },
+    {
+      href: isDev ? "/for-agents" : "/studio",
+      label: isDev ? "API" : "Record",
+      icon: isDev ? FileText : Mic,
+      primary: true,
+    },
+    {
+      href: isDev ? "/acp-dashboard" : "/for-agents",
+      label: isDev ? "ACP" : "Devs",
+      icon: isDev ? Cpu : Code2,
+    },
+    { href: "/import", label: "Import", icon: Upload },
+  ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#2A2A2A] bg-[#0A0A0A]/95 backdrop-blur-lg sm:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
@@ -21,7 +50,7 @@ export default function MobileBottomNav() {
           const Icon = link.icon;
           const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
 
-          // Primary CTA — Record button is larger and elevated
+          // Primary CTA — elevated button
           if (link.primary) {
             return (
               <Link

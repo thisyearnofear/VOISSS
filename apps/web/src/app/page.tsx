@@ -1,5 +1,6 @@
 import { Suspense, lazy } from "react";
 import EnhancedLandingHero from "../components/EnhancedLandingHero";
+import OnboardingRedirect from "../components/OnboardingRedirect";
 import OriginalVsAiShowcase from "../components/OriginalVsAiShowcase";
 
 // Code-split below-fold sections for faster initial load
@@ -26,6 +27,8 @@ function SectionFallback() {
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white overflow-hidden">
+      {/* Auto-redirect returning visitors to their tailored destination */}
+      <OnboardingRedirect />
       <div className="voisss-container py-8 sm:py-12">
         {/* Enhanced Hero Section — always loaded, above fold */}
         <EnhancedLandingHero />

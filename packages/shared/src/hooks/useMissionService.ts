@@ -187,17 +187,20 @@ export function useMissionServiceWithVersionLedger(
       }
 
       // Create a response from the version
+      const now = new Date().toISOString();
       const responseData: Omit<MissionResponse, 'id' | 'submittedAt'> = {
         missionId,
         userId,
         recordingId: versionId, // Use version ID as recording ID
         location: additionalData.location || { city: 'Unknown', country: 'Unknown' },
-        context: additionalData.context ? additionalData.context : `Version ${versionId} (${version.source})`,
         participantConsent: additionalData.participantConsent ?? true,
-        isAnonymized: additionalData.isAnonymized ?? false,
-        voiceObfuscated: additionalData.voiceObfuscated ?? false,
-        status: 'approved',
+        status: 'pending',
+        rewardStatus: 'pending',
+        qualityScore: 0,
+        humanityScore: 0,
         transcription: additionalData.transcription,
+        createdAt: now,
+        updatedAt: now,
       };
 
       return missionServiceHook.submitMissionResponse(responseData);

@@ -265,6 +265,8 @@ export default function OnboardingQuiz() {
     if (!profileComplete) return;
 
     try {
+      // Clear dismissed flag so returning visitors see the redirect banner again
+      localStorage.removeItem("voisss_redirect_dismissed");
       localStorage.setItem(
         ONBOARDING_STORAGE_KEY,
         JSON.stringify({
