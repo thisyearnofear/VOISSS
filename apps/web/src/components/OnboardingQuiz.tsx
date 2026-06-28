@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Sparkles, Mic, Headphones, Globe, Film } from "lucide-react";
+import { ArrowRight, Sparkles, Mic, Headphones, Globe, Loader2 } from "lucide-react";
 import VoissMascot from "./VoissMascot";
+
+const ONBOARDING_STORAGE_KEY = "voisss_onboarding_profile";
 
 type Step = "welcome" | "identity" | "goal" | "style" | "result";
 
@@ -160,11 +163,41 @@ function StyleStep({ onSelect }: { onSelect: (style: string) => void }) {
   );
 }
 
-function ResultStep({ profile, onReset }: { profile: UserProfile; onReset: () => void }) {
-  const ctaUrl = profile.role === "creator" || profile.goal === "list"
-    ? "/studio" : "/marketplace";
-  const ctaText = profile.role === "creator" || profile.goal === "list"
-    ? "Start Recording" : "Browse Voices";
+function ResultStep({ profile, onReset, redirecting, redirectUrl }: { profile: UserProfile; onReset: () => void; redirecting: boolean; redirectUrl: string }) {
+  const destinationLabel =
+    redirectUrl === "/studio"
+      ? "Studio"
+      : redirectUrl === "/for-agents"
+        ? "Developer Docs"
+        : "Demo";
+
+  if (redirecting) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="text-center"
+      >
+        <div className="flex justify-center mb-6">
+          <VoissMascot mood="celebrate" size="lg" interactive />
+        </div>
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/30 rounded-full mb-6">
+          <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
+          <span className="text-sm text-purple-300">Taking you to {destinationLabel}…</span>
+        </div>
+        <h2 className="text-2xl font-bold mb-4">
+          {profile.role === "creator"
+            ? "Ready to earn from your voice"
+            : profile.role === "developer"
+              ? "Let's get you building"
+              : "Welcome to VOISSS"}
+        </h2>
+        <p className="text-gray-400 max-w-md mx-auto">
+          Your preferences have been saved. You can always retake the quiz from the help page.
+        </p>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -193,10 +226,10 @@ function ResultStep({ profile, onReset }: { profile: UserProfile; onReset: () =>
       </p>
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <a
-          href={ctaUrl}
+          href={redirectUrl}
           className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl text-white font-semibold hover:from-purple-500 hover:to-blue-500 transition-all shadow-lg shadow-purple-500/25"
         >
-          {ctaText} <ArrowRight className="w-4 h-4" />
+          Go to {destinationLabel} <ArrowRight className="w-4 h-4" />
         </a>
         <button
           onClick={onReset}
@@ -210,12 +243,47 @@ function ResultStep({ profile, onReset }: { profile: UserProfile; onReset: () =>
 }
 
 export default function OnboardingQuiz() {
+  const router = useRouter();
   const [step, setStep] = useState<Step>("welcome");
   const [profile, setProfile] = useState<UserProfile>({
     role: "exploring",
     goal: "",
     style: "",
   });
+  const [redirecting, setRedirecting] = useState(false);
+
+  const profileComplete = !!(profile.role && profile.goal && profile.style);
+  const redirectUrl =
+    profile.role === "creator" || profile.goal === "list"
+      ? "/studio"
+      : profile.role === "developer" || profile.goal === "license" || profile.goal === "build"
+        ? "/for-agents"
+        : "/demo";
+
+  // Persist to localStorage and auto-redirect once profile is complete
+  useEffect(() => {
+    if (!profileComplete) return;
+
+    try {
+      localStorage.setItem(
+        ONBOARDING_STORAGE_KEY,
+        JSON.stringify({
+          ...profile,
+          completedAt: Date.now(),
+          redirectUrl,
+        })
+      );
+    } catch {
+      // localStorage unavailable — silently continue
+    }
+
+    setRedirecting(true);
+    const timer = setTimeout(() => {
+      router.push(redirectUrl);
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, [profileComplete, redirectUrl, router]);
 
   const handleIdentity = (role: string) => {
     setProfile((p) => ({ ...p, role: role as UserProfile["role"] }));
@@ -232,23 +300,31 @@ export default function OnboardingQuiz() {
     setStep("result");
   };
 
+  const handleReset = () => {
+    setRedirecting(false);
+    setProfile({ role: "exploring", goal: "", style: "" });
+    setStep("welcome");
+  };
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
       {/* Progress bar */}
-      <div className="flex justify-center gap-2 mb-12">
-        {(["welcome", "identity", "goal", "style", "result"] as Step[]).map((s, i) => (
-          <div
-            key={s}
-            className={`w-2.5 h-2.5 rounded-full transition-all duration-500 ${
-              step === s
-                ? "bg-purple-500 scale-125"
-                : ["welcome", "identity", "goal", "style", "result"].indexOf(step) > i
-                  ? "bg-purple-500/50"
-                  : "bg-gray-700"
-            }`}
-          />
-        ))}
-      </div>
+      {!redirecting && (
+        <div className="flex justify-center gap-2 mb-12">
+          {(["welcome", "identity", "goal", "style", "result"] as Step[]).map((s, i) => (
+            <div
+              key={s}
+              className={`w-2.5 h-2.5 rounded-full transition-all duration-500 ${
+                step === s
+                  ? "bg-purple-500 scale-125"
+                  : ["welcome", "identity", "goal", "style", "result"].indexOf(step) > i
+                    ? "bg-purple-500/50"
+                    : "bg-gray-700"
+              }`}
+            />
+          ))}
+        </div>
+      )}
 
       <AnimatePresence mode="wait">
         {step === "welcome" && (
@@ -267,10 +343,9 @@ export default function OnboardingQuiz() {
           <ResultStep
             key="result"
             profile={profile}
-            onReset={() => {
-              setProfile({ role: "exploring", goal: "", style: "" });
-              setStep("welcome");
-            }}
+            redirecting={redirecting}
+            redirectUrl={redirectUrl}
+            onReset={handleReset}
           />
         )}
       </AnimatePresence>
