@@ -2,44 +2,15 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Square, Sparkles, Info, User2, Cpu, ChevronDown, ChevronUp } from "lucide-react";
+import { Play, Square, Sparkles, Info, User2, Cpu, ChevronDown, ChevronUp, Check, ArrowRight } from "lucide-react";
 
 /**
  * Side-by-side comparison: real human voice vs. AI-synthesized version
- * of the same sentence. Both audio sources are pre-rendered MP3s in
- * /public/showcase/ — the human sample is CC0 (LibriVox, public-domain
- * text by Edgar Allan Poe), the AI sample was generated once via
- * ElevenLabs (George voice). The component never calls the synthesis
- * API at runtime — the showcase must be instant and offline-safe.
+ * of the same sentence. Playback is sequential (human → AI) so visitors
+ * can actually hear each source clearly.
  *
- * Both waveforms are driven by AnalyserNodes (Web Audio API) so the
- * bars reflect real amplitude of the playing audio, not a fake animation.
- *
- * --------------------------------------------------------------------------
- * SWAPPING IN A REAL CONTRIBUTOR RECORDING
- * --------------------------------------------------------------------------
- * The current human sample is a LibriVox placeholder so the component
- * works without a recorded contributor. When a real contributor gives
- * consent to use their voice in the showcase:
- *
- *   1. Get the recording (WAV or MP3, ~6-10 seconds, single sentence).
- *   2. Loudness-normalize to ~-16 LUFS for visual parity with the AI
- *      side. A reasonable ffmpeg incantation:
- *        ffmpeg -i input.mp3 -af \
- *          "loudnorm=I=-16:TP=-1.5:LRA=11,highpass=f=80,lowpass=f=12000" \
- *          -ar 44100 -ac 1 -b:a 128k voice-human.mp3
- *   3. Replace apps/web/public/showcase/voice-human.mp3
- *   4. Re-run the AI synthesis with the same sentence via ElevenLabs
- *      (or whichever TTS the marketplace uses for the contributor's
- *      voice) and replace apps/web/public/showcase/voice-ai.mp3.
- *   5. Update HUMAN_VOICE_LABEL and HUMAN_VOICE_SUB below to reflect
- *      the real contributor (e.g. "Mara · Audiobook narrator").
- *   6. If the sentence changes, update SENTENCE (also shown in the
- *      centered quote) and re-record both sides.
- *
- * The component itself is voice- and sentence-agnostic — no other
- * changes needed.
- * --------------------------------------------------------------------------
+ * Audio: pre-rendered MP3s in /public/showcase/, with API fallback if missing.
+ * Waveforms use Web Audio API analysers on the actively playing side only.
  */
 
 const SENTENCE =
@@ -51,9 +22,14 @@ const HUMAN_VOICE_SUB = "Real human · CC0 source";
 const AI_VOICE_LABEL = "ElevenLabs · George";
 const AI_VOICE_SUB = "Licensed AI · same sentence";
 
-const AI_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"; // ElevenLabs George
+const AI_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb";
 const HUMAN_URL = "/showcase/voice-human.mp3";
 const AI_URL = "/showcase/voice-ai.mp3";
+
+const BAR_COUNT = 56;
+
+type Side = "human" | "ai";
+type PlaybackPhase = "idle" | "human" | "ai" | "complete";
 
 async function fetchPreviewAudio(text: string, voiceId: string): Promise<string | null> {
   const res = await fetch("/api/agents/vocalize", {
@@ -73,24 +49,16 @@ async function resolveShowcaseSources(): Promise<{ human: string; ai: string }> 
     return { human: HUMAN_URL, ai: AI_URL };
   }
 
-  // Static files missing on deploy — generate AI side live; human uses static if available
-  const aiUrl =
-    (aiOk ? AI_URL : null) ??
-    (await fetchPreviewAudio(SENTENCE, AI_VOICE_ID));
-
+  const aiUrl = (aiOk ? AI_URL : null) ?? (await fetchPreviewAudio(SENTENCE, AI_VOICE_ID));
   if (!aiUrl) {
     throw new Error("Showcase audio unavailable. Try again in a moment.");
   }
 
   return {
-    human: humanOk ? HUMAN_URL : aiUrl, // degraded: both AI if human clip missing
+    human: humanOk ? HUMAN_URL : aiUrl,
     ai: aiUrl,
   };
 }
-
-const BAR_COUNT = 56;
-
-type Side = "human" | "ai";
 
 interface AnalyserState {
   audio: HTMLAudioElement;
@@ -100,14 +68,39 @@ interface AnalyserState {
   dataArray: Uint8Array;
 }
 
+function waitForAudio(el: HTMLAudioElement): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (el.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      resolve();
+      return;
+    }
+    const onReady = () => {
+      cleanup();
+      resolve();
+    };
+    const onFail = () => {
+      cleanup();
+      reject(new Error("Showcase audio failed to load"));
+    };
+    const cleanup = () => {
+      el.removeEventListener("canplay", onReady);
+      el.removeEventListener("error", onFail);
+    };
+    el.addEventListener("canplay", onReady);
+    el.addEventListener("error", onFail);
+    el.load();
+  });
+}
+
 export default function OriginalVsAiShowcase() {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isReady, setIsReady] = useState(false);
+  const [phase, setPhase] = useState<PlaybackPhase>("idle");
+  const [pausedAt, setPausedAt] = useState<PlaybackPhase | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [humanSrc, setHumanSrc] = useState(HUMAN_URL);
   const [aiSrc, setAiSrc] = useState(AI_URL);
   const [contextOpen, setContextOpen] = useState(false);
+  const [hoverSide, setHoverSide] = useState<Side | null>(null);
 
   const humanAudioRef = useRef<HTMLAudioElement | null>(null);
   const aiAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -118,7 +111,10 @@ export default function OriginalVsAiShowcase() {
   const humanCanvasRef = useRef<HTMLCanvasElement>(null);
   const aiCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Resolve audio sources on mount (static MP3s preferred; API fallback if missing)
+  const activeSide: Side | null =
+    phase === "human" ? "human" : phase === "ai" ? "ai" : null;
+  const isPlaying = phase === "human" || phase === "ai";
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -135,11 +131,11 @@ export default function OriginalVsAiShowcase() {
         if (!cancelled) setIsLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Initialize the audio graphs lazily on first play (browsers block
-  // AudioContext until user interaction).
   const ensureAudioGraph = useCallback(async () => {
     if (humanStateRef.current && aiStateRef.current) return;
 
@@ -147,108 +143,166 @@ export default function OriginalVsAiShowcase() {
     const ai = aiAudioRef.current;
     if (!human || !ai) return;
 
-    try {
-      const Ctor = (window.AudioContext || (window as any).webkitAudioContext) as
-        | typeof AudioContext
-        | undefined;
-      if (!Ctor) throw new Error("Web Audio API not supported");
+    const Ctor = (window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext) as
+      | typeof AudioContext
+      | undefined;
+    if (!Ctor) throw new Error("Web Audio API not supported");
 
-      const ctx = new Ctor();
-      const buildSide = (el: HTMLAudioElement): AnalyserState => {
-        const source = ctx.createMediaElementSource(el);
-        const analyser = ctx.createAnalyser();
-        analyser.fftSize = 256;
-        analyser.smoothingTimeConstant = 0.7;
-        source.connect(analyser);
-        analyser.connect(ctx.destination);
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        return { audio: el, context: ctx, source, analyser, dataArray };
-      };
+    const ctx = new Ctor();
+    const buildSide = (el: HTMLAudioElement): AnalyserState => {
+      const source = ctx.createMediaElementSource(el);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.7;
+      source.connect(analyser);
+      analyser.connect(ctx.destination);
+      return { audio: el, context: ctx, source, analyser, dataArray: new Uint8Array(analyser.frequencyBinCount) };
+    };
 
-      humanStateRef.current = buildSide(human);
-      aiStateRef.current = buildSide(ai);
-      setIsReady(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Audio init failed");
-    }
+    humanStateRef.current = buildSide(human);
+    aiStateRef.current = buildSide(ai);
   }, []);
 
-  // Reset playback position when the user pauses or restarts so both
-  // sides stay aligned in the comparison.
-  const reset = useCallback(() => {
+  const stopAll = useCallback(() => {
+    humanAudioRef.current?.pause();
+    aiAudioRef.current?.pause();
+  }, []);
+
+  const resetAll = useCallback(() => {
     if (humanAudioRef.current) humanAudioRef.current.currentTime = 0;
     if (aiAudioRef.current) aiAudioRef.current.currentTime = 0;
   }, []);
 
-  const play = useCallback(async () => {
-    setError(null);
-    await ensureAudioGraph();
-    const human = humanAudioRef.current;
-    const ai = aiAudioRef.current;
-    if (!human || !ai) return;
+  const playSide = useCallback(
+    async (side: Side) => {
+      const human = humanAudioRef.current;
+      const ai = aiAudioRef.current;
+      if (!human || !ai) return;
 
-    const waitForAudio = (el: HTMLAudioElement) =>
-      new Promise<void>((resolve, reject) => {
-        if (el.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-          resolve();
-          return;
-        }
-        const onReady = () => {
-          cleanup();
-          resolve();
-        };
-        const onFail = () => {
-          cleanup();
-          reject(new Error("Showcase audio failed to load"));
-        };
-        const cleanup = () => {
-          el.removeEventListener("canplay", onReady);
-          el.removeEventListener("error", onFail);
-        };
-        el.addEventListener("canplay", onReady);
-        el.addEventListener("error", onFail);
-        el.load();
-      });
+      stopAll();
+      if (side === "human") {
+        human.currentTime = 0;
+        await waitForAudio(human);
+        setPhase("human");
+        await human.play();
+      } else {
+        ai.currentTime = 0;
+        await waitForAudio(ai);
+        setPhase("ai");
+        await ai.play();
+      }
 
-    reset();
-    try {
-      await Promise.all([waitForAudio(human), waitForAudio(ai)]);
       const ctx = humanStateRef.current?.context;
       if (ctx?.state === "suspended") await ctx.resume();
-      await Promise.all([human.play(), ai.play()]);
-      setIsPlaying(true);
+    },
+    [stopAll]
+  );
+
+  const startSequence = useCallback(async () => {
+    setError(null);
+    setPausedAt(null);
+    try {
+      await ensureAudioGraph();
+      resetAll();
+      await playSide("human");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Playback failed");
-      setIsPlaying(false);
+      setPhase("idle");
+      stopAll();
     }
-  }, [ensureAudioGraph, reset]);
+  }, [ensureAudioGraph, playSide, resetAll, stopAll]);
 
   const pause = useCallback(() => {
-    humanAudioRef.current?.pause();
-    aiAudioRef.current?.pause();
-    setIsPlaying(false);
-  }, []);
+    if (phase === "human" || phase === "ai") {
+      setPausedAt(phase);
+    }
+    stopAll();
+    setPhase("idle");
+  }, [phase, stopAll]);
+
+  const resume = useCallback(async () => {
+    const resumePhase = pausedAt;
+    if (!resumePhase || resumePhase === "complete") {
+      await startSequence();
+      return;
+    }
+    setError(null);
+    try {
+      await ensureAudioGraph();
+      const ctx = humanStateRef.current?.context;
+      if (ctx?.state === "suspended") await ctx.resume();
+      setPhase(resumePhase);
+      if (resumePhase === "human") {
+        await humanAudioRef.current?.play();
+      } else {
+        await aiAudioRef.current?.play();
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Playback failed");
+      setPhase("idle");
+    }
+  }, [ensureAudioGraph, pausedAt, startSequence]);
 
   const toggle = useCallback(() => {
-    if (isPlaying) pause();
-    else void play();
-  }, [isPlaying, pause, play]);
+    if (isPlaying) {
+      pause();
+    } else if (pausedAt) {
+      void resume();
+    } else {
+      void startSequence();
+    }
+  }, [isPlaying, pause, pausedAt, resume, startSequence]);
 
-  // Draw the waveform bars. Each frame: read frequency bin data from
-  // the analyser and paint a centered, mirrored bar chart onto the
-  // canvas. When paused, draw a flat baseline so the UI doesn't look
-  // broken.
+  // Human ends → auto-play AI
+  useEffect(() => {
+    const human = humanAudioRef.current;
+    if (!human) return;
+
+    const onHumanEnded = () => {
+      void (async () => {
+        try {
+          await playSide("ai");
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Playback failed");
+          setPhase("idle");
+        }
+      })();
+    };
+
+    human.addEventListener("ended", onHumanEnded);
+    return () => human.removeEventListener("ended", onHumanEnded);
+  }, [playSide]);
+
+  // AI ends → complete
+  useEffect(() => {
+    const ai = aiAudioRef.current;
+    if (!ai) return;
+
+    const onAiEnded = () => {
+      stopAll();
+      setPausedAt(null);
+      setPhase("complete");
+    };
+
+    ai.addEventListener("ended", onAiEnded);
+    return () => ai.removeEventListener("ended", onAiEnded);
+  }, [stopAll]);
+
   const draw = useCallback(() => {
     rafRef.current = requestAnimationFrame(draw);
+
     const drawSide = (
       canvas: HTMLCanvasElement | null,
       state: AnalyserState | null,
+      side: Side,
       color: { from: string; to: string }
     ) => {
       if (!canvas || !state) return;
-      if (isPlaying) {
+      const live = activeSide === side;
+      if (live) {
         state.analyser.getByteFrequencyData(state.dataArray);
       }
+
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       const dpr = window.devicePixelRatio || 1;
@@ -261,7 +315,6 @@ export default function OriginalVsAiShowcase() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, cssW, cssH);
 
-      // Gradient fill for the bars
       const grad = ctx.createLinearGradient(0, 0, 0, cssH);
       grad.addColorStop(0, color.to);
       grad.addColorStop(1, color.from);
@@ -274,28 +327,25 @@ export default function OriginalVsAiShowcase() {
       const center = cssH / 2;
 
       for (let i = 0; i < BAR_COUNT; i++) {
-        // Average a small window of bins for each bar
         let sum = 0;
         for (let j = 0; j < step; j++) sum += state.dataArray[i * step + j] || 0;
-        const avg = sum / step / 255; // 0..1
-        const amp = isPlaying ? avg : 0.04; // baseline when paused
+        const avg = sum / step / 255;
+        const amp = live ? avg : 0.04;
         const h = Math.max(2, amp * (cssH * 0.92));
         const x = i * barWidth + gap / 2;
-        const w = barWidth - gap;
-        // Mirrored: draw symmetric above + below center
-        ctx.fillRect(x, center - h / 2, w, h);
+        ctx.fillRect(x, center - h / 2, barWidth - gap, h);
       }
     };
 
-    drawSide(humanCanvasRef.current, humanStateRef.current, {
+    drawSide(humanCanvasRef.current, humanStateRef.current, "human", {
       from: "#7C5DFA",
       to: "#C084FC",
     });
-    drawSide(aiCanvasRef.current, aiStateRef.current, {
+    drawSide(aiCanvasRef.current, aiStateRef.current, "ai", {
       from: "#3B82F6",
       to: "#60A5FA",
     });
-  }, [isPlaying]);
+  }, [activeSide]);
 
   useEffect(() => {
     rafRef.current = requestAnimationFrame(draw);
@@ -304,38 +354,44 @@ export default function OriginalVsAiShowcase() {
     };
   }, [draw]);
 
-  // When either clip ends, stop both and reset to start so a click of
-  // play replays from the beginning.
-  const onEnded = useCallback(() => {
-    pause();
-    reset();
-  }, [pause, reset]);
-
-  useEffect(() => {
-    const h = humanAudioRef.current;
-    const a = aiAudioRef.current;
-    h?.addEventListener("ended", onEnded);
-    a?.addEventListener("ended", onEnded);
-    return () => {
-      h?.removeEventListener("ended", onEnded);
-      a?.removeEventListener("ended", onEnded);
-    };
-  }, [onEnded]);
-
-  // Cleanup audio context on unmount.
   useEffect(() => {
     return () => {
       try {
         humanStateRef.current?.context.close();
-      } catch {}
+      } catch {
+        /* ignore */
+      }
       humanStateRef.current = null;
       aiStateRef.current = null;
     };
   }, []);
 
-  const [activeSide, setActiveSide] = useState<Side | null>(null);
-
   const quoteWords = useMemo(() => SENTENCE.split(" "), []);
+
+  const statusHint = useMemo(() => {
+    if (isLoading) return "Loading audio…";
+    if (phase === "human") return "Step 1 · Real human narrator";
+    if (phase === "ai") return "Step 2 · Licensed AI voice";
+    if (phase === "complete") return "Comparison complete · Tap to replay";
+    if (pausedAt) return "Paused · Tap to resume";
+    return "Tap to hear human, then licensed AI";
+  }, [isLoading, phase, pausedAt]);
+
+  const humanCardState = useMemo(() => {
+    if (phase === "human") return { status: "Playing", live: true, dimmed: false, done: false };
+    if (phase === "ai" || phase === "complete") return { status: "Original", live: false, dimmed: false, done: true };
+    if (phase === "idle" && pausedAt === "human") return { status: "Paused", live: false, dimmed: false, done: false };
+    if (phase === "idle" && !pausedAt) return { status: "Step 1", live: false, dimmed: false, done: false };
+    return { status: "Waiting", live: false, dimmed: true, done: false };
+  }, [phase, pausedAt]);
+
+  const aiCardState = useMemo(() => {
+    if (phase === "ai") return { status: "Playing", live: true, dimmed: false, done: false };
+    if (phase === "complete") return { status: "Licensed", live: false, dimmed: false, done: true };
+    if (phase === "human") return { status: "Up next", live: false, dimmed: true, done: false };
+    if (phase === "idle" && pausedAt === "ai") return { status: "Paused", live: false, dimmed: false, done: false };
+    return { status: "Step 2", live: false, dimmed: true, done: false };
+  }, [phase, pausedAt]);
 
   return (
     <motion.div
@@ -345,9 +401,6 @@ export default function OriginalVsAiShowcase() {
       transition={{ duration: 0.5 }}
       className="w-full max-w-5xl mx-auto mb-24 px-4"
     >
-      {/* Hidden audio elements — the source of truth for playback.
-          We never expose <audio controls> to the user; the visual
-          waveform is the UI. */}
       <audio
         ref={humanAudioRef}
         src={humanSrc}
@@ -373,16 +426,12 @@ export default function OriginalVsAiShowcase() {
           <span className="text-blue-400">Licensed AI.</span>
         </h2>
         <p className="text-sm text-gray-400 max-w-2xl mx-auto">
-          Every voice in the VOISSS marketplace is recorded by a real person,
-          then licensed to AI agents. Tap play to hear the same line spoken by
-          a human narrator, then synthesized by the same voice through an
-          AI agent.
+          Hear the same line twice — first from a real narrator, then from a
+          licensed AI voice. One at a time, so the difference is clear.
         </p>
       </div>
 
       <div className="bg-[#0F0F0F]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-5 sm:p-7 shadow-2xl">
-        {/* The quote itself, centered, with a subtle highlight on each
-            word as it plays. Simple opacity transition for now. */}
         <blockquote className="text-center mb-6 sm:mb-8">
           <p className="text-base sm:text-lg leading-relaxed text-white/90 italic font-serif">
             &ldquo;
@@ -404,15 +453,28 @@ export default function OriginalVsAiShowcase() {
           </footer>
         </blockquote>
 
-        {/* The two waveforms */}
+        {/* Step indicators */}
+        <div className="flex items-center justify-center gap-2 sm:gap-4 mb-5 text-[10px] uppercase tracking-widest font-medium">
+          <span className={phase === "human" || humanCardState.done ? "text-purple-300" : "text-gray-600"}>
+            1 · Human
+          </span>
+          <span className="text-gray-700">→</span>
+          <span className={phase === "ai" || phase === "complete" ? "text-blue-300" : "text-gray-600"}>
+            2 · Licensed AI
+          </span>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-7">
           <ShowcaseCard
             side="human"
             label={HUMAN_VOICE_LABEL}
             subtitle={HUMAN_VOICE_SUB}
-            isPlaying={isPlaying}
-            isActive={activeSide === "human"}
-            onHoverChange={setActiveSide}
+            status={humanCardState.status}
+            isLive={humanCardState.live}
+            isDone={humanCardState.done}
+            dimmed={humanCardState.dimmed}
+            isHighlighted={activeSide === "human" || hoverSide === "human"}
+            onHoverChange={setHoverSide}
             canvasRef={humanCanvasRef}
             accent="purple"
             icon={<User2 className="w-4 h-4" />}
@@ -421,21 +483,23 @@ export default function OriginalVsAiShowcase() {
             side="ai"
             label={AI_VOICE_LABEL}
             subtitle={AI_VOICE_SUB}
-            isPlaying={isPlaying}
-            isActive={activeSide === "ai"}
-            onHoverChange={setActiveSide}
+            status={aiCardState.status}
+            isLive={aiCardState.live}
+            isDone={aiCardState.done}
+            dimmed={aiCardState.dimmed}
+            isHighlighted={activeSide === "ai" || hoverSide === "ai"}
+            onHoverChange={setHoverSide}
             canvasRef={aiCanvasRef}
             accent="blue"
             icon={<Cpu className="w-4 h-4" />}
           />
         </div>
 
-        {/* Single play/pause — drives both clips in sync */}
         <div className="flex flex-col items-center gap-3 mt-7">
           <button
             onClick={toggle}
             disabled={!!error || isLoading}
-            aria-label={isPlaying ? "Pause comparison" : "Play comparison"}
+            aria-label={isPlaying ? "Pause comparison" : "Hear the difference"}
             className={`group relative w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 ${
               isPlaying
                 ? "bg-white text-black shadow-[0_0_0_6px_rgba(255,255,255,0.08)]"
@@ -453,19 +517,36 @@ export default function OriginalVsAiShowcase() {
               <Play className="w-5 h-5 fill-current translate-x-0.5" />
             )}
           </button>
-          <p className="text-[10px] uppercase tracking-widest text-gray-500 font-medium">
-            {isPlaying
-              ? "Playing · 7–9 seconds"
-              : isLoading
-              ? "Loading audio…"
-              : "Tap to play both sides"}
+          <p className="text-[10px] uppercase tracking-widest text-gray-500 font-medium text-center">
+            {statusHint}
           </p>
+          {phase === "complete" && (
+            <>
+              <p className="text-xs text-gray-400 text-center max-w-sm">
+                Same voice identity — one recorded by a person, one licensed for AI agents.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2 w-full max-w-sm">
+                <a
+                  href="/demo?from=showcase"
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl text-white text-sm font-semibold hover:from-purple-500 hover:to-blue-500 transition-all"
+                >
+                  Try it yourself
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </a>
+                <a
+                  href="/marketplace"
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm font-semibold hover:bg-white/10 transition-all"
+                >
+                  Browse voices
+                </a>
+              </div>
+            </>
+          )}
           {error && (
             <p className="text-xs text-red-400 max-w-md text-center">{error}</p>
           )}
         </div>
 
-        {/* Optional context — what is this, why does it matter */}
         <div className="mt-6 border-t border-white/5 pt-4">
           <button
             onClick={() => setContextOpen((v) => !v)}
@@ -474,11 +555,7 @@ export default function OriginalVsAiShowcase() {
           >
             <Info className="w-3.5 h-3.5" />
             Why two waveforms?
-            {contextOpen ? (
-              <ChevronUp className="w-3.5 h-3.5" />
-            ) : (
-              <ChevronDown className="w-3.5 h-3.5" />
-            )}
+            {contextOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
           <AnimatePresence>
             {contextOpen && (
@@ -491,23 +568,20 @@ export default function OriginalVsAiShowcase() {
               >
                 <div className="text-xs text-gray-400 leading-relaxed mt-3 max-w-2xl mx-auto space-y-2">
                   <p>
-                    The left bar is a real human narrator reading a public-domain
-                    passage from <em>The Cask of Amontillado</em> (LibriVox, CC0).
-                    The right bar is the same sentence synthesized by an AI agent
-                    using a voice licensed through VOISSS.
+                    We play each side separately so you can actually hear the difference.
+                    The left is a real human narrator (LibriVox, CC0). The right is the
+                    same sentence via a licensed AI voice.
                   </p>
                   <p>
                     VOISSS exists because the best AI voices aren&apos;t synthetic —
-                    they&apos;re <em>licensed</em>. Contributors record themselves,
-                    set their own terms, and earn{" "}
+                    they&apos;re <em>licensed</em>. Contributors earn{" "}
                     <a
                       href="/studio"
                       className="text-purple-300 underline underline-offset-2 hover:text-purple-200 transition-colors font-medium"
                     >
                       70% of every character
                     </a>{" "}
-                    an AI agent speaks in their voice. The marketplace, the
-                    provenance, and the payment rails are all on Base.
+                    an AI agent speaks in their voice.
                   </p>
                 </div>
               </motion.div>
@@ -523,8 +597,11 @@ interface ShowcaseCardProps {
   side: Side;
   label: string;
   subtitle: string;
-  isPlaying: boolean;
-  isActive: boolean;
+  status: string;
+  isLive: boolean;
+  isDone: boolean;
+  dimmed: boolean;
+  isHighlighted: boolean;
   onHoverChange: (s: Side | null) => void;
   canvasRef: React.RefObject<HTMLCanvasElement>;
   accent: "purple" | "blue";
@@ -535,17 +612,22 @@ function ShowcaseCard({
   side,
   label,
   subtitle,
-  isPlaying,
-  isActive,
+  status,
+  isLive,
+  isDone,
+  dimmed,
+  isHighlighted,
   onHoverChange,
   canvasRef,
   accent,
   icon,
 }: ShowcaseCardProps) {
-  const borderColor =
+  const borderActive =
     accent === "purple"
-      ? "border-purple-500/30 hover:border-purple-400/60"
-      : "border-blue-500/30 hover:border-blue-400/60";
+      ? "border-purple-500/50 shadow-purple-500/15"
+      : "border-blue-500/50 shadow-blue-500/15";
+  const borderIdle =
+    accent === "purple" ? "border-purple-500/20" : "border-blue-500/20";
   const dotColor = accent === "purple" ? "bg-purple-400" : "bg-blue-400";
   const labelColor = accent === "purple" ? "text-purple-300" : "text-blue-300";
 
@@ -553,14 +635,10 @@ function ShowcaseCard({
     <div
       onMouseEnter={() => onHoverChange(side)}
       onMouseLeave={() => onHoverChange(null)}
-      onFocus={() => onHoverChange(side)}
-      onBlur={() => onHoverChange(null)}
       tabIndex={0}
-      className={`relative rounded-xl border bg-[#0A0A0A]/60 p-4 transition-all duration-300 ${borderColor} ${
-        isActive ? "shadow-lg" : ""
-      } ${isActive && accent === "purple" ? "shadow-purple-500/10" : ""} ${
-        isActive && accent === "blue" ? "shadow-blue-500/10" : ""
-      }`}
+      className={`relative rounded-xl border bg-[#0A0A0A]/60 p-4 transition-all duration-500 ${
+        isHighlighted ? borderActive + " shadow-lg" : borderIdle
+      } ${dimmed ? "opacity-45" : "opacity-100"}`}
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -579,23 +657,23 @@ function ShowcaseCard({
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <div
-            className={`w-1.5 h-1.5 rounded-full ${dotColor} ${
-              isPlaying ? "animate-pulse" : "opacity-50"
-            }`}
-          />
-          <span className="text-[10px] uppercase tracking-widest text-gray-500 font-medium">
-            {isPlaying ? "Live" : "Idle"}
+          {isDone ? (
+            <Check className={`w-3.5 h-3.5 ${labelColor}`} />
+          ) : (
+            <div
+              className={`w-1.5 h-1.5 rounded-full ${dotColor} ${
+                isLive ? "animate-pulse" : "opacity-50"
+              }`}
+            />
+          )}
+          <span className={`text-[10px] uppercase tracking-widest font-medium ${isLive ? labelColor : "text-gray-500"}`}>
+            {status}
           </span>
         </div>
       </div>
 
       <div className="h-24 sm:h-28 w-full">
-        <canvas
-          ref={canvasRef}
-          className="w-full h-full block"
-          aria-label={`${label} waveform`}
-        />
+        <canvas ref={canvasRef} className="w-full h-full block" aria-label={`${label} waveform`} />
       </div>
     </div>
   );

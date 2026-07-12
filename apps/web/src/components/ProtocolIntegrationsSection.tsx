@@ -1,5 +1,7 @@
-import React from 'react';
-import { Wallet, Globe, Lock, ShieldCheck, Zap, Coins } from 'lucide-react';
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { Wallet, Globe, Lock, ShieldCheck, Zap, Coins, ChevronDown } from "lucide-react";
 
 interface TrackStyle {
   iconBg: string;
@@ -61,10 +63,36 @@ const TRACKS = [
   },
 ];
 
+const ONBOARDING_STORAGE_KEY = "voisss_onboarding_profile";
+
+function isDeveloperPersona(): boolean {
+  try {
+    const raw = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+    if (!raw) return false;
+    const profile = JSON.parse(raw);
+    return (
+      profile.role === "developer" ||
+      profile.goal === "build" ||
+      profile.goal === "license"
+    );
+  } catch {
+    return false;
+  }
+}
+
 export default function ProtocolIntegrationsSection() {
+  const [isDeveloper, setIsDeveloper] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    setIsDeveloper(isDeveloperPersona());
+  }, []);
+
+  const showAll = isDeveloper || expanded;
+  const visibleTracks = showAll ? TRACKS : TRACKS.slice(0, 2);
+
   return (
     <section className="py-24 relative overflow-hidden">
-      {/* Background decoration */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none"></div>
 
       <div className="relative z-10">
@@ -72,7 +100,7 @@ export default function ProtocolIntegrationsSection() {
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-full mb-6">
             <Wallet className="w-4 h-4 text-blue-400" />
             <span className="text-sm font-bold text-blue-400 tracking-wider uppercase">
-              x402 Agent Commerce
+              For agent builders
             </span>
           </div>
 
@@ -80,13 +108,13 @@ export default function ProtocolIntegrationsSection() {
             Built for the <span className="text-blue-500">Autonomous Economy</span>
           </h2>
           <p className="text-gray-400 max-w-2xl mx-auto text-lg">
-            VOISSS is fully integrated with the Open Wallet Standard (OWS) and x402 payment protocol.
-            AI agents can autonomously license, pay for, and manage voice assets — no human in the loop.
+            VOISSS integrates with Open Wallet Standard (OWS) and x402 so AI agents can license,
+            pay for, and manage voice assets without a human in the loop.
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-          {TRACKS.map((track) => {
+          {visibleTracks.map((track) => {
             const Icon = track.icon;
             const cs = colorStyles[track.color] || colorStyles.blue;
             return (
@@ -118,12 +146,24 @@ export default function ProtocolIntegrationsSection() {
           })}
         </div>
 
+        {!isDeveloper && !expanded && (
+          <div className="mt-8 text-center">
+            <button
+              onClick={() => setExpanded(true)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm text-gray-400 hover:text-white border border-white/10 rounded-xl hover:bg-white/5 transition-all"
+            >
+              Show all protocol integrations
+              <ChevronDown className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         <div className="mt-16 text-center">
           <a
-            href="/agents"
+            href="/for-agents"
             className="inline-flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-white font-semibold hover:bg-white/10 transition-all group"
           >
-            Explore Agent APIs
+            Read the API quickstart
             <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
           </a>
         </div>

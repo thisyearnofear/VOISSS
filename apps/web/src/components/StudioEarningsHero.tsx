@@ -3,6 +3,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Mic, ListChecks, Coins, ArrowRight, Sparkles, Store } from "lucide-react";
+import { PRODUCT_TAGLINE } from "@voisss/shared";
 
 /**
  * "Earn 70%" hero for the /studio page.
@@ -63,9 +64,8 @@ export default function StudioEarningsHero() {
           transition={{ duration: 0.45, delay: 0.1 }}
           className="mt-4 text-base sm:text-lg text-gray-300 max-w-2xl"
         >
-          Record your voice once. License it to AI agents on the marketplace.
-          Get paid automatically every time they speak — on Base, with smart
-          contract-enforced revenue splits.
+          {PRODUCT_TAGLINE} Record once in Studio, list on the marketplace, and get
+          paid automatically every time an AI agent speaks with your voice.
         </motion.p>
 
         {/* CTAs */}

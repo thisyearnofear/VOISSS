@@ -6,6 +6,8 @@ import confetti from "canvas-confetti";
 import { motion, AnimatePresence } from "framer-motion";
 import { SocialShare, type ShareableRecording } from "@voisss/ui";
 import { useAuth } from "../../contexts/AuthContext";
+import { PRODUCT_TAGLINE } from "@voisss/shared";
+import Link from "next/link";
 
 interface MarketplaceVoice {
   id: string;
@@ -20,13 +22,15 @@ interface MarketplaceVoice {
 
 export default function QuickVoicePreview() {
   const { address } = useAuth();
-  const [text, setText] = useState("License authentic human voices for your AI agents. Instant API access. Built on Base.");
+  const [text, setText] = useState(PRODUCT_TAGLINE);
   const [voices, setVoices] = useState<MarketplaceVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<MarketplaceVoice | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSynthesized, setHasSynthesized] = useState(false);
+  const [voicesLoaded, setVoicesLoaded] = useState(false);
+  const [voicesEmpty, setVoicesEmpty] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const shareRecording = useMemo<ShareableRecording | null>(() => {
@@ -41,49 +45,32 @@ export default function QuickVoicePreview() {
   }, [selectedVoice]);
 
   // Fallback voices for demo/development if indexer is empty
-  const FALLBACK_VOICES: MarketplaceVoice[] = [
-    {
-      id: "fallback_1",
-      contractVoiceId: "professional_male_01",
-      voiceProfile: { tone: "Professional", accent: "American", language: "English" }
-    },
-    {
-      id: "fallback_2",
-      contractVoiceId: "friendly_female_01",
-      voiceProfile: { tone: "Friendly", accent: "British", language: "English" }
-    },
-    {
-      id: "fallback_3",
-      contractVoiceId: "narrator_deep_01",
-      voiceProfile: { tone: "Narrator", accent: "Deep", language: "English" }
-    }
-  ];
-
   useEffect(() => {
-    // Fetch top 3 featured voices for the preview
     const fetchFeaturedVoices = async () => {
       try {
         setError(null);
         const response = await fetch("/api/marketplace/voices?limit=3");
-        
+
         if (!response.ok) {
-           throw new Error(`HTTP ${response.status}`);
+          throw new Error(`HTTP ${response.status}`);
         }
-        
+
         const data = await response.json();
         if (data.success && data.data.voices?.length > 0) {
           setVoices(data.data.voices.slice(0, 3));
           setSelectedVoice(data.data.voices[0]);
+          setVoicesEmpty(false);
         } else {
-          // If no voices returned, use fallbacks for better UX during hackathon
-          console.warn("No voices returned from marketplace API, using fallbacks.");
-          setVoices(FALLBACK_VOICES);
-          setSelectedVoice(FALLBACK_VOICES[0]);
+          setVoices([]);
+          setSelectedVoice(null);
+          setVoicesEmpty(true);
         }
-      } catch (error) {
-        console.error("Failed to fetch featured voices, using fallbacks:", error);
-        setVoices(FALLBACK_VOICES);
-        setSelectedVoice(FALLBACK_VOICES[0]);
+      } catch {
+        setVoices([]);
+        setSelectedVoice(null);
+        setVoicesEmpty(true);
+      } finally {
+        setVoicesLoaded(true);
       }
     };
     fetchFeaturedVoices();
@@ -143,16 +130,34 @@ export default function QuickVoicePreview() {
         } else if (errorMessage.includes("payTo address is REQUIRED") || errorMessage.includes("Payment required")) {
           setError("Preview configuration is being updated. Please try again in a moment.");
         } else {
-          setError(errorMessage + " Please try another voice or wait a moment.");
+          setError("Preview isn't available right now. Try the full demo or pick another voice.");
         }
       }
-    } catch (error) {
-      console.error("Error playing sample:", error);
-      setError("An unexpected error occurred. Please check your connection.");
+    } catch {
+      setError("Couldn't reach the server. Check your connection and try again.");
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (voicesLoaded && voicesEmpty) {
+    return (
+      <div className="w-full max-w-2xl mx-auto bg-[#141414]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl text-center">
+        <Sparkles className="w-8 h-8 text-blue-400 mx-auto mb-4" />
+        <h3 className="text-lg font-bold text-white mb-2">Voices loading soon</h3>
+        <p className="text-sm text-gray-400 mb-6 max-w-md mx-auto">
+          The marketplace is still indexing contributor voices. In the meantime, try the free demo — no wallet needed.
+        </p>
+        <Link
+          href="/demo"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl text-white text-sm font-semibold hover:from-purple-500 hover:to-blue-500 transition-all"
+        >
+          <Play className="w-4 h-4" />
+          Open free demo
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div

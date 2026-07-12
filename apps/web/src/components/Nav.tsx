@@ -10,6 +10,7 @@ import { Sparkles, Menu, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const ONBOARDING_STORAGE_KEY = "voisss_onboarding_profile";
+const NEW_USER_HINT_KEY = "voisss_new_user_hint_dismissed";
 
 interface OnboardingProfile {
   role: "creator" | "developer" | "exploring";
@@ -32,6 +33,7 @@ export default function Nav() {
   } = useBaseAccount();
   const [showWalletMenu, setShowWalletMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showNewHint, setShowNewHint] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -72,6 +74,24 @@ export default function Nav() {
       document.body.style.overflow = '';
     };
   }, [showMobileMenu]);
+
+  // First-visit hint on Demo link — dismiss on click or after onboarding
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(NEW_USER_HINT_KEY) === "true") return;
+      if (localStorage.getItem(ONBOARDING_STORAGE_KEY)) return;
+      setShowNewHint(true);
+    } catch {
+      // localStorage unavailable
+    }
+  }, []);
+
+  const dismissNewHint = () => {
+    try {
+      localStorage.setItem(NEW_USER_HINT_KEY, "true");
+    } catch {}
+    setShowNewHint(false);
+  };
 
   const formatAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
@@ -146,9 +166,20 @@ export default function Nav() {
             {/* Desktop Nav Links */}
             <div className="hidden sm:flex items-center gap-6">
               {navLinks.map((link) => (
-                <Link key={link.href} href={link.href} className={link.className}>
-                  {link.label}
-                </Link>
+                <div key={link.href} className="relative">
+                  <Link
+                    href={link.href}
+                    className={link.className}
+                    onClick={link.href === "/demo" ? dismissNewHint : undefined}
+                  >
+                    {link.label}
+                  </Link>
+                  {link.href === "/demo" && showNewHint && (
+                    <span className="absolute -top-2 -right-3 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide bg-purple-500 text-white rounded-full whitespace-nowrap pointer-events-none">
+                      New?
+                    </span>
+                  )}
+                </div>
               ))}
             </div>
 
@@ -402,10 +433,18 @@ export default function Nav() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  onClick={() => setShowMobileMenu(false)}
-                  className="flex items-center px-6 py-4 text-white hover:bg-white/5 transition-colors text-lg font-medium"
+                  onClick={() => {
+                    if (link.href === "/demo") dismissNewHint();
+                    setShowMobileMenu(false);
+                  }}
+                  className="flex items-center gap-2 px-6 py-4 text-white hover:bg-white/5 transition-colors text-lg font-medium"
                 >
                   {link.label}
+                  {link.href === "/demo" && showNewHint && (
+                    <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-purple-500 text-white rounded-full">
+                      New?
+                    </span>
+                  )}
                 </Link>
               ))}
             </div>

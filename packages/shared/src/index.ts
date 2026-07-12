@@ -68,6 +68,7 @@ export * from './config/platform';
 export * from './config/tokenAccess';
 export { PLATFORM_FEATURES } from './config/features';
 export type { FeatureFlags } from './config/features';
+export * from './config/copy';
 
 // Constants
 export * from './constants';

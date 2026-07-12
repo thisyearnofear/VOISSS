@@ -6,6 +6,7 @@ import QuickVoicePreview from "./marketplace/QuickVoicePreview";
 import VoissMascot from "./VoissMascot";
 import OnboardingQuiz from "./OnboardingQuiz";
 import { BuyCreditsButton } from "./payment/BuyCreditsModal";
+import { PRODUCT_TAGLINE, PRODUCT_TAGLINE_SHORT } from "@voisss/shared";
 
 // Type-safe icon wrappers to resolve React 18/19 compatibility issues
 const CompatibleShield = Shield as React.ComponentType<{ className?: string }>;
@@ -53,7 +54,7 @@ export default function EnhancedLandingHero() {
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 rounded-full">
               <CompatibleZap className="w-4 h-4 text-yellow-400" />
               <span className="text-sm font-medium text-white">
-                Try free demo → License human voices → Pay per character on Base
+                {PRODUCT_TAGLINE_SHORT}
               </span>
             </div>
           </div>
@@ -65,7 +66,7 @@ export default function EnhancedLandingHero() {
           </h1>
 
           <p className="text-xl sm:text-2xl text-gray-300 mb-4 max-w-3xl mx-auto">
-            License authentic human voices for your AI agents. Pay-per-character with blockchain provenance.
+            {PRODUCT_TAGLINE}
           </p>
           <p className="text-gray-400 mb-12 max-w-2xl mx-auto">
             ~$0.000001/character • 70% to contributors • Instant API access • No monthly fees

@@ -18,6 +18,7 @@ import {
   Gift,
 } from "lucide-react";
 import { BuyCreditsModal } from "../../components/payment/BuyCreditsModal";
+import { PRODUCT_TAGLINE, SHOWCASE_POE_LINE } from "@voisss/shared";
 
 const DEMO_GENERATIONS_KEY = "voisss_demo_generations";
 
@@ -106,6 +107,15 @@ function DemoPageInner() {
       });
     }
   }, [searchParams]);
+
+  // Prefill Poe line when arriving from homepage showcase
+  useEffect(() => {
+    if (searchParams.get("from") === "showcase") {
+      setText(SHOWCASE_POE_LINE);
+    }
+  }, [searchParams]);
+
+  const fromShowcase = searchParams.get("from") === "showcase";
 
   // Generate a stable referral link once on mount
   const [referralLink] = useState(() => {
@@ -220,6 +230,15 @@ function DemoPageInner() {
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto px-4 pt-16 pb-8 text-center">
+          {fromShowcase && (
+            <div className="mb-6 p-4 bg-gradient-to-r from-purple-900/30 to-blue-900/20 border border-purple-500/20 rounded-xl text-left max-w-2xl mx-auto">
+              <p className="text-sm text-purple-200 font-medium mb-1">You heard the difference — now try generating your own.</p>
+              <p className="text-xs text-gray-400">
+                We pre-filled the Poe line from the showcase. Pick a voice and hit generate — no wallet needed.
+              </p>
+            </div>
+          )}
+
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/20 rounded-full mb-6">
             <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
             <span className="text-sm font-medium text-purple-300">
@@ -236,8 +255,7 @@ function DemoPageInner() {
           </h1>
 
           <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
-            Type any text. Choose a voice. Get studio-quality audio in seconds.
-            Powered by licensed human voices and AI synthesis.
+            {PRODUCT_TAGLINE} Type any text, choose a voice, get studio-quality audio in seconds.
           </p>
 
           {/* Free generation counter — persisted across visits */}
@@ -516,15 +534,34 @@ function DemoPageInner() {
                   No monthly fees. 70% to voice creators.
                 </p>
               </div>
-              <button
-                onClick={() => setShowBuyCredits(true)}
-                id="demo-buy-credits-btn"
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-xl whitespace-nowrap transition-all duration-200 shadow-lg shadow-purple-500/20"
-              >
-                <Zap className="w-4 h-4" />
-                Start for $5
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto shrink-0">
+                <button
+                  onClick={() => setShowBuyCredits(true)}
+                  id="demo-buy-credits-btn"
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-xl whitespace-nowrap transition-all duration-200 shadow-lg shadow-purple-500/20"
+                >
+                  <Zap className="w-4 h-4" />
+                  Buy credits — $5
+                </button>
+                {audioUrl && (
+                  <button
+                    onClick={shareAudio}
+                    className="flex items-center justify-center gap-2 px-6 py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-semibold rounded-xl whitespace-nowrap transition-all"
+                  >
+                    {shareCopied ? (
+                      <>
+                        <Check className="w-4 h-4 text-green-400" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Share2 className="w-4 h-4" />
+                        Share this voice
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-white/5">

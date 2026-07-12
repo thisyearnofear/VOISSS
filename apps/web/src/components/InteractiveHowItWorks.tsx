@@ -5,41 +5,47 @@ import { Mic, Search, CreditCard, ChevronRight } from "lucide-react";
 
 const steps = [
   {
-    title: "Contributors Record & List",
-    description: "Voice artists and contributors use our Recording Studio to capture high-quality voice samples. These are processed and indexed with unique voice fingerprints.",
+    title: "Creators record & list",
+    description: "Record your voice in the browser, set your price, and list it on the marketplace. One recording, ongoing income.",
     icon: Mic,
     color: "purple" as const,
     details: [
-      "Secure recording studio directly in the browser",
-      "Automatic voice fingerprinting for blockchain provenance",
-      "Set your own licensing terms and royalty rates",
-      "Proof-of-consent built into the submission process"
-    ]
+      "In-browser recording studio — no extra software",
+      "Set licensing terms and per-character pricing",
+      "Proof-of-consent built into every submission",
+      "Your voice fingerprint proves authenticity on-chain",
+    ],
+    cta: "Open Recording Studio",
+    ctaHref: "/studio",
   },
   {
-    title: "AI Agents Browse & License",
-    description: "Developers and AI agents browse the marketplace to find the perfect voice. They can license it instantly using x402 payments on the Base network.",
+    title: "Agents find & license voices",
+    description: "Browse by tone, accent, and style. License instantly with pay-per-character pricing — no subscriptions.",
     icon: Search,
     color: "blue" as const,
     details: [
-      "Advanced search by tone, accent, age, and style",
-      "One-click licensing via smart contracts",
-      "Gasless transactions for a seamless experience",
-      "Integration-ready API for automated licensing"
-    ]
+      "Search by tone, accent, age, and style",
+      "Try any voice free in the demo — no wallet",
+      "License via API with micropayments on Base",
+      "Integration-ready for agents and automations",
+    ],
+    cta: "Try the free demo",
+    ctaHref: "/demo",
   },
   {
-    title: "Automatic Royalty Payments",
-    description: "Every time a voice is used, royalties are automatically distributed via smart contracts. 70% of revenue goes directly to the contributor.",
+    title: "Creators get paid automatically",
+    description: "Every time an AI agent speaks with a licensed voice, royalties flow to the contributor — 70% to creators.",
     icon: CreditCard,
     color: "green" as const,
     details: [
-      "Real-time payment tracking on the dashboard",
-      "Transparent revenue sharing via blockchain",
-      "Instant withdrawals on the Base network",
-      "Passive income stream for every AI agent license"
-    ]
-  }
+      "Real-time earnings on your dashboard",
+      "Transparent revenue splits via smart contracts",
+      "Withdraw on Base when you're ready",
+      "Passive income from every agent license",
+    ],
+    cta: "Browse the marketplace",
+    ctaHref: "/marketplace",
+  },
 ];
 
 type StepColor = "purple" | "blue" | "green";
@@ -97,24 +103,26 @@ export default function InteractiveHowItWorks() {
 
   return (
     <section className="py-24 max-w-6xl mx-auto px-4">
-      <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">
+      <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-4">
         How VOISSS Works
       </h2>
+      <p className="text-center text-gray-500 text-sm mb-16 max-w-xl mx-auto">
+        Real human voices, licensed per character. Blockchain settlement on Base powers provenance and payouts behind the scenes.
+      </p>
 
       <div className="grid lg:grid-cols-2 gap-12 items-center">
-        {/* Left Side: Step Selection */}
         <div className="space-y-4">
           {steps.map((step, index) => {
             const Icon = step.icon;
             const isActive = activeStep === index;
             const cs = colorStyles[step.color];
-            
+
             return (
               <button
                 key={index}
                 onClick={() => setActiveStep(index)}
                 className={`w-full text-left p-6 rounded-2xl border transition-all duration-300 flex items-start gap-4 ${
-                  isActive 
+                  isActive
                     ? `bg-[#1A1A1A] ${cs.borderActive} shadow-lg ${cs.shadowActive}`
                     : "bg-transparent border-[#2A2A2A] hover:border-gray-700"
                 }`}
@@ -142,18 +150,17 @@ export default function InteractiveHowItWorks() {
           })}
         </div>
 
-        {/* Right Side: Progressive Disclosure (Details) */}
         <div className="bg-[#111111] border border-[#2A2A2A] rounded-3xl p-8 sm:p-12 min-h-[400px] flex flex-col justify-center animate-in fade-in slide-in-from-right-8 duration-500" key={activeStep}>
           <div className={`w-20 h-20 rounded-2xl ${colorStyles[steps[activeStep].color].detailBg} flex items-center justify-center mb-8`}>
-            {React.createElement(steps[activeStep].icon, { 
-              className: `w-10 h-10 ${colorStyles[steps[activeStep].color].detailIcon}` 
+            {React.createElement(steps[activeStep].icon, {
+              className: `w-10 h-10 ${colorStyles[steps[activeStep].color].detailIcon}`,
             })}
           </div>
-          
+
           <h3 className="text-2xl font-bold text-white mb-6">
-            Detailed Process: {steps[activeStep].title}
+            {steps[activeStep].title}
           </h3>
-          
+
           <ul className="space-y-4">
             {steps[activeStep].details.map((detail, idx) => (
               <li key={idx} className="flex items-start gap-3 text-gray-300">
@@ -164,11 +171,11 @@ export default function InteractiveHowItWorks() {
           </ul>
 
           <div className="mt-10 pt-8 border-t border-[#2A2A2A]">
-            <a 
-              href={activeStep === 0 ? "/studio" : "/marketplace"} 
+            <a
+              href={steps[activeStep].ctaHref}
               className={`inline-flex items-center gap-2 ${colorStyles[steps[activeStep].color].linkText} font-bold hover:underline`}
             >
-              {activeStep === 0 ? "Open Recording Studio" : "Browse the Marketplace"}
+              {steps[activeStep].cta}
               <CompatibleChevronRight className="w-4 h-4" />
             </a>
           </div>

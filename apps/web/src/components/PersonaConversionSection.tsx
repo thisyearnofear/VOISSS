@@ -3,23 +3,25 @@
 import React, { useState } from "react";
 import { Mic, Code2, Building2, ArrowRight, Sparkles } from "lucide-react";
 import { BuyCreditsModal } from "./payment/BuyCreditsModal";
+import { PERSONA_STEPS } from "@voisss/shared";
 
 const PERSONAS = [
   {
     icon: Code2,
-    id: "developer",
+    id: "developer" as const,
     title: "I'm building with AI",
     description: "Add voice to your agents, apps, and automations with a single API call.",
     highlight: "Pay $0.000001/char — no subscription",
     cta: "Get API Credits",
-    ctaHref: null, // Opens credits modal
+    ctaHref: null,
     gradient: "from-blue-500 to-cyan-500",
     bgGlow: "bg-blue-500/10",
     border: "border-blue-500/20",
+    steps: PERSONA_STEPS.developer,
   },
   {
     icon: Mic,
-    id: "creator",
+    id: "creator" as const,
     title: "I have a voice to share",
     description: "Record your voice once. Earn 70% every time an AI agent uses it.",
     highlight: "Smart contract enforced — always 70%",
@@ -28,10 +30,11 @@ const PERSONAS = [
     gradient: "from-purple-500 to-pink-500",
     bgGlow: "bg-purple-500/10",
     border: "border-purple-500/20",
+    steps: PERSONA_STEPS.creator,
   },
   {
     icon: Building2,
-    id: "enterprise",
+    id: "enterprise" as const,
     title: "I need enterprise voices",
     description: "Custom voice cloning, exclusive licensing, white-label. $2K+ for your brand.",
     highlight: "Custom model trained on your samples",
@@ -40,16 +43,10 @@ const PERSONAS = [
     gradient: "from-amber-500 to-orange-500",
     bgGlow: "bg-amber-500/10",
     border: "border-amber-500/20",
+    steps: PERSONA_STEPS.enterprise,
   },
 ];
 
-/**
- * PersonaConversionSection
- *
- * Three-column "who is this for?" section designed to drive direct
- * conversion from the homepage. Developer → credits, Creator → studio,
- * Enterprise → contact.
- */
 export default function PersonaConversionSection() {
   const [showCredits, setShowCredits] = useState(false);
 
@@ -73,7 +70,6 @@ export default function PersonaConversionSection() {
               key={persona.id}
               className={`relative p-6 rounded-2xl border ${persona.border} ${persona.bgGlow} hover:scale-[1.02] transition-transform duration-200 group`}
             >
-              {/* Icon */}
               <div
                 className={`w-12 h-12 rounded-xl bg-gradient-to-br ${persona.gradient} flex items-center justify-center mb-4 shadow-lg`}
               >
@@ -87,10 +83,21 @@ export default function PersonaConversionSection() {
                 {persona.description}
               </p>
               <p
-                className={`text-xs font-semibold bg-gradient-to-r ${persona.gradient} bg-clip-text text-transparent mb-6`}
+                className={`text-xs font-semibold bg-gradient-to-r ${persona.gradient} bg-clip-text text-transparent mb-4`}
               >
                 ✦ {persona.highlight}
               </p>
+
+              <ol className="flex flex-col gap-1.5 mb-6">
+                {persona.steps.map((step, i) => (
+                  <li key={step} className="flex items-center gap-2 text-xs text-gray-500">
+                    <span className={`w-5 h-5 rounded-full bg-gradient-to-br ${persona.gradient} flex items-center justify-center text-[10px] font-bold text-white shrink-0`}>
+                      {i + 1}
+                    </span>
+                    {step}
+                  </li>
+                ))}
+              </ol>
 
               {persona.ctaHref ? (
                 <a

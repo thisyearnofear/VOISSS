@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Copy, Check, Terminal, Code2, Bot, ExternalLink } from "lucide-react";
+import { PRODUCT_TAGLINE } from "@voisss/shared";
 
 const snippets = [
   {
@@ -137,7 +138,7 @@ export default function ForAgentsPage() {
             <span className="voisss-gradient-text">5 Lines</span>
           </h1>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-            Pick your framework, copy the code, and your AI agent is speaking with a licensed human voice.
+            {PRODUCT_TAGLINE} Pick your framework, copy the code, and your AI agent is speaking with a licensed human voice.
           </p>
         </div>
 

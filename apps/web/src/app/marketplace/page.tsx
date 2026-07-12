@@ -310,8 +310,10 @@ export default function MarketplacePage() {
             <div>
               <p className="text-sm text-gray-300 font-medium">Welcome to the Voice Marketplace</p>
               <p className="text-xs text-gray-500 mt-1">
-                Connect your wallet to license voices for your AI agents, or head to the{" "}
-                <a href="/studio" className="text-[#9C88FF] hover:underline">Studio</a> to contribute your own voice.
+                Try voices free in the{" "}
+                <a href="/demo" className="text-[#9C88FF] hover:underline">demo</a>
+                {" "}first — no wallet needed. Contributors can head to the{" "}
+                <a href="/studio" className="text-[#9C88FF] hover:underline">Studio</a>.
               </p>
             </div>
           </motion.div>
