@@ -19,16 +19,16 @@ export default function AchievementsPage() {
   const loadAchievements = async () => {
     setLoading(true);
     try {
-      // Get all achievements from database
-      const allAchievements = await webEngagementService.db.getAll<Achievement>("achievements");
+      const adapter = webEngagementService as typeof webEngagementService & {
+        getAchievementsCatalog: () => Promise<Achievement[]>;
+        getUserAchievements: (userId: string) => Promise<UserAchievement[]>;
+      };
+
+      const allAchievements = await adapter.getAchievementsCatalog();
       setAchievements(allAchievements.sort((a: Achievement, b: Achievement) => a.order - b.order));
 
       if (address) {
-        // Get user's unlocked achievements
-        const userAchs = await webEngagementService.db.getWhere<UserAchievement>(
-          "user_achievements",
-          (ua: UserAchievement) => ua.userId === address
-        );
+        const userAchs = await adapter.getUserAchievements(address);
         const map = new Map<string, UserAchievement>(userAchs.map((ua: UserAchievement) => [ua.achievementId, ua]));
         setUserAchievements(map);
       }

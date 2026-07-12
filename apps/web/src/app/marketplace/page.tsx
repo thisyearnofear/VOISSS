@@ -1,17 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { VoiceCard } from "@/components/marketplace/VoiceCard";
 import { VoiceMarketTrends } from "@/components/marketplace/VoiceMarketTrends";
 import { LicensePurchaseModal } from "@/components/payment/LicensePurchaseModal";
-import { useBaseAccount } from "@/hooks/useBaseAccount";
+import { BuyCreditsModal } from "@/components/payment/BuyCreditsModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChevronDown, Sparkles } from "lucide-react";
 
 export default function MarketplacePage() {
-  const { isConnected, universalAddress, connect } = useBaseAccount();
-  const { address: authAddress, isAuthenticated } = useAuth();
+  const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const [voices, setVoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +23,7 @@ export default function MarketplacePage() {
   });
   const [showFilters, setShowFilters] = useState(false);
   const [modalVoice, setModalVoice] = useState<any>(null);
+  const [showBuyCredits, setShowBuyCredits] = useState(false);
 
   const activeFilterCount = [filters.language, filters.tone, filters.licenseType].filter(Boolean).length;
 
@@ -60,51 +62,12 @@ export default function MarketplacePage() {
   };
 
   const handlePurchaseClick = (voiceId: string) => {
-    if (!isConnected && !isAuthenticated) {
-      connect();
-      return;
-    }
     const voice = voices.find((v) => v.id === voiceId) || null;
     setModalVoice(voice);
   };
 
-  const executePurchase = async (voiceId: string): Promise<{ success: boolean; licenseId?: string; error?: string }> => {
-    const activeAddress = universalAddress || authAddress;
-    if (!activeAddress) return { success: false, error: "No wallet connected" };
-
-    const response = await fetch("/api/marketplace/license", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ voiceId, licenseeAddress: activeAddress, licenseType: "non-exclusive" }),
-    });
-
-    if (response.status === 402) {
-      const paymentData = await response.json();
-      const txHash = `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`;
-
-      const finalizeResponse = await fetch("/api/marketplace/license", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-402-payment": JSON.stringify({
-            txHash,
-            amount: paymentData.requirements?.amount || "49000000",
-            currency: "USDC",
-          }),
-        },
-        body: JSON.stringify({ voiceId, licenseeAddress: activeAddress, licenseType: "non-exclusive" }),
-      });
-
-      const result = await finalizeResponse.json();
-      return result.success
-        ? { success: true, licenseId: result.data?.licenseId }
-        : { success: false, error: result.error || "Activation failed" };
-    }
-
-    const result = await response.json();
-    return result.success
-      ? { success: true, licenseId: result.data?.licenseId }
-      : { success: false, error: result.error || "Purchase failed" };
+  const handleTryDemo = (voiceId: string) => {
+    router.push(`/demo?voiceId=${encodeURIComponent(voiceId)}`);
   };
 
   const totalVoices = voices.length;
@@ -413,8 +376,11 @@ export default function MarketplacePage() {
         onClose={() => setModalVoice(null)}
         voice={modalVoice}
         licenseType="non-exclusive"
-        onPurchase={executePurchase}
+        onTryDemo={handleTryDemo}
+        onBuyCredits={() => setShowBuyCredits(true)}
       />
+
+      <BuyCreditsModal isOpen={showBuyCredits} onClose={() => setShowBuyCredits(false)} />
     </div>
   );
 }

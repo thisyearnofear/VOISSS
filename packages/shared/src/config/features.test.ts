@@ -10,8 +10,8 @@ describe('Platform feature flags', () => {
     expect(PLATFORM_FEATURES.missions).toBe(false);
   });
 
-  it('referrals are disabled by default', () => {
-    expect(PLATFORM_FEATURES.referrals).toBe(false);
+  it('referrals are enabled by default', () => {
+    expect(PLATFORM_FEATURES.referrals).toBe(true);
   });
 
   it('butler is disabled by default', () => {
@@ -22,8 +22,8 @@ describe('Platform feature flags', () => {
     expect(PLATFORM_FEATURES.insights).toBe(false);
   });
 
-  it('social sharing is disabled by default', () => {
-    expect(PLATFORM_FEATURES.socialSharing).toBe(false);
+  it('social sharing is enabled by default', () => {
+    expect(PLATFORM_FEATURES.socialSharing).toBe(true);
   });
 
   it('newsletter is disabled by default', () => {

@@ -53,20 +53,7 @@ export default function EnhancedLandingHero() {
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 rounded-full">
               <CompatibleZap className="w-4 h-4 text-yellow-400" />
               <span className="text-sm font-medium text-white">
-                Production Ready • Base Mainnet • Multi-Chain Payments
-              </span>
-            </div>
-            {/* Google Cloud badge — required for hackathon submission */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-full">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                <path d="M14.52 4.25c1.47.44 2.75 1.32 3.71 2.48l-2.05 1.39c-.54-.72-1.28-1.25-2.12-1.54l.46-2.33zM6.32 9.28c.42-1.11 1.17-2.06 2.15-2.75L8 4.02C6.34 5.05 5.03 6.56 4.25 8.37l2.07.91z" fill="#4285F4"/>
-                <path d="M18.52 3.67c-1.28-.58-2.68-.88-4.08-.9L13.98 5.1c.88.03 1.72.2 2.5.54l2.04-1.97z" fill="#34A853"/>
-                <path d="M8.72 19.85c-1.56-.52-2.92-1.48-3.9-2.44l1.98-1.38c.67.7 1.5 1.24 2.44 1.63l-.52 2.19z" fill="#FBBC05"/>
-                <path d="M18.25 13.97a5.95 5.95 0 01-.94 3.9c-.79 1.19-1.94 2.09-3.3 2.58l-1.05-2.08c.82-.3 1.53-.82 2.05-1.51l3.24-2.89z" fill="#EA4335"/>
-                <path d="M20.2 8.37c.28.82.42 1.69.42 2.58 0 .94-.16 1.86-.47 2.73l-3.24-2.86c.15-.43.23-.88.23-1.34 0-.43-.07-.85-.2-1.25l3.26-2.86z" fill="#4285F4"/>
-              </svg>
-              <span className="text-sm font-medium text-blue-300">
-                Powered by Google Cloud
+                Try free demo → License human voices → Pay per character on Base
               </span>
             </div>
           </div>
@@ -150,7 +137,7 @@ export default function EnhancedLandingHero() {
               Instant API Access
             </h3>
             <p className="text-gray-400">
-              Integrate voices into your AI agent with a single API call via x402 payments
+              Integrate voices into your AI agent with a single API call — no subscription
             </p>
           </div>
 

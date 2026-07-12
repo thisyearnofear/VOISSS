@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { getServerEngagementService } from "@/lib/engagement-server";
 
 const TrackSchema = z.object({
-  code: z.string().min(1).max(16),
+  code: z.string().min(1).max(64),
   visitorId: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { code, visitorId } = TrackSchema.parse(body);
-
-    // In production, store in database. For now, log the referral event.
-    console.log(`[Referral] Tracked: code=${code}, visitor=${visitorId || "anonymous"}`);
-
+    const { code } = TrackSchema.parse(body);
+    const service = getServerEngagementService();
+    await service.trackReferralClick(code);
     return NextResponse.json({ success: true });
   } catch (error) {
     if (error instanceof z.ZodError) {

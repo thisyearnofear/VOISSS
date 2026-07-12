@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Mic,
   Play,
@@ -48,7 +49,8 @@ const VOICE_OPTIONS = [
 
 type DemoStep = "idle" | "generating" | "ready" | "playing";
 
-export default function DemoPage() {
+function DemoPageInner() {
+  const searchParams = useSearchParams();
   const [text, setText] = useState(SAMPLE_TEXTS[0].text);
   const [selectedVoice, setSelectedVoice] = useState(VOICE_OPTIONS[0]);
   const [step, setStep] = useState<DemoStep>("idle");
@@ -88,6 +90,22 @@ export default function DemoPage() {
   useEffect(() => {
     setCharCount(text.length);
   }, [text]);
+
+  // Pre-select voice when arriving from marketplace
+  useEffect(() => {
+    const voiceId = searchParams.get("voiceId");
+    if (!voiceId) return;
+    const match = VOICE_OPTIONS.find((v) => v.id === voiceId);
+    if (match) {
+      setSelectedVoice(match);
+    } else {
+      setSelectedVoice({
+        id: voiceId,
+        name: "Marketplace Voice",
+        description: "Licensed voice from marketplace",
+      });
+    }
+  }, [searchParams]);
 
   // Generate a stable referral link once on mount
   const [referralLink] = useState(() => {
@@ -566,5 +584,19 @@ const { audioUrl } = (await res.json()).data; // IPFS URL, ready instantly`}</co
         onClose={() => setShowBuyCredits(false)}
       />
     </div>
+  );
+}
+
+export default function DemoPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#0A0A0A] text-white flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+        </div>
+      }
+    >
+      <DemoPageInner />
+    </Suspense>
   );
 }

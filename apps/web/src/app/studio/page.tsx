@@ -7,7 +7,7 @@ import StudioRecordingsList from "../../components/StudioRecordingsList";
 import StudioEarningsHero from "../../components/StudioEarningsHero";
 import { useRecordings } from "../../hooks/queries/useRecordings";
 import { useAuth } from "../../contexts/AuthContext";
-import { Mic, Upload, ArrowRight } from "lucide-react";
+import { Mic, Upload, ArrowRight, CheckCircle } from "lucide-react";
 
 type StudioStep = "choose" | "record" | "import" | "manage";
 
@@ -107,6 +107,36 @@ function StudioPageInner() {
                   Import voices <ArrowRight className="w-3 h-3" />
                 </span>
               </a>
+            </div>
+          </div>
+        )}
+
+        {activeStep === "manage" && (
+          <div className="max-w-3xl mx-auto mb-12 border border-green-500/30 bg-green-500/10 rounded-2xl p-6">
+            <div className="flex items-start gap-4">
+              <CheckCircle className="w-8 h-8 text-green-400 shrink-0" />
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-white mb-1">Recording saved — what&apos;s next?</h3>
+                <p className="text-sm text-gray-400 mb-4">
+                  {!isAuthenticated
+                    ? "Sign in via the top nav to publish on-chain, then list your voice on the marketplace to start earning 70%."
+                    : "List your voice on the marketplace to start earning 70% every time an AI agent uses it."}
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <a
+                    href="/marketplace/dashboard"
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm text-white font-medium transition-colors flex items-center gap-1"
+                  >
+                    List on marketplace <ArrowRight className="w-3 h-3" />
+                  </a>
+                  <a
+                    href="/demo"
+                    className="px-4 py-2 bg-[#1A1A1A] border border-[#2A2A2A] hover:border-purple-500/40 rounded-lg text-sm text-white font-medium transition-colors"
+                  >
+                    Preview agent experience
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         )}

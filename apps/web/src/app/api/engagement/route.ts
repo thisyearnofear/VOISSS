@@ -31,6 +31,12 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: true, data: achievements });
       }
 
+      case "achievements-catalog": {
+        await service.ensureInitialized();
+        const catalog = service.achievementsCache || (await service.db.getAll("achievements"));
+        return NextResponse.json({ success: true, data: catalog });
+      }
+
       case "streak": {
         if (!userId) {
           return NextResponse.json({ success: false, error: "userId required" }, { status: 400 });
@@ -71,7 +77,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { action, userId, notificationId } = body;
+    const { action, userId, notificationId, referralCode, recordingId, platform } = body;
 
     const service = getServerEngagementService();
 
@@ -100,9 +106,28 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true });
       }
 
+      case "convert-referral": {
+        if (!referralCode || !userId) {
+          return NextResponse.json({ success: false, error: "referralCode and userId required" }, { status: 400 });
+        }
+        const conversion = await service.convertReferral(referralCode, userId);
+        return NextResponse.json({ success: true, data: conversion });
+      }
+
+      case "track-share": {
+        if (!userId || !recordingId || !platform || !referralCode) {
+          return NextResponse.json(
+            { success: false, error: "userId, recordingId, platform, and referralCode required" },
+            { status: 400 }
+          );
+        }
+        const shareEvent = await service.trackShare(userId, recordingId, platform, referralCode);
+        return NextResponse.json({ success: true, data: shareEvent });
+      }
+
       default:
         return NextResponse.json(
-          { success: false, error: "Invalid action. Use: check-achievements, update-streak, or mark-read" },
+          { success: false, error: "Invalid action. Use: check-achievements, update-streak, mark-read, convert-referral, or track-share" },
           { status: 400 }
         );
     }

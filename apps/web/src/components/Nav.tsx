@@ -117,6 +117,7 @@ export default function Nav() {
   // Developer → first link is "API Docs" (replaces "Studio" + "Devs" deduplicated)
   // Creator / default → first link is "Studio", "Devs" shown as normal
   const baseLinks = [
+    { href: "/demo", label: "Demo", className: "text-purple-400 hover:text-purple-300 transition-colors text-sm font-bold uppercase tracking-wider" },
     {
       href: personaRole === "developer" ? "/for-agents" : "/studio",
       label: personaRole === "developer" ? "API Docs" : "Studio",
@@ -126,13 +127,10 @@ export default function Nav() {
     { href: "/import", label: "Import", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
   ];
 
-  // "Devs" link — skipped for developer persona since "API Docs" already points to /for-agents
+  // ACP only for developer persona — keeps nav lean for creators/testing
   const extraLinks = personaRole === "developer"
     ? [{ href: "/acp-dashboard", label: "ACP", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" }]
-    : [
-        { href: "/for-agents", label: "Devs", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
-        { href: "/acp-dashboard", label: "ACP", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
-      ];
+    : [{ href: "/for-agents", label: "Devs", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" }];
 
   const navLinks = [...baseLinks, ...extraLinks];
 

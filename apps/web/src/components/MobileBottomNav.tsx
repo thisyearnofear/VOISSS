@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Mic, Store, Upload, Code2, FileText, Cpu } from "lucide-react";
+import { Mic, Store, Upload, FileText, Play } from "lucide-react";
 
 const ONBOARDING_STORAGE_KEY = "voisss_onboarding_profile";
 
@@ -28,17 +28,13 @@ export default function MobileBottomNav() {
 
   // Bottom links — primary action changes based on persona
   const BOTTOM_LINKS = [
+    { href: "/demo", label: "Demo", icon: Play },
     { href: "/marketplace", label: "Voices", icon: Store },
     {
       href: isDev ? "/for-agents" : "/studio",
       label: isDev ? "API" : "Record",
       icon: isDev ? FileText : Mic,
       primary: true,
-    },
-    {
-      href: isDev ? "/acp-dashboard" : "/for-agents",
-      label: isDev ? "ACP" : "Devs",
-      icon: isDev ? Cpu : Code2,
     },
     { href: "/import", label: "Import", icon: Upload },
   ];
