@@ -82,7 +82,7 @@ dist
 
 # Gatsby files
 .cache/
-public
+# NOTE: Do not ignore `public` globally — Next.js serves apps/web/public/ at deploy time.
 
 # Vuepress build output
 .vuepress/dist
@@ -231,13 +231,14 @@ Temporary Items
 .apdisk
 
 # VOISSS specific
-# Audio files (for development)
+# Audio files (for development) — showcase homepage clips are committed
 *.mp3
 *.wav
 *.aac
 *.m4a
 *.ogg
 *.flac
+!apps/web/public/showcase/*.mp3
 
 # Server deployment (contains sensitive server details)
 server-deployment/

@@ -1,0 +1,44 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "VOISSS Voice Platform",
+  "name_for_model": "voisss",
+  "description_for_human": "Decentralized AI-powered voice recording platform. Create, transform, and share voice notes on-chain.",
+  "description_for_model": "VOISSS is a decentralized voice platform on Base blockchain. Use this plugin to: 1) Generate AI voices from text using ElevenLabs, 2) Browse available voice themes/missions for recording, 3) Submit voice recordings to themed missions, 4) Check platform stats and agent credits. Supports x402 micropayments, prepaid credits, and token-gated tiers. All recordings are stored on IPFS with on-chain provenance.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://voisss.netlify.app/api/agents/openapi.json"
+  },
+  "logo_url": "https://voisss.netlify.app/logo.png",
+  "contact_email": "hello@voisss.xyz",
+  "legal_info_url": "https://voisss.netlify.app/terms",
+  "endpoints": {
+    "vocalize": {
+      "url": "/api/agents/vocalize",
+      "method": "POST",
+      "description": "Generate AI voice audio from text"
+    },
+    "themes": {
+      "url": "/api/agents/themes",
+      "method": "GET",
+      "description": "List available voice themes/missions"
+    },
+    "submit": {
+      "url": "/api/agents/submit",
+      "method": "POST",
+      "description": "Submit a voice recording to a theme"
+    },
+    "register": {
+      "url": "/api/agents/register",
+      "method": "POST",
+      "description": "Register an agent for API access"
+    },
+    "stats": {
+      "url": "/api/tools/platform-stats",
+      "method": "GET",
+      "description": "Get platform statistics"
+    }
+  }
+}

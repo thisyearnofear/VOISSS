@@ -51,8 +51,42 @@ const HUMAN_VOICE_SUB = "Real human · CC0 source";
 const AI_VOICE_LABEL = "ElevenLabs · George";
 const AI_VOICE_SUB = "Licensed AI · same sentence";
 
+const AI_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"; // ElevenLabs George
 const HUMAN_URL = "/showcase/voice-human.mp3";
 const AI_URL = "/showcase/voice-ai.mp3";
+
+async function fetchPreviewAudio(text: string, voiceId: string): Promise<string | null> {
+  const res = await fetch("/api/agents/vocalize", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, voiceId, preview: true }),
+  });
+  const data = await res.json();
+  return data.success && data.data?.audioUrl ? data.data.audioUrl : null;
+}
+
+async function resolveShowcaseSources(): Promise<{ human: string; ai: string }> {
+  const humanOk = await fetch(HUMAN_URL, { method: "HEAD" }).then((r) => r.ok).catch(() => false);
+  const aiOk = await fetch(AI_URL, { method: "HEAD" }).then((r) => r.ok).catch(() => false);
+
+  if (humanOk && aiOk) {
+    return { human: HUMAN_URL, ai: AI_URL };
+  }
+
+  // Static files missing on deploy — generate AI side live; human uses static if available
+  const aiUrl =
+    (aiOk ? AI_URL : null) ??
+    (await fetchPreviewAudio(SENTENCE, AI_VOICE_ID));
+
+  if (!aiUrl) {
+    throw new Error("Showcase audio unavailable. Try again in a moment.");
+  }
+
+  return {
+    human: humanOk ? HUMAN_URL : aiUrl, // degraded: both AI if human clip missing
+    ai: aiUrl,
+  };
+}
 
 const BAR_COUNT = 56;
 
@@ -69,7 +103,10 @@ interface AnalyserState {
 export default function OriginalVsAiShowcase() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [humanSrc, setHumanSrc] = useState(HUMAN_URL);
+  const [aiSrc, setAiSrc] = useState(AI_URL);
   const [contextOpen, setContextOpen] = useState(false);
 
   const humanAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -80,6 +117,26 @@ export default function OriginalVsAiShowcase() {
 
   const humanCanvasRef = useRef<HTMLCanvasElement>(null);
   const aiCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Resolve audio sources on mount (static MP3s preferred; API fallback if missing)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const sources = await resolveShowcaseSources();
+        if (cancelled) return;
+        setHumanSrc(sources.human);
+        setAiSrc(sources.ai);
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "Failed to load showcase audio");
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Initialize the audio graphs lazily on first play (browsers block
   // AudioContext until user interaction).
@@ -129,13 +186,35 @@ export default function OriginalVsAiShowcase() {
     const human = humanAudioRef.current;
     const ai = aiAudioRef.current;
     if (!human || !ai) return;
+
+    const waitForAudio = (el: HTMLAudioElement) =>
+      new Promise<void>((resolve, reject) => {
+        if (el.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+          resolve();
+          return;
+        }
+        const onReady = () => {
+          cleanup();
+          resolve();
+        };
+        const onFail = () => {
+          cleanup();
+          reject(new Error("Showcase audio failed to load"));
+        };
+        const cleanup = () => {
+          el.removeEventListener("canplay", onReady);
+          el.removeEventListener("error", onFail);
+        };
+        el.addEventListener("canplay", onReady);
+        el.addEventListener("error", onFail);
+        el.load();
+      });
+
     reset();
     try {
-      // Resume context if it was suspended (Safari quirk).
+      await Promise.all([waitForAudio(human), waitForAudio(ai)]);
       const ctx = humanStateRef.current?.context;
       if (ctx?.state === "suspended") await ctx.resume();
-      // Kick off both in parallel — they were trimmed to start at the
-      // same offset so the bars stay visually synced.
       await Promise.all([human.play(), ai.play()]);
       setIsPlaying(true);
     } catch (e) {
@@ -167,6 +246,9 @@ export default function OriginalVsAiShowcase() {
       color: { from: string; to: string }
     ) => {
       if (!canvas || !state) return;
+      if (isPlaying) {
+        state.analyser.getByteFrequencyData(state.dataArray);
+      }
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       const dpr = window.devicePixelRatio || 1;
@@ -266,8 +348,18 @@ export default function OriginalVsAiShowcase() {
       {/* Hidden audio elements — the source of truth for playback.
           We never expose <audio controls> to the user; the visual
           waveform is the UI. */}
-      <audio ref={humanAudioRef} src={HUMAN_URL} preload="auto" crossOrigin="anonymous" />
-      <audio ref={aiAudioRef} src={AI_URL} preload="auto" crossOrigin="anonymous" />
+      <audio
+        ref={humanAudioRef}
+        src={humanSrc}
+        preload="auto"
+        crossOrigin={humanSrc.startsWith("/") ? undefined : "anonymous"}
+      />
+      <audio
+        ref={aiAudioRef}
+        src={aiSrc}
+        preload="auto"
+        crossOrigin={aiSrc.startsWith("/") ? undefined : "anonymous"}
+      />
 
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-500/15 to-blue-500/15 border border-white/10 rounded-full mb-4">
@@ -342,7 +434,7 @@ export default function OriginalVsAiShowcase() {
         <div className="flex flex-col items-center gap-3 mt-7">
           <button
             onClick={toggle}
-            disabled={!!error}
+            disabled={!!error || isLoading}
             aria-label={isPlaying ? "Pause comparison" : "Play comparison"}
             className={`group relative w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 ${
               isPlaying
@@ -364,9 +456,9 @@ export default function OriginalVsAiShowcase() {
           <p className="text-[10px] uppercase tracking-widest text-gray-500 font-medium">
             {isPlaying
               ? "Playing · 7–9 seconds"
-              : isReady
-              ? "Tap to play both sides"
-              : "Loading audio…"}
+              : isLoading
+              ? "Loading audio…"
+              : "Tap to play both sides"}
           </p>
           {error && (
             <p className="text-xs text-red-400 max-w-md text-center">{error}</p>
