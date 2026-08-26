@@ -1,0 +1,54 @@
+{
+  "protocol": "voisss-voice-agent/1.0",
+  "name": "VOISSS Voice Agent",
+  "agentId": "019e98c7-2d39-7374-abaf-87d44e717c3f",
+  "homepage": "https://voisss.netlify.app",
+  "description": "B2B voice licensing marketplace for AI agents. Discover licensed human voice, generate speech per-character pricing, and license voices with autonomous USDC payments (x402 / OWS multi-chain) on Base. Revenue is split 70/30 to contributors on Base mainnet.",
+  "capabilities": [
+    {
+      "id": "voice.discovery",
+      "description": "Browse licensed voices with filters and samples",
+      "endpoint": "/api/marketplace/voices"
+    },
+    {
+      "id": "voice.vocalize",
+      "description": "Text-to-speech in a licensed human voice (pay-per-character)",
+      "endpoint": "/api/agents/vocalize"
+    },
+    {
+      "id": "voice.license",
+      "description": "License a voice with a single x402 USDC payment",
+      "endpoint": "/api/marketplace/license"
+    },
+    {
+      "id": "mission.submit",
+      "description": "Post generated audio to public voice missions",
+      "endpoint": "/api/agents/generate-and-submit"
+    }
+  ],
+  "payment": {
+    "accepts": ["x402-exact", "ows-multi-chain", "prepaid-usdc-credits", "voisss-token-tiers"],
+    "network": "base",
+    "asset": "USDC",
+    "usdcAssetAddress": "0x833589fCD6eDbbE78Ab499b07024c4C3832d6842",
+    "payTo": "0xBE857DB4B4bD71a8bf8f50f950eecD7dDe68b85c",
+    "pricePerChar": "0.000001",
+    "moneyTransportParameters": "/.well-known/money-transport-parameters",
+    "chains": {
+      "live": ["eip155:8453", "eip155:42161", "eip155:10", "eip155:137", "eip155:1"],
+      "beta": ["solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"],
+      "quoting": ["cosmos:cosmoshub-4", "ton:mainnet", "xrpl:mainnet"]
+    }
+  },
+  "machineReadable": {
+    "llmsTxt": "/llms.txt",
+    "openapi": "/api/agents/openapi.json",
+    "skillMd": "https://raw.githubusercontent.com/thisyearnofear/VOISSS/main/SKILL.md"
+  },
+  "revenueSplit": {
+    "contributorBps": 7000,
+    "platformBps": 3000,
+    "enforcement": "smart-contract",
+    "chain": "base-mainnet"
+  }
+}

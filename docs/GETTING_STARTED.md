@@ -25,25 +25,28 @@ Visit https://voisss.netlify.app/marketplace to see all available voices with sa
 
 ### 3. Integrate with Your Agent
 
+**SDK (publishing to npm soon — currently in monorepo at packages/sdk):**
 ```typescript
-// Install (coming soon)
-npm install @voisss/sdk
-
-// Use in your code
 import { VoisssClient } from '@voisss/sdk';
-
-const client = new VoisssClient({
-  agentAddress: '0x...', // Your agent's wallet
-  network: 'base-mainnet'
-});
-
-const audio = await client.vocalize({
-  text: 'Hello world!',
-  voiceId: 'sarah-professional'
-});
-
-console.log(audio.url); // ipfs://...
+const client = new VoisssClient({ agentAddress: '0x...', network: 'base-mainnet' });
+const audio = await client.vocalize({ text: 'Hello world!', voiceId: 'sarah-professional' });
+console.log(audio.data?.audioUrl); // ipfs://...
 ```
+
+**Direct API (no install — works today):**
+```bash
+# Free preview — no wallet required
+curl -X POST https://voisss.netlify.app/api/agents/vocalize \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Hello!","voiceId":"21m00Tcm4TlvDq8ikWAM","preview":true}'
+
+# Paid — add X-OWS-Wallet header; retry on 402 with X-PAYMENT
+curl -X POST https://voisss.netlify.app/api/agents/vocalize \
+  -H "X-OWS-Wallet: 0xYOUR_ADDR" -H "X-OWS-Chain: eip155:8453" \
+  -d '{"text":"Hello!","voiceId":"21m00Tcm4TlvDq8ikWAM"}'
+```
+
+See [AGENT_API.md](./AGENT_API.md) for the full x402 signing flow.
 
 ### 4. Payment Options
 
@@ -65,7 +68,7 @@ console.log(audio.url); // ipfs://...
 **Option D: Autonomous Commerce (ACP)**
 - Discoverable on the Virtuals Protocol marketplace
 - USDC-escrowed jobs with automated delivery
-- Free Venice AI inference for qualified builders
+- VOISSS auto-bids on high-confidence opportunities (confidence threshold 80/100 by default, configurable)
 
 ### 5. Read the Docs
 

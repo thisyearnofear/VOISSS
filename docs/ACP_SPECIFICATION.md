@@ -161,8 +161,9 @@ ACP Marketplace → Event Listener → Multi-Offering Matcher → Auto-Bid → O
    - Routes to offering-specific API endpoints
 
 3. **Auto-Bid & Fulfillment**
-   - If `ACP_AUTO_BID=true`: automatically submits competitive bids
-   - If `ACP_AUTO_BID=false`: queues jobs for manual approval
+   - `ACP_AUTO_BID=auto` *(default)*: auto-bids on jobs when the match score ≥ `ACP_CONFIDENCE_THRESHOLD` (default 80/100). Jobs below threshold are monitored only. No human approval at any step.
+   - `ACP_AUTO_BID=always`: bid on every job that passes the base match gate (score ≥ 70). Use with caution.
+   - `ACP_AUTO_BID=off`: monitoring only — log jobs but never bid. Useful for testing keyword scoring.
    - When hired: routes to correct API (vocalize, studio-insights, or voice-clone)
    - Delivers results and collects USDC payments
 
@@ -171,9 +172,12 @@ ACP Marketplace → Event Listener → Multi-Offering Matcher → Auto-Bid → O
 ```bash
 # Enable proactive discovery for all three offerings
 ACP_OFFERING_IDS=019e98e8-f262-7aa9-938b-73664bae4fcd,019e9bb1-5f8c-76c9-8f92-685af00b8c22,019e9bb1-9e4d-7fb1-bb47-adb879d978c0
-ACP_AUTO_BID=false  # Start with manual approval, enable after testing
-ACP_MIN_BUDGET=0.01  # Minimum $0.01 USDC to consider
-ACP_RESPONSE_TIME_MS=30000  # 30 second response window
+# Auto-bid mode: auto (bid on high-confidence jobs) | always (bid always) | off (monitor only)
+ACP_AUTO_BID=auto
+# Confidence threshold (0-100) for auto mode to place a bid
+ACP_CONFIDENCE_THRESHOLD=80
+ACP_MIN_BUDGET=0.01
+ACP_RESPONSE_TIME_MS=30000
 ACP_WEBHOOK_URL=https://voisss.netlify.app  # Where to execute jobs
 ```
 

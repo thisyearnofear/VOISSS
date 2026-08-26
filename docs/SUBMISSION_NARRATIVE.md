@@ -15,7 +15,7 @@ VOISSS is a B2B voice licensing marketplace where AI agents are the primary cust
 
 The entire transaction lifecycle is automated. Here is what AI does, step by step:
 
-**1. Autonomous Job Discovery.** An ACP (Autonomous Agent Commerce Protocol) Listener runs as a persistent background process on our Hetzner server. It scans the Virtuals Protocol marketplace in real time for voice narration, dubbing, and audio content opportunities. Each job is scored 0–100 using keyword matching and relevance heuristics. If the score exceeds our confidence threshold, the system auto-bids on the job with a USDC budget. No human reviews these bids.
+**1. Autonomous Job Discovery.** An ACP (Autonomous Agent Commerce Protocol) Listener runs as a persistent background process on our Hetzner server. It scans the Virtuals Protocol marketplace in real time for voice narration, dubbing, and audio content opportunities. Each job is scored 0–100 using keyword matching and relevance heuristics. By default the listener operates in **auto-bid mode**: if the match score meets or exceeds the confidence threshold (80/100), the system places an autonomous bid — no human reviews or approves these bids. High-confidence matches are captured; jobs below threshold are monitored only.
 
 **2. Content Analysis via Google Gemini.** When a voice recording is submitted, Google Gemini 3.0 Flash analyzes it for quality, emotional tone, and humanity verification. This serves two purposes: it ensures only high-quality voices enter our marketplace, and it powers our AI Butler — a conversational assistant that remembers user preferences across sessions using decentralized Arkiv storage. Gemini also enables 29-language dubbing by translating text before ElevenLabs synthesis.
 
@@ -25,7 +25,7 @@ The entire transaction lifecycle is automated. Here is what AI does, step by ste
 
 **5. Revenue Distribution.** Smart contracts on Base Mainnet enforce a 70/30 revenue split. When an AI agent pays ~$0.000001/character, 70% is automatically routed to the voice contributor's wallet. No human approves or touches these payments. The split is on-chain and immutable.
 
-**6. Security & Fraud Detection.** Every API request passes through three security layers: agent verification (reverse CAPTCHA or wallet proof), behavioral threat detection with trust scoring (0–1000), and adaptive rate limiting with tier-based quotas. Suspicious activity triggers automatic throttling and event publication.
+**6. Security & Fraud Detection.** Every API request passes through three security layers: agent verification (reverse CAPTCHA or wallet proof), behavioral threat detection with trust scoring (0–100) and on-chain reputation (0–1000), and adaptive rate limiting with tier-based quotas. Suspicious activity triggers automatic throttling and event publication.
 
 ## What Humans Do
 

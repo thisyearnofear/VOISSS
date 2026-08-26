@@ -67,7 +67,8 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         ACP_AGENT_ID: process.env.ACP_AGENT_ID,
-        ACP_AUTO_BID: process.env.ACP_AUTO_BID || 'false',
+        ACP_AUTO_BID: process.env.ACP_AUTO_BID || 'auto',
+        ACP_CONFIDENCE_THRESHOLD: process.env.ACP_CONFIDENCE_THRESHOLD || '80',
         ACP_MIN_BUDGET: process.env.ACP_MIN_BUDGET || '0.01',
         DATABASE_URL: process.env.DATABASE_URL,
       },

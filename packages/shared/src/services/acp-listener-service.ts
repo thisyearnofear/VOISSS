@@ -50,12 +50,42 @@ export interface JobMatch {
 export interface AcpListenerConfig {
   agentId: string;
   offeringIds: string[];
-  autoBid: boolean;
+  autoBid: AcpAutoBidMode;
+  autoBidThreshold: number;
   minBudget: number;
   maxResponseTimeMs: number;
   keywords: string[];
   webhookUrl?: string;
   offeringRoutes?: Record<string, string>;
+}
+
+/**
+ * Auto-bid modes for autonomous job grabbing:
+ * - `always`: bid on every job that passes the base match gate (score >= 70)
+ * - `auto`:   bid only when the match score meets the confidence threshold
+ *            (ACP_CONFIDENCE_THRESHOLD, default 80) — "high-confidence mode"
+ * - `off`:    monitor jobs, do not bid
+ */
+export type AcpAutoBidMode = 'always' | 'auto' | 'off';
+
+export function parseAcpAutoBidMode(
+  raw: string | boolean | undefined,
+  fallback: AcpAutoBidMode = 'auto'
+): AcpAutoBidMode {
+  if (raw === true) return 'always';
+  if (raw === false) return 'off';
+  const v = (raw ?? '').trim().toLowerCase();
+  if (v === 'true' || v === '1' || v === 'always' || v === 'on') return 'always';
+  if (v === 'false' || v === '0' || v === 'off' || v === 'monitor') return 'off';
+  return fallback;
+}
+
+export function parseAcpThreshold(
+  raw: string | number | undefined,
+  fallback: number = 80
+): number {
+  const n = typeof raw === 'number' ? raw : Number(raw ?? '');
+  return Number.isFinite(n) && n > 0 ? Math.min(100, Math.max(1, n)) : fallback;
 }
 
 const DEFAULT_KEYWORDS = [
@@ -82,7 +112,8 @@ export class AcpListenerService {
     this.config = {
       agentId: config.agentId ?? '',
       offeringIds: config.offeringIds ?? [],
-      autoBid: config.autoBid ?? false,
+      autoBid: config.autoBid ?? 'off',
+      autoBidThreshold: config.autoBidThreshold ?? 80,
       minBudget: config.minBudget ?? 0.01,
       maxResponseTimeMs: config.maxResponseTimeMs ?? 30000,
       keywords: config.keywords ?? DEFAULT_KEYWORDS,
@@ -126,19 +157,42 @@ export class AcpListenerService {
   }
 
   /**
+   * Whether a bid should be placed for a job with the given match score.
+   */
+  private shouldAutoBid(score: number, jobId: string): boolean {
+    switch (this.config.autoBid) {
+      case 'always':
+        return true;
+      case 'auto': {
+        if (score >= this.config.autoBidThreshold) return true;
+        console.log(
+          `[ACP Listener] Auto mode: job ${jobId} score ${score} below confidence threshold ${this.config.autoBidThreshold} — monitoring only, no bid`
+        );
+        return false;
+      }
+      case 'off':
+        return false;
+    }
+  }
+
+  /**
    * Public status snapshot for HTTP admin endpoints.
    */
   getStatus(): {
     isRunning: boolean;
     agentId: string;
     autoBid: boolean;
+    autoBidMode: AcpAutoBidMode;
+    autoBidThreshold: number;
     minBudget: number;
     offeringIds: string[];
   } {
     return {
       isRunning: this.isRunning,
       agentId: this.config.agentId,
-      autoBid: this.config.autoBid,
+      autoBid: this.config.autoBid !== 'off',
+      autoBidMode: this.config.autoBid,
+      autoBidThreshold: this.config.autoBidThreshold,
       minBudget: this.config.minBudget,
       offeringIds: [...this.config.offeringIds],
     };
@@ -186,7 +240,7 @@ export class AcpListenerService {
     if (match.score < 70 || (job.budget && job.budget.value < this.config.minBudget)) return;
 
     this.processedJobs.add(job.id);
-    if (this.config.autoBid) await this.submitBid(job, match);
+    if (this.shouldAutoBid(match.score, job.id)) await this.submitBid(job, match);
   }
 
   private async handleJobAssigned(job: AcpJob): Promise<void> {
@@ -295,7 +349,10 @@ export function getAcpListener(config?: Partial<AcpListenerConfig>): AcpListener
     listenerInstance = new AcpListenerService({
       agentId: process.env.ACP_AGENT_ID || '',
       offeringIds,
-      autoBid: config?.autoBid ?? process.env.ACP_AUTO_BID === 'true',
+      autoBid: config?.autoBid ?? parseAcpAutoBidMode(process.env.ACP_AUTO_BID),
+      autoBidThreshold:
+        config?.autoBidThreshold ??
+        parseAcpThreshold(process.env.ACP_CONFIDENCE_THRESHOLD),
       minBudget: config?.minBudget ?? 0.01,
       maxResponseTimeMs: config?.maxResponseTimeMs ?? 30000,
       keywords: config?.keywords ?? DEFAULT_KEYWORDS,

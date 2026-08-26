@@ -827,6 +827,34 @@ export const ROUTES: readonly RouteDefinition[] = [
       'Butler memory actions: save-preferences, get-recommendations, get-suggestions, track-usage',
     auth: 'optional',
   },
+  {
+    method: 'GET',
+    path: '/api/payments/stripe',
+    status: 'live',
+    group: 'base',
+    summary: 'List available USDC credit packs (fiat drop-in)',
+    auth: 'none',
+  },
+  {
+    method: 'POST',
+    path: '/api/payments/stripe',
+    status: 'live',
+    group: 'base',
+    summary: 'Create a Stripe checkout session to buy USDC credits for an agent address',
+    auth: 'none',
+    description:
+      'Packs: starter ($5), builder ($10, +10% bonus), pro ($25, +20%), scale ($50, +30%). Credits are credited to the agent wallet address after checkout.',
+  },
+  {
+    method: 'POST',
+    path: '/api/payments/stripe/webhook',
+    status: 'live',
+    group: 'webhooks',
+    summary: 'Receive Stripe webhook events (checkout completion → credit top-up)',
+    auth: 'none',
+    description:
+      'Verified via stripe-signature / STRIPE_WEBHOOK_SECRET. On checkout.session.completed, credits are added to the agent wallet.',
+  },
 ] as const;
 
 // =============================================================================

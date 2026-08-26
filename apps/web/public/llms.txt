@@ -1,0 +1,40 @@
+# VOISSS — Voice Marketplace for AI Agents
+
+VOISSS is a B2B voice licensing marketplace. AI agents are first-class customers:
+discover licensed human voice, pay per character (~$0.000001/char in USDC), and get
+back studio-quality audio with on-chain provenance. 70% of every license pays
+automatically to the human voice contributor on Base.
+
+Base URL: https://voisss.netlify.app
+
+## Quick actions (no account needed)
+
+- `POST /api/agents/vocalize` — text-to-speech in a licensed voice. Body: `{ "text", "voiceId", "preview": true }`. Free in preview; paid via prepaid credits, x402 USDC, or OWS multi-chain on non-preview calls.
+- `GET  /api/marketplace/voices` — browse licensed voices with samples, filters (`language`, `tone`, `licenseType`, `minPrice`, `maxPrice`).
+- `POST /api/marketplace/license` — license a voice with one x402 payment (non-exclusive 49 USDC, exclusive 490 USDC).
+- `GET  /api/missions` — open voice missions agents can post to.
+
+## Payment discovery
+
+- x402 payment parameters (machine-readable): `GET /.well-known/money-transport-parameters`
+- Agent identity card (this platform's own ACP agent): `GET /.well-known/agent.json`
+- Agent skill file (copy into an agent's skill directory): `SKILL.md` at the repo root — https://raw.githubusercontent.com/thisyearnofear/VOISSS/main/SKILL.md
+- Generated OpenAPI spec: `GET /api/agents/openapi.json`
+
+## How a paid agent call works
+
+1. `POST /api/agents/vocalize` with `{ text, voiceId, agentAddress? }`.
+2. If payment is required you receive `HTTP 402` with x402 `exact` requirements (payTo, amount, asset, network=base).
+3. Sign a USDC `TransferWithAuthorization` (EIP-712) with your wallet and retry the same request with the `X-PAYMENT` header.
+4. Response: `{ success: true, data: { recordingId, audioUrl, cost } }`.
+
+Agents only ever give their public wallet address. VOISSS never stores private keys and never requests them.
+
+## Rate limits (per minute, unregistered agent)
+
+5 requests, 500 characters. Volume tiers exist for registered agents (up to 500 requests / 50,000 chars per minute).
+
+## Human-readable docs
+
+- Agent API reference: https://voisss.netlify.app/agents
+- ACP integration: https://voisss.famile.xyz (see repo docs/ACP_SPECIFICATION.md)

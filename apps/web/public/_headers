@@ -26,3 +26,18 @@
 /*.webp
   Cache-Control: public, max-age=31536000
   Content-Type: image/webp
+
+# Agent / LLM machine-readable discovery files
+/llms.txt
+  Cache-Control: public, max-age=600
+  Content-Type: text/plain; charset=utf-8
+
+/.well-known/money-transport-parameters
+  Cache-Control: public, max-age=600
+  Content-Type: application/json
+  Access-Control-Allow-Origin: *
+
+/.well-known/agent.json
+  Cache-Control: public, max-age=600
+  Content-Type: application/json
+  Access-Control-Allow-Origin: *

@@ -1,0 +1,39 @@
+{
+  "exact": [
+    {
+      "network": "base",
+      "maxAmountRequired": "10000",
+      "resource": "https://voisss.netlify.app/api/agents/vocalize",
+      "description": "Generate speech in a licensed VOISSS voice. Pay-per-character at 1 micro-USDC per character (USDC 6-decimal wei). Caps at 5000 chars per request.",
+      "icon": "🎤",
+      "paymentProcessor": "manual-query",
+      "maxTimeoutSeconds": 60,
+      "payTo": "0xBE857DB4B4bD71a8bf8f50f950eecD7dDe68b85c",
+      "asset": "0x833589fCD6eDbbE78Ab499b07024c4C3832d6842",
+      "extra": {
+        "currency": "USDC",
+        "pricePerChar": "1",
+        "priceUnit": "micro-USDC per character",
+        "maxChars": "5000",
+        "previewMode": "Set preview:true for a free, unpaid preview"
+      }
+    },
+    {
+      "network": "base",
+      "maxAmountRequired": "490000000",
+      "resource": "https://voisss.netlify.app/api/marketplace/license",
+      "description": "License a VOISSS voice. Non-exclusive 49 USDC, exclusive 490 USDC. One payment; the license activates instantly.",
+      "icon": "📜",
+      "paymentProcessor": "manual-query",
+      "maxTimeoutSeconds": 120,
+      "payTo": "0xBE857DB4B4bD71a8bf8f50f950eecD7dDe68b85c",
+      "asset": "0x833589fCD6eDbbE78Ab499b07024c4C3832d6842",
+      "extra": {
+        "currency": "USDC",
+        "nonExclusiveUsd": "49",
+        "exclusiveUsd": "490",
+        "termMonths": "30"
+      }
+    }
+  ]
+}

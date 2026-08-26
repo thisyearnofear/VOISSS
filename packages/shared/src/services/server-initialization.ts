@@ -147,22 +147,32 @@ export function getStudioAnalysisService(): StudioAnalysisService {
  * env vars are interpreted and the process is bound.
  */
 export async function startAcpListenerWorker(): Promise<void> {
-  const { getAcpListener } = await import('./acp-listener-service');
+  const {
+    getAcpListener,
+    parseAcpAutoBidMode,
+    parseAcpThreshold,
+  } = await import('./acp-listener-service');
   const agentId = process.env.ACP_AGENT_ID;
   if (!agentId) {
     console.error('[ACP Worker] ACP_AGENT_ID not set — exiting');
     process.exit(1);
   }
 
+  const autoBidMode = parseAcpAutoBidMode(process.env.ACP_AUTO_BID);
+  const autoBidThreshold = parseAcpThreshold(process.env.ACP_CONFIDENCE_THRESHOLD);
+
   console.log('[ACP Worker] Initializing...');
   console.log(`[ACP Worker] Agent: ${agentId}`);
   console.log(
-    `[ACP Worker] Auto-bid: ${process.env.ACP_AUTO_BID === 'true' ? 'ENABLED' : 'disabled (monitoring only)'}`
+    autoBidMode === 'off'
+      ? '[ACP Worker] Auto-bid: off (monitoring only)'
+      : `[ACP Worker] Auto-bid: ${autoBidMode} mode (confidence threshold ${autoBidThreshold}/100)`
   );
 
   const listener = getAcpListener({
     agentId,
-    autoBid: process.env.ACP_AUTO_BID === 'true',
+    autoBid: autoBidMode,
+    autoBidThreshold,
     minBudget: parseFloat(process.env.ACP_MIN_BUDGET || '0.01'),
     webhookUrl: process.env.ACP_WEBHOOK_URL || undefined,
   });

@@ -31,8 +31,9 @@ pnpm dev:web      # http://localhost:4445
 **For AI Agents:**
 - 🎯 Pay-per-character pricing (~$0.000001/char)
 - ⚡ Instant API access with x402 payments
-- 🔗 Multi-chain support (Base, Arbitrum, Optimism, Polygon, Solana)
+- 🔗 Multi-chain OWS payments — 5 EVM chains live, Solana beta, 4 more quoting (9 total)
 - 🔒 Blockchain-verified provenance
+- 🤖 Agent-native: `/llms.txt`, `/.well-known/agent.json`, money-transport-parameters, OpenAPI spec — drop-in skill file at root `SKILL.md`
 
 **For Voice Contributors:**
 - 💰 70% revenue share on all licenses
@@ -50,7 +51,7 @@ pnpm dev:web      # http://localhost:4445
 | Mobile (RN) | 🔄 In Progress | Scroll Sepolia | VRF, privacy controls |
 | Flutter | ✅ Live | Serverpod | AI butler, voice chat |
 
-**Stats:** 21+ voices • Base mainnet • Multi-chain payments • Production API • Full engagement system
+**Stats:** 21+ voices • 5 EVM chains live + Solana beta • Agent-native discovery • Production API • 70% contributor split
 
 ---
 
