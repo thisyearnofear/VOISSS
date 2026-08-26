@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { pack, agentAddress, successUrl, cancelUrl } = body;
+    const { pack, agentAddress, successUrl, cancelUrl, context } = body;
 
     if (!pack || !CREDIT_PACKS[pack as CreditPack]) {
       return NextResponse.json(
@@ -78,6 +78,10 @@ export async function POST(request: NextRequest) {
         creditsUSD: selectedPack.creditsUSD.toString(),
         // USDC amount in 6 decimal units (USDC has 6 decimals)
         creditsUsdc: (selectedPack.creditsUSD * 1_000_000).toString(),
+        // Preserve context through checkout
+        ...(context?.voiceId && { voiceId: context.voiceId }),
+        ...(context?.voiceName && { voiceName: context.voiceName }),
+        ...(context?.taskId && { taskId: context.taskId }),
       },
       customer_email: undefined, // Let Stripe collect
       payment_intent_data: {

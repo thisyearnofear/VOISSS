@@ -17,13 +17,7 @@ import X402Paywall, { X402PaywallBadge } from "../../components/X402Paywall";
 import { useX402Payments } from "../../hooks/useX402Payments";
 import VoissMascot, { useMascotContext } from "../../components/VoissMascot";
 import { MascotEvents, publishAppEvent } from "@/lib/mascot-events";
-import {
-  LoadingState,
-  TaskRows,
-  ToolChips,
-  ContextCards,
-  InsightCards,
-} from "@/components/ui/agentic";
+import { LoadingState, TaskRows, ToolChips, ContextCards, InsightCards } from "@/components/ui/agentic";
 
 const CATEGORIES: {
   value: AgentCategory | "all";

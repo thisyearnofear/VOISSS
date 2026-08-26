@@ -128,6 +128,13 @@ function Inner() {
               <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
               I need voices for my agent
             </a>
+            <button
+              onClick={() => setShowOnboarding(true)}
+              className="text-gray-500 hover:text-purple-400 transition-colors flex items-center gap-2"
+            >
+              <span className="w-1.5 h-1.5 bg-yellow-500 rounded-full" />
+              Help me get started
+            </button>
           </div>
 
           {/* Instant Synthesis Playground (Time-to-Magic) */}

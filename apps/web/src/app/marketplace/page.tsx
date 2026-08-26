@@ -385,13 +385,18 @@ export default function MarketplacePage() {
       <LicensePurchaseModal
         visible={!!modalVoice}
         onClose={() => setModalVoice(null)}
-        voice={modalVoice}
+        voiceId={modalVoice?.id || ''}
+        voiceName={modalVoice?.name || modalVoice?.voiceProfile?.tone || 'Unknown'}
+        voicePreviewUrl={modalVoice?.voiceProfile?.previewUrl}
         licenseType="non-exclusive"
-        onTryDemo={handleTryDemo}
-        onBuyCredits={() => setShowBuyCredits(true)}
+        onSuccess={() => setModalVoice(null)}
       />
 
-      <BuyCreditsModal isOpen={showBuyCredits} onClose={() => setShowBuyCredits(false)} />
+      <BuyCreditsModal
+        isOpen={showBuyCredits}
+        onClose={() => setShowBuyCredits(false)}
+        context={modalVoice ? { voiceId: modalVoice.id, voiceName: modalVoice.name || modalVoice.voiceProfile?.tone || 'Unknown' } : undefined}
+      />
     </div>
     </>
   );

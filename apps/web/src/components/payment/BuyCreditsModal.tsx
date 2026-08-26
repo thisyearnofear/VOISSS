@@ -62,12 +62,19 @@ interface BuyCreditsModalProps {
   isOpen: boolean;
   onClose: () => void;
   agentAddress?: string;
+  /** Context to preserve through checkout (voiceId, taskId, etc.) */
+  context?: {
+    voiceId?: string;
+    voiceName?: string;
+    taskId?: string;
+  };
 }
 
 export function BuyCreditsModal({
   isOpen,
   onClose,
   agentAddress,
+  context,
 }: BuyCreditsModalProps) {
   const [selectedPack, setSelectedPack] = useState<CreditPack>(PACKS[1]); // Default: Builder
   const [walletAddress, setWalletAddress] = useState(agentAddress || "");
@@ -105,7 +112,10 @@ export function BuyCreditsModal({
         body: JSON.stringify({
           pack: selectedPack.id,
           agentAddress: walletAddress,
-          successUrl: `${window.location.origin}/studio?credits=success&pack=${selectedPack.id}`,
+          context: context ?? null,
+          successUrl: `${window.location.origin}/studio?credits=success&pack=${selectedPack.id}` +
+            (context?.voiceId ? `&voiceId=${encodeURIComponent(context.voiceId)}` : '') +
+            (context?.voiceName ? `&voiceName=${encodeURIComponent(context.voiceName)}` : ''),
           cancelUrl: `${window.location.origin}/studio?credits=cancelled`,
         }),
       });
