@@ -1,12 +1,22 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Shield, Zap, TrendingUp, Sparkles, Play } from "lucide-react";
 import QuickVoicePreview from "./marketplace/QuickVoicePreview";
-import VoissMascot from "./VoissMascot";
+import VoissMascot, { useMascotContext, publishMoodEvent } from "./VoissMascot";
 import OnboardingQuiz from "./OnboardingQuiz";
 import { BuyCreditsButton } from "./payment/BuyCreditsModal";
 import { PRODUCT_TAGLINE, PRODUCT_TAGLINE_SHORT } from "@voisss/shared";
+
+// Mood context wrapper — subscribes to app events on mount
+function HeroMoodSync() {
+  useMascotContext();
+  useEffect(() => {
+    // On page load, the mascot waves hello
+    publishMoodEvent("wave", "page-load");
+  }, []);
+  return null;
+}
 
 // Type-safe icon wrappers to resolve React 18/19 compatibility issues
 const CompatibleShield = Shield as React.ComponentType<{ className?: string }>;
@@ -14,6 +24,15 @@ const CompatibleZap = Zap as React.ComponentType<{ className?: string }>;
 const CompatibleTrendingUp = TrendingUp as React.ComponentType<{ className?: string }>;
 
 export default function EnhancedLandingHero() {
+  return (
+    <>
+      <HeroMoodSync />
+      <Inner />
+    </>
+  );
+}
+
+function Inner() {
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   if (showOnboarding) {
