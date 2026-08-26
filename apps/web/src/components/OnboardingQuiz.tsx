@@ -4,16 +4,8 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Sparkles, Mic, Headphones, Globe } from "lucide-react";
 import VoissMascot, { useMascotContext, publishMoodEvent } from "./VoissMascot";
+import { MascotEvents } from "@/lib/mascot-events";
 import { ONBOARDING_PAYOFF } from "@voisss/shared";
-
-// Onboarding mood sync
-function QuizMoodSync() {
-  useMascotContext();
-  useEffect(() => {
-    publishMoodEvent("happy", "onboarding-start");
-  }, []);
-  return null;
-}
 
 const ONBOARDING_STORAGE_KEY = "voisss_onboarding_profile";
 
@@ -231,7 +223,7 @@ function ResultStep({ profile, onReset, redirectUrl }: { profile: UserProfile; o
 export default function OnboardingQuiz() {
   return (
     <>
-      <QuizMoodSync />
+      <MascotEvents />
       <Inner />
     </>
   );

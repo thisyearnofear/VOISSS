@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { BuyCreditsModal } from "../../components/payment/BuyCreditsModal";
 import { PRODUCT_TAGLINE, SHOWCASE_POE_LINE } from "@voisss/shared";
+import { MascotEvents, publishAppEvent } from "@/lib/mascot-events";
 
 const DEMO_GENERATIONS_KEY = "voisss_demo_generations";
 
@@ -163,6 +164,7 @@ function DemoPageInner() {
     setStep("generating");
     setError(null);
     setAudioUrl(null);
+    publishAppEvent({ type: "voice:generate", voiceId: selectedVoice.id });
 
     try {
       const response = await fetch("/api/agents/vocalize", {
@@ -193,8 +195,11 @@ function DemoPageInner() {
       setAudioUrl(url);
       setGenerationsLeft((prev) => prev - 1);
       setStep("ready");
+      publishAppEvent({ type: "voice:complete", voiceId: selectedVoice.id });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Generation failed");
+      const errMsg = err instanceof Error ? err.message : "Generation failed";
+      setError(errMsg);
+      publishAppEvent({ type: "error", message: `voice generation: ${errMsg}` });
       setStep("idle");
     }
   };
@@ -221,7 +226,9 @@ function DemoPageInner() {
     charCount > 0 ? (charCount * 0.000001).toFixed(6) : "0.000000";
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white">
+    <>
+      <MascotEvents />
+      <div className="min-h-screen bg-[#0A0A0A] text-white">
       {/* Hero */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0">
@@ -621,6 +628,7 @@ const { audioUrl } = (await res.json()).data; // IPFS URL, ready instantly`}</co
         onClose={() => setShowBuyCredits(false)}
       />
     </div>
+    </>
   );
 }
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Play, Square, Activity, DollarSign, Cpu, RefreshCw } from "lucide-react";
+import { MascotEvents, publishAppEvent } from "@/lib/mascot-events";
 
 interface ACPStatus {
   isRunning: boolean;
@@ -45,6 +46,7 @@ export default function ACPDashboardPage() {
   }, [authKey]);
 
   const toggleListener = async (action: "start" | "stop") => {
+    publishAppEvent({ type: action === "start" ? "acp:started" : "acp:stopped" });
     try {
       const res = await fetch("/api/acp/listener", {
         method: "POST",
@@ -95,7 +97,9 @@ export default function ACPDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white">
+    <>
+      <MascotEvents />
+      <div className="min-h-screen bg-[#0A0A0A] text-white">
       <div className="voisss-container py-12">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -189,5 +193,6 @@ export default function ACPDashboardPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

@@ -4,15 +4,16 @@ import React, { useEffect, useState } from "react";
 import { Shield, Zap, TrendingUp, Sparkles, Play } from "lucide-react";
 import QuickVoicePreview from "./marketplace/QuickVoicePreview";
 import VoissMascot, { useMascotContext, publishMoodEvent } from "./VoissMascot";
+import { MascotEvents } from "@/lib/mascot-events";
 import OnboardingQuiz from "./OnboardingQuiz";
 import { BuyCreditsButton } from "./payment/BuyCreditsModal";
 import { PRODUCT_TAGLINE, PRODUCT_TAGLINE_SHORT } from "@voisss/shared";
 
-// Mood context wrapper — subscribes to app events on mount
-function HeroMoodSync() {
+// App-wide mascot event system — subscribe once per page
+// Replaces the old HeroMoodSync + direct publishMoodEvent calls
+function HeroMascot() {
   useMascotContext();
   useEffect(() => {
-    // On page load, the mascot waves hello
     publishMoodEvent("wave", "page-load");
   }, []);
   return null;
@@ -26,7 +27,7 @@ const CompatibleTrendingUp = TrendingUp as React.ComponentType<{ className?: str
 export default function EnhancedLandingHero() {
   return (
     <>
-      <HeroMoodSync />
+      <HeroMascot />
       <Inner />
     </>
   );

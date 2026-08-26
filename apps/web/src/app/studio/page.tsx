@@ -9,6 +9,7 @@ import { useRecordings } from "../../hooks/queries/useRecordings";
 import { useAuth } from "../../contexts/AuthContext";
 import { Mic, Upload, ArrowRight, CheckCircle } from "lucide-react";
 import { initWebMCP } from "../../lib/webmcp";
+import { MascotEvents, publishAppEvent } from "@/lib/mascot-events";
 
 type StudioStep = "choose" | "record" | "import" | "manage";
 
@@ -66,6 +67,7 @@ function StudioPageInner() {
     };
     setLocalRecordings((prev) => [newRecording, ...prev]);
     setActiveStep("manage");
+    publishAppEvent({ type: "recording:complete", title: newRecording.title });
   };
 
   const handleDeleteLocal = useCallback((recordingId: string) => {
@@ -75,7 +77,9 @@ function StudioPageInner() {
   const showStepIndicator = !mode && !missionId;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white">
+    <>
+      <MascotEvents />
+      <div className="min-h-screen bg-[#0A0A0A] text-white">
       <div className="voisss-container py-8 sm:py-12">
         <StudioEarningsHero />
 
@@ -225,6 +229,7 @@ function StudioPageInner() {
         )}
       </div>
     </div>
+    </>
   );
 }
 

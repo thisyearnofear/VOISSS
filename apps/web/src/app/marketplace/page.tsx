@@ -10,6 +10,7 @@ import { BuyCreditsModal } from "@/components/payment/BuyCreditsModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChevronDown, Sparkles } from "lucide-react";
 import { initWebMCP } from "@/lib/webmcp";
+import { MascotEvents, publishAppEvent } from "@/lib/mascot-events";
 
 export default function MarketplacePage() {
   const router = useRouter();
@@ -125,7 +126,9 @@ export default function MarketplacePage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] voisss-bg-grid voisss-bg-noise">
+    <>
+      <MascotEvents />
+      <div className="min-h-screen bg-[#0A0A0A] voisss-bg-grid voisss-bg-noise">
       <div className="border-b border-[#2A2A2A] voisss-bg-mesh">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
@@ -390,5 +393,6 @@ export default function MarketplacePage() {
 
       <BuyCreditsModal isOpen={showBuyCredits} onClose={() => setShowBuyCredits(false)} />
     </div>
+    </>
   );
 }

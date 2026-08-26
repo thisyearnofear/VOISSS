@@ -12,6 +12,7 @@ import {
   Sparkles,
   Mic,
 } from "lucide-react";
+import { publishAppEvent } from "@/lib/mascot-events";
 
 interface CreditPack {
   id: string;
@@ -116,9 +117,12 @@ export function BuyCreditsModal({
       }
 
       // Redirect to Stripe Checkout
+      publishAppEvent({ type: "payment:success", amount: selectedPack.priceUSD });
       window.location.href = data.data.url;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      const errMsg = err instanceof Error ? err.message : "Something went wrong";
+      setError(errMsg);
+      publishAppEvent({ type: "payment:error", message: errMsg });
       setIsLoading(false);
     }
   };
