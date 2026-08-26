@@ -34,10 +34,26 @@ bootstrap without reading prose:
 | File | Purpose |
 |------|---------|
 | [`/llms.txt`](https://voisss.netlify.app/llms.txt) | LLM-oriented index of every endpoint, pricing, and how a paid call works |
-| [`/.well-known/agent.json`](https://voisss.netlify.app/.well-known/agent.json) | This platform's own agent identity card (capabilities, payment, supported chains) |
+| [`/.well-known/agent.json`](https://voisss.netlify.app/.well-known/agent.json) | This platform's own agent identity card (capabilities, payment, supported chains, WebMCP tools) |
 | [`/.well-known/money-transport-parameters`](https://voisss.netlify.app/.well-known/money-transport-parameters) | x402 **standard** payment-params discovery (asset address, `payTo`, max amounts, per-resource pricing) |
 | [`/api/agents/openapi.json`](https://voisss.netlify.app/api/agents/openapi.json) | Generated OpenAPI spec of the endpoints |
 | [`SKILL.md`](https://raw.githubusercontent.com/thisyearnofear/VOISSS/main/SKILL.md) | Drop-in agent skill file (address-only, credits-first workflow) |
+
+### WebMCP — in-browser tools for AI agents
+
+VOISSS exposes 5 WebMCP imperative tools on the marketplace and studio pages. When an AI agent opens the site in a WebMCP-enabled browser (ChatGPT in-app browser, Chrome 149+ with origin trial), it can discover and invoke tools directly:
+
+| Tool | What it does | Maps to |
+|------|-------------|--------|
+| `list_voices` | Browse voices with filters | `GET /api/marketplace/voices` |
+| `play_voice_sample` | Play voice audio in browser | Existing audio player |
+| `get_voice_details` | Full voice info (tags, pricing, contributor) | Marketplace API |
+| `license_voice` | Open license checkout flow | `/marketplace` pre-filled |
+| `vocalize` | Generate speech from text | `POST /api/agents/vocalize` |
+
+An agent discovers these tools via `document.modelContext.getTools()`, calls them with structured JSON arguments, and receives results that update the page UI. No separate API key or backend integration required.
+
+Read the full implementation plan in [docs/WEBMCP_PLAN.md](./WEBMCP_PLAN.md).
 
 ---
 

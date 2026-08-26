@@ -39,6 +39,9 @@ importers:
       typescript:
         specifier: ^5.3.3
         version: 5.8.3
+      webmcp-types:
+        specifier: 0.1.5
+        version: 0.1.5
 
   apps/flutter-backend-serverpod:
     dependencies:
@@ -24560,6 +24563,10 @@ packages:
     resolution: {integrity: sha512-VlZwKPCkYKxQgeSbH5EyngOmRp7Ww7I9rQLERETtf5ofd9pGeswWiOtogpEO850jziPRarreGxn5QIiTqpb2wA==}
     engines: {node: '>=8'}
     dev: false
+
+  /webmcp-types@0.1.5:
+    resolution: {integrity: sha512-QAfuzNJ+hiY2JLpPbD/6xZruLQlsqtWUDqQCRruqD0dbtZHDg6IUZ2K0zctlRokwuscGlr47i6hKv8mQPSQLhw==}
+    dev: true
 
   /webpack-bundle-analyzer@4.10.1:
     resolution: {integrity: sha512-s3P7pgexgT/HTUSYgxJyn28A+99mmLq4HsJepMPzu0R8ImJc52QNqaFYW1Z2z2uIb1/J3eYgaAWVpaC+v/1aAQ==}

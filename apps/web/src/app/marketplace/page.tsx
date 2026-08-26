@@ -9,6 +9,7 @@ import { LicensePurchaseModal } from "@/components/payment/LicensePurchaseModal"
 import { BuyCreditsModal } from "@/components/payment/BuyCreditsModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChevronDown, Sparkles } from "lucide-react";
+import { initWebMCP } from "@/lib/webmcp";
 
 export default function MarketplacePage() {
   const router = useRouter();
@@ -26,6 +27,11 @@ export default function MarketplacePage() {
   const [showBuyCredits, setShowBuyCredits] = useState(false);
 
   const activeFilterCount = [filters.language, filters.tone, filters.licenseType].filter(Boolean).length;
+
+  // Register WebMCP tools for AI agents (runs once on mount)
+  useEffect(() => {
+    initWebMCP().catch(console.error);
+  }, []);
 
   useEffect(() => {
     fetchVoices();

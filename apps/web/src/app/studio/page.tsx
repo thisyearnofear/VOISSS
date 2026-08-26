@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, Suspense, useCallback } from "react";
+import { useMemo, useState, Suspense, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import RecordingStudio from "../../components/RecordingStudio";
 import StudioRecordingsList from "../../components/StudioRecordingsList";
@@ -8,6 +8,7 @@ import StudioEarningsHero from "../../components/StudioEarningsHero";
 import { useRecordings } from "../../hooks/queries/useRecordings";
 import { useAuth } from "../../contexts/AuthContext";
 import { Mic, Upload, ArrowRight, CheckCircle } from "lucide-react";
+import { initWebMCP } from "../../lib/webmcp";
 
 type StudioStep = "choose" | "record" | "import" | "manage";
 
@@ -40,6 +41,11 @@ function StudioPageInner() {
   const { isAuthenticated, address } = useAuth();
   const { data: allRecordings = [], isLoading: isLoadingRecordings } =
     useRecordings();
+
+  // Register WebMCP tools for AI agents (runs once on mount)
+  useEffect(() => {
+    initWebMCP().catch(console.error);
+  }, []);
 
   interface RecordingWithIpfs {
     id: string;

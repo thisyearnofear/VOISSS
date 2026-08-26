@@ -33,7 +33,7 @@ pnpm dev:web      # http://localhost:4445
 - ⚡ Instant API access with x402 payments
 - 🔗 Multi-chain OWS payments — 5 EVM chains live, Solana beta, 4 more quoting (9 total)
 - 🔒 Blockchain-verified provenance
-- 🤖 Agent-native: `/llms.txt`, `/.well-known/agent.json`, money-transport-parameters, OpenAPI spec — drop-in skill file at root `SKILL.md`
+- 🤖 Agent-native: `/llms.txt`, `/.well-known/agent.json`, money-transport-parameters, OpenAPI spec, and WebMCP tools — drop-in skill file at root `SKILL.md`
 
 **For Voice Contributors:**
 - 💰 70% revenue share on all licenses

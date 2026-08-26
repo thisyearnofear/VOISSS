@@ -26,6 +26,16 @@
       "endpoint": "/api/agents/generate-and-submit"
     }
   ],
+  "webmcp": {
+    "enabled": true,
+    "tools": [
+      "list_voices",
+      "play_voice_sample",
+      "get_voice_details",
+      "license_voice",
+      "vocalize"
+    ]
+  },
   "payment": {
     "accepts": ["x402-exact", "ows-multi-chain", "prepaid-usdc-credits", "voisss-token-tiers"],
     "network": "base",
