@@ -248,6 +248,13 @@ export function VoiceCard({ voice, onPurchase }: VoiceCardProps) {
             Try in demo
           </Link>
 
+          <Link
+            href={`/marketplace/voices/${voice.id}`}
+            className="px-3 py-2 text-xs font-bold uppercase tracking-wider border border-zinc-700 text-zinc-400 rounded-lg hover:border-purple-500 hover:text-purple-300 transition-all"
+          >
+            Details
+          </Link>
+
           {onPurchase && (
             <button
               onClick={handlePurchase}

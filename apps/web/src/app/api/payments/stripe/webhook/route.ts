@@ -46,25 +46,63 @@ export async function POST(request: NextRequest) {
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as import("stripe").Stripe.Checkout.Session;
+      const metadata = session.metadata || {};
 
-      const agentAddress = session.metadata?.agentAddress;
-      const creditsUsdc = session.metadata?.creditsUsdc;
-      const pack = session.metadata?.pack;
+      const agentAddress = metadata.agentAddress;
+      const creditsUsdc = metadata.creditsUsdc;
+      const pack = metadata.pack;
+      const voiceId = metadata.voiceId;
 
-      if (!agentAddress || !creditsUsdc) {
-        console.error("[Stripe Webhook] Missing metadata:", session.metadata);
-        // Acknowledge to Stripe — don't retry
-        return NextResponse.json({ received: true });
+      // ── Credits purchase (standard flow) ────────────────────────────
+      if (agentAddress && creditsUsdc) {
+        console.log(
+          `[Stripe Webhook] Credits payment. Adding ${creditsUsdc} USDC to ${agentAddress} (${pack})`
+        );
+        await addCreditsToAgent(agentAddress, BigInt(creditsUsdc), pack || "stripe", session.id);
+        console.log(`[Stripe Webhook] ✅ Credits added to ${agentAddress}`);
       }
 
-      console.log(
-        `[Stripe Webhook] Payment complete. Adding ${creditsUsdc} USDC credits to ${agentAddress} (${pack} pack)`
+      // ── License purchase (voice-specific) ───────────────────────────
+      if (voiceId && session.customer) {
+        const receiptNumber = `RCPT-${session.id.slice(-8).toUpperCase()}`;
+        console.log(
+          `[Stripe Webhook] License purchase for voice ${voiceId}. Customer: ${session.customer}. Receipt: ${receiptNumber}`
+        );
+
+        // Create the license record
+        try {
+          await createLicenseEntitlement({
+            voiceId,
+            licenseeAddress: agentAddress || "",
+            licenseType: "non-exclusive",
+            stripeSessionId: session.id,
+            receiptNumber,
+            amountPaid: session.amount_total ? session.amount_total / 100 : 0,
+            currency: session.currency || "usd",
+          });
+        } catch (err) {
+          console.error("[Stripe Webhook] License creation failed:", err);
+          // Don't fail the webhook — payment succeeded, manual fix needed
+        }
+      }
+    }
+
+    // ── Handle checkout failures (outside completed block) ─────────
+    if (event.type === "checkout.session.expired") {
+      console.warn(`[Stripe Webhook] Checkout session expired: ${(event.data.object as import("stripe").Stripe.Checkout.Session).id}`);
+    }
+
+    // ── Handle disputes (outside completed block) ──────────────────
+    if (event.type === "charge.dispute.created") {
+      const dispute = event.data.object as import("stripe").Stripe.Dispute;
+      console.warn(
+        `[Stripe Webhook] Dispute created for session ${dispute.payment_intent}. Amount: ${dispute.amount}`
       );
-
-      // Add credits to agent account
-      await addCreditsToAgent(agentAddress, BigInt(creditsUsdc), pack || "stripe", session.id);
-
-      console.log(`[Stripe Webhook] ✅ Credits added to ${agentAddress}`);
+      try {
+        await markLicenseDisputed(dispute.metadata?.voiceId || "", dispute.payment_intent as string);
+      } catch (err) {
+        console.error("[Stripe Webhook] Dispute handling failed:", err);
+      }
     }
 
     return NextResponse.json({ received: true });
@@ -87,15 +125,12 @@ async function addCreditsToAgent(
   stripeSessionId: string
 ) {
   try {
-    // Record the credit grant in the DB / in-memory store
-    // In production: call AgentRegistry.depositUSDC or a DB transaction
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_APP_URL || "https://voisss.netlify.app"}/api/agents/register`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Internal service call — use admin key
           Authorization: `Bearer ${process.env.ADMIN_API_KEY}`,
         },
         body: JSON.stringify({
@@ -115,7 +150,100 @@ async function addCreditsToAgent(
     }
   } catch (error) {
     console.error("[addCreditsToAgent] Error:", error);
-    // Don't throw — we've already received payment, manual intervention needed
-    // In production: add to a dead-letter queue
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// License entitlement storage
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface LicenseEntitlementInput {
+  voiceId: string;
+  licenseeAddress?: string;
+  licenseType: "non-exclusive" | "exclusive";
+  stripeSessionId: string;
+  receiptNumber: string;
+  amountPaid: number;
+  currency: string;
+}
+
+/**
+ * Store a new license entitlement after Stripe payment confirmation.
+ * 
+ * In production this writes to a persistent DB table. For now we store
+ * via the shared database service so licenses survive restarts and
+ * can be queried for entitlement checks.
+ */
+async function createLicenseEntitlement(input: LicenseEntitlementInput): Promise<void> {
+  try {
+    // Use the shared database service if available
+    const { createPostgresDatabase } = await import("@voisss/shared/server");
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) {
+      console.warn("[license] DATABASE_URL not set, skipping license storage");
+      return;
+    }
+
+    const db = createPostgresDatabase(dbUrl);
+    await db.connect();
+    try {
+      await db.setBatch("voisss_voice_licenses", [
+        {
+          id: `lic_${input.stripeSessionId}`,
+          data: {
+            voiceId: input.voiceId,
+            licenseeAddress: input.licenseeAddress || "",
+            licenseType: input.licenseType,
+            stripeSessionId: input.stripeSessionId,
+            receiptNumber: input.receiptNumber,
+            amountPaid: input.amountPaid,
+            currency: input.currency,
+            status: "active",
+            purchasedAt: new Date().toISOString(),
+            expiresAt: null, // Perpetual licenses
+          },
+        },
+      ]);
+      console.log(`[license] ✅ License created: ${input.receiptNumber} for ${input.voiceId}`);
+    } finally {
+      await db.disconnect();
+    }
+  } catch (error) {
+    // Log but don't throw — the webhook has already been acknowledged
+    console.error("[license] Entitlement storage failed:", error);
+  }
+}
+
+/**
+ * Mark a license as disputed (for chargeback handling).
+ */
+async function markLicenseDisputed(voiceId: string, paymentIntent: string): Promise<void> {
+  try {
+    const { createPostgresDatabase } = await import("@voisss/shared/server");
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) return;
+
+    const db = createPostgresDatabase(dbUrl);
+    await db.connect();
+    try {
+      // Update the license record to mark as disputed
+      const key = `lic_${paymentIntent}`;
+      // Simple approach: store a dispute record alongside
+      await db.setBatch("voisss_disputes", [
+        {
+          id: key,
+          data: {
+            voiceId,
+            paymentIntent,
+            status: "open",
+            createdAt: new Date().toISOString(),
+          },
+        },
+      ]);
+    } finally {
+      await db.disconnect();
+    }
+  } catch (error) {
+    console.error("[license] Dispute handling failed:", error);
   }
 }

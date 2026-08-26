@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Play, Square, Loader2, Sparkles, MessageSquare, Share2 } from "lucide-react";
+import { Play, Loader2, Sparkles, MessageSquare, Share2 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence } from "framer-motion";
 import { SocialShare, type ShareableRecording } from "@voisss/ui";
@@ -19,6 +19,26 @@ interface MarketplaceVoice {
   };
   sampleUrl?: string;
 }
+
+/** Curated demo voices — always available on the homepage, no account needed.
+ *  Used as fallback when the marketplace indexer is empty or unreachable. */
+const DEMO_VOICES: MarketplaceVoice[] = [
+  {
+    id: "demo-rachel",
+    contractVoiceId: "21m00Tcm4TlvDq8ikWAM",
+    voiceProfile: { tone: "Rachel", language: "en-US", accent: "American" },
+  },
+  {
+    id: "demo-antoni",
+    contractVoiceId: "ErXwobaYiN019PkySvjV",
+    voiceProfile: { tone: "Antoni", language: "en-US", accent: "American" },
+  },
+  {
+    id: "demo-bella",
+    contractVoiceId: "EXAVITQu4vr4xnSDxMaL",
+    voiceProfile: { tone: "Bella", language: "en-US", accent: "American" },
+  },
+];
 
 export default function QuickVoicePreview() {
   const { address } = useAuth();
@@ -44,7 +64,7 @@ export default function QuickVoicePreview() {
     };
   }, [selectedVoice]);
 
-  // Fallback voices for demo/development if indexer is empty
+  // Load voices: marketplace index first, fall back to curated demo voices
   useEffect(() => {
     const fetchFeaturedVoices = async () => {
       try {
@@ -61,14 +81,16 @@ export default function QuickVoicePreview() {
           setSelectedVoice(data.data.voices[0]);
           setVoicesEmpty(false);
         } else {
-          setVoices([]);
-          setSelectedVoice(null);
-          setVoicesEmpty(true);
+          // Fallback: use curated demo voices so every visitor can play instantly
+          setVoices(DEMO_VOICES);
+          setSelectedVoice(DEMO_VOICES[0]);
+          setVoicesEmpty(false);
         }
       } catch {
-        setVoices([]);
-        setSelectedVoice(null);
-        setVoicesEmpty(true);
+        // API unreachable — still use demo voices
+        setVoices(DEMO_VOICES);
+        setSelectedVoice(DEMO_VOICES[0]);
+        setVoicesEmpty(false);
       } finally {
         setVoicesLoaded(true);
       }

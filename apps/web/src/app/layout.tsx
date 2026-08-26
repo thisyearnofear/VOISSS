@@ -3,15 +3,26 @@ import { Inter, Anton, Syne, Courier_Prime } from "next/font/google";
 import { BaseProvider } from "./providers";
 import Nav from "../components/Nav";
 import MobileBottomNav from "../components/MobileBottomNav";
-import VoiceAssistant from "../components/VoiceAssistant";
 import { ReferralTracker } from "./referral-tracker";
 import "./globals.css";
 import { validateX402Config } from "@/lib/x402-startup-check";
+import { getPageMetadata } from "@/lib/page-metadata";
+import dynamic from "next/dynamic";
 
 // Validate x402 configuration on server startup
 if (typeof window === 'undefined') {
   validateX402Config();
 }
+
+// Lazy-load VoiceAssistant so anonymous users don't download
+// the heavy conversation SDK on first paint
+const VoiceAssistant = dynamic(
+  () => import("../components/VoiceAssistant"),
+  {
+    ssr: false,
+    loading: () => null,
+  }
+);
 
 const inter = Inter({
   variable: "--font-inter",
@@ -62,16 +73,14 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
+  ...getPageMetadata("/"),
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_BASE_URL || "https://voisss.vercel.app"
+    process.env.NEXT_PUBLIC_BASE_URL || "https://voisss.netlify.app"
   ),
-  alternates: {
-    canonical: "/",
-  },
   openGraph: {
     title: "VOISSS | Enterprise Voice Licensing Marketplace for AI Agents",
     description: "License authentic human voices for your AI agents and applications. Enterprise-grade API, blockchain-verified provenance, and instant scaling. Built on Base.",
-    url: process.env.NEXT_PUBLIC_BASE_URL || "https://voisss.vercel.app",
+    url: process.env.NEXT_PUBLIC_BASE_URL || "https://voisss.netlify.app",
     siteName: "VOISSS",
     locale: "en_US",
     type: "website",
@@ -138,27 +147,27 @@ export default function RootLayout({
         {/* Manifest */}
         <link rel="manifest" href="/manifest.json" />
 
-        {/* Analytics - Google Analytics */}
+        {/* Analytics - Google Analytics (next/script for optimal loading) */}
         {process.env.NEXT_PUBLIC_GA_ID && (
-          <>
-            <script
-              async
-              src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
-            />
-            <script
-              dangerouslySetInnerHTML={{
-                __html: `
-                  window.dataLayer = window.dataLayer || [];
-                  function gtag(){dataLayer.push(arguments);}
-                  gtag('js', new Date());
-                  gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}', {
-                    page_title: document.title,
-                    page_location: window.location.href,
-                  });
-                `,
-              }}
-            />
-          </>
+          <script
+            async
+            src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
+          />
+        )}
+        {process.env.NEXT_PUBLIC_GA_ID && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}', {
+                  page_title: document.title,
+                  page_location: window.location.href,
+                });
+              `,
+            }}
+          />
         )}
       </head>
       <body

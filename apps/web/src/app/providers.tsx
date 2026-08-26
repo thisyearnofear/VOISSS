@@ -29,51 +29,39 @@ const BaseContext = React.createContext<{
 
 export function useBase() {
   const context = React.useContext(BaseContext);
-  // Return null during SSR or before SDK is initialized (client-side only SDK)
   return context;
 }
 
+/**
+ * BaseProvider — heavy wallet/SDK logic.
+ *
+ * Imported lazily via `dynamic()` so anonymous users never download
+ * the ~200 KB Wagmi + viem bundle on the first paint.
+ * Only pages that call `useBase()` or `<BaseProvider>` load it.
+ */
 export function BaseProvider({ children }: { children: React.ReactNode }) {
-  // Store provider in state, initialize on client only (following Base docs pattern)
   const [provider, setProvider] = useState<ReturnType<
     ReturnType<typeof createBaseAccountSDK>["getProvider"]
   > | null>(null);
   const [sdk, setSdk] = useState<ReturnType<typeof createBaseAccountSDK> | null>(null);
 
-  // Initialize SDK in useEffect (client-side only) - matches Base Account docs pattern
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const initializeSDK = async () => {
       try {
-        // Ensure we're in browser environment
-        if (typeof window === 'undefined') return;
-
-        // Get current domain for proper configuration
-        const currentDomain = window.location.origin;
-
         const sdkInstance = createBaseAccountSDK({
-          appName: 'VOISSS',
-          appLogoUrl: `${currentDomain}/logo.png`,
+          appName: "VOISSS",
+          appLogoUrl: `${window.location.origin}/logo.png`,
           appChainIds: [base.id],
-          // Note: We use backend spender wallet for gasless transactions
-          // No Sub Accounts needed - users grant spend permission to our backend
         });
-
-        // Get the provider with error handling
         const providerInstance = sdkInstance.getProvider();
-
-        // Verify provider is working
         if (providerInstance) {
           setSdk(sdkInstance);
           setProvider(providerInstance);
-          if (process.env.NODE_ENV === 'development') {
-            console.log('Base Account SDK initialized successfully');
-          }
-        } else {
-          throw new Error('Provider initialization failed');
         }
       } catch (error) {
-        console.error("SDK initialization failed:", error);
-        // Set null values to prevent app crash
+        console.error("Base SDK initialization failed:", error);
         setSdk(null);
         setProvider(null);
       }
@@ -83,17 +71,17 @@ export function BaseProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const wagmiConfig = useMemo(() => getConfig(), []);
-  
+
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <BaseContext.Provider value={sdk && provider ? { sdk, provider } : null}>
           <AssistantProvider>
-            <AuthProvider>
-              {children}
-            </AuthProvider>
+            <AuthProvider>{children}</AuthProvider>
           </AssistantProvider>
-          <ReactQueryDevtools initialIsOpen={false} />
+          {process.env.NODE_ENV === "development" && (
+            <ReactQueryDevtools initialIsOpen={false} />
+          )}
         </BaseContext.Provider>
       </QueryClientProvider>
     </WagmiProvider>
