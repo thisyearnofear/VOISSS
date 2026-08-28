@@ -62,7 +62,7 @@ export function VoiceMarketTrends() {
             <h2 className="text-2xl font-bold text-white tracking-tight">Market Intelligence</h2>
           </div>
           <p className="text-gray-400 text-sm max-w-xl">
-            Real-time "In-Demand" data scraped from global job boards. Adjust your voice profile to match current trends.
+            Real-time &quot;In-Demand&quot; data scraped from global job boards. Adjust your voice profile to match current trends.
           </p>
         </div>
         <button
@@ -128,7 +128,7 @@ export function VoiceMarketTrends() {
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-300">Market Insight</span>
             </div>
             <p className="text-sm text-gray-200 leading-relaxed italic">
-              "{trends.summary}"
+              &quot;{trends.summary}&quot;
             </p>
           </div>
 

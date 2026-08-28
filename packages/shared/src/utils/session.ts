@@ -61,6 +61,7 @@ class MobileStorageAdapter implements StorageAdapter {
   constructor() {
     try {
       // Dynamically import AsyncStorage for mobile
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       this.asyncStorage = require('@react-native-async-storage/async-storage').default;
     } catch (error) {
       console.warn('AsyncStorage not available:', error);

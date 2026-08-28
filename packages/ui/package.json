@@ -25,6 +25,7 @@
     "@types/node": "^20",
     "@types/react": "~18.3.12",
     "tsup": "^8.0.2",
-    "typescript": "~5.3.3"
+    "typescript": "~5.3.3",
+    "typescript-eslint": "^8"
   }
 }

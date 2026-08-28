@@ -108,49 +108,9 @@ export default function MissionFilters({
           
           {/* Token cards */}
           <div className="space-y-2">
-            {(['voisss', 'papajams'] as const).map((tokenKey) => {
-              const meta = TOKEN_METADATA[tokenKey];
-              const [copied, setCopied] = useState(false);
-              
-              const handleCopy = () => {
-                navigator.clipboard.writeText(meta.address);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
-              };
-              
-              return (
-                <div key={tokenKey} className="p-3 bg-[#2A2A2A]/50 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-white text-sm">{meta.name}</span>
-                    <button
-                      onClick={handleCopy}
-                      className="text-xs px-2 py-1 bg-[#3A3A3A] hover:bg-[#4A4A4A] text-gray-400 hover:text-gray-300 rounded transition-colors"
-                    >
-                      {copied ? '✓ Copied' : 'Copy'}
-                    </button>
-                  </div>
-                  <div className="text-xs text-gray-500 font-mono break-all mb-2">{meta.address}</div>
-                  <div className="flex gap-1 flex-wrap">
-                    <a
-                      href={getTokenBuyUrl(tokenKey)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs px-2 py-1 bg-[#7C5DFA]/20 hover:bg-[#7C5DFA]/30 text-[#7C5DFA] rounded transition-colors font-semibold"
-                    >
-                      Buy
-                    </a>
-                    <a
-                      href={getTokenExplorerUrl(tokenKey)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs px-2 py-1 bg-[#3A3A3A] hover:bg-[#4A4A4A] text-gray-400 rounded transition-colors"
-                    >
-                      View
-                    </a>
-                  </div>
-                </div>
-              );
-            })}
+            {(['voisss', 'papajams'] as const).map((tokenKey) => (
+              <TokenCard key={tokenKey} tokenKey={tokenKey} />
+            ))}
           </div>
           
           {/* Current tier display */}
@@ -266,6 +226,50 @@ export default function MissionFilters({
             </p>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function TokenCard({ tokenKey }: { tokenKey: "voisss" | "papajams" }) {
+  const meta = TOKEN_METADATA[tokenKey];
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(meta.address);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="p-3 bg-[#2A2A2A]/50 rounded-lg">
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-medium text-white text-sm">{meta.name}</span>
+        <button
+          onClick={handleCopy}
+          className="text-xs px-2 py-1 bg-[#3A3A3A] hover:bg-[#4A4A4A] text-gray-400 hover:text-gray-300 rounded transition-colors"
+        >
+          {copied ? '✓ Copied' : 'Copy'}
+        </button>
+      </div>
+      <div className="text-xs text-gray-500 font-mono break-all mb-2">{meta.address}</div>
+      <div className="flex gap-1 flex-wrap">
+        <a
+          href={getTokenBuyUrl(tokenKey)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs px-2 py-1 bg-[#7C5DFA]/20 hover:bg-[#7C5DFA]/30 text-[#7C5DFA] rounded transition-colors font-semibold"
+        >
+          Buy
+        </a>
+        <a
+          href={getTokenExplorerUrl(tokenKey)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs px-2 py-1 bg-[#3A3A3A] hover:bg-[#4A4A4A] text-gray-400 rounded transition-colors"
+        >
+          View
+        </a>
       </div>
     </div>
   );

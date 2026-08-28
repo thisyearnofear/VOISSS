@@ -7,7 +7,7 @@
     "build": "next build",
     "build:analyze": "ANALYZE=true next build",
     "start": "next start -p 4444",
-    "lint": "next lint",
+    "lint": "eslint src/",
     "deploy:base-sepolia": "hardhat run scripts/deploy-base-contract.js --network baseSepolia",
     "deploy:base": "hardhat run scripts/deploy-base-contract.js --network base",
     "deploy:marketplace": "hardhat run scripts/deploy-marketplace.ts --network base",
@@ -46,6 +46,7 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "3.3.6",
     "@next/bundle-analyzer": "^14.1.0",
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@types/canvas-confetti": "1.9.0",

@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     const shouldSearch = shouldTriggerWebSearch(message);
 
     let searchResults = null;
-    let searchQuery = message;
+    const searchQuery = message;
 
     // Perform web search if relevant
     if (shouldSearch && process.env.FIRECRAWL_API_KEY) {

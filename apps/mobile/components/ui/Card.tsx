@@ -18,7 +18,7 @@ export const Card: React.FC<CardProps> = ({
   pressable = false,
 }) => {
   const getCardStyle = () => {
-    let baseStyle = {
+    const baseStyle = {
       backgroundColor: colors.dark.card,
       borderColor: colors.dark.border,
       borderWidth: 1,

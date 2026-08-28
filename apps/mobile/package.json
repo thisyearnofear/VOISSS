@@ -65,7 +65,8 @@
     "@expo/ngrok": "^4.1.0",
     "@types/react": "^19.1.17",
     "babel-plugin-module-resolver": "^5.0.2",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8"
   },
   "private": true
 }

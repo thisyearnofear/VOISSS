@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import {
   Award,
   Bot,
@@ -332,13 +333,13 @@ export default function HackathonPage() {
                 <ExternalLink className="w-4 h-4" />
                 GitHub Repository
               </a>
-              <a
+              <Link
                 href="/"
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl text-white font-semibold text-sm hover:from-purple-500 hover:to-pink-500 transition-all"
               >
                 <Zap className="w-4 h-4" />
                 Live App
-              </a>
+              </Link>
               <a
                 href="/demo"
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 rounded-xl text-white font-semibold text-sm hover:bg-blue-500 transition-all"

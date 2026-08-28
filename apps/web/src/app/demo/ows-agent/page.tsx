@@ -404,7 +404,7 @@ function OWSAgentDemoContent() {
                 <h3 className="text-xs font-black text-indigo-500 uppercase tracking-widest">Track 2: Audit Forensics</h3>
               </div>
               <p className="text-[11px] text-zinc-400 leading-relaxed font-medium">
-                Every transaction is logged to the OWS audit log. This demo shows the "Agentic P&L" in real-time, allowing for cryptographically verifiable business operations without human intervention.
+                Every transaction is logged to the OWS audit log. This demo shows the &quot;Agentic P&amp;L&quot; in real-time, allowing for cryptographically verifiable business operations without human intervention.
               </p>
             </motion.div>
           </div>

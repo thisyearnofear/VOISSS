@@ -208,6 +208,7 @@ export class PaymentRouter {
       console.warn('[PaymentRouter] Set X402_PAY_TO_ADDRESS environment variable.');
     } else {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const checksummed = require('viem').getAddress(config.x402PayTo);
         console.log('[PaymentRouter] Initialized with x402PayTo:', checksummed);
       } catch (e) {

@@ -53,7 +53,7 @@ export default function NewsletterSection() {
             <div className="flex flex-col items-center animate-in fade-in zoom-in duration-300">
               <div className="flex items-center gap-3 text-green-400 font-semibold text-xl mb-4">
                 <CompatibleCheckCircle className="w-6 h-6" />
-                You're on the list!
+                You&apos;re on the list!
               </div>
               <p className="text-gray-400">
                 Check your inbox soon for a welcome message from the VOISSS team.

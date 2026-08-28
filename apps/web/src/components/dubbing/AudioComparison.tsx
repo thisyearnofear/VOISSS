@@ -437,7 +437,7 @@ export default function AudioComparison({
       {/* Tips */}
       <div className="mt-4 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
         <p className="text-blue-300 text-xs">
-          💡 <strong>Tip:</strong> Use "Play Together" to hear both versions simultaneously and compare the AI's emotional accuracy and pronunciation.
+          💡 <strong>Tip:</strong> Use &quot;Play Together&quot; to hear both versions simultaneously and compare the AI&apos;s emotional accuracy and pronunciation.
         </p>
       </div>
     </div>

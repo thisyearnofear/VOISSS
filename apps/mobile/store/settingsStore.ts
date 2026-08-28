@@ -42,7 +42,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: "voisss-settings-storage",
-      // @ts-ignore - Known type compatibility issue with Zustand and AsyncStorage
+      // @ts-expect-error - Known type compatibility issue with Zustand and AsyncStorage
       storage: createJSONStorage(() => AsyncStorage),
     }
   )

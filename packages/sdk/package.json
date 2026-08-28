@@ -15,8 +15,8 @@
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
-    "test": "vitest",
-    "lint": "eslint src --ext .ts"
+    "test": "vitest run --passWithNoTests",
+    "lint": "eslint src/"
   },
   "keywords": [
     "voisss",

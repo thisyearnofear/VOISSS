@@ -215,9 +215,8 @@ export interface IAudioTransformProvider {
   getDubbedAudio?(dubbingId: string, targetLanguage: string): Promise<DubbingResult>;
 }
 
-export interface ElevenLabsTransformProvider extends IAudioTransformProvider {
-  // ElevenLabs-specific methods
-}
+// ElevenLabs-specific extensions of IAudioTransformProvider (placeholder alias)
+export type ElevenLabsTransformProvider = IAudioTransformProvider;
 
 // Constants for AI voice styles and enhancements
 export const AI_VOICE_STYLES: AIVoiceStyle[] = [

@@ -28,7 +28,7 @@ export const Input: React.FC<InputProps> = ({
   const [isFocused, setIsFocused] = useState(false);
   
   const getInputStyle = () => {
-    let baseStyle = {
+    const baseStyle = {
       backgroundColor: colors.dark.surface,
       borderColor: colors.dark.border,
       color: colors.dark.text,

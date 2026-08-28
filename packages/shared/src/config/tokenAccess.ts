@@ -176,6 +176,7 @@ export function getAvailableTemplates(
   hasPapaJamsToken: boolean = false
 ): any[] {
   // Import here to avoid circular dependency
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { DEFAULT_VOISSS_TEMPLATES } = require('../types/transcript');
 
   return DEFAULT_VOISSS_TEMPLATES.filter((template: any) => {

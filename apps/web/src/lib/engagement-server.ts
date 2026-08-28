@@ -10,6 +10,7 @@ export function getServerEngagementService(): EngagementService {
     if (databaseUrl) {
       // Dynamic import to avoid bundling 'pg' in client bundles
       // This route is Node.js runtime, so the import will resolve server-side
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { createPostgresDatabase } = require("@voisss/shared/server");
       const db = createPostgresDatabase(databaseUrl);
       instance = new EngagementService(db);

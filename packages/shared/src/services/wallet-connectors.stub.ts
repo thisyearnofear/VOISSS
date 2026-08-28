@@ -34,4 +34,5 @@ export function getWalletConnectors() {
   throw new Error('WalletConnectorService is not available in React Native.');
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface WalletConnectorConfig {}
