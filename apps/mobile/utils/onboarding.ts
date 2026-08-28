@@ -24,28 +24,12 @@ class OnboardingService {
         order: 1
       },
       {
-        id: 'authentication',
-        title: 'Authentication',
-        description: 'Set up your account',
-        optional: false,
-        completed: false,
-        order: 2
-      },
-      {
-        id: 'wallet',
-        title: 'Wallet Setup',
-        description: 'Connect your wallet',
-        optional: false,
-        completed: false,
-        order: 3
-      },
-      {
         id: 'chain-selection',
         title: 'Chain Selection',
         description: 'Choose your blockchain',
         optional: true,
         completed: false,
-        order: 4
+        order: 2
       },
       {
         id: 'funding',
@@ -53,7 +37,7 @@ class OnboardingService {
         description: 'Add funds to your wallet',
         optional: true,
         completed: false,
-        order: 5
+        order: 3
       },
       {
         id: 'tutorial',
@@ -61,7 +45,7 @@ class OnboardingService {
         description: 'Learn how to use VOISSS',
         optional: true,
         completed: false,
-        order: 6
+        order: 4
       },
       {
         id: 'complete',
@@ -69,7 +53,7 @@ class OnboardingService {
         description: 'Onboarding complete!',
         optional: false,
         completed: false,
-        order: 7
+        order: 5
       }
     ];
     
@@ -117,16 +101,6 @@ class OnboardingService {
   async switchChain(chain: any, network: string): Promise<void> {
     // Mock implementation
     console.log(`Switching to chain: ${chain}, network: ${network}`);
-  }
-
-  async setupWalletWithSocialLogin(provider: string): Promise<void> {
-    // Mock implementation
-    console.log(`Setting up wallet with ${provider}`);
-  }
-
-  async connectExistingWallet(address: string): Promise<void> {
-    // Mock implementation
-    console.log(`Connecting wallet: ${address}`);
   }
 
   async initiateFiatOnRamp(amount: number, currency: string): Promise<string> {

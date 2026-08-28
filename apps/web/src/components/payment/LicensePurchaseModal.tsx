@@ -14,7 +14,7 @@ import React, { useState, useCallback, useRef } from "react";
  *
  * Props:
  *   voiceId, voiceName, voicePreviewUrl, licenseType, price
- *   onSuccess, onClose
+ *   onClose
  * ────────────────────────────────────────────────────────────────────────────── */
 
 import {
@@ -36,13 +36,8 @@ interface LicensePurchaseModalProps {
   voiceName: string;
   voicePreviewUrl?: string;
   licenseType: LicenseTier;
-  onSuccess: () => void;
+  price: number;
 }
-
-const PRICING: Record<LicenseTier, { monthly: number; perCharacter: number }> = {
-  "non-exclusive": { monthly: 49, perCharacter: 0.000001 },
-  "exclusive": { monthly: 490, perCharacter: 0.0000005 },
-};
 
 export function LicensePurchaseModal({
   visible,
@@ -51,16 +46,13 @@ export function LicensePurchaseModal({
   voiceName,
   voicePreviewUrl,
   licenseType,
-  onSuccess,
+  price,
 }: LicensePurchaseModalProps) {
   const [step, setStep] = useState<"confirm" | "checkout" | "processing" | "done">("confirm");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  const tier = PRICING[licenseType];
-  const price = tier.monthly;
 
   const handlePlayPreview = useCallback(() => {
     if (!voicePreviewUrl) return;
@@ -89,7 +81,6 @@ export function LicensePurchaseModal({
         body: JSON.stringify({
           voiceId,
           licenseType,
-          price: price * 100, // cents
         }),
       });
 
@@ -99,9 +90,9 @@ export function LicensePurchaseModal({
         throw new Error(data.error || "License purchase failed");
       }
 
-      // 2. On success, show done state
-      setStep("done");
-      onSuccess();
+      // Stripe Checkout is the authoritative payment step. The webhook creates
+      // the entitlement, and Stripe returns the buyer to the success URL.
+      window.location.assign(data.data.url);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Purchase failed";
       setError(msg);
@@ -146,7 +137,7 @@ export function LicensePurchaseModal({
             </div>
             <div>
               <h3 className="text-lg font-bold text-white">License {voiceName}</h3>
-              <p className="text-sm text-gray-400">{licenseType} · ${price}/mo</p>
+              <p className="text-sm text-gray-400">{licenseType} · ${price.toFixed(2)}</p>
             </div>
           </div>
         </div>
@@ -175,12 +166,8 @@ export function LicensePurchaseModal({
           {/* Pricing breakdown */}
           <div className="space-y-2 mb-6">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Monthly license</span>
+              <span className="text-gray-400">Voice licence</span>
               <span className="text-white font-medium">${price.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Per-character rate</span>
-              <span className="text-white font-medium">${tier.perCharacter.toFixed(7)}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-400">Voice contributor earns</span>
@@ -188,7 +175,7 @@ export function LicensePurchaseModal({
             </div>
             <div className="h-px bg-[#2A2A2A] my-2" />
             <div className="flex justify-between text-base">
-              <span className="font-semibold text-white">Total monthly</span>
+              <span className="font-semibold text-white">Total</span>
               <span className="font-bold text-white">${price.toFixed(2)}</span>
             </div>
           </div>

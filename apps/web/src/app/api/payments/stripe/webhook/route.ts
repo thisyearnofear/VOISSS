@@ -63,27 +63,24 @@ export async function POST(request: NextRequest) {
       }
 
       // ── License purchase (voice-specific) ───────────────────────────
-      if (voiceId && session.customer) {
+      if (voiceId) {
         const receiptNumber = `RCPT-${session.id.slice(-8).toUpperCase()}`;
         console.log(
           `[Stripe Webhook] License purchase for voice ${voiceId}. Customer: ${session.customer}. Receipt: ${receiptNumber}`
         );
 
-        // Create the license record
-        try {
-          await createLicenseEntitlement({
-            voiceId,
-            licenseeAddress: agentAddress || "",
-            licenseType: "non-exclusive",
-            stripeSessionId: session.id,
-            receiptNumber,
-            amountPaid: session.amount_total ? session.amount_total / 100 : 0,
-            currency: session.currency || "usd",
-          });
-        } catch (err) {
-          console.error("[Stripe Webhook] License creation failed:", err);
-          // Don't fail the webhook — payment succeeded, manual fix needed
-        }
+        // Let Stripe retry this event if durable entitlement creation fails.
+        // A successful payment without an entitlement must never be silently
+        // acknowledged as a successful fulfilment.
+        await createLicenseEntitlement({
+          voiceId,
+          licenseeAddress: agentAddress || "",
+          licenseType: metadata.licenseType === "exclusive" ? "exclusive" : "non-exclusive",
+          stripeSessionId: session.id,
+          receiptNumber,
+          amountPaid: session.amount_total ? session.amount_total / 100 : 0,
+          currency: session.currency || "usd",
+        });
       }
     }
 
@@ -170,47 +167,39 @@ interface LicenseEntitlementInput {
 /**
  * Store a new license entitlement after Stripe payment confirmation.
  * 
- * In production this writes to a persistent DB table. For now we store
- * via the shared database service so licenses survive restarts and
- * can be queried for entitlement checks.
+ * The caller must receive a failure when this cannot persist, allowing Stripe
+ * to retry the signed webhook event instead of losing a paid entitlement.
  */
 async function createLicenseEntitlement(input: LicenseEntitlementInput): Promise<void> {
-  try {
-    // Use the shared database service if available
-    const { createPostgresDatabase } = await import("@voisss/shared/server");
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl) {
-      console.warn("[license] DATABASE_URL not set, skipping license storage");
-      return;
-    }
+  const { createPostgresDatabase } = await import("@voisss/shared/server");
+  const dbUrl = process.env.DATABASE_URL;
+  if (!dbUrl) {
+    throw new Error("DATABASE_URL is required to persist licence entitlements");
+  }
 
-    const db = createPostgresDatabase(dbUrl);
-    await db.connect();
-    try {
-      await db.setBatch("voisss_voice_licenses", [
-        {
-          id: `lic_${input.stripeSessionId}`,
-          data: {
-            voiceId: input.voiceId,
-            licenseeAddress: input.licenseeAddress || "",
-            licenseType: input.licenseType,
-            stripeSessionId: input.stripeSessionId,
-            receiptNumber: input.receiptNumber,
-            amountPaid: input.amountPaid,
-            currency: input.currency,
-            status: "active",
-            purchasedAt: new Date().toISOString(),
-            expiresAt: null, // Perpetual licenses
-          },
+  const db = createPostgresDatabase(dbUrl);
+  await db.connect();
+  try {
+    await db.setBatch("voisss_voice_licenses", [
+      {
+        id: `lic_${input.stripeSessionId}`,
+        data: {
+          voiceId: input.voiceId,
+          licenseeAddress: input.licenseeAddress || "",
+          licenseType: input.licenseType,
+          stripeSessionId: input.stripeSessionId,
+          receiptNumber: input.receiptNumber,
+          amountPaid: input.amountPaid,
+          currency: input.currency,
+          status: "active",
+          purchasedAt: new Date().toISOString(),
+          expiresAt: null,
         },
-      ]);
-      console.log(`[license] ✅ License created: ${input.receiptNumber} for ${input.voiceId}`);
-    } finally {
-      await db.disconnect();
-    }
-  } catch (error) {
-    // Log but don't throw — the webhook has already been acknowledged
-    console.error("[license] Entitlement storage failed:", error);
+      },
+    ]);
+    console.log(`[license] ✅ License created: ${input.receiptNumber} for ${input.voiceId}`);
+  } finally {
+    await db.disconnect();
   }
 }
 

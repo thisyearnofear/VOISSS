@@ -77,6 +77,18 @@ describe('POST /api/elevenlabs/import', () => {
     expect(json.data.voices.map((v: any) => v.voiceId)).toEqual(['v1', 'v3']);
   });
 
+  it('requires an authenticated wallet before persisting an import', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ voices: [{ voice_id: 'v1', name: 'Voice Alpha' }] }), { status: 200 }),
+    );
+    const res = await POST(
+      createRequest({ apiKey: 'sk_test_validformat', selectedVoiceIds: ['v1'], mode: 'import' }),
+    );
+    const json = await res.json();
+    expect(res.status).toBe(401);
+    expect(json.error).toContain('Sign in');
+  });
+
   it('returns 404 when no voices exist on account', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
       new Response(JSON.stringify({ voices: [] }), { status: 200 }),

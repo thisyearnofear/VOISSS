@@ -14,7 +14,7 @@ interface ElevenLabsVoice {
 type Step = "connect" | "api-key" | "select" | "done";
 
 export default function ImportVoicePage() {
-  const { isAuthenticated, address } = useAuth();
+  const { isAuthenticated, signIn, isAuthenticating } = useAuth();
   const [step, setStep] = useState<Step>(isAuthenticated ? "api-key" : "connect");
   const [apiKey, setApiKey] = useState("");
   const [apiError, setApiError] = useState("");
@@ -56,8 +56,30 @@ export default function ImportVoicePage() {
     });
   }
 
-  function handleImport() {
-    setStep("done");
+  async function handleImport() {
+    setLoading(true);
+    setApiError("");
+    try {
+      const res = await fetch("/api/elevenlabs/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          apiKey,
+          selectedVoiceIds: Array.from(selected),
+          mode: "import",
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setApiError(json.error || "Unable to import voices. Please try again.");
+        return;
+      }
+      setStep("done");
+    } catch {
+      setApiError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (step === "connect") {
@@ -73,7 +95,17 @@ export default function ImportVoicePage() {
           </p>
           <div className="p-6 bg-[#1A1A1A] rounded-2xl border border-[#2A2A2A]">
             <p className="text-sm text-gray-400 mb-4">Connect your wallet to continue</p>
-            <div className="w-12 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto" />
+            <button
+              onClick={() => {
+                void signIn().catch((error: unknown) => {
+                  setApiError(error instanceof Error ? error.message : "Wallet connection failed.");
+                });
+              }}
+              disabled={isAuthenticating}
+              className="w-full py-3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl text-white font-semibold disabled:opacity-50"
+            >
+              {isAuthenticating ? "Connecting wallet..." : "Connect wallet"}
+            </button>
           </div>
         </div>
       </div>
@@ -158,13 +190,14 @@ export default function ImportVoicePage() {
             <p className="text-xs text-gray-500 mt-1">Platform fee: 30%. Set your own per-character pricing after import.</p>
           </div>
           <button
-            onClick={handleImport}
-            disabled={selected.size === 0}
+            onClick={() => void handleImport()}
+            disabled={selected.size === 0 || loading}
             className="w-full py-3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl text-white font-semibold hover:from-purple-600 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
           >
             <Upload className="w-5 h-5" />
-            Import {selected.size} Voice{selected.size !== 1 ? "s" : ""}
+            {loading ? "Saving import..." : `Import ${selected.size} Voice${selected.size !== 1 ? "s" : ""}`}
           </button>
+          {apiError && <p className="mt-4 text-sm text-red-400">{apiError}</p>}
         </div>
       </div>
     );
@@ -178,10 +211,10 @@ export default function ImportVoicePage() {
         </div>
         <h1 className="text-2xl font-bold mb-4">Voices Imported!</h1>
         <p className="text-gray-400 mb-2">
-          {selected.size} voice{selected.size !== 1 ? "s" : ""} listed on the VOISSS marketplace.
+          {selected.size} voice{selected.size !== 1 ? "s" : ""} saved and queued for marketplace publishing.
         </p>
         <p className="text-gray-400 mb-8">
-          You&apos;ll earn 70% every time an AI agent uses your voice.
+          We&apos;ll show each listing in your dashboard once publishing is complete.
         </p>
         <div className="flex flex-col gap-3">
           <a

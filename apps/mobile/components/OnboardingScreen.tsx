@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { onboardingService, type OnboardingStep } from '../utils/onboarding';
-import { blockchain } from '../utils/starknet';
 import { Button } from './ui/Button';
 import { ChainSelector } from './ChainSelector';
 import { AIVoiceGuide } from './AIVoiceGuide';
@@ -98,16 +97,6 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete, 
           <WelcomeStep onNext={handleNext} />
         );
       
-      case 'authentication':
-        return (
-          <AuthenticationStep onNext={handleNext} />
-        );
-        
-      case 'wallet':
-        return (
-          <WalletStep onNext={handleNext} />
-        );
-        
       case 'chain-selection':
         return (
           <ChainSelectionStep 
@@ -256,130 +245,6 @@ const WelcomeStep = ({ onNext }: { onNext: () => void }) => {
             onNext();
           }}
         />
-      )}
-    </View>
-  );
-};
-
-const AuthenticationStep = ({ onNext }: { onNext: () => void }) => {
-  const [selectedMethod, setSelectedMethod] = useState<'social' | 'wallet' | null>(null);
-
-  const handleSelectMethod = async (method: 'social' | 'wallet') => {
-    setSelectedMethod(method);
-    
-    try {
-      if (method === 'social') {
-        // In a real app, this would connect to social providers
-        await onboardingService.setupWalletWithSocialLogin('google');
-      }
-      
-      // Move to next step after a brief delay
-      setTimeout(onNext, 1000);
-    } catch (error) {
-      console.error('Authentication failed:', error);
-    }
-  };
-
-  return (
-    <View style={styles.stepContainer}>
-      <Ionicons name="person-add" size={60} color="#FF6B6B" style={styles.stepIcon} />
-      <Text style={styles.stepTitle}>Set up your account</Text>
-      <Text style={styles.stepDescription}>
-        Choose how you want to get started with VOISSS
-      </Text>
-      
-      <View style={styles.authOptions}>
-        <TouchableOpacity 
-          style={styles.authOption}
-          onPress={() => handleSelectMethod('social')}
-          disabled={selectedMethod === 'social'}
-        >
-          <Ionicons name="logo-google" size={30} color="#DB4437" />
-          <Text style={styles.authOptionText}>Continue with Google</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.authOption}
-          onPress={() => handleSelectMethod('wallet')}
-          disabled={selectedMethod === 'wallet'}
-        >
-          <Ionicons name="wallet" size={30} color="#FF6B6B" />
-          <Text style={styles.authOptionText}>Connect Wallet</Text>
-        </TouchableOpacity>
-      </View>
-      
-      {selectedMethod && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B6B" />
-          <Text style={styles.loadingText}>
-            {selectedMethod === 'social' 
-              ? 'Setting up your account...'
-              : 'Connecting wallet...'}
-          </Text>
-        </View>
-      )}
-    </View>
-  );
-};
-
-const WalletStep = ({ onNext }: { onNext: () => void }) => {
-  const [walletAddress, setWalletAddress] = useState('');
-  const [isConnecting, setIsConnecting] = useState(false);
-
-  const handleConnectWallet = async () => {
-    try {
-      setIsConnecting(true);
-      const address = await blockchain.connectWallet();
-      setWalletAddress(address);
-      
-      await onboardingService.connectExistingWallet(address);
-      
-      setTimeout(() => {
-        setIsConnecting(false);
-        onNext();
-      }, 1500);
-    } catch (error) {
-      console.error('Failed to connect wallet:', error);
-      setIsConnecting(false);
-    }
-  };
-
-  return (
-    <View style={styles.stepContainer}>
-      <Ionicons name="wallet" size={60} color="#FF6B6B" style={styles.stepIcon} />
-      <Text style={styles.stepTitle}>Connect Your Wallet</Text>
-      <Text style={styles.stepDescription}>
-        Connect an existing crypto wallet or create a new one to get started
-      </Text>
-      
-      <TouchableOpacity 
-        style={styles.connectWalletButton}
-        onPress={handleConnectWallet}
-        disabled={isConnecting}
-      >
-        {isConnecting ? (
-          <ActivityIndicator size="small" color="white" />
-        ) : (
-          <>
-            <Ionicons name="logo-bitcoin" size={20} color="white" style={styles.walletIcon} />
-            <Text style={styles.connectWalletText}>
-              {walletAddress ? 'Wallet Connected!' : 'Connect Wallet'}
-            </Text>
-          </>
-        )}
-      </TouchableOpacity>
-      
-      {walletAddress ? (
-        <View style={styles.walletInfo}>
-          <Text style={styles.walletAddress}>
-            {`${walletAddress.substring(0, 6)}...${walletAddress.substring(38)}`}
-          </Text>
-          <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-        </View>
-      ) : (
-        <Text style={styles.walletHint}>
-          No wallet detected. Connect your MetaMask, Argent, or other wallet.
-        </Text>
       )}
     </View>
   );

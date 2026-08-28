@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 
 interface ElevenLabsVoice {
   voice_id: string;
@@ -12,6 +13,7 @@ interface ElevenLabsVoice {
 interface ImportRequest {
   apiKey: string;
   selectedVoiceIds?: string[];
+  mode?: 'preview' | 'import';
 }
 
 interface ImportedVoice {
@@ -21,10 +23,43 @@ interface ImportedVoice {
   previewUrl?: string;
 }
 
+interface ImportedVoiceListing extends ImportedVoice {
+  id: string;
+  contributorAddress: string;
+  source: 'elevenlabs';
+  status: 'pending_publish';
+  importedAt: string;
+}
+
+async function persistImport(listings: ImportedVoiceListing[]) {
+  if (!process.env.DATABASE_URL) {
+    throw new Error('Voice imports require DATABASE_URL so they can be stored durably.');
+  }
+
+  const { createPostgresDatabase } = await import('@voisss/shared/server');
+  const db = createPostgresDatabase(process.env.DATABASE_URL);
+  await db.connect();
+  try {
+    await db.setBatch(
+      'elevenlabs_voice_imports',
+      listings.map((listing) => ({ id: listing.id, data: listing })),
+    );
+  } finally {
+    await db.disconnect();
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body: ImportRequest = await request.json();
-    const { apiKey, selectedVoiceIds } = body;
+    const { apiKey, selectedVoiceIds, mode = 'preview' } = body;
+
+    if (mode !== 'preview' && mode !== 'import') {
+      return NextResponse.json(
+        { success: false, error: 'mode must be preview or import' },
+        { status: 400 },
+      );
+    }
 
     if (!apiKey || typeof apiKey !== 'string') {
       return NextResponse.json(
@@ -87,6 +122,47 @@ export async function POST(request: NextRequest) {
       elevenlabsVoiceId: v.voice_id,
       previewUrl: v.preview_url,
     }));
+
+    if (mode === 'import') {
+      let user;
+      try {
+        user = requireAuth(request);
+      } catch {
+        return NextResponse.json(
+          { success: false, error: 'Sign in with your wallet before importing voices.' },
+          { status: 401 },
+        );
+      }
+
+      const importedAt = new Date().toISOString();
+      const listings: ImportedVoiceListing[] = imported.map((voice) => ({
+        ...voice,
+        id: `elevenlabs:${user.address.toLowerCase()}:${voice.elevenlabsVoiceId}`,
+        contributorAddress: user.address,
+        source: 'elevenlabs',
+        status: 'pending_publish',
+        importedAt,
+      }));
+
+      try {
+        await persistImport(listings);
+      } catch (error) {
+        console.error('ElevenLabs import persistence error:', error);
+        return NextResponse.json(
+          { success: false, error: error instanceof Error ? error.message : 'Unable to persist voice imports' },
+          { status: 503 },
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          voices: listings,
+          totalImported: listings.length,
+          status: 'pending_publish',
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,

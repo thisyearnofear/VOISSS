@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://voisss.vercel.app'
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://voisss.netlify.app'
   
   return [
     {
@@ -9,12 +9,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 1,
-    },
-    {
-      url: `${baseUrl}/studio`,
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 0.95,
     },
     {
       url: `${baseUrl}/import`,
@@ -33,18 +27,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.85,
-    },
-    {
-      url: `${baseUrl}/agents`,
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/acp-dashboard`,
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 0.8,
     },
     {
       url: `${baseUrl}/for-agents`,
@@ -87,24 +69,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.85,
-    },
-    {
-      url: `${baseUrl}/achievements`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.75,
-    },
-    {
-      url: `${baseUrl}/arkiv`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/submissions`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.6,
     },
     {
       url: `${baseUrl}/privacy`,

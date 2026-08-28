@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { VoiceCard } from "@/components/marketplace/VoiceCard";
 import { VoiceMarketTrends } from "@/components/marketplace/VoiceMarketTrends";
@@ -10,12 +9,12 @@ import { BuyCreditsModal } from "@/components/payment/BuyCreditsModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChevronDown, Sparkles } from "lucide-react";
 import { initWebMCP } from "@/lib/webmcp";
-import { MascotEvents, publishAppEvent } from "@/lib/mascot-events";
+import { MascotEvents } from "@/lib/mascot-events";
+import type { MarketplaceVoice } from "@/lib/marketplace-indexer";
 
 export default function MarketplacePage() {
-  const router = useRouter();
   const { isAuthenticated } = useAuth();
-  const [voices, setVoices] = useState<any[]>([]);
+  const [voices, setVoices] = useState<MarketplaceVoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
@@ -24,7 +23,7 @@ export default function MarketplacePage() {
     licenseType: "",
   });
   const [showFilters, setShowFilters] = useState(false);
-  const [modalVoice, setModalVoice] = useState<any>(null);
+  const [modalVoice, setModalVoice] = useState<MarketplaceVoice | null>(null);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
 
   const activeFilterCount = [filters.language, filters.tone, filters.licenseType].filter(Boolean).length;
@@ -34,11 +33,7 @@ export default function MarketplacePage() {
     initWebMCP().catch(console.error);
   }, []);
 
-  useEffect(() => {
-    fetchVoices();
-  }, [filters]);
-
-  const fetchVoices = async () => {
+  const fetchVoices = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -66,16 +61,17 @@ export default function MarketplacePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    void fetchVoices();
+  }, [fetchVoices]);
 
   const handlePurchaseClick = (voiceId: string) => {
     const voice = voices.find((v) => v.id === voiceId) || null;
     setModalVoice(voice);
   };
 
-  const handleTryDemo = (voiceId: string) => {
-    router.push(`/demo?voiceId=${encodeURIComponent(voiceId)}`);
-  };
 
   const totalVoices = voices.length;
   const totalLicenses = voices.reduce(
@@ -386,16 +382,16 @@ export default function MarketplacePage() {
         visible={!!modalVoice}
         onClose={() => setModalVoice(null)}
         voiceId={modalVoice?.id || ''}
-        voiceName={modalVoice?.name || modalVoice?.voiceProfile?.tone || 'Unknown'}
-        voicePreviewUrl={modalVoice?.voiceProfile?.previewUrl}
-        licenseType="non-exclusive"
-        onSuccess={() => setModalVoice(null)}
+        voiceName={modalVoice?.metadata.title || modalVoice?.voiceProfile?.tone || 'Unknown'}
+        voicePreviewUrl={modalVoice?.sampleUrl}
+        licenseType={modalVoice?.licenseType || "non-exclusive"}
+        price={modalVoice ? Number(modalVoice.price) / 1_000_000 : 0}
       />
 
       <BuyCreditsModal
         isOpen={showBuyCredits}
         onClose={() => setShowBuyCredits(false)}
-        context={modalVoice ? { voiceId: modalVoice.id, voiceName: modalVoice.name || modalVoice.voiceProfile?.tone || 'Unknown' } : undefined}
+        context={modalVoice ? { voiceId: modalVoice.id, voiceName: modalVoice.metadata.title || modalVoice.voiceProfile?.tone || 'Unknown' } : undefined}
       />
     </div>
     </>

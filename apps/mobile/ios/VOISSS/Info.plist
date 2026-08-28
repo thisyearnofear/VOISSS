@@ -46,7 +46,7 @@
       <true/>
     </dict>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your microphone</string>
+    <string>VOISSS uses your microphone to record voice clips that you choose to play back, transform, or upload.</string>
     <key>NSUserActivityTypes</key>
     <array>
       <string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>

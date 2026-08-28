@@ -1,10 +1,10 @@
-/**
- * Per-page metadata for VOISSS pages.
- * Used by Next.js metadata APIs to set title, description, canonical,
- * OpenGraph, and Twitter cards for each route.
- */
+import type { Metadata } from "next";
 
-type PageMetadata = {
+const siteUrl = new URL(
+  process.env.NEXT_PUBLIC_BASE_URL || "https://voisss.netlify.app"
+);
+
+export type PageMetadata = {
   title: string;
   description: string;
   ogImage?: string;
@@ -76,4 +76,39 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     title: 'Arkiv | Decentralized Voice Memory',
     description: 'Decentralized memory for your VOISSS voice profile. Connected via IPFS and Gemini AI.',
   },
+  '/submissions': {
+    title: 'Submissions | VOISSS',
+    description: 'Review voice and agent submissions on VOISSS.',
+  },
+  '/privacy': {
+    title: 'Privacy | VOISSS',
+    description: 'Read how VOISSS handles voice, account, and payment data.',
+  },
 };
+
+/** Build complete, route-specific Next.js metadata from the public URL. */
+export function getPageMetadata(pathname: keyof typeof PAGE_METADATA): Metadata {
+  const page = PAGE_METADATA[pathname];
+  const canonical = new URL(pathname, siteUrl).toString();
+
+  return {
+    title: page.title,
+    description: page.description,
+    alternates: { canonical },
+    openGraph: {
+      title: page.title,
+      description: page.description,
+      url: canonical,
+      siteName: "VOISSS",
+      locale: "en_US",
+      type: "website",
+      images: [{ url: "/og-image.png", width: 1200, height: 630, alt: page.title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: page.title,
+      description: page.description,
+      images: ["/og-image.png"],
+    },
+  };
+}
