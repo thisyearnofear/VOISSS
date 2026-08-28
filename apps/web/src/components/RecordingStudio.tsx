@@ -21,7 +21,7 @@ import DurationDisplay from "@/components/RecordingStudio/DurationDisplay";
 import WaveformVisualization from "@/components/RecordingStudio/WaveformVisualization";
 import ToastNotification from "@/components/RecordingStudio/ToastNotification";
 import VersionSelection from "@/components/RecordingStudio/VersionSelection";
-import AlchemyModeStatus from "@/components/RecordingStudio/AlchemyModeStatus";
+import StudioConnectionStatus from "@/components/RecordingStudio/StudioConnectionStatus";
 import AudioPreview from "@/components/RecordingStudio/AudioPreview";
 import ActionButtons from "@/components/RecordingStudio/ActionButtons";
 import RecordingTitle from "@/components/RecordingStudio/RecordingTitle";
@@ -74,7 +74,7 @@ interface SaveResult {
   recording: ShareableRecording;
 }
 
-const AlchemyModeBadge = ({
+const StudioModeBadge = ({
   mode,
 }: {
   mode: "standard" | "ghost" | "pro" | "vip";
@@ -88,7 +88,7 @@ const AlchemyModeBadge = ({
       border: "border-blue-500/20",
     },
     ghost: {
-      label: "Ghost",
+      label: "Anonymous",
       icon: UserX,
       color: "text-gray-400",
       bg: "bg-gray-500/10",
@@ -722,7 +722,7 @@ export default function RecordingStudio({
       {/* Header */}
       <div className="text-center mb-8 relative">
         <div className="absolute top-0 right-0 sm:right-4 flex justify-end">
-          <AlchemyModeBadge mode={(activeMode as "standard" | "ghost" | "pro" | "vip") || "standard"} />
+          <StudioModeBadge mode={(activeMode as "standard" | "ghost" | "pro" | "vip") || "standard"} />
         </div>
 
         {mission && (
@@ -763,27 +763,27 @@ export default function RecordingStudio({
         onCancelRecording={handleCancelRecording}
       />
 
-      {/* PHASE 2: STUDIO HUB (Laboratory & Forge) */}
+      {/* Studio Hub — audio preview + settings sidebar */}
       {!isRecording && (audioBlob || versions.length > 0) && (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="flex items-center justify-between border-b border-[#2A2A2A] pb-6">
             <div className="text-left">
-              <motion.h3 
+              <motion.h3
                 key={isAdvancedMode ? "lab" : "saved"}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 className="text-2xl font-black text-white tracking-tight uppercase"
               >
-                {isAdvancedMode ? "The Laboratory" : "Recording Saved"}
+                {isAdvancedMode ? "Advanced Tools" : "Recording Saved"}
               </motion.h3>
-              <motion.p 
-                key={isAdvancedMode ? "alchemy" : "preview"}
+              <motion.p
+                key={isAdvancedMode ? "lab" : "preview"}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="text-sm text-gray-400"
               >
-                {isAdvancedMode 
-                  ? "Alchemy Hub: Transform, Dub, and Secure your creation" 
+                {isAdvancedMode
+                  ? "Transform, dub, and secure your recording"
                   : "Preview your recording or unlock advanced tools"}
               </motion.p>
             </div>
@@ -800,12 +800,12 @@ export default function RecordingStudio({
                 layout
                 className="flex items-center gap-2"
               >
-                {isAdvancedMode ? "✨ Advanced Mode" : "Show Advanced Tools"}
+                {isAdvancedMode ? "Advanced Tools" : "Show Studio Tools"}
               </motion.span>
               
               {!isAdvancedMode && (
                 <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 bg-black/90 border border-white/10 p-2 rounded text-[10px] lowercase text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case">
-                  Unlock <span className="text-purple-400 font-bold">Alchemy Mode</span>, custom x402 pricing, and multi-version management.
+                  Unlock <span className="text-purple-400 font-bold">advanced tools</span>, custom pricing, and multi-version management.
                   <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-black border-r border-b border-white/10 rotate-45" />
                 </div>
               )}
@@ -852,7 +852,7 @@ export default function RecordingStudio({
                       humanityCertificateBadge={recordingAnalysis?.humanityCertificate?.badge || null}
                       isVerifiedAgent={isVerifiedAgent}
                     />
-                    <AlchemyModeStatus
+                    <StudioConnectionStatus
                       isConnected={isConnected}
                       hasSubAccount={hasSubAccount}
                       activeMode={activeMode}
@@ -902,12 +902,12 @@ export default function RecordingStudio({
               <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#141414] border-t border-[#333] p-4 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)] max-h-[85vh] overflow-y-auto md:static md:bg-transparent md:border-t md:border-[#2A2A2A] md:p-0 md:py-8 md:shadow-none md:max-h-none md:overflow-visible md:rounded-none animate-in slide-in-from-bottom-full md:slide-in-from-bottom-4 duration-500 ease-out-expo">
                 <div className="flex items-center justify-between mb-6 sticky top-0 bg-[#141414] md:bg-transparent z-10 py-2 -mt-2 md:mt-0 md:py-0 border-b border-[#2A2A2A] md:border-none">
                   <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                    {activeTool === "voice" && "✨ Voice Alchemy"}
+                    {activeTool === "voice" && "Voice Transform"}
                     {activeTool === "clone" && "Contributor Clone"}
-                    {activeTool === "dub" && "🌍 Global Dubbing"}
-                    {activeTool === "script" && "📝 Transcript & Forge"}
-                    {activeTool === "insights" && "🧠 Gemini Insights"}
-                    {activeTool === "memory" && "🧬 AI Memory Archive"}
+                    {activeTool === "dub" && "Global Dubbing"}
+                    {activeTool === "script" && "Transcript & Edit"}
+                    {activeTool === "insights" && "Gemini Insights"}
+                    {activeTool === "memory" && "AI Memory Archive"}
                   </h3>
                   <button
                     onClick={() => setActiveTool(null)}
@@ -1031,7 +1031,7 @@ export default function RecordingStudio({
 
             {mission && (
               <p className="text-center text-sm text-indigo-400 mt-2">
-                Clicking &quot;Save &amp; Anchor&quot; will also submit this
+                Saving will also submit this
                 recording to the mission.
               </p>
             )}

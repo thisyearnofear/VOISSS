@@ -179,6 +179,27 @@ function ResultStep({ profile, onReset, redirectUrl }: { profile: UserProfile; o
         ? ONBOARDING_PAYOFF.developer(profile.style)
         : ONBOARDING_PAYOFF.exploring();
 
+  const gettingStarted = [
+    {
+      id: "demo",
+      label: "Hear what agents hear",
+      desc: "Play a 10-second voice demo",
+      href: "/demo",
+    },
+    {
+      id: "browse",
+      label: "Browse real voices",
+      desc: "See prices and licensing options",
+      href: "/marketplace",
+    },
+    {
+      id: "record",
+      label: "Record your first sample",
+      desc: "Takes under 60 seconds",
+      href: "/studio",
+    },
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -202,6 +223,33 @@ function ResultStep({ profile, onReset, redirectUrl }: { profile: UserProfile; o
       <p className="text-gray-400 mb-8 max-w-md mx-auto">
         {payoff}
       </p>
+
+      {/* Guided getting-started checklist */}
+      <div className="max-w-md mx-auto mb-8 text-left">
+        <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3 text-center">
+          Three quick steps to get started
+        </p>
+        <ol className="space-y-2" aria-label="Getting started steps">
+          {gettingStarted.map((item, i) => (
+            <li key={item.id}>
+              <a
+                href={item.href}
+                className="group flex items-center gap-3 p-3 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl hover:border-purple-500/40 hover:bg-purple-500/5 transition-all"
+              >
+                <span className="w-7 h-7 shrink-0 bg-purple-500/20 text-purple-300 rounded-lg flex items-center justify-center text-sm font-bold">
+                  {i + 1}
+                </span>
+                <span className="flex-1">
+                  <span className="block text-sm font-semibold text-white">{item.label}</span>
+                  <span className="block text-xs text-gray-400">{item.desc}</span>
+                </span>
+                <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-purple-400 transition-colors" />
+              </a>
+            </li>
+          ))}
+        </ol>
+      </div>
+
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <a
           href={redirectUrl}

@@ -3,6 +3,7 @@
 import { useMemo, useState, Suspense, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import RecordingStudio from "../../components/RecordingStudio";
+import QuickRecordStudio from "../../components/RecordingStudio/QuickRecordStudio";
 import StudioRecordingsList from "../../components/StudioRecordingsList";
 import StudioEarningsHero from "../../components/StudioEarningsHero";
 import { useRecordings } from "../../hooks/queries/useRecordings";
@@ -38,6 +39,9 @@ function StudioPageInner() {
     }>
   >([]);
   const [activeStep, setActiveStep] = useState<StudioStep>("choose");
+  const [recordingVariant, setRecordingVariant] = useState<"quick" | "full">(
+    "full",
+  );
 
   const { isAuthenticated, address } = useAuth();
   const { data: allRecordings = [], isLoading: isLoadingRecordings } =
@@ -87,30 +91,54 @@ function StudioPageInner() {
           <div className="max-w-3xl mx-auto mb-12">
             <div className="grid sm:grid-cols-2 gap-4">
               <button
-                onClick={() => setActiveStep("record")}
-                className="group p-8 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl hover:border-purple-500/40 hover:bg-purple-500/5 transition-all text-left"
+                onClick={() => {
+                  setRecordingVariant("quick");
+                  setActiveStep("record");
+                }}
+                className="group p-8 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl hover:border-purple-500/40 hover:bg-purple-500/5 transition-all text-left"
               >
-                <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mb-4">
+                <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4">
                   <Mic className="w-6 h-6 text-purple-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">Record New Voice</h3>
-                <p className="text-sm text-gray-400 mb-4">
-                  Use the studio to record clean voice samples. Pick from curated scripts or read your own.
+                <h3 className="text-lg font-semibold text-white mb-2">Quick Record</h3>
+                <p className="text-sm text-gray-400 mb-2">
+                  Start recording right away — no tools, no options.
                 </p>
                 <span className="text-sm text-purple-400 group-hover:text-purple-300 flex items-center gap-1">
                   Start recording <ArrowRight className="w-3 h-3" />
                 </span>
               </button>
 
+              <button
+                onClick={() => {
+                  setRecordingVariant("full");
+                  setActiveStep("record");
+                }}
+                className="group p-8 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl hover:border-indigo-500/40 hover:bg-indigo-500/5 transition-all text-left"
+              >
+                <div className="w-12 h-12 bg-indigo-500/20 rounded-lg flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">Full Studio</h3>
+                <p className="text-sm text-gray-400 mb-2">
+                  Advanced tools: AI voice transforms, dubbing, version management, and agent integration.
+                </p>
+                <span className="text-sm text-indigo-400 group-hover:text-indigo-300 flex items-center gap-1">
+                  Open full studio <ArrowRight className="w-3 h-3" />
+                </span>
+              </button>
+
               <a
                 href="/import"
-                className="group p-8 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl hover:border-green-500/40 hover:bg-green-500/5 transition-all text-left block"
+                className="group p-8 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl hover:border-green-500/40 hover:bg-green-500/5 transition-all text-left block"
               >
-                <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mb-4">
+                <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center mb-4">
                   <Upload className="w-6 h-6 text-green-400" />
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2">Import from ElevenLabs</h3>
-                <p className="text-sm text-gray-400 mb-4">
+                <p className="text-sm text-gray-400 mb-2">
                   Already have voices on ElevenLabs? Import them in one click and start earning 70% revenue share.
                 </p>
                 <span className="text-sm text-green-400 group-hover:text-green-300 flex items-center gap-1">
@@ -159,12 +187,18 @@ function StudioPageInner() {
             >
               &larr; Back to options
             </button>
-            <RecordingStudio
-              onRecordingComplete={handleRecordingComplete}
-              initialTranscriptTemplateId={templateId}
-              initialMode={mode}
-              missionId={missionId}
-            />
+            {recordingVariant === "quick" && !templateId && !mode && !missionId ? (
+              <QuickRecordStudio
+                onRecordingComplete={handleRecordingComplete}
+              />
+            ) : (
+              <RecordingStudio
+                onRecordingComplete={handleRecordingComplete}
+                initialTranscriptTemplateId={templateId}
+                initialMode={mode}
+                missionId={missionId}
+              />
+            )}
           </div>
         )}
 

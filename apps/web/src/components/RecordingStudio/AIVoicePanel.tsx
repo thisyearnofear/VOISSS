@@ -159,7 +159,7 @@ export default function AIVoicePanel({
           {isLoadingVoicesFree ? (
             <>
               <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
-              Igniting Alchemy Engine...
+              Loading voices...
             </>
           ) : voicesFree.length > 0 ? (
             <>

@@ -91,28 +91,28 @@ export default function ActionButtons({
             </>
           ) : hasSubAccount ? (
             activeMode === 'ghost' ?
-              `👤 Ghost Save (Anonymous)` :
+              `Save (Anonymous)` :
               userTier === 'premium' ?
-                `💾 Save Selected (∞ Gasless)` :
-                `💾 Save Selected (${remainingQuota.saves} free, gasless)`
+                `Save Selected (Unlimited)` :
+                `Save Selected (${remainingQuota.saves} free)`
           ) : (
-            '💾 Save Onchain (Self-Funded)'
+            'Save to Blockchain'
           )}
         </button>
       </div>
       {userTier === 'free' && remainingQuota.saves <= 2 && activeMode !== 'ghost' && (
         <p className="text-xs text-yellow-500/80 text-center mt-3 font-medium">
-          ⚠️ {remainingQuota.saves} free saves remaining this week
+          {remainingQuota.saves} free saves remaining this week
         </p>
       )}
 
       {activeMode === 'ghost' && (
-        <div className="mt-4 p-3 bg-gray-900/40 border border-gray-800 rounded-xl flex items-start gap-2 animate-in fade-in slide-in-from-top-1 duration-500">
+        <div className="mt-4 p-3 bg-gray-900/40 border border-gray-800 rounded-xl flex items-start gap-2 animate-in fade-in slide-in-from-top-1 duration-500" role="status">
           <div className="w-4 h-4 rounded-full bg-gray-800 flex items-center justify-center flex-shrink-0 mt-0.5">
             <span className="text-[10px] text-gray-400">i</span>
           </div>
           <p className="text-[11px] text-gray-400 leading-tight">
-            <span className="text-gray-200 font-bold block mb-0.5">Ghost Mode Privacy Notice</span>
+            <span className="text-gray-200 font-bold block mb-0.5">Anonymous Save Mode</span>
             This recording will be relayed anonymously via Sub Account.
           </p>
         </div>

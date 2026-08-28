@@ -38,20 +38,27 @@ export default function Nav() {
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
 
-  // Close wallet menu when clicking outside
+  // Close wallet menu when clicking outside or pressing Escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setShowWalletMenu(false);
       }
     };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowWalletMenu(false);
+      }
+    };
 
     if (showWalletMenu) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [showWalletMenu]);
 
@@ -242,6 +249,9 @@ export default function Nav() {
                 <div className="relative" ref={menuRef}>
                   <button
                     onClick={() => setShowWalletMenu(!showWalletMenu)}
+                    aria-expanded={showWalletMenu}
+                    aria-haspopup="true"
+                    aria-label="Wallet menu"
                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-xl hover:border-green-500/50 transition-all duration-200 group"
                   >
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
@@ -267,7 +277,11 @@ export default function Nav() {
 
             {/* Enhanced Wallet Dropdown Menu */}
             {showWalletMenu && (
-              <div className="absolute right-0 mt-3 w-80 bg-gradient-to-br from-[#1A1A1A] to-[#0F0F0F] border border-[#3A3A3A] rounded-sm shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div
+                role="menu"
+                aria-label="Wallet menu"
+                className="absolute right-0 mt-3 w-80 bg-gradient-to-br from-[#1A1A1A] to-[#0F0F0F] border border-[#3A3A3A] rounded-sm shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200"
+              >
                 {/* Header with Gradient */}
                 <div className="p-5 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-b border-[#2A2A2A]">
                   <div className="flex items-center gap-2 mb-3">
