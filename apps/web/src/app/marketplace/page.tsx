@@ -6,6 +6,7 @@ import { VoiceCard } from "@/components/marketplace/VoiceCard";
 import { VoiceMarketTrends } from "@/components/marketplace/VoiceMarketTrends";
 import { LicensePurchaseModal } from "@/components/payment/LicensePurchaseModal";
 import { BuyCreditsModal } from "@/components/payment/BuyCreditsModal";
+import MascotEmptyState from "@/components/MascotEmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChevronDown, Sparkles } from "lucide-react";
 import { initWebMCP } from "@/lib/webmcp";
@@ -363,17 +364,15 @@ export default function MarketplacePage() {
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="border border-[#2A2A2A] bg-[#121212]/60 px-6 py-12 text-center rounded-sm"
           >
-            <div className="text-lg font-semibold text-white mb-2">
-              {activeFilterCount > 0 ? "No voices matched these filters" : "No voices listed yet"}
-            </div>
-            <div className="text-sm text-gray-400 max-w-md mx-auto">
-              {activeFilterCount > 0
-                ? "Try adjusting your filters or clearing them to see all available voices."
-                : "Be the first to list your voice! Head to the Studio to record and publish."
+            <MascotEmptyState
+              title={activeFilterCount > 0 ? "No voices matched these filters" : "No voices listed yet"}
+              description={
+                activeFilterCount > 0
+                  ? "Try adjusting your filters or clearing them to see all available voices."
+                  : "Be the first to list your voice! Head to the Studio to record and publish."
               }
-            </div>
+            />
           </motion.div>
         )}
       </div>
