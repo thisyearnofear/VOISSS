@@ -22,6 +22,11 @@ export interface VoissMascotMarkProps {
   /** Accessible label; set to "" to mark decorative. */
   alt?: string;
   priority?: boolean;
+  /**
+   * "full" (default): transparent full-body illustration, sits on any surface.
+   * "square": framed version with the muted-lavender background square.
+   */
+  variant?: "full" | "square";
 }
 
 export default function VoissMascotMark({
@@ -29,13 +34,15 @@ export default function VoissMascotMark({
   className = "",
   alt = "VOISSS mascot",
   priority = false,
+  variant = "full",
 }: VoissMascotMarkProps) {
   const dim = typeof size === "number" ? size : SIZE_MAP[size];
+  const src = variant === "square" ? "/voiss-mascot.svg" : "/voiss-mascot-full.svg";
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src="/voiss-mascot.svg"
+      src={src}
       width={dim}
       height={dim}
       alt={alt}

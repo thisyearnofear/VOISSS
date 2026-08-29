@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { Shield, Zap, TrendingUp, Sparkles, Play } from "lucide-react";
 import QuickVoicePreview from "./marketplace/QuickVoicePreview";
-import VoissMascot, { useMascotContext, publishMoodEvent } from "./VoissMascot";
+import { useMascotContext, publishMoodEvent } from "./VoissMascot";
+import VoissMascotMark from "./VoissMascotMark";
 import { MascotEvents } from "@/lib/mascot-events";
 import OnboardingQuiz from "./OnboardingQuiz";
 import { BuyCreditsButton } from "./payment/BuyCreditsModal";
@@ -65,9 +66,16 @@ function Inner() {
       <div className="relative z-10 voisss-container py-16 sm:py-24">
         {/* Main Hero Content */}
         <div className="text-center mb-16">
-          {/* Mascot */}
+          {/* Mascot — brand moment */}
           <div className="flex justify-center mb-6">
-            <VoissMascot mood="wave" size="lg" interactive />
+            <div className="relative">
+              <div className="absolute inset-0 -z-10 bg-purple-500/25 blur-3xl rounded-full" />
+              <VoissMascotMark
+                priority
+                size={280}
+                className="w-40 h-40 sm:w-52 sm:h-52 lg:w-64 lg:h-64 drop-shadow-[0_16px_40px_rgba(124,93,250,0.35)]"
+              />
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
