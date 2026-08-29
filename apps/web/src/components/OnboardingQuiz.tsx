@@ -207,7 +207,10 @@ function ResultStep({ profile, onReset, redirectUrl }: { profile: UserProfile; o
       className="text-center"
     >
       <div className="flex justify-center mb-6">
-        <VoissMascot mood="celebrate" size="lg" interactive />
+        <div className="relative">
+          <div className="absolute inset-0 -z-10 bg-purple-500/25 blur-3xl rounded-full" />
+          <VoissMascot mood="celebrate" size="xl" interactive />
+        </div>
       </div>
       <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/30 rounded-full mb-4">
         <Sparkles className="w-4 h-4 text-purple-400" />

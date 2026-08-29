@@ -8,6 +8,7 @@ import { useBaseAccount } from "../hooks/useBaseAccount";
 import { useAssistant } from "../contexts/AssistantContext";
 import { Sparkles, Menu, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import VoissMascotMark from "./VoissMascotMark";
 
 const ONBOARDING_STORAGE_KEY = "voisss_onboarding_profile";
 const NEW_USER_HINT_KEY = "voisss_new_user_hint_dismissed";
@@ -165,8 +166,9 @@ export default function Nav() {
     <nav className="border-b border-[#2A2A2A] bg-[#0A0A0A]/95 backdrop-blur-sm sticky top-0 z-50">
       <div className="voisss-container">
         <div className="flex items-center justify-between py-4">
-          <Link href="/" className="font-bold text-2xl voisss-gradient-text hover:opacity-80 transition-opacity">
-            VOISSS
+          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <VoissMascotMark variant="head" size={32} priority alt="" className="w-8 h-8" />
+            <span className="font-bold text-2xl voisss-gradient-text">VOISSS</span>
           </Link>
 
           <div className="flex items-center gap-6">

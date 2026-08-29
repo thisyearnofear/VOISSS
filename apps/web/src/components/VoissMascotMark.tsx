@@ -25,9 +25,16 @@ export interface VoissMascotMarkProps {
   /**
    * "full" (default): transparent full-body illustration, sits on any surface.
    * "square": framed version with the muted-lavender background square.
+   * "head": transparent head-only orb — best for small inline use (nav, avatars).
    */
-  variant?: "full" | "square";
+  variant?: "full" | "square" | "head";
 }
+
+const SRC_MAP: Record<NonNullable<VoissMascotMarkProps["variant"]>, string> = {
+  full: "/voiss-mascot-full.svg",
+  square: "/voiss-mascot.svg",
+  head: "/voiss-mascot-head.svg",
+};
 
 export default function VoissMascotMark({
   size = "md",
@@ -37,7 +44,7 @@ export default function VoissMascotMark({
   variant = "full",
 }: VoissMascotMarkProps) {
   const dim = typeof size === "number" ? size : SIZE_MAP[size];
-  const src = variant === "square" ? "/voiss-mascot.svg" : "/voiss-mascot-full.svg";
+  const src = SRC_MAP[variant];
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
