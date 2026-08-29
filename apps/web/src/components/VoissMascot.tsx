@@ -59,7 +59,6 @@ const SIZE_MAP: Record<MascotSize, number> = {
 };
 
 const BAR_COUNT = 7;
-const BAR_MAX_H = 14; // in viewBox units
 
 const MOOD_ORDER: MascotMood[] = [
   "wave",
@@ -108,125 +107,87 @@ export function useMascotContext(): {
 
 // ── Waveform bars (the VOISSS signature) ─────────────────────────────────────
 
-function WaveformBars({ mood, viewBoxH }: { mood: MascotMood; viewBoxH: number }) {
-  const cy = viewBoxH * 0.12; // centre of the halo arc
+/** Normalised bar height (0 → ~1.15) for a given mood/bar/time. */
+function barLevel(mood: MascotMood, i: number, t: number): number {
+  switch (mood) {
+    case "listen":
+      return (Math.sin(t * 3 + i * 0.7) * 0.5 + 0.5) * 0.95;
+    case "talk":
+      return (Math.sin(t * 5 + i * 0.4) * 0.35 + 0.65) * 1.1;
+    case "happy":
+      return 0.7;
+    case "think":
+      return 0.25;
+    case "celebrate":
+      return (Math.sin(t * 8 + i * 1.2) >= 0 ? 1.0 : 0.5) * 1.15;
+    default: // wave
+      return (Math.sin(i * 0.6 + t * 1.2) * 0.3 + 0.5) * 0.7;
+  }
+}
 
-  // Bar heights per mood — the "waveform" visualiser
-  const heights: number[] = (() => {
-    const t = Date.now() / 1000;
-    const wave = (i: number) =>
-      Math.sin(t * 3 + i * 0.7) * 0.5 + 0.5; // 0 → 1 cycle
-    const burst = (i: number) =>
-      Math.sin(t * 5 + i * 0.4) * 0.35 + 0.65;
-    const pulse = (i: number) =>
-      Math.sin(t * 1.5 + i * 0.3) * 0.3 + 0.7;
-    const flash = (i: number) =>
-      Math.sin(t * 8 + i * 1.2) >= 0 ? 1.0 : 0.5;
+function barColor(mood: MascotMood): string {
+  if (mood === "celebrate") return "#FBBF24"; // amber-400
+  if (mood === "happy") return "#C084FC"; // purple-400
+  if (mood === "think") return "#6B7280"; // gray-500
+  return "#9C88FF"; // voiss purple
+}
 
-    switch (mood) {
-      case "listen":
-        return Array.from({ length: BAR_COUNT }, (_, i) =>
-          wave(i) * BAR_MAX_H,
-        );
-      case "talk":
-        return Array.from({ length: BAR_COUNT }, (_, i) =>
-          burst(i) * BAR_MAX_H * 1.1,
-        );
-      case "happy":
-        return Array.from({ length: BAR_COUNT }, () =>
-          0.6 * BAR_MAX_H + Math.random() * 0.2,
-        );
-      case "think":
-        return Array.from({ length: BAR_COUNT }, () => 0.25 * BAR_MAX_H);
-      case "celebrate":
-        return Array.from({ length: BAR_COUNT }, (_, i) =>
-          flash(i) * BAR_MAX_H * 1.15,
-        );
-      default: // wave
-        return Array.from({ length: BAR_COUNT }, (_, i) =>
-          (Math.sin(i * 0.6 + t * 1.2) * 0.3 + 0.5) * BAR_MAX_H * 0.7,
-        );
-    }
-  })();
+function WaveformBars({ mood, size }: { mood: MascotMood; size: number }) {
+  // Everything scales with `size` so the halo reads the same at every dimension.
+  const cx = size * 0.5; // centre on the head, not a hard-coded constant
+  const cy = size * 0.12; // centre of the halo arc, above the crown
+  const barW = size * 0.032;
+  const gap = size * 0.019;
+  const barMaxH = size * 0.2;
+  const totalW = BAR_COUNT * barW + (BAR_COUNT - 1) * gap;
+  const startX = cx - totalW / 2;
 
-  // Animate with requestAnimationFrame for smooth waveform
-  const [bars, setBars] = useState<number[]>(heights);
+  const seed = () =>
+    Array.from({ length: BAR_COUNT }, (_, i) =>
+      barLevel(mood, i, 0) * barMaxH,
+    );
+
+  const [bars, setBars] = useState<number[]>(seed);
   const rafRef = useRef<number>();
-  const loop = () => {
-    const t = Date.now() / 1000;
-    const gen = (i: number) => {
-      const wave = Math.sin(t * 3 + i * 0.7) * 0.5 + 0.5;
-      const burst = Math.sin(t * 5 + i * 0.4) * 0.35 + 0.65;
-      const pulse = Math.sin(t * 1.5 + i * 0.3) * 0.3 + 0.7;
-      const flash = Math.sin(t * 8 + i * 1.2) >= 0 ? 1.0 : 0.5;
-      switch (mood) {
-        case "listen":
-          return wave * BAR_MAX_H;
-        case "talk":
-          return burst * BAR_MAX_H * 1.1;
-        case "happy":
-          return 0.7 * BAR_MAX_H;
-        case "think":
-          return 0.25 * BAR_MAX_H;
-        case "celebrate":
-          return flash * BAR_MAX_H * 1.15;
-        default:
-          return (Math.sin(i * 0.6 + t * 1.2) * 0.3 + 0.5) * BAR_MAX_H * 0.7;
-      }
-    };
-    setBars(Array.from({ length: BAR_COUNT }, (_, i) => gen(i)));
-    rafRef.current = requestAnimationFrame(loop);
-  };
 
   useEffect(() => {
+    // Respect reduced-motion: render a static frame, no rAF loop.
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    ) {
+      setBars(Array.from({ length: BAR_COUNT }, (_, i) => barLevel(mood, i, 0) * barMaxH));
+      return;
+    }
+    const loop = () => {
+      const t = Date.now() / 1000;
+      setBars(Array.from({ length: BAR_COUNT }, (_, i) => barLevel(mood, i, t) * barMaxH));
+      rafRef.current = requestAnimationFrame(loop);
+    };
     rafRef.current = requestAnimationFrame(loop);
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [mood]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mood, size]);
 
-  const barW = 2.5;
-  const gap = 1.5;
-  const totalW = BAR_COUNT * barW + (BAR_COUNT - 1) * gap;
-  const startX = 60 - totalW / 2;
+  const fill = barColor(mood);
+  const opacity = mood === "think" ? 0.5 : mood === "celebrate" ? 0.95 : 0.85;
 
   return (
     <g aria-hidden>
-      {bars.map((h, i) => {
-        const x = startX + i * (barW + gap);
-        const y = cy - h / 2;
-        return (
-          <motion.rect
-            key={i}
-            x={x}
-            y={y}
-            width={barW}
-            height={h}
-            rx={1}
-            fill={
-              mood === "celebrate"
-                ? "#FBBF24" // amber-400
-                : mood === "happy"
-                  ? "#C084FC" // purple-400
-                  : mood === "think"
-                    ? "#6B7280" // gray-500
-                    : "#9C88FF" // voiss purple
-            }
-            opacity={
-              mood === "think" ? 0.5 : mood === "celebrate" ? 0.95 : 0.85
-            }
-            animate={{
-              y: y + (mood === "celebrate" ? -1 : 0),
-            }}
-            transition={{
-              duration: 0.1,
-              repeat: Infinity,
-              repeatType: "reverse",
-              repeatDelay: mood === "celebrate" ? 0.05 : 0.15,
-            }}
-          />
-        );
-      })}
+      {bars.map((h, i) => (
+        <rect
+          key={i}
+          x={startX + i * (barW + gap)}
+          y={cy - h / 2}
+          width={barW}
+          height={h}
+          rx={barW / 2}
+          fill={fill}
+          opacity={opacity}
+        />
+      ))}
     </g>
   );
 }
@@ -240,37 +201,112 @@ function HeadGeometry({
   mood: MascotMood;
   size: number;
 }) {
+  // Round "Halo Orb" body — headphone-wearing character.
   const cx = size * 0.5;
-  const cy = size * 0.55;
-  const rx = size * 0.38;
-  const ry = size * 0.42;
+  const cy = size * 0.56;
+  const rx = size * 0.35;
+  const ry = size * 0.37;
 
   // Mouth path per mood
   const mouthPath = (() => {
-    const my = cy + ry * 0.45;
+    const my = cy + ry * 0.28;
     switch (mood) {
       case "happy":
-        return `M ${cx - rx * 0.45} ${my} Q ${cx} ${my + ry * 0.3} ${cx + rx * 0.45} ${my}`;
+        return `M ${cx - rx * 0.32} ${my} Q ${cx} ${my + ry * 0.34} ${cx + rx * 0.32} ${my} Z`;
       case "celebrate":
-        return `M ${cx - rx * 0.5} ${my - 2} Q ${cx} ${my + ry * 0.35} ${cx + rx * 0.5} ${my - 2} Z`;
+        return `M ${cx - rx * 0.34} ${my - ry * 0.02} Q ${cx} ${my + ry * 0.42} ${cx + rx * 0.34} ${my - ry * 0.02} Z`;
       case "talk":
-        return `M ${cx - rx * 0.35} ${my} Q ${cx} ${my + ry * 0.2} ${cx + rx * 0.35} ${my}`;
+        return `M ${cx - rx * 0.2} ${my} Q ${cx} ${my + ry * 0.28} ${cx + rx * 0.2} ${my} Z`;
       case "think":
-        return `M ${cx - rx * 0.2} ${my} L ${cx + rx * 0.2} ${my}`;
+        return `M ${cx - rx * 0.14} ${my} L ${cx + rx * 0.14} ${my}`;
       default:
-        return `M ${cx - rx * 0.3} ${my} Q ${cx} ${my + ry * 0.15} ${cx + rx * 0.3} ${my}`;
+        return `M ${cx - rx * 0.22} ${my} Q ${cx} ${my + ry * 0.2} ${cx + rx * 0.22} ${my}`;
     }
   })();
+  const mouthFilled = mood === "happy" || mood === "celebrate" || mood === "talk";
 
   // Eye openness per mood
-  const eyeH = mood === "happy" ? 0.7 : mood === "celebrate" ? 0.9 : 1;
+  const eyeH = mood === "happy" ? 0.55 : mood === "celebrate" ? 0.85 : 1;
+  const eyeCy =
+    mood === "think" ? cy - ry * 0.24 : cy - ry * 0.12; // look up when thinking
+  const eyeDX = rx * 0.34;
+  const eyeRx = rx * 0.13;
+  const eyeRy = rx * 0.18 * eyeH;
 
-  // Ear twinkle — only when in wave mood
-  const earTwinkle = mood === "wave";
+  // Headphone geometry
+  const cupCY = cy - ry * 0.02;
+  const cupDX = rx * 0.98;
+  const cupRx = rx * 0.3;
+  const cupRy = rx * 0.4;
+  const bandY = cupCY - cupRy * 0.7;
+  const bandPath = `M ${cx - cupDX} ${bandY} Q ${cx} ${cy - ry * 1.2} ${cx + cupDX} ${bandY}`;
+
+  const Eye = ({ side }: { side: -1 | 1 }) => (
+    <g>
+      <motion.ellipse
+        cx={cx + side * eyeDX}
+        cy={eyeCy}
+        rx={eyeRx}
+        ry={eyeRy}
+        fill="#241245"
+        animate={
+          mood === "celebrate"
+            ? { cy: [eyeCy, eyeCy - ry * 0.04, eyeCy] }
+            : {}
+        }
+        transition={{ duration: 0.35, repeat: mood === "celebrate" ? Infinity : 0 }}
+      />
+      {/* highlight */}
+      {eyeH > 0.6 && (
+        <circle
+          cx={cx + side * eyeDX - eyeRx * 0.35}
+          cy={eyeCy - eyeRy * 0.4}
+          r={eyeRx * 0.4}
+          fill="white"
+          opacity={0.9}
+        />
+      )}
+    </g>
+  );
+
+  const Cup = ({ side }: { side: -1 | 1 }) => (
+    <g>
+      {/* outer ear-cup shell */}
+      <ellipse
+        cx={cx + side * cupDX}
+        cy={cupCY}
+        rx={cupRx}
+        ry={cupRy}
+        fill="#FFFFFF"
+      />
+      {/* inner disc — pulses when listening */}
+      <motion.ellipse
+        cx={cx + side * cupDX}
+        cy={cupCY}
+        rx={cupRx * 0.55}
+        ry={cupRy * 0.55}
+        fill="#7C5DFA"
+        style={{ originX: `${cx + side * cupDX}px`, originY: `${cupCY}px` }}
+        animate={
+          mood === "listen"
+            ? { scale: [1, 1.18, 1] }
+            : mood === "wave"
+              ? { opacity: [0.85, 1, 0.85] }
+              : {}
+        }
+        transition={{
+          duration: mood === "listen" ? 0.6 : 2,
+          delay: side === 1 ? 0.15 : 0,
+          repeat: mood === "listen" || mood === "wave" ? Infinity : 0,
+          repeatType: "reverse",
+        }}
+      />
+    </g>
+  );
 
   return (
     <g>
-      {/* ── Body / head silhouette ── */}
+      {/* ── Round body ── */}
       <motion.ellipse
         cx={cx}
         cy={cy}
@@ -279,163 +315,70 @@ function HeadGeometry({
         fill="url(#voiss-body-grad)"
         animate={
           mood === "listen"
-            ? { rx: rx * 1.02, ry: ry * 0.97 }
+            ? { rx: rx * 1.02, ry: ry * 0.98 }
             : mood === "celebrate"
-              ? { ry: ry * 1.04 }
+              ? { ry: ry * 1.05 }
               : {}
         }
         transition={{ duration: 0.4, type: "spring", stiffness: 200 }}
       />
 
-      {/* ── Ear shells (VOISSS phone-ear silhouette) ── */}
-      <ellipse cx={cx - rx * 0.95} cy={cy - ry * 0.15} rx={rx * 0.22} ry={ry * 0.35} fill="#2D1B4E" />
-      <ellipse cx={cx + rx * 0.95} cy={cy - ry * 0.15} rx={rx * 0.22} ry={ry * 0.35} fill="#2D1B4E" />
-      {/* Inner ear — purple, pulses when listening */}
-      <motion.ellipse
-        cx={cx - rx * 0.95}
-        cy={cy - ry * 0.15}
-        rx={rx * 0.12}
-        ry={ry * 0.2}
-        fill="#7C5DFA"
-        animate={
-          earTwinkle
-            ? { scale: [1, 1.15, 1], opacity: [0.7, 1, 0.7] }
-            : mood === "listen"
-              ? { scaleY: [1, 1.25, 1] }
-              : {}
-        }
-        transition={{
-          duration: earTwinkle ? 2 : 0.5,
-          repeat: earTwinkle ? Infinity : mood === "listen" ? Infinity : 0,
-          repeatType: "reverse",
-        }}
+      {/* ── Headphones: band behind cups ── */}
+      <path
+        d={bandPath}
+        stroke="#FFFFFF"
+        strokeWidth={size * 0.05}
+        strokeLinecap="round"
+        fill="none"
       />
-      <motion.ellipse
-        cx={cx + rx * 0.95}
-        cy={cy - ry * 0.15}
-        rx={rx * 0.12}
-        ry={ry * 0.2}
-        fill="#7C5DFA"
-        animate={
-          earTwinkle
-            ? { scale: [1, 1.15, 1], opacity: [0.7, 1, 0.7] }
-            : mood === "listen"
-              ? { scaleY: [1, 1.25, 1] }
-              : {}
-        }
-        transition={{
-          duration: earTwinkle ? 2 : 0.5,
-          delay: earTwinkle ? 0 : 0.2,
-          repeat: earTwinkle ? Infinity : mood === "listen" ? Infinity : 0,
-          repeatType: "reverse",
-        }}
-      />
+      <Cup side={-1} />
+      <Cup side={1} />
 
       {/* ── Eyes ── */}
-      <ellipse
-        cx={cx - rx * 0.32}
-        cy={cy - ry * 0.2}
-        rx={rx * 0.12}
-        ry={ry * 0.14 * eyeH}
-        fill="white"
-      />
-      <ellipse
-        cx={cx + rx * 0.32}
-        cy={cy - ry * 0.2}
-        rx={rx * 0.12}
-        ry={ry * 0.14 * eyeH}
-        fill="white"
-      />
-      {/* Pupils */}
-      <motion.circle
-        cx={cx - rx * 0.3}
-        cy={cy - ry * 0.18}
-        r={rx * 0.06}
-        fill="#0A0A0A"
-        animate={
-          mood === "think"
-            ? { cy: cy - ry * 0.28 }
-            : mood === "celebrate"
-              ? { cy: [cy - ry * 0.18, cy - ry * 0.22, cy - ry * 0.18] }
-              : {}
-        }
-        transition={{ duration: 0.3 }}
-      />
-      <motion.circle
-        cx={cx + rx * 0.34}
-        cy={cy - ry * 0.18}
-        r={rx * 0.06}
-        fill="#0A0A0A"
-        animate={
-          mood === "think"
-            ? { cy: cy - ry * 0.28 }
-            : mood === "celebrate"
-              ? { cy: [cy - ry * 0.18, cy - ry * 0.22, cy - ry * 0.18] }
-              : {}
-        }
-        transition={{ duration: 0.3 }}
-      />
+      <Eye side={-1} />
+      <Eye side={1} />
 
-      {/* ── Blush (only on happy / celebrate) ── */}
+      {/* ── Blush (happy / celebrate) ── */}
       <AnimatePresence>
         {(mood === "happy" || mood === "celebrate") && (
           <>
             <motion.ellipse
-              cx={cx - rx * 0.5}
-              cy={cy + ry * 0.05}
-              rx={rx * 0.14}
+              cx={cx - rx * 0.46}
+              cy={cy + ry * 0.12}
+              rx={rx * 0.13}
               ry={ry * 0.07}
-              fill="#7C5DFA"
-              opacity={0.25}
+              fill="#C084FC"
+              opacity={0.35}
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.25 }}
+              animate={{ opacity: 0.35 }}
               exit={{ opacity: 0 }}
             />
             <motion.ellipse
-              cx={cx + rx * 0.5}
-              cy={cy + ry * 0.05}
-              rx={rx * 0.14}
+              cx={cx + rx * 0.46}
+              cy={cy + ry * 0.12}
+              rx={rx * 0.13}
               ry={ry * 0.07}
-              fill="#7C5DFA"
-              opacity={0.25}
+              fill="#C084FC"
+              opacity={0.35}
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.25 }}
+              animate={{ opacity: 0.35 }}
               exit={{ opacity: 0 }}
             />
           </>
         )}
       </AnimatePresence>
 
-      {/* ── Mouth (path morphing) ── */}
+      {/* ── Mouth ── */}
       <motion.path
         d={mouthPath}
-        stroke="white"
-        strokeWidth={size * 0.022}
+        stroke="#241245"
+        strokeWidth={size * 0.02}
         strokeLinecap="round"
-        fill={mood === "celebrate" ? "white" : "none"}
+        strokeLinejoin="round"
+        fill={mouthFilled ? "#241245" : "none"}
         animate={{ d: mouthPath }}
         transition={{ duration: 0.2 }}
       />
-
-      {/* ── Subtle microphone icon on chest ── */}
-      <g opacity={0.35}>
-        <rect
-          x={cx - size * 0.05}
-          y={cy + ry * 0.25}
-          width={size * 0.1}
-          height={size * 0.16}
-          rx={size * 0.05}
-          fill="none"
-          stroke="white"
-          strokeWidth={1}
-        />
-        <path
-          d={`M ${cx - size * 0.09} ${cy + ry * 0.38} A ${size * 0.09} ${size * 0.09} 0 0 0 ${cx + size * 0.09} ${cy + ry * 0.38}`}
-          fill="none"
-          stroke="white"
-          strokeWidth={1}
-        />
-      </g>
     </g>
   );
 }
@@ -473,7 +416,7 @@ function MascotSVG({
       </defs>
 
       {/* Waveform halo — the signature VOISSS identifier */}
-      <WaveformBars mood={mood} viewBoxH={vh} />
+      <WaveformBars mood={mood} size={size} />
 
       {/* Head geometry */}
       <HeadGeometry mood={mood} size={size} />
@@ -492,38 +435,43 @@ export default function VoissMascot({
   onMoodChange,
 }: VoissMascotProps) {
   const [currentMood, setCurrentMood] = useState<MascotMood>(mood);
-  const [isControlled, setIsControlled] = useState(true);
 
   // Respect controlled mood prop
   useEffect(() => {
-    setIsControlled(mood !== "wave" || true); // always start controlled
     setCurrentMood(mood);
   }, [mood]);
 
+  const isInteractive = interactive || cycle;
+  const dim = SIZE_MAP[size];
+
   const handleClick = () => {
-    if (!interactive && !cycle) return;
+    if (!isInteractive) return;
     const next =
       MOOD_ORDER[(MOOD_ORDER.indexOf(currentMood) + 1) % MOOD_ORDER.length];
     setCurrentMood(next);
     onMoodChange?.(next);
   };
 
-  const dim = SIZE_MAP[size];
-
-  // Hover / tap micro-animations
-  const hoverScale = interactive || cycle ? 1.05 : 1;
-  const tapScale = interactive || cycle ? 0.95 : 1;
+  // Non-interactive: render a plain wrapper so it isn't a focusable no-op button.
+  if (!isInteractive) {
+    return (
+      <span className={`inline-block ${className}`}>
+        <MascotSVG size={dim} mood={currentMood} interactive={false} />
+      </span>
+    );
+  }
 
   return (
     <motion.button
+      type="button"
       onClick={handleClick}
-      className={`inline-block ${interactive || cycle ? "cursor-pointer" : "cursor-default"} ${className}`}
-      whileHover={interactive || cycle ? { scale: hoverScale } : undefined}
-      whileTap={interactive || cycle ? { scale: tapScale } : undefined}
+      className={`inline-block cursor-pointer ${className}`}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
       transition={{ type: "spring", stiffness: 300, damping: 15 }}
-      aria-label="VOISSS mascot"
+      aria-label="VOISSS mascot — click to change mood"
     >
-      <MascotSVG size={dim} mood={currentMood} interactive={interactive || cycle} />
+      <MascotSVG size={dim} mood={currentMood} interactive />
     </motion.button>
   );
 }
