@@ -14,8 +14,8 @@ env:
   DEPLOY_PATH: /opt/voisss-processing
   SSH_PORT: ${{ secrets.HETZNER_SSH_PORT || '22' }}
   KEEP_RELEASES: 3
-  HEALTH_RETRIES: 5
-  HEALTH_INTERVAL: 2
+  HEALTH_RETRIES: 15
+  HEALTH_INTERVAL: 3
 
 jobs:
   deploy:
@@ -91,10 +91,14 @@ jobs:
               exit 1
             fi
 
-            rm -rf node_modules/@voisss/shared
-            mkdir -p node_modules/@voisss/shared
-            tar xzf /tmp/shared-build.tgz -C node_modules/@voisss/shared
+            # Overlay the fresh shared build WITHOUT wiping nested deps:
+            # @voisss/shared/node_modules (redis, pg, axios...) comes from the
+            # cloned tree, externalized from the shared bundle.
+            SHARED=node_modules/@voisss/shared
+            rm -rf $SHARED/dist $SHARED/src
+            tar xzf /tmp/shared-build.tgz -C $SHARED
             rm -f /tmp/shared-build.tgz
+            test -d $SHARED/node_modules || echo "WARN: no nested shared deps (bootstrap release?)" >&2
 
             ln -sfn \$DEPLOY/.env .env
             ln -sfn \$DEPLOY/logs logs
