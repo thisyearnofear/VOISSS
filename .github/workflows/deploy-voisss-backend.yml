@@ -116,8 +116,11 @@ jobs:
         env:
           SERVER: deploy@${{ secrets.HETZNER_HOST }}
         run: |
+          # NOTE: no `set -e` here. With set -e, an early `exit 0` from inside
+          # the retry loop leaves unread bytes on ssh's stdin and ssh exits 1
+          # even though the remote script succeeded (verified empirically).
+          # Failure semantics are preserved: exhaustion falls through to exit 1.
           ssh -p ${{ env.SSH_PORT }} $SERVER << ENDSSH
-            set -e
             attempt=1
             while [ \$attempt -le ${{ env.HEALTH_RETRIES }} ]; do
               if curl -sf http://localhost:5577/health > /dev/null 2>&1; then
