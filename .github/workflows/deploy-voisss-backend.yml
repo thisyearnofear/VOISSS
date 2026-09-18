@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'services/voisss-backend/**'
+      - 'packages/shared/**'
       - '.github/workflows/deploy-voisss-backend.yml'
   workflow_dispatch:
 
@@ -24,12 +25,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: services/voisss-backend/package-lock.json
+          cache: 'pnpm'
 
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
@@ -41,51 +46,64 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -p ${{ env.SSH_PORT }} -H ${{ secrets.HETZNER_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Build locally
-        working-directory: services/voisss-backend
+      # The backend depends on @voisss/shared via workspace:* — npm cannot resolve
+      # that protocol, so we install with pnpm and build the shared package here.
+      - name: Build shared package
         run: |
-          echo "Building backend..."
-          npm ci --omit=dev 2>&1 | tail -5
-          echo "Build complete"
-          echo "ARTIFACT_SIZE=$(du -sh . | cut -f1)" >> $GITHUB_ENV
+          set -euo pipefail
+          pnpm install --frozen-lockfile
+          pnpm --filter @voisss/shared build
+          tar czf /tmp/shared-build.tgz -C packages/shared dist src package.json
+          echo "shared build staged: $(du -h /tmp/shared-build.tgz | cut -f1)"
 
-      - name: Deploy via rsync + symlink swap
+      - name: Deploy via rsync + server-side assembly
         env:
           SERVER: deploy@${{ secrets.HETZNER_HOST }}
         run: |
+          set -euo pipefail
           RELEASE_NAME="release-$(date +%Y%m%d-%H%M%S)-${GITHUB_SHA:0:7}"
-          echo "Deploying: ${RELEASE_NAME} (artifact: ${{ env.ARTIFACT_SIZE }})"
+          echo "Deploying: ${RELEASE_NAME}"
 
-          # Create release dir
-          ssh -p ${{ env.SSH_PORT }} $SERVER "mkdir -p ${{ env.DEPLOY_PATH }}/releases/${RELEASE_NAME} ${{ env.DEPLOY_PATH }}/logs"
-
-          # Rsync built artifact (source + node_modules + config)
-          rsync -az --delete -e "ssh -p ${{ env.SSH_PORT }}" \
+          # Fresh source + config into the new release dir
+          ssh -p ${{ env.SSH_PORT }} $SERVER "mkdir -p ${{ env.DEPLOY_PATH }}/releases/${RELEASE_NAME}/src ${{ env.DEPLOY_PATH }}/logs"
+          rsync -az -e "ssh -p ${{ env.SSH_PORT }}" \
             services/voisss-backend/src/ \
             $SERVER:${{ env.DEPLOY_PATH }}/releases/${RELEASE_NAME}/src/
 
           rsync -az -e "ssh -p ${{ env.SSH_PORT }}" \
             services/voisss-backend/package.json \
-            services/voisss-backend/package-lock.json \
             services/voisss-backend/ecosystem.config.js \
             $SERVER:${{ env.DEPLOY_PATH }}/releases/${RELEASE_NAME}/
 
-          rsync -az --delete -e "ssh -p ${{ env.SSH_PORT }}" \
-            services/voisss-backend/node_modules/ \
-            $SERVER:${{ env.DEPLOY_PATH }}/releases/${RELEASE_NAME}/node_modules/
-
-          # Symlink shared resources + atomic swap + restart
+          # Assemble server-side: clone the proven node_modules from the running
+          # release (workspace deps + nested layout), then overlay the freshly
+          # built @voisss/shared. Avoids transferring ~1GB of node_modules.
+          scp -P ${{ env.SSH_PORT }} /tmp/shared-build.tgz $SERVER:/tmp/shared-build.tgz
           ssh -p ${{ env.SSH_PORT }} $SERVER << ENDSSH
             set -e
-            cd ${{ env.DEPLOY_PATH }}/releases/${RELEASE_NAME}
+            DEPLOY=${{ env.DEPLOY_PATH }}
+            REL=${RELEASE_NAME}
+            cd \$DEPLOY/releases/\$REL
 
-            ln -sf ${{ env.DEPLOY_PATH }}/.env .env
-            ln -sf ${{ env.DEPLOY_PATH }}/logs logs
+            if [ -d \$DEPLOY/current/node_modules ]; then
+              cp -a \$DEPLOY/current/node_modules ./node_modules
+            else
+              echo "No current node_modules to clone — bootstrap deps on the server first." >&2
+              exit 1
+            fi
 
-            sudo ln -sfn ${{ env.DEPLOY_PATH }}/releases/${RELEASE_NAME} ${{ env.DEPLOY_PATH }}/current
+            rm -rf node_modules/@voisss/shared
+            mkdir -p node_modules/@voisss/shared
+            tar xzf /tmp/shared-build.tgz -C node_modules/@voisss/shared
+            rm -f /tmp/shared-build.tgz
 
-            cd ${{ env.DEPLOY_PATH }}/current
-            pm2 delete voisss-server voisss-export-worker 2>/dev/null || true
+            ln -sfn \$DEPLOY/.env .env
+            ln -sfn \$DEPLOY/logs logs
+
+            sudo ln -sfn \$DEPLOY/releases/\$REL \$DEPLOY/current
+
+            cd \$DEPLOY/current
+            pm2 delete voisss-server voisss-export-worker voisss-acp-listener 2>/dev/null || true
             pm2 start ecosystem.config.js
             pm2 save
           ENDSSH
@@ -128,5 +146,4 @@ jobs:
         run: |
           echo "## Deploy Complete" >> $GITHUB_STEP_SUMMARY
           echo "- **Release:** release-$(date +%Y%m%d-%H%M%S)-${GITHUB_SHA:0:7}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Artifact size:** ${{ env.ARTIFACT_SIZE }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Health:** https://voisss.famile.xyz/health" >> $GITHUB_STEP_SUMMARY
