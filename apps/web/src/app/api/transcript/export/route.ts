@@ -169,6 +169,11 @@ export async function POST(req: NextRequest) {
       body: formData,
       headers: {
         'Accept': 'application/json',
+        // Fail-closed auth on the backend requires a server-side API key for
+        // protected enqueue routes. The browser never sees this value.
+        ...(process.env.VOISSS_BACKEND_API_KEY
+          ? { 'X-API-Key': process.env.VOISSS_BACKEND_API_KEY }
+          : {}),
       },
     });
 

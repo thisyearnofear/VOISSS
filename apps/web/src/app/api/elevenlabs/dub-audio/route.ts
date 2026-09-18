@@ -51,6 +51,12 @@ export async function POST(req: NextRequest) {
         const startResponse = await fetch(`${backendUrl}/api/dubbing/start`, {
             method: 'POST',
             body: backendFormData,
+            headers: {
+                // Fail-closed auth on the backend requires a server-side API key.
+                ...(process.env.VOISSS_BACKEND_API_KEY
+                    ? { 'X-API-Key': process.env.VOISSS_BACKEND_API_KEY }
+                    : {}),
+            },
         });
 
         if (!startResponse.ok) {

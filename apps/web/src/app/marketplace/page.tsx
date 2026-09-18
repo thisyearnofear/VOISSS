@@ -13,6 +13,7 @@ import { initWebMCP } from "@/lib/webmcp";
 import { MascotEvents } from "@/lib/mascot-events";
 import type { MarketplaceVoice } from "@/lib/marketplace-indexer";
 import { DismissibleRuntimeTracks } from "@/components/payment/RuntimePaymentChips";
+import { BuyerCreditsStrip } from "@/components/payment/DashboardBalanceChips";
 
 export default function MarketplacePage() {
   const { isAuthenticated } = useAuth();
@@ -158,6 +159,12 @@ export default function MarketplacePage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* Buyer credits — compact when connected; explains cost before browsing. */}
+        {isAuthenticated ? (
+          <div className="mb-4 max-w-2xl">
+            <BuyerCreditsStrip agentRegistryAddress={(process.env.NEXT_PUBLIC_AGENT_REGISTRY_CONTRACT as string) || "0xBE857DB4B4bD71a8bf8f50f950eecD7dDe68b85c"} />
+          </div>
+        ) : null}
         {/* Runtime rails — dismissible so browsing stays clean; judges can restore in one click. */}
         <div className="mb-6 max-w-2xl">
           <DismissibleRuntimeTracks bankrCompact dynamicCompact={!isAuthenticated} storageKey="voisss_runtime_marketplace" />

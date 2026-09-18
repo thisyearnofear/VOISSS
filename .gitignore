@@ -346,3 +346,6 @@ output.txt
 
 # pnpm store
 .pnpm/
+
+output/
+.kite-passport/

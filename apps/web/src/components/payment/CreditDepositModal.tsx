@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
-import { X, Wallet, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import React, { useState, useCallback, useEffect } from "react";
+import { X, Wallet, AlertCircle, CheckCircle, Loader2, RefreshCw } from "lucide-react";
 import { useBaseAccount } from "@/hooks/useBaseAccount";
 import { formatUSDC, parseUSDC, USDC_ADDRESS } from "@voisss/shared";
 import { DynamicChip } from "./RuntimePaymentChips";
@@ -44,6 +44,31 @@ export function CreditDepositModal({
   const [step, setStep] = useState<DepositStep>('input');
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [liveBalance, setLiveBalance] = useState<string | null>(null);
+  const [liveBalanceWei, setLiveBalanceWei] = useState<string | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+
+  const fetchLiveBalance = useCallback(async () => {
+    if (!address || !isOpen) return;
+    setBalanceLoading(true);
+    try {
+      const r = await fetch(`/api/agents/credits?agentAddress=${address}`, { cache: "no-store" });
+      const j = (await r.json()) as { success?: boolean; data?: { balanceFormatted?: string; balanceWei?: string; balance?: { usdcBalance?: string } } };
+      if (r.ok && j.success && j.data) {
+        setLiveBalance(j.data.balanceFormatted ?? null);
+        setLiveBalanceWei(j.data.balanceWei ?? j.data.balance?.usdcBalance ?? null);
+      }
+    } catch {}
+    setBalanceLoading(false);
+  }, [address, isOpen]);
+
+  useEffect(() => {
+    if (isOpen && address) void fetchLiveBalance();
+    if (!isOpen) {
+      setLiveBalance(null);
+      setLiveBalanceWei(null);
+    }
+  }, [isOpen, address, fetchLiveBalance]);
 
   const handleClose = useCallback(() => {
     setAmount('');
@@ -121,6 +146,8 @@ export function CreditDepositModal({
       setTxHash(data.txHash);
       setStep('success');
       onSuccess?.(amountBigInt);
+      // refresh the balance shown in the header so the next open is accurate
+      void fetchLiveBalance();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Deposit failed');
       setStep('error');
@@ -147,10 +174,21 @@ export function CreditDepositModal({
         <div className="p-6 space-y-4">
           {step === 'input' && (
             <>
-              <div className="rounded-lg border border-[#2A2A2A] bg-[#0A0A0A]/60 px-3 py-2.5 flex items-center justify-between">
-                <span className="text-xs text-gray-400">Deposit to</span>
-                <span className="font-mono text-xs text-gray-200" title={agentRegistryAddress}>
-                  {agentRegistryAddress.slice(0, 6)}…{agentRegistryAddress.slice(-4)}
+              <div className="rounded-xl border border-[#2A2A2A] bg-[#0A0A0A]/60 px-3 py-2.5 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold tracking-widest uppercase text-gray-500">Current balance</span>
+                    <button type="button" onClick={() => void fetchLiveBalance()} className="rounded-full border border-[#2A2A2A] bg-[#1A1A1A] p-1 text-gray-500 hover:text-white transition-colors" aria-label="Refresh balance" title="Refresh">
+                      <RefreshCw className={`h-3 w-3 ${balanceLoading ? "animate-spin" : ""}`} />
+                    </button>
+                  </div>
+                  <p className="text-sm font-semibold text-white mt-0.5" title={liveBalanceWei ?? undefined}>
+                    {balanceLoading ? <span className="inline-block h-4 w-20 rounded bg-[#1A1A1A] animate-pulse align-middle" /> : liveBalance ?? "—"}
+                    <span className="ml-1.5 text-xs font-normal text-gray-500">USDC</span>
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-lg border border-[#2A2A2A] bg-[#0A0A0A] px-2 py-1 font-mono text-[11px] text-gray-500" title={agentRegistryAddress}>
+                  → {agentRegistryAddress.slice(0, 6)}…{agentRegistryAddress.slice(-4)}
                 </span>
               </div>
               <p className="text-gray-400 text-sm leading-relaxed">

@@ -31,6 +31,7 @@ import {
   Sparkles,
   Wallet,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useDynamicWallet } from "@/hooks/useDynamicWallet";
 import { useBankrStatus } from "@/hooks/useBankrStatus";
 
@@ -127,6 +128,8 @@ export function DynamicChip({
   const [lastSig, setLastSig] = useState<string | null>(null);
   const [showTest, setShowTest] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [justCreated, setJustCreated] = useState(false);
+  const [copiedSig, setCopiedSig] = useState(false);
 
   // initial load — no status yet
   if (!status && isLoading) return <SkeletonChip />;
@@ -242,7 +245,17 @@ export function DynamicChip({
             {!hasWallet ? (
               <button
                 type="button"
-                onClick={() => void createWallet()}
+                onClick={async () => {
+                  const w = await createWallet();
+                  if (w) {
+                    setJustCreated(true);
+                    try {
+                      const confetti = (await import("canvas-confetti")).default;
+                      confetti({ particleCount: 36, spread: 52, origin: { y: 0.72 }, colors: ["#7C5DFA", "#9C88FF", "#4F46E5", "#22c55e"], ticks: 140, gravity: 1.05, scalar: 0.85 });
+                    } catch {}
+                    window.setTimeout(() => setJustCreated(false), 2800);
+                  }
+                }}
                 disabled={isCreating || isLoading || !status?.configured}
                 className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black shadow hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
               >
@@ -250,12 +263,23 @@ export function DynamicChip({
                 Create agent wallet
               </button>
             ) : (
-              <span className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-200">
-                <span className="grid h-5 w-5 place-items-center rounded-full bg-emerald-500/20">
+              <motion.span
+                key={justCreated ? "just-created" : "ready"}
+                initial={justCreated ? { scale: 0.92, opacity: 0 } : false}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 420, damping: 18 }}
+                className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-200"
+              >
+                <motion.span
+                  initial={justCreated ? { scale: 0 } : false}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 12, delay: 0.08 }}
+                  className="grid h-5 w-5 place-items-center rounded-full bg-emerald-500 text-white shadow-sm"
+                >
                   <Check className="h-3.5 w-3.5" />
-                </span>
-                Wallet ready
-              </span>
+                </motion.span>
+                {justCreated ? "Wallet created — ready to pay" : "Wallet ready"}
+              </motion.span>
             )}
 
             <a
@@ -282,49 +306,97 @@ export function DynamicChip({
             )}
           </div>
 
+          <AnimatePresence>
+            {justCreated && hasWallet && wallet && (
+              <motion.div
+                initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2.5 text-xs leading-relaxed text-emerald-200"
+              >
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-emerald-500 text-white shrink-0">
+                  <Check className="h-3.5 w-3.5" />
+                </span>
+                <span>
+                  <span className="font-semibold text-emerald-100">Agent wallet live on Base.</span> Now send{" "}
+                  <code className="rounded bg-emerald-500/15 border border-emerald-500/20 px-1 py-0.5 font-mono text-[11px] text-emerald-100">X-DYNAMIC-WALLET: 1</code> with{" "}
+                  <code className="rounded bg-emerald-500/15 border border-emerald-500/20 px-1 py-0.5 font-mono text-[11px] text-emerald-100">POST /api/agents/vocalize</code> — no human click.
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* test panel */}
-          {hasWallet && showTest && (
-            <div className="mt-3 rounded-xl border border-[#2A2A2A] bg-[#0A0A0A] p-3">
-              <label className="block text-[11px] font-semibold tracking-widest uppercase text-gray-500 mb-2">
-                Sign a message (server-side)
-              </label>
-              <div className="flex gap-2">
-                <input
-                  value={signMsg}
-                  onChange={(e) => setSignMsg(e.target.value)}
-                  placeholder="Message to sign"
-                  className="min-w-0 flex-1 rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-[#7C5DFA]/40 focus:outline-none focus:ring-1 focus:ring-[#7C5DFA]/20"
-                />
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const r = await signMessage(signMsg);
-                    if (r?.signature) setLastSig(r.signature);
-                  }}
-                  disabled={isSigning || !signMsg}
-                  className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-[#7C5DFA] px-4 py-2 text-sm font-semibold text-white hover:bg-[#6D4AE8] disabled:opacity-50 transition-colors"
-                >
-                  {isSigning ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                  Sign
-                </button>
-              </div>
-              {lastSig && (
-                <div
-                  className="mt-2 truncate rounded-lg bg-[#111] border border-[#1A1A1A] px-2.5 py-2 font-mono text-xs text-gray-500"
-                  title={lastSig}
-                >
-                  {lastSig}
+          <AnimatePresence>
+            {hasWallet && showTest && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.2 }}
+                className="mt-3 rounded-xl border border-[#2A2A2A] bg-[#0A0A0A] p-3 overflow-hidden"
+              >
+                <label className="block text-[11px] font-semibold tracking-widest uppercase text-gray-500 mb-2">
+                  Sign a message (server-side)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    value={signMsg}
+                    onChange={(e) => setSignMsg(e.target.value)}
+                    placeholder="Message to sign"
+                    className="min-w-0 flex-1 rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-[#7C5DFA]/40 focus:outline-none focus:ring-1 focus:ring-[#7C5DFA]/20"
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const r = await signMessage(signMsg);
+                      if (r?.signature) {
+                        setLastSig(r.signature);
+                        setCopiedSig(false);
+                      }
+                    }}
+                    disabled={isSigning || !signMsg}
+                    className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-[#7C5DFA] px-4 py-2 text-sm font-semibold text-white hover:bg-[#6D4AE8] disabled:opacity-50 transition-colors"
+                  >
+                    {isSigning ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                    Sign
+                  </button>
                 </div>
-              )}
-              <p className="mt-2 text-xs leading-relaxed text-gray-500">
-                Private keys never leave the server. In production the same key signs the{" "}
-                <code className="rounded bg-[#1A1A1A] border border-[#2A2A2A] px-1 py-0.5 font-mono text-[11px] text-gray-300">
-                  x402
-                </code>{" "}
-                payment for vocalize — the agent&apos;s wallet is the payer.
-              </p>
-            </div>
-          )}
+                <AnimatePresence>
+                  {lastSig && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-2 flex items-center gap-2 rounded-lg bg-[#111] border border-[#1A1A1A] px-2.5 py-2"
+                    >
+                      <span className="min-w-0 flex-1 truncate font-mono text-xs text-gray-500" title={lastSig}>
+                        {lastSig}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try { await navigator.clipboard.writeText(lastSig); } catch { const ta = document.createElement("textarea"); ta.value = lastSig; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
+                          setCopiedSig(true);
+                          window.setTimeout(() => setCopiedSig(false), 1400);
+                        }}
+                        className="shrink-0 inline-flex items-center gap-1 rounded-full border border-[#2A2A2A] bg-[#1A1A1A] px-2 py-1 text-[11px] font-medium text-gray-400 hover:text-white transition-colors"
+                      >
+                        {copiedSig ? <><Check className="h-3 w-3 text-emerald-400" /> Copied</> : <><Copy className="h-3 w-3" /> Copy</>}
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                  Private keys never leave the server. In production the same key signs the{" "}
+                  <code className="rounded bg-[#1A1A1A] border border-[#2A2A2A] px-1 py-0.5 font-mono text-[11px] text-gray-300">
+                    x402
+                  </code>{" "}
+                  payment for vocalize — the agent&apos;s wallet is the payer.
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {error && (
             <div className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs leading-relaxed text-red-300">

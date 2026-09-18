@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAccount, usePublicClient } from "wagmi";
 import { useVoiceMarketplace } from "@/hooks/useVoiceMarketplace";
 import { DismissibleRuntimeTracks } from "@/components/payment/RuntimePaymentChips";
+import { DashboardBalanceStrip } from "@/components/payment/DashboardBalanceChips";
 
 type DashboardListing = {
   id: string;
@@ -269,6 +270,11 @@ function DashboardContent() {
             )}
           </div>
         )}
+
+        {/* Balance strip — live credits + wallet USDC + tier + agent wallet. Same row for contributors. */}
+        <div className="mb-6">
+          <DashboardBalanceStrip agentRegistryAddress={(process.env.NEXT_PUBLIC_AGENT_REGISTRY_CONTRACT as string) || "0xBE857DB4B4bD71a8bf8f50f950eecD7dDe68b85c"} />
+        </div>
 
         {/* Runtime rails — collapsible/dismissible; contributors see it but it doesn't steal focus from listings. */}
         <div className="mb-6 max-w-2xl">
