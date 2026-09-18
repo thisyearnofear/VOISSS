@@ -14,7 +14,7 @@ env:
   DEPLOY_PATH: /opt/voisss-processing
   SSH_PORT: ${{ secrets.HETZNER_SSH_PORT || '22' }}
   KEEP_RELEASES: 3
-  HEALTH_RETRIES: 15
+  HEALTH_RETRIES: 40
   HEALTH_INTERVAL: 3
 
 jobs:
