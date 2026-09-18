@@ -96,6 +96,30 @@ const nextConfig = {
       'tls': false,
     };
 
+    // Dynamic Node-EVM SDK is server-only (native addon, not edge) and is
+    // optional — builds without it must still succeed. The service does a
+    // dynamic import("@dynamic-labs-wallet/node-evm") with a catch() and
+    // falls back to a viem EOA. Tell webpack not to eagerly bundle it for
+    // either client or server, or the server trace will fail when the
+    // package is absent.
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@dynamic-labs-wallet/node-evm': false,
+      '@dynamic-labs-wallet/core': false,
+    };
+    // Next.js tries to trace server externals — keep Dynamic out of the
+    // trace so a missing package doesn't break `next build`.
+    config.externals = config.externals ?? [];
+    if (Array.isArray(config.externals)) {
+      // webpack externals array — push a function that externalizes Dynamic
+      config.externals.push(({ request }, callback) => {
+        if (request && request.startsWith('@dynamic-labs-wallet/')) {
+          return callback(null, `commonjs ${request}`);
+        }
+        return callback();
+      });
+    }
+
     // Provide process polyfill for browser - only expose NEXT_PUBLIC_* variables
     if (!isServer) {
       const webpack = require('webpack');

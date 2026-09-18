@@ -12,6 +12,7 @@ import { ChevronDown, Sparkles } from "lucide-react";
 import { initWebMCP } from "@/lib/webmcp";
 import { MascotEvents } from "@/lib/mascot-events";
 import type { MarketplaceVoice } from "@/lib/marketplace-indexer";
+import { DismissibleRuntimeTracks } from "@/components/payment/RuntimePaymentChips";
 
 export default function MarketplacePage() {
   const { isAuthenticated } = useAuth();
@@ -157,6 +158,10 @@ export default function MarketplacePage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* Runtime rails — dismissible so browsing stays clean; judges can restore in one click. */}
+        <div className="mb-6 max-w-2xl">
+          <DismissibleRuntimeTracks bankrCompact dynamicCompact={!isAuthenticated} storageKey="voisss_runtime_marketplace" />
+        </div>
         <VoiceMarketTrends />
 
         {error && (

@@ -17,7 +17,7 @@ import { TokenTier } from '../../config/tokenAccess';
 // PAYMENT METHOD ENUMS
 // ============================================================================
 
-export type PaymentMethod = 'credits' | 'tier' | 'x402' | 'none';
+export type PaymentMethod = 'credits' | 'tier' | 'x402' | 'dynamic' | 'none';
 
 export type ServiceType = 
   | 'voice_generation' 
@@ -242,7 +242,7 @@ export interface AgentCreditAccount {
   isActive: boolean;
 }
 
-export type PaymentPreference = 'credits_first' | 'x402_only' | 'tier_if_available';
+export type PaymentPreference = 'credits_first' | 'x402_only' | 'tier_if_available' | 'dynamic_first';
 
 // ============================================================================
 // X402-SPECIFIC TYPES
@@ -282,6 +282,13 @@ export const PaymentRequestSchema = z.object({
   metadata: z.record(z.any()).optional(),
 });
 
+// Dynamic / Bankr wallet metadata exposed in quotes for UI display
+export interface DynamicWalletQuoteInfo {
+  address: `0x${string}`;
+  mode: 'mpc' | 'eoa-fallback';
+  configured: boolean;
+}
+
 export const PaymentQuoteSchema = z.object({
   service: z.string(),
   quantity: z.number(),
@@ -289,8 +296,8 @@ export const PaymentQuoteSchema = z.object({
   estimatedCost: z.string(), // bigint as string
   unitCost: z.string(),
   discountPercent: z.number(),
-  availableMethods: z.array(z.enum(['credits', 'tier', 'x402', 'none'])),
-  recommendedMethod: z.enum(['credits', 'tier', 'x402', 'none']),
+  availableMethods: z.array(z.enum(['credits', 'tier', 'x402', 'dynamic', 'none'])),
+  recommendedMethod: z.enum(['credits', 'tier', 'x402', 'dynamic', 'none']),
   creditsAvailable: z.string().optional(),
   currentTier: z.enum(['none', 'basic', 'pro', 'premium']).optional(),
   tierCoversService: z.boolean().optional(),

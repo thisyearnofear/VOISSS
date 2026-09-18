@@ -551,6 +551,79 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
       }
     }
 
+    // Runtime — Dynamic agentic wallet: server signs the x402 payment so the
+    // agent "decides and pays" without a human in the loop. Opt-in via header
+    // X-DYNAMIC-WALLET: 1 (uses effectiveAgentAddress). Trace:
+    // PaymentRouter.processDynamicPayment -> DynamicWalletService.signX402Authorization
+    // -> X402Client.verifyPayment (CDP facilitator).
+    // See: https://www.dynamic.xyz/docs/overview/agents/agent-payments
+    const useDynamicWallet = req.headers.get('X-DYNAMIC-WALLET') || req.headers.get('X-DYNAMIC-AGENT-PAY');
+    if (useDynamicWallet && effectiveAgentAddress) {
+      // Don't double-pay if the client already sent X-PAYMENT
+      if (!x402PaymentHeader && !owsPaymentHeader) {
+        try {
+          const x402ClientDyn = (await import('@voisss/shared')).getX402Client();
+          const payTo = process.env.X402_PAY_TO_ADDRESS || '';
+          if (!payTo) {
+            return NextResponse.json({ success: false, error: 'X402_PAY_TO_ADDRESS not configured — dynamic payment cannot settle' }, { status: 503 });
+          }
+          const dynRequirements = x402ClientDyn.createRequirements(
+            `${req.nextUrl.origin}/api/agents/vocalize`,
+            actualCost,
+            payTo,
+            `Voice generation: ${characterCount} characters (Dynamic agentic wallet, discount ${quote.discountPercent}%)`
+          );
+          const dynResult = await paymentRouter.processDynamicPayment(
+            effectiveAgentAddress,
+            'voice_generation',
+            characterCount,
+            dynRequirements
+          );
+          if (dynResult.success) {
+            console.log('[vocalize] ✅ Dynamic wallet payment verified (server-signed x402):', { method: dynResult.method, txHash: dynResult.txHash });
+            const response = await generateAndReturnVoice(
+              text,
+              voiceId,
+              effectiveAgentAddress,
+              characterCount,
+              dynResult.cost,
+              'dynamic',
+              req,
+              dynResult.txHash,
+              undefined,
+              undefined,
+              recordingId,
+              agentTier,
+              dynResult.baseCost,
+              dynResult.discountApplied !== undefined ? Math.round(dynResult.discountApplied * 100) : quote.discountPercent,
+              owsWallet || undefined
+            );
+            if (idempotencyKey) {
+              const resultBody = await response.clone().json();
+              if (resultBody.success) idempotencyCache.set(idempotencyKey, { result: resultBody, expiresAt: Date.now() + IDEMPOTENCY_TTL_MS });
+            }
+            return response;
+          }
+          // If Dynamic is not configured, fall through to normal 402 — but surface a hint in dev
+          console.warn('[vocalize] Dynamic wallet payment failed, falling through to 402:', dynResult.error);
+          if (process.env.NODE_ENV !== 'production') {
+            // In dev, surface the error so the builder knows to set env
+            const isMissingConfig = dynResult.error?.includes('not configured') || dynResult.error?.includes('not installed');
+            if (isMissingConfig) {
+              return NextResponse.json({
+                success: false,
+                error: dynResult.error,
+                hint: 'Set DYNAMIC_API_TOKEN + DYNAMIC_ENVIRONMENT_ID (MPC) or DYNAMIC_WALLET_PRIVATE_KEY (EOA fallback) — or remove X-DYNAMIC-WALLET header to use normal x402/credits flow.',
+                docs: 'https://www.dynamic.xyz/docs/node/wallets/server-wallets/overview',
+              }, { status: 503 });
+            }
+          }
+        } catch (dynErr) {
+          console.warn('[vocalize] Dynamic wallet branch error, falling through:', dynErr);
+        }
+      }
+    }
+
     // No payment header - check if we can process without x402
     if (preview === true) {
       console.log(`✨ Generating voice for preview without payment (gasless magic moment)`);

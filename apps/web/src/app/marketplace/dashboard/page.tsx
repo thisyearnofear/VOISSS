@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount, usePublicClient } from "wagmi";
 import { useVoiceMarketplace } from "@/hooks/useVoiceMarketplace";
+import { DismissibleRuntimeTracks } from "@/components/payment/RuntimePaymentChips";
 
 type DashboardListing = {
   id: string;
@@ -268,6 +269,11 @@ function DashboardContent() {
             )}
           </div>
         )}
+
+        {/* Runtime rails — collapsible/dismissible; contributors see it but it doesn't steal focus from listings. */}
+        <div className="mb-6 max-w-2xl">
+          <DismissibleRuntimeTracks agentAddress={address ?? undefined} bankrCompact dynamicCompact storageKey="voisss_runtime_dashboard" />
+        </div>
 
         <div className="mb-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
           <div className="text-sm font-semibold text-emerald-200">

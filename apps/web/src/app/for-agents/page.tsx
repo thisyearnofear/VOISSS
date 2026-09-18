@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Check, Terminal, Code2, Bot, ExternalLink } from "lucide-react";
+import { Copy, Check, Terminal, Code2, Bot, ExternalLink, Sparkles, Wallet } from "lucide-react";
 import { PRODUCT_TAGLINE } from "@voisss/shared";
+import { RuntimeInlineCallout } from "@/components/payment/RuntimePaymentChips";
 
 const snippets = [
   {
@@ -180,8 +181,85 @@ export default function ForAgentsPage() {
           </div>
         </div>
 
+        {/* Runtime: self-paying agents — where the Dynamic + Bankr integrations live for real */}
+        <div className="max-w-4xl mx-auto mt-16">
+          <div className="rounded-2xl border border-[#2A2A2A] bg-[#0F0F0F] overflow-hidden">
+            <div className="px-6 py-5 border-b border-[#2A2A2A] bg-[#0A0A0A]/60 flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#7C5DFA]/15 border border-[#7C5DFA]/20 text-[#9C88FF]">
+                  <Wallet className="h-5 w-5" />
+                </span>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-lg font-bold text-white">Your agent can pay for itself</h2>
+                    <span className="rounded-full border border-[#7C5DFA]/20 bg-[#7C5DFA]/10 px-2 py-0.5 text-[10px] font-bold tracking-widest uppercase text-[#C4B5FD]">
+                      Runtime Week
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-400 mt-1 max-w-xl">
+                    No top-up. No human click. The agent&apos;s <span className="text-gray-200">Dynamic server wallet</span> signs x402 on Base and 70% settles to the voice owner on-chain.
+                  </p>
+                </div>
+              </div>
+              <a href="https://www.dynamic.xyz/docs/overview/agents/agent-payments" target="_blank" rel="noopener noreferrer" className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-xs font-medium text-gray-300 hover:text-white hover:border-[#3A3A3A] transition-colors">
+                Dynamic docs <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+
+            <div className="grid lg:grid-cols-2 gap-0">
+              <div className="relative bg-[#0A0A0A] border-b lg:border-b-0 lg:border-r border-[#2A2A2A] flex flex-col">
+                <div className="flex items-center gap-2 px-4 py-3 bg-[#1A1A1A] border-b border-[#2A2A2A]">
+                  <span className="text-xs font-bold tracking-widest uppercase text-gray-500">One header</span>
+                  <span className="ml-auto font-mono text-[11px] text-[#9C88FF] bg-[#7C5DFA]/10 border border-[#7C5DFA]/20 rounded-full px-2 py-0.5">X-DYNAMIC-WALLET: 1</span>
+                </div>
+                <div className="relative p-4 flex-1">
+                  <button onClick={() => { navigator.clipboard.writeText(`fetch("https://voisss.netlify.app/api/agents/vocalize", {
+  method: "POST",
+  headers: { "Content-Type": "application/json", "X-DYNAMIC-WALLET": "1" },
+  body: JSON.stringify({
+    text: "warm female ad for NYC coffee shop, 15s",
+    voiceId: "21m00Tcm4TlvDq8ikWAM",
+    agentAddress: "0xYourAgent"
+  })
+});`); }} className="absolute top-3 right-3 p-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-gray-500 hover:text-white transition-colors" aria-label="Copy agentic pay snippet">
+                    <Copy className="h-3.5 w-3.5" />
+                  </button>
+                  <pre className="text-xs font-mono leading-relaxed text-gray-300 overflow-x-auto whitespace-pre pr-10"><code>{`fetch("https://voisss.netlify.app/api/agents/vocalize", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "X-DYNAMIC-WALLET": "1"  // ← agent wallet pays
+  },
+  body: JSON.stringify({
+    text: "warm female ad for NYC coffee shop, 15s",
+    voiceId: "21m00Tcm4TlvDq8ikWAM",
+    agentAddress: "0xYourAgent"
+  })
+});
+// → server signs TransferWithAuthorization (EIP-3009)
+// → CDP facilitator verifies → audio + IPFS + 70/30 split`}</code></pre>
+                </div>
+                <div className="px-4 py-3 bg-[#111] border-t border-[#2A2A2A] flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                  <Sparkles className="h-3 w-3 text-[#9C88FF]" /> Base · x402 · 70% to contributor · no private key in browser
+                </div>
+              </div>
+              <div className="p-4 bg-[#0F0F0F] flex flex-col gap-3">
+                <p className="text-xs font-bold tracking-widest uppercase text-gray-500">Try it live</p>
+                <RuntimeInlineCallout />
+                <p className="text-xs leading-relaxed text-gray-500">
+                  Create the server wallet once, then any brief becomes a self-checkout. Bankr rails handle the Grand Prize story — same checkout, same 70/30 contract.
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <a href="/api/agents/dynamic-wallet" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-1.5 text-xs font-medium text-gray-300 hover:text-white hover:border-[#3A3A3A] transition-colors">Inspect API <ExternalLink className="h-3 w-3" /></a>
+                  <a href="/api/bankr" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-white transition-colors">/api/bankr</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Integration Features */}
-        <div className="max-w-4xl mx-auto mt-20 grid sm:grid-cols-3 gap-6">
+        <div className="max-w-4xl mx-auto mt-16 grid sm:grid-cols-3 gap-6">
           <div className="p-6 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl">
             <Code2 className="w-8 h-8 text-blue-400 mb-4" />
             <h3 className="text-lg font-semibold mb-2">Framework Agnostic</h3>

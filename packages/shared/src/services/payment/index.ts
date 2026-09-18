@@ -84,6 +84,22 @@ export {
 } from './PaymentRouter';
 
 // ============================================================================
+// DYNAMIC WALLET SERVICE (Agentic Wallet — Runtime track)
+// ============================================================================
+
+export {
+  DynamicWalletService,
+  getDynamicWalletService,
+  createDynamicWalletService,
+  resetDynamicWalletService,
+  isDynamicConfigured,
+  getDynamicConfigStatus,
+  type DynamicWalletServiceConfig,
+  type DynamicServerWalletMeta,
+  type DynamicSignResult,
+} from './DynamicWalletService';
+
+// ============================================================================
 // REDIS USAGE TRACKER
 // ============================================================================
 

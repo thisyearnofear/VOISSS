@@ -5,6 +5,7 @@ import { Wallet, TrendingUp, TrendingDown, RefreshCw, Plus, History } from "luci
 import { useBaseAccount } from "@/hooks/useBaseAccount";
 import { formatUSDC } from "@voisss/shared";
 import { CreditDepositModal } from "./CreditDepositModal";
+import { DynamicChip } from "./RuntimePaymentChips";
 
 interface CreditBalance {
   usdcBalance: string;
@@ -132,13 +133,12 @@ export function AgentCreditPanel({ agentRegistryAddress }: AgentCreditPanelProps
                 ? 'text-white border-b-2 border-indigo-500'
                 : 'text-gray-400 hover:text-gray-300'
             }`}
-          >
-            History
+          >                History
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-4">
+        <div className="p-4 space-y-4">
           {activeTab === 'overview' && (
             <>
               {/* Balance display */}
@@ -186,11 +186,26 @@ export function AgentCreditPanel({ agentRegistryAddress }: AgentCreditPanelProps
               {/* Deposit button */}
               <button
                 onClick={() => setIsDepositModalOpen(true)}
-                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
+                className="w-full py-3 bg-[#7C5DFA] hover:bg-[#6D4AE8] text-white font-semibold rounded-xl transition-colors shadow-lg shadow-[#7C5DFA]/20 flex items-center justify-center gap-2"
               >
                 <Plus className="w-5 h-5" />
                 Deposit USDC
               </button>
+
+              {/* Product-native alternative: the agent funds itself */}
+              <div className="pt-4 border-t border-[#2A2A2A]">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="h-px flex-1 bg-[#2A2A2A]" />
+                  <span className="text-[11px] font-bold tracking-widest uppercase text-gray-500">
+                    Or let your agent pay itself
+                  </span>
+                  <span className="h-px flex-1 bg-[#2A2A2A]" />
+                </div>
+                <p className="text-xs leading-relaxed text-gray-500 mb-3 text-center">
+                  No top-up. The agent <span className="text-gray-300">signs x402 on Base</span> and 70% settles to the voice owner.
+                </p>
+                <DynamicChip agentAddress={address ?? undefined} />
+              </div>
             </>
           )}
 
