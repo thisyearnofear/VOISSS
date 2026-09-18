@@ -8,6 +8,7 @@ import VoissMascotMark from "./VoissMascotMark";
 import OnboardingQuiz from "./OnboardingQuiz";
 import { BuyCreditsButton } from "./payment/BuyCreditsModal";
 import VoiceTerrain from "./VoiceTerrain";
+import { pulseVoice } from "@/lib/terrain-bus";
 import { PRODUCT_TAGLINE, PRODUCT_TAGLINE_SHORT } from "@voisss/shared";
 
 function HeroMascot() {
@@ -57,9 +58,7 @@ function Inner() {
       <div className="voisss-frame voisss-corner-diagonals voisss-corner-ticks relative overflow-hidden">
         {/* Sylva-lite: procedural pointer-reactive field — one loop, DPR 2, reduced-motion static */}
         <VoiceTerrain />
-        <div className="voisss-progressive-blur" aria-hidden />
-
-        <div className="relative z-10">
+        <div className="voisss-progressive-blur" aria-hidden />          <div className="relative z-10">
           {/* Wireframe index — editorial-tech */}
           <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4 px-4 sm:px-6 lg:px-7 py-3 border-b border-white/[0.06] text-[10px] font-mono uppercase tracking-[0.14em] text-white/45">
             <span className="flex items-center gap-2.5 min-w-0">
@@ -85,7 +84,7 @@ function Inner() {
           <div className="grid lg:grid-cols-[1.08fr_0.92fr] gap-6 lg:gap-8 px-4 sm:px-6 lg:px-7 py-7 sm:py-9 lg:py-10 items-start">
             {/* Left — editorial copy */}
             <div className="min-w-0">
-              {/* Eyebrow — kis mascot + pill */}
+              {/* Eyebrow — mascot + pill */}
               <div className="flex flex-wrap items-center gap-3 mb-5">
                 <span className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full voisss-border-gradient">
                   <VoissMascotMark variant="head" size={20} alt="" className="w-5 h-5 rounded-full" />
@@ -100,7 +99,7 @@ function Inner() {
               </div>
 
               {/* H1 — masked-reveal, no second gradient blob */}
-              <h1 className="font-syne font-bold leading-[0.88] tracking-[-0.045em] text-[34px] sm:text-[46px] lg:text-[56px] xl:text-[62px]">
+              <h1 className="font-syne font-bold leading-[0.88] tracking-[-0.045em] text-[34px] sm:text-[46px] lg:text-[56px] xl:text-[62px]" data-reveal>
                 <span className="voisss-masked-reveal block text-white">Voice marketplace</span>
                 <span className="voisss-masked-reveal voisss-masked-reveal-delay-1 block text-white/92">
                   for agents that
@@ -110,14 +109,18 @@ function Inner() {
                 </span>
               </h1>
 
-              <div className="voisss-editorial-rule mt-5 max-w-[36rem]" aria-hidden />
+              <div className="voisss-editorial-rule mt-5 max-w-[36rem]" data-reveal data-reveal-delay="1" aria-hidden />
 
-              <p className="mt-4 text-[15px] sm:text-[16px] leading-relaxed text-zinc-300 max-w-[38rem]">
+              <p className="mt-4 text-[15px] sm:text-[16px] leading-relaxed text-zinc-300 max-w-[38rem]" data-reveal data-reveal-delay="1">
                 {PRODUCT_TAGLINE}
               </p>
 
               {/* Mono spec line — number-details */}
-              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-mono tracking-wide text-white/55">
+              <div
+                className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-mono tracking-wide text-white/55"
+                data-reveal
+                data-reveal-delay="1"
+              >
                 <span className="voisss-number-detail text-white">
                   $0.000001<span className="text-white/40">/char</span>
                 </span>
@@ -128,7 +131,7 @@ function Inner() {
               </div>
 
               {/* CTAs — one beam-glow primary */}
-              <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:items-center">
+              <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:items-center" data-reveal data-reveal-delay="2">
                 <a
                   href="/demo"
                   id="hero-try-demo-btn"
@@ -152,12 +155,12 @@ function Inner() {
                 />
               </div>
 
-              <p className="mt-2.5 text-[11px] leading-relaxed text-white/35 max-w-[34rem]">
+              <p className="mt-2.5 text-[11px] leading-relaxed text-white/35 max-w-[34rem]" data-reveal data-reveal-delay="2">
                 Agent decides → Dynamic wallet signs x402 on Base → 70% settles to contributor. One frame, two tracks: Bankr Grand Prize is automatic · Dynamic is <code className="rounded bg-white/[0.06] border border-white/10 px-1 py-0.5 font-mono text-[10px] text-white/65">X-DYNAMIC-WALLET: 1</code>
               </p>
 
               {/* Persona paths — editorial pills, not loose dots */}
-              <div className="mt-6 flex flex-wrap gap-2 text-xs">
+              <div className="mt-6 flex flex-wrap gap-2 text-xs" data-reveal data-reveal-delay="3">
                 <a
                   href="/studio"
                   className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-2 text-white/70 hover:text-white hover:border-white/15 hover:bg-white/[0.05] transition-colors"
@@ -188,7 +191,11 @@ function Inner() {
             </div>
 
             {/* Right — terrain caption + mascot figure (lets VoiceTerrain breathe) */}
-            <div className="voisss-terrain-bg relative min-h-[280px] sm:min-h-[320px] lg:min-h-[420px] rounded-2xl overflow-hidden border border-white/[0.06]">
+            <div
+              className="voisss-terrain-bg voisss-specular relative min-h-[280px] sm:min-h-[320px] lg:min-h-[420px] rounded-2xl overflow-hidden border border-white/[0.06]"
+              data-reveal
+              data-reveal-delay="2"
+            >
               {/* Mascot — anchored, not centered blob. Smaller, editorial. */}
               <div className="absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none">
                 <div className="relative">
@@ -242,20 +249,34 @@ function Inner() {
               <span className="hidden sm:inline h-3 w-px bg-white/10" aria-hidden />
               <span className="hidden sm:inline text-white/40">Consent · provenance · fair pay — by default</span>
             </span>
-            <a
-              href="https://runtime.nyc/handbook"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-white/45 hover:text-white transition-colors font-mono text-[11px] uppercase tracking-widest"
-            >
-              Handbook <span aria-hidden>↗</span>
-            </a>
+            <span className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => pulseVoice("settle")}
+                className="inline-flex items-center gap-1.5 text-white/45 hover:text-white transition-colors font-mono text-[11px] uppercase tracking-widest"
+                title="Animate the 70/30 contributor split on the voice terrain"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-[#9C88FF]" aria-hidden />
+                Preview 70/30 settle
+              </button>
+              <span className="text-white/15" aria-hidden>
+                ·
+              </span>
+              <a
+                href="https://runtime.nyc/handbook"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-white/45 hover:text-white transition-colors font-mono text-[11px] uppercase tracking-widest"
+              >
+                Handbook <span aria-hidden>↗</span>
+              </a>
+            </span>
           </div>
         </div>
       </div>
 
       {/* Synthesis playground — keep below frame so hero stays scannable; now framed */}
-      <div className="mt-6 sm:mt-7">
+      <div className="mt-6 sm:mt-7" data-reveal>
         <div className="rounded-2xl voisss-container-lines bg-[#0F0F0F]/60 backdrop-blur p-3 sm:p-4 lg:p-5">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <span className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[0.14em] uppercase text-white/60">
@@ -294,7 +315,8 @@ function Inner() {
         ].map(({ Icon, title, desc, accent }) => (
           <div
             key={title}
-            className="voisss-container-lines rounded-2xl bg-[#0F0F0F]/70 p-5 sm:p-6 flex gap-4 items-start"
+            data-reveal
+            className="voisss-container-lines voisss-specular rounded-2xl bg-[#0F0F0F]/70 p-5 sm:p-6 flex gap-4 items-start"
           >
             <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${accent} text-white shadow-sm`}>
               <Icon className="w-5 h-5" />

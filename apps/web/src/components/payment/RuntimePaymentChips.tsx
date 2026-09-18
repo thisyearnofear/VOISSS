@@ -34,6 +34,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useDynamicWallet } from "@/hooks/useDynamicWallet";
 import { useBankrStatus } from "@/hooks/useBankrStatus";
+import { pulseVoice } from "@/lib/terrain-bus";
 
 // ---------------------------------------------------------------------------
 // tiny atoms
@@ -248,6 +249,8 @@ export function DynamicChip({
                 onClick={async () => {
                   const w = await createWallet();
                   if (w) {
+                    // an agent wallet that can now settle — show the field respond
+                    pulseVoice("settle");
                     setJustCreated(true);
                     try {
                       const confetti = (await import("canvas-confetti")).default;

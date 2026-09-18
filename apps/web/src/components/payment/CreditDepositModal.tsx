@@ -5,6 +5,7 @@ import { X, Wallet, AlertCircle, CheckCircle, Loader2, RefreshCw } from "lucide-
 import { useBaseAccount } from "@/hooks/useBaseAccount";
 import { formatUSDC, parseUSDC, USDC_ADDRESS } from "@voisss/shared";
 import { DynamicChip } from "./RuntimePaymentChips";
+import { pulseVoice } from "@/lib/terrain-bus";
 
 interface CreditDepositModalProps {
   isOpen: boolean;
@@ -145,6 +146,8 @@ export function CreditDepositModal({
       const data = await response.json();
       setTxHash(data.txHash);
       setStep('success');
+      // money actually moved — let the voice terrain show the 70/30 split
+      pulseVoice("settle");
       onSuccess?.(amountBigInt);
       // refresh the balance shown in the header so the next open is accurate
       void fetchLiveBalance();

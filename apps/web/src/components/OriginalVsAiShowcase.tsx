@@ -414,7 +414,7 @@ export default function OriginalVsAiShowcase() {
         crossOrigin={aiSrc.startsWith("/") ? undefined : "anonymous"}
       />
 
-      <div className="mb-8">
+      <div className="mb-8" data-reveal>
         <div className="flex flex-wrap items-center gap-2.5 mb-3">
           <span className="inline-flex h-5 items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 text-[10px] font-mono font-bold tracking-[0.12em] text-white/60">
             02 — Proof
@@ -434,7 +434,11 @@ export default function OriginalVsAiShowcase() {
         </p>
       </div>
 
-      <div className="voisss-container-lines bg-[#0F0F0F]/80 backdrop-blur-xl rounded-2xl p-5 sm:p-7">
+      <div
+        className="voisss-container-lines voisss-specular bg-[#0F0F0F]/80 backdrop-blur-xl rounded-2xl p-5 sm:p-7"
+        data-reveal
+        data-reveal-delay="1"
+      >
         <blockquote className="text-center mb-6 sm:mb-8">
           <p className="text-base sm:text-lg leading-relaxed text-white/90 italic font-serif">
             &ldquo;

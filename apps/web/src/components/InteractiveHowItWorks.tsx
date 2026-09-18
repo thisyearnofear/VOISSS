@@ -103,7 +103,7 @@ export default function InteractiveHowItWorks() {
 
   return (
     <section className="py-24 max-w-6xl mx-auto">
-      <div className="mb-12">
+      <div className="mb-12" data-reveal>
         <span className="inline-flex h-5 items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 text-[10px] font-mono font-bold tracking-[0.12em] text-white/60">
           04 — Mechanics
         </span>
@@ -116,7 +116,7 @@ export default function InteractiveHowItWorks() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-12 items-center">
-        <div className="space-y-4">
+        <div className="space-y-4" data-reveal data-reveal-delay="1">
           {steps.map((step, index) => {
             const Icon = step.icon;
             const isActive = activeStep === index;
@@ -155,7 +155,12 @@ export default function InteractiveHowItWorks() {
           })}
         </div>
 
-        <div className="voisss-frame rounded-3xl p-8 sm:p-12 min-h-[400px] flex flex-col justify-center animate-in fade-in slide-in-from-right-8 duration-500" key={activeStep}>
+        <div
+          className="voisss-frame voisss-specular rounded-3xl p-8 sm:p-12 min-h-[400px] flex flex-col justify-center animate-in fade-in slide-in-from-right-8 duration-500"
+          data-reveal
+          data-reveal-delay="2"
+          key={activeStep}
+        >
           <div className={`w-20 h-20 rounded-2xl ${colorStyles[steps[activeStep].color].detailBg} flex items-center justify-center mb-8`}>
             {React.createElement(steps[activeStep].icon, {
               className: `w-10 h-10 ${colorStyles[steps[activeStep].color].detailIcon}`,

@@ -130,6 +130,15 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning={true}>
       <head>
+        {/* Marks the document as JS-capable before first paint, so scroll-reveal
+            styles (`.js [data-reveal]`) only hide content when JS can reveal it.
+            Without this, a no-JS visitor would see blank sections. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "document.documentElement.classList.add('js')",
+          }}
+        />
+
         {/* Preconnect to external domains */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link

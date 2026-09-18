@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { getVoiceEnergy, onVoicePulse } from "@/lib/terrain-bus";
 
 /**
  * VoiceTerrain — VOISSS signature field ("Licensed Signal")
@@ -24,8 +25,9 @@ function mulberry32(seed: number) {
 
 const RIBBON_COUNT = 12;
 const GRAIN_COUNT = 700;
-const MAX_POLLEN = 56;
+const MAX_POLLEN = 90;
 const MAX_TRAIL = 26;
+const MAX_RIPPLES = 4;
 
 export default function VoiceTerrain({ className = "" }: { className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -60,6 +62,14 @@ export default function VoiceTerrain({ className = "" }: { className?: string })
 
     const trail: Array<{ x: number; y: number; life: number }> = [];
     const pollen: Array<{ x: number; y: number; vx: number; vy: number; life: number; r: number }> = [];
+    // traveling wavefronts — a licensed voice crossing the field
+    const ripples: Array<{ x: number; speed: number; life: number }> = [];
+
+    // continuous life: smoothed voice energy + ambient breath + settle pulse
+    let energy = 0;
+    let ambiance = 0; // smoothed breath, so nothing ever sits perfectly still
+    let settle = 0; // 0..1 — decays after an agent pays (70/30 split sweep)
+    let nextAmbientRipple = 2.6;
 
     const ribbons = Array.from({ length: RIBBON_COUNT }, (_, i) => ({
       y: 0.18 + (i / (RIBBON_COUNT - 1)) * 0.64,
@@ -140,10 +150,42 @@ export default function VoiceTerrain({ className = "" }: { className?: string })
       return () => ro.disconnect();
     }
 
+    // discrete voice moments: a voice lifts off, or an agent settles 70/30
+    const unsubscribe = onVoicePulse((pulse) => {
+      if (pulse === "settle") {
+        settle = 1;
+        ripples.push({ x: 0.72, speed: 0.5, life: 1 });
+      } else {
+        ripples.push({ x: -0.12, speed: 0.62, life: 1 });
+      }
+      if (ripples.length > MAX_RIPPLES) ripples.splice(0, ripples.length - MAX_RIPPLES);
+    });
+
     let lastT = performance.now();
     let trailTick = 0;
 
+    // Pause all work when the hero is scrolled away — no point painting a
+    // canvas nobody is looking at, and it keeps the field free on long pages.
+    let visible = true;
+    const visibility = new IntersectionObserver(
+      ([entry]) => {
+        visible = entry.isIntersecting;
+        if (visible && rafRef.current === null) {
+          lastT = performance.now();
+          rafRef.current = requestAnimationFrame(tick);
+        }
+      },
+      { threshold: 0 }
+    );
+    visibility.observe(host);
+
     function tick(now: number) {
+      if (!visible) {
+        // stop the chain entirely; the observer restarts it on the way back
+        rafRef.current = null;
+        lastT = now;
+        return;
+      }
       rafRef.current = requestAnimationFrame(tick);
       const dt = Math.min(0.033, (now - lastT) / 1000);
       lastT = now;
@@ -181,9 +223,51 @@ export default function VoiceTerrain({ className = "" }: { className?: string })
         if (trail.length > MAX_TRAIL) trail.shift();
       }
 
+      // ── life: voice energy + ambient breath ─────────────────────────────
+      const targetEnergy = getVoiceEnergy();
+      energy += (targetEnergy - energy) * (targetEnergy > energy ? 0.12 : 0.05);
+      // always breathing — the field must never look paused
+      ambiance = 0.5 + 0.5 * Math.sin(t * 0.34) * Math.sin(t * 0.11 + 1.7);
+
+      if (energy > 0.05) {
+        // while a licensed voice speaks, the whole field exhales pollen
+        const spawn = energy > 0.6 ? 3 : energy > 0.3 ? 2 : 1;
+        for (let i = 0; i < spawn; i++) {
+          pollen.push({
+            x: 0.06 + rand() * 0.88,
+            y: 0.16 + rand() * 0.66,
+            vx: (rand() - 0.5) * 0.006,
+            vy: -0.002 - rand() * 0.004,
+            life: 0.5 + rand() * 0.5,
+            r: rand() * 1.1 + 0.45,
+          });
+        }
+        if (pollen.length > MAX_POLLEN) pollen.splice(0, pollen.length - MAX_POLLEN);
+      }
+
+      // idle ripple so the field keeps moving even with no pointer and no audio
+      nextAmbientRipple -= dt;
+      if (nextAmbientRipple <= 0) {
+        ripples.push({ x: -0.12, speed: 0.34 + rand() * 0.22, life: 1 });
+        if (ripples.length > MAX_RIPPLES) ripples.shift();
+        nextAmbientRipple = 4.2 + rand() * 3.4;
+      }
+
+      for (let i = ripples.length - 1; i >= 0; i--) {
+        const rp = ripples[i];
+        rp.x += rp.speed * dt;
+        rp.life -= dt * 0.32;
+        if (rp.life <= 0 || rp.x > 1.25) ripples.splice(i, 1);
+      }
+
+      if (settle > 0) settle = Math.max(0, settle - dt * 0.5);
+
+      // amplitude multiplier shared by ribbons + glow
+      const swell = 1 + energy * 0.85 + ambiance * 0.07;
+
       g.clearRect(0, 0, width, height);
 
-      // ambient underglow follows pointer
+      // ambient underglow follows pointer, swells with the voice
       const glow = g.createRadialGradient(
         width * pointer.x,
         height * pointer.y,
@@ -192,12 +276,34 @@ export default function VoiceTerrain({ className = "" }: { className?: string })
         height * pointer.y,
         Math.max(width, height) * 0.9
       );
-      glow.addColorStop(0, "rgba(124,93,250,0.10)");
-      glow.addColorStop(0.35, "rgba(124,93,250,0.04)");
-      glow.addColorStop(0.7, "rgba(34,211,238,0.03)");
+      glow.addColorStop(0, `rgba(124,93,250,${0.10 + energy * 0.07})`);
+      glow.addColorStop(0.35, `rgba(124,93,250,${0.04 + energy * 0.03})`);
+      glow.addColorStop(0.7, `rgba(34,211,238,${0.03 + energy * 0.05})`);
       glow.addColorStop(1, "rgba(10,10,10,0)");
       g.fillStyle = glow;
       g.fillRect(0, 0, width, height);
+
+      // ── settle: the agent paid — sweep the 70/30 split across the field ──
+      if (settle > 0) {
+        const a = Math.sin(settle * Math.PI) * 0.5;
+        const band = (x0: number, x1: number, color: string) => {
+          const grad = g.createLinearGradient(width * x0, 0, width * x1, 0);
+          grad.addColorStop(0, `rgba(${color},0)`);
+          grad.addColorStop(0.5, `rgba(${color},${a})`);
+          grad.addColorStop(1, `rgba(${color},0)`);
+          g.fillStyle = grad;
+          g.fillRect(width * x0, 0, width * (x1 - x0), height);
+        };
+        band(0, 0.7, "124,93,250");
+        band(0.7, 1, "34,211,238");
+        // the split line itself
+        g.strokeStyle = `rgba(255,255,255,${a * 0.5})`;
+        g.lineWidth = 1;
+        g.beginPath();
+        g.moveTo(width * 0.7, height * 0.12);
+        g.lineTo(width * 0.7, height * 0.88);
+        g.stroke();
+      }
 
       const aspect = width / height;
 
@@ -222,11 +328,13 @@ export default function VoiceTerrain({ className = "" }: { className?: string })
           alpha *= 0.25 + 0.75 * (dist / R);
         }
 
+        // energy biases the field from violet toward cyan — the voice is present
+        const cyanWeight = gr.cyan ? 0.42 + energy * 0.3 : 0.38 - energy * 0.06;
         g.fillStyle = gr.cyan
-          ? `rgba(103,232,249,${alpha * 0.42})`
-          : `rgba(156,136,255,${alpha * 0.38})`;
+          ? `rgba(103,232,249,${Math.max(0.04, alpha * cyanWeight)})`
+          : `rgba(156,136,255,${Math.max(0.04, alpha * cyanWeight)})`;
         g.beginPath();
-        g.arc(gx * width, gy * height, gr.r * dpr * 0.9, 0, Math.PI * 2);
+        g.arc(gx * width, gy * height, (gr.r + energy * 0.35) * dpr * 0.9, 0, Math.PI * 2);
         g.fill();
       }
 
@@ -235,15 +343,15 @@ export default function VoiceTerrain({ className = "" }: { className?: string })
         const rb = ribbons[r];
         const baseY = height * rb.y;
         const near = pointer.active ? 1 - Math.min(1, Math.abs(pointer.y - rb.y) / 0.18) : 0;
-        g.strokeStyle = `rgba(124,93,250,${Math.max(0.04, rb.opacity + near * 0.08)})`;
-        g.lineWidth = rb.thickness + near * 0.9;
+        g.strokeStyle = `rgba(124,93,250,${Math.max(0.04, rb.opacity + near * 0.08 + energy * 0.16)})`;
+        g.lineWidth = rb.thickness + near * 0.9 + energy * 0.5;
         g.lineCap = "round";
         g.lineJoin = "round";
         g.beginPath();
         for (let x = 0; x <= width; x += 2) {
           const nx = x / width;
-          let wy = Math.sin(nx * Math.PI * rb.freq + rb.phase + t * rb.speed) * rb.amp * height;
-          wy += Math.sin(nx * Math.PI * 2.2 + r * 0.7 + t * 0.6) * rb.amp * height * 0.35;
+          let wy = Math.sin(nx * Math.PI * rb.freq + rb.phase + t * rb.speed) * rb.amp * height * swell;
+          wy += Math.sin(nx * Math.PI * 2.2 + r * 0.7 + t * 0.6) * rb.amp * height * 0.35 * swell;
 
           const pr = 0.11;
           const pdist = Math.abs(nx - pointer.x);
@@ -253,6 +361,16 @@ export default function VoiceTerrain({ className = "" }: { className?: string })
             wy += lift * (1 + Math.sin(nx * 30) * 0.15);
           }
 
+          // traveling wavefronts (ambient + voice)
+          for (let k = 0; k < ripples.length; k++) {
+            const rp = ripples[k];
+            const d = nx - rp.x;
+            if (d > -0.2 && d < 0.2) {
+              const envelope = Math.exp(-(d * d) / 0.0022);
+              wy += envelope * rp.life * 14 * Math.sin(d * 90 + t * 4) * (0.4 + r);
+            }
+          }
+
           const y = baseY + wy;
           if (x === 0) g.moveTo(x, y);
           else g.lineTo(x, y);
@@ -260,9 +378,9 @@ export default function VoiceTerrain({ className = "" }: { className?: string })
         g.stroke();
 
         // specular rim — one extra soft stroke when the pointer row is close
-        if (near > 0.45) {
-          g.globalAlpha = near * 0.16;
-          g.strokeStyle = "rgba(196,181,253,0.9)";
+        if (near > 0.45 || energy > 0.25) {
+          g.globalAlpha = Math.max(near * 0.16, energy * 0.14);
+          g.strokeStyle = energy > 0.25 ? "rgba(103,232,249,0.9)" : "rgba(196,181,253,0.9)";
           g.lineWidth = rb.thickness * 2.4;
           g.stroke();
           g.globalAlpha = 1;
@@ -339,6 +457,8 @@ export default function VoiceTerrain({ className = "" }: { className?: string })
 
     return () => {
       ro.disconnect();
+      visibility.disconnect();
+      unsubscribe();
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       host.removeEventListener("pointermove", handlePointerMove);
       host.removeEventListener("pointerenter", handleEnter);

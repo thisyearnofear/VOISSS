@@ -76,7 +76,7 @@ export default function DeveloperSnippets() {
 
   return (
     <section className="py-24 max-w-6xl mx-auto">
-      <div className="mb-12">
+      <div className="mb-12" data-reveal>
         <div className="flex flex-wrap items-center gap-2.5 mb-3">
           <span className="inline-flex h-5 items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 text-[10px] font-mono font-bold tracking-[0.12em] text-white/60">
             05 — Integration
@@ -94,7 +94,7 @@ export default function DeveloperSnippets() {
         </p>
       </div>
 
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-3xl mx-auto" data-reveal data-reveal-delay="1">
         {/* Tabs */}
         <div className="flex gap-2 mb-4 p-1 bg-[#141414] rounded-xl border border-white/[0.08]">
           {snippets.map((s) => (

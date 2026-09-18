@@ -3,6 +3,7 @@ import EnhancedLandingHero from "../components/EnhancedLandingHero";
 import OnboardingRedirect from "../components/OnboardingRedirect";
 import OriginalVsAiShowcase from "../components/OriginalVsAiShowcase";
 import HomeStructuredData from "../components/HomeStructuredData";
+import ScrollLife from "../components/ScrollLife";
 import { initTelemetry, flushNow } from "../lib/telemetry";
 
 // Initialize telemetry on page load
@@ -40,6 +41,7 @@ export default function Home() {
       <HomeStructuredData />
       {/* Auto-redirect returning visitors to their tailored destination */}
       <OnboardingRedirect />
+      <ScrollLife />
       <div className="voisss-container py-8 sm:py-12">
         {/* Enhanced Hero Section — always loaded, above fold */}
         <EnhancedLandingHero />

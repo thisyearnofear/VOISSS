@@ -52,7 +52,7 @@ export default function PersonaConversionSection() {
 
   return (
     <section className="py-24 max-w-5xl mx-auto">
-      <div className="mb-12">
+      <div className="mb-12" data-reveal>
         <div className="flex flex-wrap items-center gap-2.5 mb-3">
           <span className="inline-flex h-5 items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 text-[10px] font-mono font-bold tracking-[0.12em] text-white/60">
             03 — Roles
@@ -72,7 +72,8 @@ export default function PersonaConversionSection() {
           return (
             <div
               key={persona.id}
-              className={`relative p-6 rounded-2xl border ${persona.border} ${persona.bgGlow} hover:border-white/20 transition-colors duration-200 group`}
+              data-reveal
+              className={`voisss-specular relative p-6 rounded-2xl border ${persona.border} ${persona.bgGlow} hover:border-white/20 transition-colors duration-200 group`}
             >
               <div
                 className={`w-12 h-12 rounded-xl bg-gradient-to-br ${persona.gradient} flex items-center justify-center mb-4 shadow-lg`}
