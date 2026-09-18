@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Copy, Check, Terminal, Code2, Bot, ExternalLink, Sparkles, Wallet } from "lucide-react";
 import { PRODUCT_TAGLINE } from "@voisss/shared";
 import { RuntimeInlineCallout } from "@/components/payment/RuntimePaymentChips";
+import TerrainBand from "@/components/marketplace/TerrainBand";
+import SplitBar from "@/components/SplitBar";
 
 const snippets = [
   {
@@ -128,6 +130,20 @@ export default function ForAgentsPage() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white">
       <div className="voisss-container py-16 sm:py-24">
+        {/* Voice terrain — the developer page shows the same field the product
+            runs on. Previewing a voice below (or the playground on /) lights
+            it via the shared bus. */}
+        <TerrainBand
+          eyebrow="00 — Signal"
+          readyLabel="Idle — your agent's first word wakes it"
+          heightClass="h-[128px] sm:h-[148px]"
+          className="mb-14"
+        >
+          <span className="ml-auto hidden sm:inline text-[10px] font-mono uppercase tracking-[0.12em] text-white/30">
+            x402 · Base · every character metered
+          </span>
+        </TerrainBand>
+
         {/* Header */}
         <div className="max-w-3xl mx-auto text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-full mb-6">
@@ -239,8 +255,12 @@ export default function ForAgentsPage() {
 // → server signs TransferWithAuthorization (EIP-3009)
 // → CDP facilitator verifies → audio + IPFS + 70/30 split`}</code></pre>
                 </div>
-                <div className="px-4 py-3 bg-[#111] border-t border-[#2A2A2A] flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                  <Sparkles className="h-3 w-3 text-[#9C88FF]" /> Base · x402 · 70% to contributor · no private key in browser
+                <div className="px-4 py-3 bg-[#111] border-t border-[#2A2A2A]">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                    <Sparkles className="h-3 w-3 text-[#9C88FF]" /> Base · x402 · no private key in browser
+                  </div>
+                  {/* the split this flow settles, drawn — cites the contract constant */}
+                  <SplitBar variant="license" compact className="mt-2.5" />
                 </div>
               </div>
               <div className="p-4 bg-[#0F0F0F] flex flex-col gap-3">
@@ -292,6 +312,16 @@ export default function ForAgentsPage() {
             <h2 className="text-2xl font-bold mb-4">Pay-Per-Character Pricing</h2>
             <p className="text-5xl font-bold voisss-gradient-text mb-4">$0.000001</p>
             <p className="text-gray-400 mb-6">per character — no monthly fees, no minimum commitment</p>
+            <div className="mx-auto max-w-sm text-left">
+              <p className="mb-2 text-[10px] font-mono uppercase tracking-[0.12em] text-white/35">
+                Where the money goes
+              </p>
+              <SplitBar variant="x402" />
+              <p className="mt-2 text-[11px] leading-relaxed text-white/30">
+                Licensing splits 70/30 (VoiceLicenseMarket.sol) · paywalled recordings pay creators 95/5
+                (VoiceRecords.sol) — both settle on-chain, instantly.
+              </p>
+            </div>
             <a
               href="/marketplace"
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl text-white font-semibold hover:from-blue-500 hover:to-purple-500 transition-all"
