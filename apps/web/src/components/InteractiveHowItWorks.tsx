@@ -102,13 +102,18 @@ export default function InteractiveHowItWorks() {
   const [activeStep, setActiveStep] = useState(0);
 
   return (
-    <section className="py-24 max-w-6xl mx-auto px-4">
-      <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-4">
-        How VOISSS Works
-      </h2>
-      <p className="text-center text-gray-500 text-sm mb-16 max-w-xl mx-auto">
-        Real human voices, licensed per character. Blockchain settlement on Base powers provenance and payouts behind the scenes.
-      </p>
+    <section className="py-24 max-w-6xl mx-auto">
+      <div className="mb-12">
+        <span className="inline-flex h-5 items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 text-[10px] font-mono font-bold tracking-[0.12em] text-white/60">
+          04 — Mechanics
+        </span>
+        <h2 className="font-syne text-3xl sm:text-4xl font-bold tracking-[-0.03em] text-white mt-3 mb-4">
+          How VOISSS works
+        </h2>
+        <p className="text-zinc-400 text-sm max-w-xl">
+          Real human voices, licensed per character. Blockchain settlement on Base powers provenance and payouts behind the scenes.
+        </p>
+      </div>
 
       <div className="grid lg:grid-cols-2 gap-12 items-center">
         <div className="space-y-4">
@@ -121,10 +126,10 @@ export default function InteractiveHowItWorks() {
               <button
                 key={index}
                 onClick={() => setActiveStep(index)}
-                className={`w-full text-left p-6 rounded-2xl border transition-all duration-300 flex items-start gap-4 ${
+                className={`relative w-full text-left p-6 rounded-2xl border transition-all duration-300 flex items-start gap-4 ${
                   isActive
-                    ? `bg-[#1A1A1A] ${cs.borderActive} shadow-lg ${cs.shadowActive}`
-                    : "bg-transparent border-[#2A2A2A] hover:border-gray-700"
+                    ? `bg-[#141414] ${cs.borderActive} shadow-lg ${cs.shadowActive} voisss-corner-ticks`
+                    : "bg-transparent border-white/[0.08] hover:border-white/[0.16]"
                 }`}
               >
                 <div className={`mt-1 p-2 rounded-lg ${
@@ -150,7 +155,7 @@ export default function InteractiveHowItWorks() {
           })}
         </div>
 
-        <div className="bg-[#111111] border border-[#2A2A2A] rounded-3xl p-8 sm:p-12 min-h-[400px] flex flex-col justify-center animate-in fade-in slide-in-from-right-8 duration-500" key={activeStep}>
+        <div className="voisss-frame rounded-3xl p-8 sm:p-12 min-h-[400px] flex flex-col justify-center animate-in fade-in slide-in-from-right-8 duration-500" key={activeStep}>
           <div className={`w-20 h-20 rounded-2xl ${colorStyles[steps[activeStep].color].detailBg} flex items-center justify-center mb-8`}>
             {React.createElement(steps[activeStep].icon, {
               className: `w-10 h-10 ${colorStyles[steps[activeStep].color].detailIcon}`,

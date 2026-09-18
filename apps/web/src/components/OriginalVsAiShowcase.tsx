@@ -399,7 +399,7 @@ export default function OriginalVsAiShowcase() {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-80px" }}
       transition={{ duration: 0.5 }}
-      className="w-full max-w-5xl mx-auto mb-24 px-4"
+      className="w-full max-w-5xl mx-auto mb-24"
     >
       <audio
         ref={humanAudioRef}
@@ -414,24 +414,27 @@ export default function OriginalVsAiShowcase() {
         crossOrigin={aiSrc.startsWith("/") ? undefined : "anonymous"}
       />
 
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-500/15 to-blue-500/15 border border-white/10 rounded-full mb-4">
-          <Sparkles className="w-3.5 h-3.5 text-purple-300" />
-          <span className="text-[11px] font-bold uppercase tracking-widest text-white/80">
-            The Voice Marketplace in Action
+      <div className="mb-8">
+        <div className="flex flex-wrap items-center gap-2.5 mb-3">
+          <span className="inline-flex h-5 items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 text-[10px] font-mono font-bold tracking-[0.12em] text-white/60">
+            02 — Proof
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.12em] text-white/30">
+            <Sparkles className="w-3 h-3 text-[#9C88FF]" />
+            hear it, don&apos;t take our word
           </span>
         </div>
-        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
-          Same sentence. <span className="text-purple-400">Real human.</span>{" "}
-          <span className="text-blue-400">Licensed AI.</span>
+        <h2 className="font-syne text-2xl sm:text-3xl font-bold tracking-[-0.03em] text-white mb-3 max-w-3xl">
+          Same sentence. <span className="text-[#9C88FF]">Real human.</span>{" "}
+          <span className="text-sky-300">Licensed AI.</span>
         </h2>
-        <p className="text-sm text-gray-400 max-w-2xl mx-auto">
+        <p className="text-sm text-zinc-400 max-w-2xl">
           Hear the same line twice — first from a real narrator, then from a
           licensed AI voice. One at a time, so the difference is clear.
         </p>
       </div>
 
-      <div className="bg-[#0F0F0F]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-5 sm:p-7 shadow-2xl">
+      <div className="voisss-container-lines bg-[#0F0F0F]/80 backdrop-blur-xl rounded-2xl p-5 sm:p-7">
         <blockquote className="text-center mb-6 sm:mb-8">
           <p className="text-base sm:text-lg leading-relaxed text-white/90 italic font-serif">
             &ldquo;

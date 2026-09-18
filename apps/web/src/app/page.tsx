@@ -23,11 +23,12 @@ const PersonaConversionSection = lazy(() => import("../components/PersonaConvers
 /** Minimal skeleton while a lazy section loads */
 function SectionFallback() {
   return (
-    <section className="py-24 max-w-6xl mx-auto px-4 animate-pulse">
-      <div className="h-10 w-64 bg-[#1A1A1A] rounded-lg mx-auto mb-16" />
+    <section className="py-24 max-w-6xl animate-pulse">
+      <div className="h-6 w-40 bg-[#141414] rounded-full mb-4" />
+      <div className="h-10 w-72 bg-[#1A1A1A] rounded-lg mb-16" />
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="h-64 bg-[#1A1A1A] rounded-2xl" />
-        <div className="h-64 bg-[#1A1A1A] rounded-2xl" />
+        <div className="h-64 bg-[#141414] rounded-2xl border border-white/[0.06]" />
+        <div className="h-64 bg-[#141414] rounded-2xl border border-white/[0.06]" />
       </div>
     </section>
   );
@@ -80,11 +81,11 @@ export default function Home() {
         </Suspense>
 
         {/* Simple Footer */}
-        <div className="text-center mt-24 pt-12 border-t border-[#2A2A2A]">
-          <p className="text-zinc-500 text-sm mb-6 font-medium tracking-wide">
-            VOICE LICENSING FOR AI AGENTS • BLOCKCHAIN PROVENANCE • INSTANT API ACCESS
+        <div className="mt-24 pt-10 border-t border-white/[0.08]">
+          <p className="text-white/35 text-[11px] font-mono mb-6 tracking-[0.14em] uppercase">
+            08 — Voice licensing for AI agents · blockchain provenance · instant API access
           </p>
-          <div className="flex flex-wrap justify-center gap-x-12 gap-y-4 text-sm font-bold uppercase tracking-widest">
+          <div className="flex flex-wrap gap-x-10 gap-y-3 text-xs font-bold uppercase tracking-[0.14em]">
             <a href="/demo" className="text-white hover:text-purple-400 transition-colors">
               Try Demo
             </a>

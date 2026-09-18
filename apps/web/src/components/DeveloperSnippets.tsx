@@ -75,24 +75,28 @@ export default function DeveloperSnippets() {
   const [copyText, setCopyText] = useState("");
 
   return (
-    <section className="py-24 max-w-6xl mx-auto px-4">
-      <div className="text-center mb-12">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-full mb-6">
-          <Terminal className="w-4 h-4 text-blue-400" />
-          <span className="text-sm font-medium text-blue-300">For Developers</span>
+    <section className="py-24 max-w-6xl mx-auto">
+      <div className="mb-12">
+        <div className="flex flex-wrap items-center gap-2.5 mb-3">
+          <span className="inline-flex h-5 items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 text-[10px] font-mono font-bold tracking-[0.12em] text-white/60">
+            05 — Integration
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.12em] text-white/30">
+            <Terminal className="w-3 h-3 text-sky-300" /> for agents &amp; builders
+          </span>
         </div>
-        <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+        <h2 className="font-syne text-3xl sm:text-4xl font-bold tracking-[-0.03em] text-white mb-4">
           Integrate in{" "}
-          <span className="voisss-gradient-text">5 Lines</span>
+          <span className="voisss-gradient-text">5 lines</span>
         </h2>
-        <p className="text-gray-400 max-w-2xl mx-auto">
+        <p className="text-zinc-400 max-w-2xl">
           One API call. Pick your framework, copy the snippet, and your agent speaks with a licensed human voice.
         </p>
       </div>
 
       <div className="max-w-3xl mx-auto">
         {/* Tabs */}
-        <div className="flex gap-2 mb-4 p-1 bg-[#1A1A1A] rounded-xl border border-[#2A2A2A]">
+        <div className="flex gap-2 mb-4 p-1 bg-[#141414] rounded-xl border border-white/[0.08]">
           {snippets.map((s) => (
             <button
               key={s.id}
@@ -110,8 +114,8 @@ export default function DeveloperSnippets() {
         </div>
 
         {/* Code */}
-        <div className="relative bg-[#111] border border-[#2A2A2A] rounded-2xl overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 bg-[#1A1A1A] border-b border-[#2A2A2A]">
+        <div className="relative voisss-container-lines bg-[#0F0F0F] rounded-2xl overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 bg-[#141414] border-b border-white/[0.08]">
             <div className="w-3 h-3 rounded-full bg-red-500" />
             <div className="w-3 h-3 rounded-full bg-yellow-500" />
             <div className="w-3 h-3 rounded-full bg-green-500" />

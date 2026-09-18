@@ -51,13 +51,17 @@ export default function PersonaConversionSection() {
   const [showCredits, setShowCredits] = useState(false);
 
   return (
-    <section className="py-24 max-w-5xl mx-auto px-4">
-      <div className="text-center mb-12">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/5 border border-white/10 rounded-full mb-4">
-          <Sparkles className="w-4 h-4 text-yellow-400" />
-          <span className="text-sm text-gray-400 font-medium">Who is VOISSS for?</span>
+    <section className="py-24 max-w-5xl mx-auto">
+      <div className="mb-12">
+        <div className="flex flex-wrap items-center gap-2.5 mb-3">
+          <span className="inline-flex h-5 items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 text-[10px] font-mono font-bold tracking-[0.12em] text-white/60">
+            03 — Roles
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.12em] text-white/30">
+            <Sparkles className="w-3 h-3 text-amber-300" /> who is VOISSS for
+          </span>
         </div>
-        <h2 className="text-3xl sm:text-4xl font-bold text-white">
+        <h2 className="font-syne text-3xl sm:text-4xl font-bold tracking-[-0.03em] text-white">
           Pick your path
         </h2>
       </div>
@@ -68,7 +72,7 @@ export default function PersonaConversionSection() {
           return (
             <div
               key={persona.id}
-              className={`relative p-6 rounded-2xl border ${persona.border} ${persona.bgGlow} hover:scale-[1.02] transition-transform duration-200 group`}
+              className={`relative p-6 rounded-2xl border ${persona.border} ${persona.bgGlow} hover:border-white/20 transition-colors duration-200 group`}
             >
               <div
                 className={`w-12 h-12 rounded-xl bg-gradient-to-br ${persona.gradient} flex items-center justify-center mb-4 shadow-lg`}
