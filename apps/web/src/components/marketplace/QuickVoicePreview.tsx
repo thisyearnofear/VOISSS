@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { SocialShare, type ShareableRecording } from "@voisss/ui";
 import { useAuth } from "../../contexts/AuthContext";
 import { PRODUCT_TAGLINE } from "@voisss/shared";
-import { setVoiceEnergy, pulseVoice } from "@/lib/terrain-bus";
+import { setVoiceEnergy, pulseVoice, trackPlaybackEnergy } from "@/lib/terrain-bus";
 import Link from "next/link";
 
 interface MarketplaceVoice {
@@ -53,40 +53,17 @@ export default function QuickVoicePreview() {
   const [voicesLoaded, setVoicesLoaded] = useState(false);
   const [voicesEmpty, setVoicesEmpty] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const energyTimerRef = useRef<number | null>(null);
+  const energyStopRef = useRef<(() => void) | null>(null);
 
-  /**
-   * Drive the hero VoiceTerrain from real playback.
-   *
-   * We publish an envelope derived from `currentTime` rather than analysing the
-   * waveform: routing playback through a MediaElementSource would silence
-   * cross-origin (IPFS gateway) audio and change how previews play. This keeps
-   * `Try this voice` byte-for-byte identical while the field still moves
-   * *because* a voice is speaking. See lib/terrain-bus.ts.
-   */
+  /** Drive the hero VoiceTerrain from real playback (lib/terrain-bus). */
   const startVoiceEnergy = (audio: HTMLAudioElement) => {
-    if (energyTimerRef.current !== null) window.clearInterval(energyTimerRef.current);
-    energyTimerRef.current = window.setInterval(() => {
-      if (audio.paused || audio.ended) {
-        setVoiceEnergy(0);
-        return;
-      }
-      const ct = audio.currentTime;
-      // layered sines → speech-like rhythm, deterministic and cheap
-      const env =
-        0.3 +
-        0.3 * Math.abs(Math.sin(ct * 5.7)) +
-        0.22 * Math.abs(Math.sin(ct * 12.9 + 1.1)) +
-        0.18 * Math.abs(Math.sin(ct * 2.3 + 0.4));
-      setVoiceEnergy(Math.min(1, env));
-    }, 60);
+    stopVoiceEnergy();
+    energyStopRef.current = trackPlaybackEnergy(audio);
   };
 
   const stopVoiceEnergy = () => {
-    if (energyTimerRef.current !== null) {
-      window.clearInterval(energyTimerRef.current);
-      energyTimerRef.current = null;
-    }
+    energyStopRef.current?.();
+    energyStopRef.current = null;
     setVoiceEnergy(0);
   };
 

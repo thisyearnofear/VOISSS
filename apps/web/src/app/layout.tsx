@@ -3,6 +3,7 @@ import { Inter, Anton, Syne, Courier_Prime } from "next/font/google";
 import { BaseProvider } from "./providers";
 import Nav from "../components/Nav";
 import MobileBottomNav from "../components/MobileBottomNav";
+import ScrollLife from "../components/ScrollLife";
 import { ReferralTracker } from "./referral-tracker";
 import "./globals.css";
 import { validateX402Config } from "@/lib/x402-startup-check";
@@ -185,6 +186,9 @@ export default function RootLayout({
       >
         <BaseProvider>
           <ReferralTracker />
+          {/* One observer for every route: staged reveals for [data-reveal] plus
+              the scroll progress rail. Mounted here so any page can opt in. */}
+          <ScrollLife />
           <Nav />
           {children}
           <MobileBottomNav />

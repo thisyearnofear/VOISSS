@@ -8,6 +8,7 @@ import VoissMascotMark from "./VoissMascotMark";
 import OnboardingQuiz from "./OnboardingQuiz";
 import { BuyCreditsButton } from "./payment/BuyCreditsModal";
 import VoiceTerrain from "./VoiceTerrain";
+import SplitBar from "./SplitBar";
 import { pulseVoice } from "@/lib/terrain-bus";
 import { PRODUCT_TAGLINE, PRODUCT_TAGLINE_SHORT } from "@voisss/shared";
 
@@ -128,6 +129,11 @@ function Inner() {
                 <span className="text-white">70% → contributor</span>
                 <span className="h-3 w-px bg-white/10 hidden sm:block" aria-hidden />
                 <span className="hidden sm:inline text-white/40">Instant API · No subscription</span>
+              </div>
+
+              {/* The split, drawn rather than claimed — cites the contract constant */}
+              <div className="mt-4 max-w-[30rem]" data-reveal data-reveal-delay="2">
+                <SplitBar />
               </div>
 
               {/* CTAs — one beam-glow primary */}

@@ -62,6 +62,41 @@ export function pulseVoice(pulse: VoicePulse) {
   }
 }
 
+/**
+ * Track a playing <audio> element and publish a speech-like energy envelope.
+ *
+ * Deliberately NOT Web Audio analysis: `createMediaElementSource` silences
+ * cross-origin (IPFS gateway) audio and changes how playback behaves. The
+ * envelope derives from `currentTime`, so playback stays byte-for-byte
+ * unchanged while the terrain still moves *because* a voice is speaking.
+ *
+ * Returns a stop function. Always call it on pause/ended/unmount.
+ */
+export function trackPlaybackEnergy(audio: HTMLAudioElement): () => void {
+  const publish = () => {
+    if (audio.paused || audio.ended) {
+      setVoiceEnergy(0);
+      return;
+    }
+    const ct = audio.currentTime;
+    // layered sines → speech-like rhythm: deterministic, cheap, no analyser
+    const env =
+      0.3 +
+      0.3 * Math.abs(Math.sin(ct * 5.7)) +
+      0.22 * Math.abs(Math.sin(ct * 12.9 + 1.1)) +
+      0.18 * Math.abs(Math.sin(ct * 2.3 + 0.4));
+    setVoiceEnergy(Math.min(1, env));
+  };
+
+  publish();
+  if (typeof window === "undefined") return () => {};
+  const id = window.setInterval(publish, 60);
+  return () => {
+    window.clearInterval(id);
+    setVoiceEnergy(0);
+  };
+}
+
 /** Subscribe to discrete pulses. Returns an unsubscribe function. */
 export function onVoicePulse(fn: PulseListener): () => void {
   listeners.add(fn);

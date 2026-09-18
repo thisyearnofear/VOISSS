@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { generateVoiceFingerprint } from "@/utils/voice-fingerprint";
+import { pulseVoice, trackPlaybackEnergy } from "@/lib/terrain-bus";
 
 interface VoiceCardProps {
   voice: {
@@ -45,6 +46,24 @@ export function VoiceCard({ voice, onPurchase }: VoiceCardProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoadingSample, setIsLoadingSample] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const energyStopRef = useRef<(() => void) | null>(null);
+
+  /**
+   * Previews drive the marketplace VoiceTerrain, so browsing feels like using
+   * the product rather than reading a list. Same playback path as before. */
+  const stopEnergy = () => {
+    energyStopRef.current?.();
+    energyStopRef.current = null;
+  };
+
+  const beginEnergy = (audio: HTMLAudioElement) => {
+    stopEnergy();
+    pulseVoice("lift");
+    energyStopRef.current = trackPlaybackEnergy(audio);
+  };
+
+  // never leave the field energized if the card unmounts mid-preview
+  useEffect(() => stopEnergy, []);
 
   const priceUSDC = (parseInt(voice.price, 10) / 1_000_000).toFixed(2);
   const fingerprintSvg = generateVoiceFingerprint(voice.id);
@@ -53,21 +72,27 @@ export function VoiceCard({ voice, onPurchase }: VoiceCardProps) {
     if (isPlaying) {
       audioRef.current?.pause();
       setIsPlaying(false);
+      stopEnergy();
       return;
     }
 
     if (audioRef.current) {
-      audioRef.current.play();
+      await audioRef.current.play();
       setIsPlaying(true);
+      beginEnergy(audioRef.current);
       return;
     }
 
     if (voice.sampleUrl) {
       const audio = new Audio(voice.sampleUrl);
       audioRef.current = audio;
-      audio.onended = () => setIsPlaying(false);
+      audio.onended = () => {
+        setIsPlaying(false);
+        stopEnergy();
+      };
       await audio.play();
       setIsPlaying(true);
+      beginEnergy(audio);
       return;
     }
 
@@ -91,9 +116,13 @@ export function VoiceCard({ voice, onPurchase }: VoiceCardProps) {
       if (data.success && data.data?.audioUrl) {
         const audio = new Audio(data.data.audioUrl);
         audioRef.current = audio;
-        audio.onended = () => setIsPlaying(false);
+        audio.onended = () => {
+          setIsPlaying(false);
+          stopEnergy();
+        };
         await audio.play();
         setIsPlaying(true);
+        beginEnergy(audio);
       } else {
         console.error("Failed to generate preview:", data.error);
         alert(

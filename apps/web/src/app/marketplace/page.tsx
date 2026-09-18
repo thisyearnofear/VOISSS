@@ -14,6 +14,7 @@ import { MascotEvents } from "@/lib/mascot-events";
 import type { MarketplaceVoice } from "@/lib/marketplace-indexer";
 import { DismissibleRuntimeTracks } from "@/components/payment/RuntimePaymentChips";
 import { BuyerCreditsStrip } from "@/components/payment/DashboardBalanceChips";
+import MarketplaceTerrain from "@/components/marketplace/MarketplaceTerrain";
 
 export default function MarketplacePage() {
   const { isAuthenticated } = useAuth();
@@ -159,6 +160,10 @@ export default function MarketplacePage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* Voice terrain — sandboxed to this page's hero. Already wired to the
+            bus, so previewing any voice card below lights it up. */}
+        <MarketplaceTerrain />
+
         {/* Buyer credits — compact when connected; explains cost before browsing. */}
         {isAuthenticated ? (
           <div className="mb-4 max-w-2xl">
