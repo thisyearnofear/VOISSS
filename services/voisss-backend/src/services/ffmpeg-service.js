@@ -144,36 +144,73 @@ async function composeVideoWithAudio(frameConcat, audioPath, outputPath) {
 
 /**
  * Download file from URL to temp location
+ * SSRF-guarded: protocol/host allowlist, private-IP block, redirect
+ * revalidation, and a hard response size cap.
  */
 async function downloadFile(url, tempFileName) {
   const tempPath = path.join(TEMP_DIR, tempFileName);
+  const { assertSafeDownloadUrl, assertSafeFileUrl, MAX_DOWNLOAD_BYTES } = require('../lib/ssrf');
 
   try {
-    // Handle file:// URLs (local files)
+    // Handle file:// URLs (local files created by upload jobs)
     if (url.startsWith('file://')) {
-      const filePath = url.slice(7);
+      const filePath = assertSafeFileUrl(url);
       console.log(`Copying local file: ${filePath}`);
 
       if (!fs.existsSync(filePath)) {
         throw new Error(`File not found: ${filePath}`);
       }
 
+      const stats = fs.statSync(filePath);
+      if (stats.size > MAX_DOWNLOAD_BYTES) {
+        throw new Error(`Local file too large: ${stats.size} bytes`);
+      }
+
       fs.copyFileSync(filePath, tempPath);
-      const stats = fs.statSync(tempPath);
       console.log(`✅ Copied: ${tempPath} (${(stats.size / 1024 / 1024).toFixed(2)}MB)`);
       return tempPath;
     }
 
-    // Handle HTTP(S) URLs
+    // Handle HTTP(S) URLs — validate before the first request
+    assertSafeDownloadUrl(url);
+
     const fetch = require('node-fetch');
     console.log(`Downloading: ${url}`);
-    const response = await fetch(url, { timeout: 30000 });
+    const response = await fetch(url, {
+      timeout: 30000,
+      redirect: 'manual',
+      size: MAX_DOWNLOAD_BYTES,
+    });
 
-    if (!response.ok) {
-      throw new Error(`Download failed: ${response.status} ${response.statusText}`);
+    // Follow redirects manually so every hop is re-validated
+    let finalResponse = response;
+    let hops = 0;
+    while ([301, 302, 303, 307, 308].includes(finalResponse.status)) {
+      if (++hops > 5) throw new Error('Too many redirects');
+      const location = finalResponse.headers.get('location');
+      if (!location) throw new Error('Redirect without Location header');
+      const nextUrl = new URL(location, finalResponse.url).toString();
+      assertSafeDownloadUrl(nextUrl);
+      finalResponse = await fetch(nextUrl, {
+        timeout: 30000,
+        redirect: 'manual',
+        size: MAX_DOWNLOAD_BYTES,
+      });
     }
 
-    const buffer = await response.buffer();
+    if (!finalResponse.ok) {
+      throw new Error(`Download failed: ${finalResponse.status} ${finalResponse.statusText}`);
+    }
+
+    const declaredLength = parseInt(finalResponse.headers.get('content-length') || '0', 10);
+    if (declaredLength > MAX_DOWNLOAD_BYTES) {
+      throw new Error(`File too large: ${declaredLength} bytes (max ${MAX_DOWNLOAD_BYTES})`);
+    }
+
+    const buffer = await finalResponse.buffer();
+    if (buffer.length > MAX_DOWNLOAD_BYTES) {
+      throw new Error(`File too large: ${buffer.length} bytes (max ${MAX_DOWNLOAD_BYTES})`);
+    }
     fs.writeFileSync(tempPath, buffer);
 
     console.log(`✅ Downloaded: ${tempPath} (${(buffer.length / 1024 / 1024).toFixed(2)}MB)`);

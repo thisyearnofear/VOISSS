@@ -1,24 +1,12 @@
 const express = require('express');
-const multer = require('multer');
 const { enqueueExport, getJobStatus, getUserJobs } = require('../services/export-service');
-const { asyncHandler, NotFoundError, logger } = require('../middleware');
+const { asyncHandler, NotFoundError, ValidationError, logger } = require('../middleware');
 const { validateBody, validateParams, validateQuery, schemas } = require('../middleware/validate');
+const { uploadAudio } = require('../lib/upload');
 
 const router = express.Router();
-const upload = multer({ 
-  storage: multer.memoryStorage(), 
-  limits: { fileSize: 50 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowedMimes = ['audio/webm', 'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mp4'];
-    if (allowedMimes.some(mime => file.mimetype.includes(mime.split('/')[1]))) {
-      cb(null, true);
-    } else {
-      cb(new Error(`Invalid file type: ${file.mimetype}`), false);
-    }
-  }
-});
 
-router.post('/request', upload.single('audio'), asyncHandler(async (req, res) => {
+router.post('/request', uploadAudio.single('audio'), asyncHandler(async (req, res) => {
   let kind, audioUrl, transcriptId, templateId, manifest, style, userId, audioBlob;
   let parsedTemplate = null;
 
@@ -34,14 +22,14 @@ router.post('/request', upload.single('audio'), asyncHandler(async (req, res) =>
       try {
         manifest = JSON.parse(req.body.manifest);
       } catch (e) {
-        return res.status(400).json({ error: 'Invalid manifest JSON', code: 'INVALID_MANIFEST' });
+        throw new ValidationError('Invalid manifest JSON', [{ field: 'manifest', message: e.message }]);
       }
     }
 
     if (req.body.template) {
       try {
-        parsedTemplate = typeof req.body.template === 'string' 
-          ? JSON.parse(req.body.template) 
+        parsedTemplate = typeof req.body.template === 'string'
+          ? JSON.parse(req.body.template)
           : req.body.template;
       } catch (e) {
         logger.warn({ error: e.message }, 'Template parse error');
@@ -50,8 +38,8 @@ router.post('/request', upload.single('audio'), asyncHandler(async (req, res) =>
 
     if (req.body.style) {
       try {
-        style = typeof req.body.style === 'string' 
-          ? JSON.parse(req.body.style) 
+        style = typeof req.body.style === 'string'
+          ? JSON.parse(req.body.style)
           : req.body.style;
       } catch (e) {
         logger.warn({ error: e.message }, 'Style parse error');
@@ -60,47 +48,32 @@ router.post('/request', upload.single('audio'), asyncHandler(async (req, res) =>
   } else {
     ({ kind, audioUrl, transcriptId, templateId, manifest, style, userId } = req.body);
     if (req.body.template) {
-      parsedTemplate = typeof req.body.template === 'string' 
-        ? JSON.parse(req.body.template) 
+      parsedTemplate = typeof req.body.template === 'string'
+        ? JSON.parse(req.body.template)
         : req.body.template;
     }
   }
 
   if (!kind || !transcriptId) {
-    return res.status(400).json({
-      error: 'Missing required fields: kind, transcriptId',
-      code: 'MISSING_FIELDS'
-    });
+    throw new ValidationError('Missing required fields: kind, transcriptId');
   }
 
   if (!['mp3', 'mp4'].includes(kind)) {
-    return res.status(400).json({
-      error: 'Invalid kind. Must be "mp3" or "mp4"',
-      code: 'INVALID_KIND'
-    });
+    throw new ValidationError('Invalid kind. Must be "mp3" or "mp4"');
   }
 
   if (!audioUrl && !audioBlob) {
-    return res.status(400).json({
-      error: 'Either audioUrl or audio file is required',
-      code: 'MISSING_AUDIO'
-    });
+    throw new ValidationError('Either audioUrl or audio file is required');
   }
 
   if (kind === 'mp4') {
     if (!manifest) {
-      return res.status(400).json({
-        error: 'MP4 export requires manifest with segment timing',
-        code: 'MISSING_MANIFEST'
-      });
+      throw new ValidationError('MP4 export requires manifest with segment timing');
     }
 
     const lastSegment = manifest.segments?.[manifest.segments.length - 1];
     if (lastSegment && lastSegment.endMs > 65000) {
-      return res.status(400).json({
-        error: `Export too long (${(lastSegment.endMs / 1000).toFixed(1)}s). Maximum 60 seconds allowed.`,
-        code: 'DURATION_EXCEEDED'
-      });
+      throw new ValidationError(`Export too long (${(lastSegment.endMs / 1000).toFixed(1)}s). Maximum 60 seconds allowed.`);
     }
   }
 
@@ -113,7 +86,7 @@ router.post('/request', upload.single('audio'), asyncHandler(async (req, res) =>
     template: parsedTemplate,
     manifest,
     style,
-    userId: userId || req.user?.id || 'anonymous'
+    userId: userId || req.user?.name || 'anonymous'
   });
 
   logger.info({ jobId: result.jobId }, 'Export enqueued');

@@ -14,6 +14,8 @@ const fs = require('fs');
 const {
   getNextPendingJob,
   updateJobStatus,
+  failOrRetryJob,
+  recoverStaleJobs,
 } = require('../services/export-service');
 const {
   downloadFile,
@@ -106,9 +108,14 @@ async function processExportJob(job) {
   } catch (error) {
     console.error(`${workerInfo} ❌ Export failed: ${jobId}`, error.message);
 
-    await updateJobStatus(jobId, 'failed', {
-      errorMessage: error.message,
-    });
+    const outcome = await failOrRetryJob(
+      jobId,
+      error.message,
+      job.attempts || 1,
+    );
+    if (outcome === 'retry') {
+      console.log(`${workerInfo} ↻ Job ${jobId} scheduled for retry (attempt ${job.attempts}/${require('../services/export-service').MAX_ATTEMPTS})`);
+    }
 
     throw error;
   } finally {
@@ -208,13 +215,24 @@ async function startWorker() {
 
     const POLL_INTERVAL_MS = 2000; // Poll every 2 seconds
     let consecutiveEmptyPolls = 0;
-    const MAX_EMPTY_POLLS = 30; // Give up after 1 minute of no jobs
+    let lastRecoverySweep = 0;
+    const RECOVERY_SWEEP_INTERVAL_MS = 60000; // Sweep stale leases every minute
 
     console.log(`✅ Worker ready, polling database every ${POLL_INTERVAL_MS}ms`);
 
     // Poll loop
     while (true) {
       try {
+        // Crash recovery: requeue jobs abandoned by dead workers
+        const now = Date.now();
+        if (now - lastRecoverySweep > RECOVERY_SWEEP_INTERVAL_MS) {
+          lastRecoverySweep = now;
+          const recovered = await recoverStaleJobs();
+          if (recovered.requeued > 0 || recovered.failed > 0) {
+            console.log(`${workerInfo} 🧹 Lease sweep: ${recovered.requeued} requeued, ${recovered.failed} permanently failed`);
+          }
+        }
+
         const job = await getNextPendingJob();
 
         if (!job) {

@@ -1,6 +1,6 @@
 const { logger, requestLogger, requestId } = require('./logger');
-const { AppError, ValidationError, UnauthorizedError, NotFoundError, RateLimitError, errorHandler, asyncHandler } = require('./errors');
-const { authMiddleware, optionalAuth } = require('./auth');
+const { AppError, ValidationError, UnauthorizedError, ForbiddenError, ConflictError, NotFoundError, RateLimitError, errorHandler, asyncHandler } = require('./errors');
+const { authMiddleware, bindWalletIdentity } = require('./auth');
 const { validateBody, validateParams, validateQuery, schemas } = require('./validate');
 
 module.exports = {
@@ -10,12 +10,14 @@ module.exports = {
   AppError,
   ValidationError,
   UnauthorizedError,
+  ForbiddenError,
+  ConflictError,
   NotFoundError,
   RateLimitError,
   errorHandler,
   asyncHandler,
   authMiddleware,
-  optionalAuth,
+  bindWalletIdentity,
   validateBody,
   validateParams,
   validateQuery,

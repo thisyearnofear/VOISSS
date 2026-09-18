@@ -100,6 +100,19 @@ const schemas = {
   missionAccept: z.object({
     missionId: z.string().min(1),
     userId: z.string().min(1)
+  }),
+
+  missionSubmit: z.object({
+    missionId: z.string().min(1),
+    userId: z.string().min(1)
+  }).passthrough(),
+
+  userAddress: z.object({
+    address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid wallet address')
+  }),
+
+  missionId: z.object({
+    id: z.string().min(1).max(200)
   })
 };
 

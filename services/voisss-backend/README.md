@@ -11,8 +11,8 @@ Dedicated processing service for VOISSS audio transformations via ElevenLabs API
 - ✅ PM2 process management
 - ✅ Health monitoring
 - ✅ Async export service (MP3, MP4, carousel)
-- ✅ PostgreSQL job tracking
-- ✅ Bull queue for reliable async processing
+- ✅ PostgreSQL-backed job queue (DB-driven, no Redis required)
+- ✅ Crash recovery with stale-lease requeue + exponential retry backoff
 - ✅ Auto-migrations on startup
 
 ## API Endpoints
@@ -79,9 +79,8 @@ NODE_ENV=production
 # Database (for export service)
 DATABASE_URL=postgresql://user:password@localhost:5433/voisss
 
-# Redis (for Bull queue)
-REDIS_HOST=localhost
-REDIS_PORT=6379
+# Auth (fail-closed: required in production)
+API_KEYS=web:[redacted],agent:[redacted]
 
 # Export configuration
 EXPORT_TEMP_DIR=/tmp/voisss-exports
@@ -140,16 +139,19 @@ pm2 restart ecosystem.config.js
 ## Export Service Architecture
 
 - **API Endpoint**: `POST /api/export/request` enqueues job
-- **Queue**: Bull + Redis for reliable async processing
+- **Queue**: DB-driven (PostgreSQL atomic claim + lease + retry), no Redis required
 - **Database**: PostgreSQL tracks job state
-- **Worker**: Processes jobs with FFmpeg
+- **Worker**: Processes jobs with FFmpeg, crash recovery via stale-lease sweep
 - **Status**: `GET /api/export/:jobId/status` for polling
 
 See `DEPLOYMENT.md` for detailed setup instructions.
 
 ## Security
 
-- API key stored server-side only
+- **Fail-closed auth**: protected routes require `API_KEYS`; if unset they reject all requests (unless `ALLOW_UNAUTHENTICATED_DEV=true` in non-production)
+- API key stored server-side only; never exposed to the browser
+- **SSRF guard**: export downloads are restricted to an http(s) host allowlist with private-IP blocking and redirect revalidation (`EXPORT_ALLOWED_HOSTS` extends it)
+- **Wallet identity binding**: mission writes require a `Bearer <wallet>` address that matches `userId` in the body
 - HTTPS via nginx reverse proxy
-- CORS configured for frontend access
+- CORS allowlist configured via `CORS_ORIGINS` (production should use https only)
 - No sensitive data in logs

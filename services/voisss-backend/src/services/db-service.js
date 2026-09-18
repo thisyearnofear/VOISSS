@@ -100,6 +100,9 @@ async function runMigrations() {
     ]);
   } catch (e) {
     console.error('Failed to setup migrations table:', e.message);
+    if (process.env.NODE_ENV === 'production' && process.env.SKIP_MIGRATIONS !== 'true') {
+      throw new Error(`Migration setup failed: ${e.message}`);
+    }
     return;
   }
 
@@ -136,6 +139,9 @@ async function runMigrations() {
         console.log(`✅ Migration complete: ${migrationName}`);
       } catch (e) {
         console.error(`❌ Migration failed: ${migrationName}`, e.message);
+        if (process.env.NODE_ENV === 'production' && process.env.SKIP_MIGRATIONS !== 'true') {
+          throw new Error(`Migration ${migrationName} failed: ${e.message}`);
+        }
       }
     } else {
       console.log(`⏭️  Migration already run: ${migrationName}`);
