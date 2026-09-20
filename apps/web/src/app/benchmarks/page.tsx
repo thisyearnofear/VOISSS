@@ -13,6 +13,8 @@ interface CatalogVoice {
 
 interface MatchResult {
   scores: Record<string, number>;
+  archetype?: string;
+  reasons?: Record<string, string[]>;
   briefInsights: {
     emotion: { choice: string; confidence: number | null } | null;
     useCase: { choice: string; confidence: number | null } | null;
@@ -76,11 +78,13 @@ function Elapsed({
 function VoiceRows({
   voices,
   scores,
+  reasons,
   accentBar,
   topClasses,
 }: {
   voices: CatalogVoice[];
   scores: Record<string, number> | undefined;
+  reasons?: Record<string, string[]>;
   accentBar: string;
   topClasses: string;
 }) {
@@ -125,6 +129,11 @@ function VoiceRows({
               }`}
             >
               {v.title || v.id}
+              {isTop && reasons?.[v.id]?.length ? (
+                <span className="block text-[9px] font-normal text-[#9C88FF]">
+                  {reasons[v.id].join(" · ")}
+                </span>
+              ) : null}
             </span>
             <div className="flex-1 h-1 rounded-full bg-white/10 overflow-hidden">
               <motion.div
@@ -279,6 +288,7 @@ export default function JevComparePage() {
       <VoiceRows
         voices={voices}
         scores={state.result?.scores}
+        reasons={state.result?.reasons}
         accentBar={accentBar}
         topClasses={topClasses}
       />

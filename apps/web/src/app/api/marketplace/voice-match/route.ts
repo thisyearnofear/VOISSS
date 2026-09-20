@@ -8,6 +8,7 @@ import {
   getRateLimitHeaders,
   rateLimiters,
 } from "@/lib/rate-limit";
+import rubric from "@/lib/matching/rubric.v1.json";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,6 +29,24 @@ const URGENCY_LEVELS = [
   "Moderate, purposeful pace",
   "Urgent, high-energy, time-sensitive",
 ];
+
+// Rubric dimensions are neutral acoustic/prosodic attributes — demographics
+// are deliberately excluded (see rubric.v1.json excluded_dimensions).
+const DIMENSIONS = Object.keys(rubric.dimensions) as Array<
+  keyof typeof rubric.dimensions
+>;
+const DIM_LEVELS = ["low", "medium", "high"];
+
+// use_case choices map onto rubric archetypes; wellness briefs use the
+// meditation archetype's low-arousal/high-warmth profile.
+const USE_CASE_TO_ARCHETYPE: Record<string, keyof typeof rubric.archetypes> = {
+  advertising: "advertising",
+  narration: "narration",
+  assistant: "assistant",
+  character: "character",
+  podcast: "podcast",
+  wellness: "meditation",
+};
 
 // Minimal shape a voice needs to be scored — chain listings are mapped into
 // this, and callers may pass their own catalog directly (B2B roster matching).
@@ -138,6 +157,7 @@ function buildQuestions(voices: ScorableVoice[], flavor: "noul" | "boolean") {
         assistant: "IVR, voice assistants, product UX",
         character: "Games, animation, character work",
         podcast: "Podcasts, social clips, creator content",
+        wellness: "Meditation, sleep, ASMR, wellness",
       },
     },
     urgency: {
@@ -148,12 +168,21 @@ function buildQuestions(voices: ScorableVoice[], flavor: "noul" | "boolean") {
   };
 
   voices.forEach((voice, i) => {
+    const desc = describeVoice(voice);
     questions[`fit_${i}`] = {
       type: flavor,
-      instructions: `This voice is a good fit for the requester's brief — ${describeVoice(
-        voice
-      )}`,
+      instructions: `This voice is a good fit for the requester's brief — ${desc}`,
     };
+    // Rubric dimension profile — each voice is rated on every neutral
+    // dimension; archetype weights turn the profile into an explainable
+    // target-distance fit score.
+    DIMENSIONS.forEach((dim) => {
+      questions[`dim_${dim}_${i}`] = {
+        type: "score",
+        instructions: `Rate this voice's ${rubric.dimensions[dim].label} — ${desc}`,
+        criteria: DIM_LEVELS,
+      };
+    });
   });
 
   return questions;
@@ -334,18 +363,103 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const answers = result.answers;
 
-    const scores: Record<string, number> = {};
+    // Holistic fit probabilities — kept as a sanity signal alongside the
+    // rubric-weighted scores.
+    const holisticScores: Record<string, number> = {};
     voices.forEach((voice, i) => {
       const fit = readFit(answers[`fit_${i}`]);
       if (fit != null) {
-        scores[voice.id] = fit;
+        holisticScores[voice.id] = fit;
       }
     });
+
+    // Rubric pass. Score questions return continuous values ~0-2 across the
+    // low/medium/high criteria — normalize to 0-1, then take the weighted
+    // distance to the detected archetype's target profile. Fit is therefore
+    // explainable: it decomposes into per-dimension reasons.
+    const useCaseChoice = readChoice(answers.use_case)?.choice;
+    const archetypeKey = (
+      (useCaseChoice && USE_CASE_TO_ARCHETYPE[useCaseChoice]) ||
+      rubric.fallback_archetype
+    ) as keyof typeof rubric.archetypes;
+    const archetype = rubric.archetypes[archetypeKey];
+
+    const scores: Record<string, number> = {};
+    const dimensionLevels: Record<string, Record<string, number>> = {};
+    const reasons: Record<string, string[]> = {};
+
+    voices.forEach((voice, i) => {
+      const levels: Record<string, number> = {};
+      let weightedDistance = 0;
+      let totalWeight = 0;
+      const matched: { closeness: number; weight: number; label: string }[] =
+        [];
+
+      DIMENSIONS.forEach((dim) => {
+        const raw = answers[`dim_${dim}_${i}`] as
+          | { score?: number }
+          | undefined;
+        const s = typeof raw?.score === "number" ? raw.score : null;
+        if (s == null) return;
+        const level = Math.min(Math.max(s / 2, 0), 1);
+        levels[dim] = Math.round(level * 100) / 100;
+
+        const weight = archetype.weights[dim] ?? 0;
+        const target = archetype.targets[dim] ?? 0.5;
+        if (weight <= 0) return;
+        const closeness = 1 - Math.abs(level - target);
+        weightedDistance += weight * Math.abs(level - target);
+        totalWeight += weight;
+
+        if (closeness >= 0.7) {
+          const side = level < 0.4 ? "low" : level > 0.6 ? "high" : null;
+          const label =
+            side && rubric.reason_labels[dim]?.[side as "low" | "high"];
+          if (label) {
+            matched.push({ closeness, weight, label });
+          }
+        }
+      });
+
+      dimensionLevels[voice.id] = levels;
+      scores[voice.id] =
+        totalWeight > 0
+          ? Math.round((1 - weightedDistance / totalWeight) * 1000) / 1000
+          : 0;
+      reasons[voice.id] = matched
+        .sort((a, b) => b.weight * b.closeness - a.weight * a.closeness)
+        .slice(0, 3)
+        .map((m) => m.label);
+    });
+
+    // Outcome-learning telemetry: ranked matches are the "shown" leg of the
+    // brief → shown → previewed → used funnel. Downstream events reweight
+    // rubric dimension weights over time (see rubric.v1.json outcome_learning).
+    const topRanked = Object.entries(scores)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([id]) => id);
+    console.log(
+      JSON.stringify({
+        event: "voice_match",
+        archetype: archetypeKey,
+        rubric: rubric.version,
+        brief: brief.slice(0, 200),
+        voiceCount: voices.length,
+        topRanked,
+        latencyMs: result.latencyMs,
+        at: new Date().toISOString(),
+      })
+    );
 
     return NextResponse.json({
       success: true,
       data: {
         scores,
+        holisticScores,
+        archetype: archetypeKey,
+        dimensionLevels,
+        reasons,
         briefInsights: {
           emotion: readChoice(answers.emotion),
           useCase: readChoice(answers.use_case),
@@ -353,9 +467,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         },
         meta: {
           latencyMs: result.latencyMs,
-          questionCount: voices.length + 3,
+          questionCount: voices.length * (1 + DIMENSIONS.length) + 3,
           model: result.model,
           provider: gatewayKey ? "vercel-ai-gateway" : "typesafe",
+          rubric: rubric.version,
           usage: result.usage ?? null,
         },
       },

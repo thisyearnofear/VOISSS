@@ -41,9 +41,10 @@ interface VoiceCardProps {
     };
   };
   onPurchase?: (voiceId: string) => void;
+  onPreview?: (voiceId: string) => void;
 }
 
-export function VoiceCard({ voice, onPurchase }: VoiceCardProps) {
+export function VoiceCard({ voice, onPurchase, onPreview }: VoiceCardProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoadingSample, setIsLoadingSample] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -94,6 +95,7 @@ export function VoiceCard({ voice, onPurchase }: VoiceCardProps) {
       await audio.play();
       setIsPlaying(true);
       beginEnergy(audio);
+      onPreview?.(voice.id);
       return;
     }
 
@@ -124,6 +126,7 @@ export function VoiceCard({ voice, onPurchase }: VoiceCardProps) {
         await audio.play();
         setIsPlaying(true);
         beginEnergy(audio);
+        onPreview?.(voice.id);
       } else {
         console.error("Failed to generate preview:", data.error);
         alert(

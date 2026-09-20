@@ -18,6 +18,10 @@ import MarketplaceTerrain from "@/components/marketplace/MarketplaceTerrain";
 
 interface VoiceMatchResult {
   scores: Record<string, number>;
+  holisticScores?: Record<string, number>;
+  archetype?: string;
+  dimensionLevels?: Record<string, Record<string, number>>;
+  reasons?: Record<string, string[]>;
   briefInsights: {
     emotion: { choice: string; confidence: number } | null;
     useCase: { choice: string; confidence: number } | null;
@@ -140,6 +144,21 @@ export default function MarketplacePage() {
   const handlePurchaseClick = (voiceId: string) => {
     const voice = voices.find((v) => v.id === voiceId) || null;
     setModalVoice(voice);
+  };
+
+  // Outcome events feed rubric reweighting — fire-and-forget, never blocks UI.
+  const trackMatchEvent = (event: string, voiceId: string) => {
+    fetch("/api/marketplace/match-events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event,
+        voiceId,
+        archetype: match?.archetype,
+        brief: brief.trim(),
+      }),
+      keepalive: true,
+    }).catch(() => {});
   };
 
 
@@ -485,6 +504,11 @@ export default function MarketplacePage() {
                   ] ?? match.briefInsights.urgency.score}
                 </span>
               )}
+              {match?.archetype && (
+                <span className="px-2 py-0.5 rounded bg-[#7C5DFA]/15 text-[#9C88FF] border border-[#7C5DFA]/25">
+                  rubric: {match.archetype}
+                </span>
+              )}
               {match?.meta?.latencyMs != null && (
                 <span className="ml-auto text-zinc-500 font-mono">
                   {match.meta.questionCount ?? "?"} questions · 1 call ·{" "}
@@ -579,6 +603,16 @@ export default function MarketplacePage() {
                           transition={{ duration: 0.3 }}
                         />
                       </div>
+                      {/* Explainable fit: the rubric dimensions that drove
+                          this voice's ranking for the detected archetype. */}
+                      {match?.reasons?.[voice.id]?.map((reason) => (
+                        <span
+                          key={reason}
+                          className="text-[9px] px-1.5 py-0.5 rounded bg-black/60 text-[#9C88FF] border border-[#7C5DFA]/30"
+                        >
+                          {reason}
+                        </span>
+                      ))}
                     </div>
                   )}
                   <VoiceCard
@@ -587,6 +621,9 @@ export default function MarketplacePage() {
                       voice.source === "platform"
                         ? undefined
                         : () => handlePurchaseClick(voice.id)
+                    }
+                    onPreview={(voiceId) =>
+                      trackMatchEvent("voice_preview", voiceId)
                     }
                   />
                 </motion.div>

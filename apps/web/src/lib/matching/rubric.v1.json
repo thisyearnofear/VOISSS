@@ -1,0 +1,102 @@
+{
+  "version": "1.0.0",
+  "generated": "2026-09-20",
+  "basis": "Literature review: Parallel deep-research sweep, Sept 2026. Citations per dimension. Rubric encodes evidence-informed priors, not objective truth — weights are versioned and reweighted by marketplace outcomes over time.",
+  "scoring": {
+    "method": "target-distance",
+    "note": "Each voice is rated 0-1 on each neutral dimension. Archetypes define a target level + weight per dimension. Fit = 1 - weighted mean |level - target|. 'More' is not always 'better' — medium rate and moderate expressiveness win for comprehension-heavy tasks (Rodero et al. 2022)."
+  },
+  "dimensions": {
+    "arousal": {
+      "label": "energy/arousal",
+      "description": "Emotional activation and intensity of delivery — low is soothing/unhurried, high is excited/intense.",
+      "evidence": "moderate",
+      "citation": "Rodero et al. 2022 (expressive load vs arousal); Marty-Dugas 2024 (enthusiasm→engagement); Huangfu et al. 2025 (high enthusiasm can harm learning under cognitive load)"
+    },
+    "pace": {
+      "label": "speech rate",
+      "description": "How fast the delivery feels — slow/measured vs quick/driving.",
+      "evidence": "moderate",
+      "citation": "Rodero et al. 2022 (~180wpm medium rate optimal for recall/recognition; inverted-U, not monotonic)"
+    },
+    "expressiveness": {
+      "label": "intonation/expressive load",
+      "description": "Pitch variation and dramatic range — flat/neutral vs animated/emphatic.",
+      "evidence": "moderate",
+      "citation": "Rodero et al. 2022 (moderate intonation → credibility+effectiveness; emphatic → arousal+attention only)"
+    },
+    "warmth": {
+      "label": "warmth/approachability",
+      "description": "How warm, reassuring, and approachable the delivery feels.",
+      "evidence": "moderate",
+      "citation": "Belin, Boehme & McAleer 2017 (trustworthiness contour: high onset, mid-utterance fall, final rise)"
+    },
+    "authority": {
+      "label": "authority/gravitas",
+      "description": "Perceived status, expertise, and commanding presence — not a proxy for competence.",
+      "evidence": "moderate",
+      "citation": "Klofstad, Anderson & Peters 2012 (lower pitch → leadership judgments); acoustic-authority 2026 (loudness/intensity → perceived power; weak for actual persuasion)"
+    },
+    "intimacy": {
+      "label": "intimacy/closeness",
+      "description": "Close, personal, soft-spoken delivery vs broadcast-style projection.",
+      "evidence": "weak",
+      "citation": "Weak direct evidence — breathiness→intimacy claims are thinner than popular advice suggests (Schiller et al. 2024). Included at low weight only; flagged for outcome-validation."
+    }
+  },
+  "reason_labels": {
+    "arousal": { "low": "calm energy", "high": "high energy" },
+    "pace": { "low": "unhurried", "high": "brisk pace" },
+    "expressiveness": { "low": "restrained", "high": "expressive" },
+    "warmth": { "low": "neutral tone", "high": "warm" },
+    "authority": { "low": "understated", "high": "authoritative" },
+    "intimacy": { "low": "broadcast", "high": "intimate" }
+  },
+  "excluded_dimensions": {
+    "gender": "Stereotype risk in both directions; no universal preference (Piercy et al. 2025). Never encoded.",
+    "accent_hierarchy": "Accent = audience-congruence, never prestige ranking. Synthetic-voice studies show fluency effects but no consistent competence/warmth bias (Hercula et al. 2024).",
+    "vocal_fry_penalty": "Context-bound labor-market effect (Anderson et al. 2014); not a general quality signal — excluded to avoid laundering bias."
+  },
+  "archetypes": {
+    "advertising": {
+      "label": "Ads, promos, product drops",
+      "outcome": "attention + recall",
+      "targets": { "arousal": 0.8, "expressiveness": 0.7, "pace": 0.65, "authority": 0.6, "warmth": 0.4, "intimacy": 0.25 },
+      "weights": { "arousal": 0.25, "expressiveness": 0.2, "pace": 0.2, "authority": 0.15, "warmth": 0.1, "intimacy": 0.1 }
+    },
+    "narration": {
+      "label": "Audiobooks, documentaries, explainers",
+      "outcome": "comprehension + credibility",
+      "targets": { "arousal": 0.35, "expressiveness": 0.55, "pace": 0.45, "authority": 0.6, "warmth": 0.55, "intimacy": 0.45 },
+      "weights": { "arousal": 0.15, "expressiveness": 0.2, "pace": 0.2, "authority": 0.15, "warmth": 0.15, "intimacy": 0.15 }
+    },
+    "meditation": {
+      "label": "Meditation, sleep, wellness",
+      "outcome": "relaxation + sustained calm",
+      "targets": { "arousal": 0.1, "expressiveness": 0.3, "pace": 0.2, "authority": 0.3, "warmth": 0.8, "intimacy": 0.85 },
+      "weights": { "arousal": 0.25, "expressiveness": 0.1, "pace": 0.2, "authority": 0.05, "warmth": 0.2, "intimacy": 0.2 }
+    },
+    "assistant": {
+      "label": "IVR, voice assistants, product UX",
+      "outcome": "understandability + task success",
+      "targets": { "arousal": 0.4, "expressiveness": 0.45, "pace": 0.5, "authority": 0.45, "warmth": 0.65, "intimacy": 0.35 },
+      "weights": { "arousal": 0.15, "expressiveness": 0.15, "pace": 0.25, "authority": 0.1, "warmth": 0.25, "intimacy": 0.1 }
+    },
+    "character": {
+      "label": "Games, animation, character work",
+      "outcome": "expressive range + engagement",
+      "targets": { "arousal": 0.75, "expressiveness": 0.9, "pace": 0.6, "authority": 0.4, "warmth": 0.45, "intimacy": 0.4 },
+      "weights": { "arousal": 0.2, "expressiveness": 0.35, "pace": 0.1, "authority": 0.1, "warmth": 0.15, "intimacy": 0.1 }
+    },
+    "podcast": {
+      "label": "Podcasts, social, creator content",
+      "outcome": "relatability + retention",
+      "targets": { "arousal": 0.55, "expressiveness": 0.6, "pace": 0.55, "authority": 0.4, "warmth": 0.75, "intimacy": 0.65 },
+      "weights": { "arousal": 0.15, "expressiveness": 0.2, "pace": 0.15, "authority": 0.05, "warmth": 0.25, "intimacy": 0.2 }
+    }
+  },
+  "fallback_archetype": "podcast",
+  "outcome_learning": {
+    "note": "The rubric is a prior. Log brief → ranked → previewed → vocalized → purchased events; reweight dimension weights by observed conversion. Behavioral outcomes are the ground truth this rubric approximates."
+  }
+}
