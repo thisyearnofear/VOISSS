@@ -300,14 +300,14 @@ export default function JevComparePage() {
     <div className="min-h-screen bg-[#0A0A0A] text-white">
       <div className="max-w-[1400px] mx-auto px-6 py-6">
         <div className="flex items-center gap-3 mb-1">
-          <h1 className="text-xl font-bold">Jev vs GPT-4o-mini</h1>
+          <h1 className="text-xl font-bold">Matching engine benchmark</h1>
           <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm bg-[#7C5DFA]/20 text-[#9C88FF] border border-[#7C5DFA]/30">
-            Same brief · same catalog
+            Live · reproducible
           </span>
         </div>
         <p className="text-xs text-zinc-500 mb-4">
-          Scoring {voices.length || "…"} live voices from the VOISSS
-          marketplace
+          Jev vs GPT-4o-mini — same brief, same {voices.length || "…"}-voice
+          live marketplace catalog, same gateway. Measured, not marketing.
         </p>
 
         <input
@@ -360,9 +360,9 @@ export default function JevComparePage() {
 
         <p className="mt-6 text-center text-xs text-zinc-600 flex items-center justify-center gap-1.5">
           <Zap className="w-3 h-3 text-[#7C5DFA]" />
-          Live on the VOISSS marketplace — try it yourself at{" "}
+          This is the same engine ranking voices in production —{" "}
           <a href="/marketplace" className="text-[#9C88FF] hover:underline">
-            /marketplace
+            try it on the marketplace
           </a>
         </p>
       </div>

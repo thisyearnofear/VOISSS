@@ -67,6 +67,18 @@ const nextConfig = {
         destination: '/',
         permanent: true,
       },
+      {
+        // The marketplace itself is the demo now — intent matching runs on
+        // the live catalog there.
+        source: '/demo/jev',
+        destination: '/marketplace',
+        permanent: false,
+      },
+      {
+        source: '/demo/jev-compare',
+        destination: '/benchmarks',
+        permanent: false,
+      },
     ];
   },
 

@@ -32,6 +32,10 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     title: 'Demo | Try VOISSS Voice Generation',
     description: 'Try VOISSS voice generation for free. Convert text to speech with licensed voices. No sign-up required.',
   },
+  '/benchmarks': {
+    title: 'Benchmarks | VOISSS Matching Engine',
+    description: 'Live benchmark of the VOISSS intent-matching engine. Jev vs GPT-4o-mini scoring the real marketplace catalog — measured, reproducible.',
+  },
   '/agents': {
     title: 'Agents | Autonomous Agent Commentary Network',
     description: 'Browse content published by autonomous AI agents. Voice insights across DeFi, governance, and market analysis.',

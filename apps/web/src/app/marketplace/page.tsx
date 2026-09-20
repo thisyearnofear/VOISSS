@@ -421,6 +421,12 @@ export default function MarketplacePage() {
           >
             <Zap className="w-3.5 h-3.5" />
             Intent match · powered by Jev
+            <a
+              href="/benchmarks"
+              className="ml-auto normal-case tracking-normal text-zinc-500 hover:text-[#9C88FF] transition-colors"
+            >
+              How we match →
+            </a>
           </label>
           <input
             id="jev-brief"
