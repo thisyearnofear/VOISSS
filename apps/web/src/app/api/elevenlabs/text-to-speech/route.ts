@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth";
-
-const ELEVEN_API_BASE = "https://api.elevenlabs.io/v1";
+import { resolveModel, settingsForModel, styleForArchetype, synthesizeVoice } from "@/lib/voice-style";
 
 export const runtime = "nodejs";
 
@@ -11,7 +10,8 @@ export async function POST(req: NextRequest) {
     const user = requireAuth(req);
     console.log(`TTS request from: ${user.address}`);
 
-    const { text, voiceId } = await req.json();
+    const body = await req.json();
+    const { text, voiceId } = body;
 
     if (!text) {
       return new Response(JSON.stringify({ error: "Missing text" }), {
@@ -32,25 +32,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Use the free text-to-speech endpoint
-    const response = await fetch(
-      `${ELEVEN_API_BASE}/text-to-speech/${voiceId}`,
-      {
-        method: "POST",
-        headers: {
-          Accept: "audio/mpeg",
-          "Content-Type": "application/json",
-          "xi-api-key": apiKey,
-        },
-        body: JSON.stringify({
-          text: text,
-          model_id: "eleven_multilingual_v2",
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.5,
-          },
-        }),
-      }
+    // Conversational TTS — latency is the constraint, so flash unless the
+    // caller asks for a specific model.
+    const { model: requestedModel } = body;
+    const model = resolveModel({
+      requested: requestedModel,
+      isFree: true,
+      textLength: text.length,
+    });
+    const response = await synthesizeVoice(
+      apiKey,
+      voiceId,
+      text,
+      model,
+      settingsForModel(model, styleForArchetype(undefined))
     );
 
     if (!response.ok) {

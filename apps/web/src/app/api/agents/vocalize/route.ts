@@ -19,6 +19,14 @@ import { getAgentSecurityService, AgentSecurityProfile } from "@voisss/shared/se
 import { getAgentEventHub, VOISSS_EVENT_TYPES } from "@voisss/shared/services/agent-event-hub";
 import { createHash } from "crypto";
 import {
+  resolveModel,
+  settingsForModel,
+  styleForArchetype,
+  synthesizeVoice,
+  FALLBACK_MODEL,
+  type GenerationOptions,
+} from "@/lib/voice-style";
+import {
   extractOWSWallet,
   hasOWSWallet,
   createOWSPaymentRequirements,
@@ -92,7 +100,6 @@ interface VocalizeResponse {
   };
 }
 
-const ELEVEN_API_BASE = "https://api.elevenlabs.io/v1";
 const CHARS_PER_SECOND = 2.5; // ~150 chars per minute for ElevenLabs multilingual v2
 
 export const runtime = "nodejs";
@@ -138,7 +145,15 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
     const body = await req.json();
     const validatedRequest = VoiceGenerationRequestSchema.parse(body);
 
-    const { text, voiceId, agentAddress, options, maxDurationMs: requestMaxDurationMs, preview } = validatedRequest;
+    const { text, voiceId, agentAddress, options, archetype, maxDurationMs: requestMaxDurationMs, preview } = validatedRequest;
+    // Generation style: caller-specified model/settings win; archetype drives
+    // stability/style/speed; free tiers route to flash, paid to v3.
+    const generationOptions: GenerationOptions = {
+      model: options?.model,
+      archetype,
+      stability: options?.stability,
+      similarity_boost: options?.similarity_boost,
+    };
     const userAgent = req.headers.get("user-agent") || "unknown";
     const headers = Object.fromEntries(req.headers.entries());
 
@@ -382,7 +397,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
           agentTier,
           quote.baseCost,
           quote.discountPercent,
-          owsWallet
+          owsWallet,
+          generationOptions
         );
         return response;
       }
@@ -436,7 +452,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
           agentTier,
           quote.baseCost,
           quote.discountPercent,
-          owsWallet
+          owsWallet,
+          generationOptions
         );
 
         // Cache successful result for idempotency
@@ -533,7 +550,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
           recordingId,
           agentTier,
           paymentResult.baseCost,
-          paymentResult.discountApplied
+          paymentResult.discountApplied,
+          undefined,
+          generationOptions
         );
 
         // Cache successful result for idempotency
@@ -596,7 +615,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
               agentTier,
               dynResult.baseCost,
               dynResult.discountApplied !== undefined ? Math.round(dynResult.discountApplied * 100) : quote.discountPercent,
-              owsWallet || undefined
+              owsWallet || undefined,
+              generationOptions
             );
             if (idempotencyKey) {
               const resultBody = await response.clone().json();
@@ -642,7 +662,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
         agentTier,
         quote.baseCost,
         0,
-        owsWallet || undefined
+        owsWallet || undefined,
+        generationOptions
       );
       return response;
     }
@@ -673,7 +694,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
           agentTier,
           paymentResult.baseCost,
           paymentResult.discountApplied,
-          owsWallet || undefined
+          owsWallet || undefined,
+          generationOptions
         );
 
         // Cache successful result for idempotency
@@ -779,7 +801,8 @@ async function generateAndReturnVoice(
   agentTier?: keyof import('@voisss/shared/services/agent-rate-limiter').AgentTierLimits,
   baseCost?: bigint,
   discountApplied?: number,
-  owsWallet?: OWSWalletInfo
+  owsWallet?: OWSWalletInfo,
+  generationOptions?: GenerationOptions
 ): Promise<NextResponse<VocalizeResponse>> {
   const agentId = agentAddress || getIdentifier(req);
   const eventHub = getAgentEventHub();
@@ -806,26 +829,33 @@ async function generateAndReturnVoice(
       }, { status: 500 });
     }
 
-    // Generate audio using ElevenLabs
-    const ttsResponse = await fetch(
-      `${ELEVEN_API_BASE}/text-to-speech/${voiceId}`,
-      {
-        method: "POST",
-        headers: {
-          Accept: "audio/mpeg",
-          "Content-Type": "application/json",
-          "xi-api-key": apiKey,
-        },
-        body: JSON.stringify({
-          text: text,
-          model_id: "eleven_multilingual_v2",
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.5,
-          },
-        }),
+    // Generate audio using ElevenLabs — free tiers route to flash (cheaper,
+    // faster), paid to v3; archetype shapes stability/style/speed.
+    const isFreeTier = cost === BigInt(0) || paymentMethod === 'preview';
+    const model = resolveModel({
+      requested: generationOptions?.model,
+      isFree: isFreeTier,
+      textLength: text.length,
+    });
+    const voiceSettings = settingsForModel(model, styleForArchetype(generationOptions?.archetype, {
+      stability: generationOptions?.stability,
+      similarity_boost: generationOptions?.similarity_boost,
+    }));
+
+    let ttsResponse = await synthesizeVoice(apiKey, voiceId, text, model, voiceSettings);
+
+    // One fallback shot: if the voice/model combo is rejected, retry on the
+    // stable multilingual model with neutral settings.
+    if (!ttsResponse.ok && model !== FALLBACK_MODEL) {
+      const errBody = await ttsResponse.clone().text().catch(() => "");
+      if (ttsResponse.status === 422 || /model|voice/i.test(errBody)) {
+        console.warn(`[vocalize] ${model} rejected (${ttsResponse.status}) — retrying on ${FALLBACK_MODEL}`);
+        ttsResponse = await synthesizeVoice(apiKey, voiceId, text, FALLBACK_MODEL, {
+          stability: 0.5,
+          similarity_boost: 0.5,
+        });
       }
-    );
+    }
 
     if (!ttsResponse.ok) {
       const errorText = await ttsResponse.text().catch(() => "");
@@ -967,6 +997,7 @@ async function generateAndReturnVoice(
       characterCount,
       cost: formatUSDC(cost),
       paymentMethod,
+      model,
       voiceId,
       contentHash,
       ipfsHash: ipfsHash || 'temporary',
@@ -1022,6 +1053,7 @@ async function generateAndReturnVoice(
         discountApplied,
         characterCount,
         paymentMethod,
+        model,
         recordingId: finalRecordingId,
         ...(ipfsHash && { ipfsHash }),
         ...(isTemporary && {

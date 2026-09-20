@@ -269,10 +269,13 @@ export const VoiceGenerationRequestSchema = z.object({
   agentAddress: z.string(),
   maxDurationMs: z.number().min(1000).max(AUDIO_CONFIG.MAX_DURATION_MS).optional(),
   preview: z.boolean().optional(),
+  // Matching archetype from /api/marketplace/voice-match — drives generation
+  // style (stability/style/speed) so the voice performs to the brief.
+  archetype: z.string().optional(),
   options: z.object({
-    model: z.string().default("eleven_multilingual_v2"),
-    stability: z.number().min(0).max(1).default(0.5),
-    similarity_boost: z.number().min(0).max(1).default(0.5),
+    model: z.string().optional(),
+    stability: z.number().min(0).max(1).optional(),
+    similarity_boost: z.number().min(0).max(1).optional(),
     autoSave: z.boolean().default(false),
   }).optional().default({}),
 });

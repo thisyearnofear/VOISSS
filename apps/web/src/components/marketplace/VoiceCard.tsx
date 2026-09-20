@@ -42,9 +42,10 @@ interface VoiceCardProps {
   };
   onPurchase?: (voiceId: string) => void;
   onPreview?: (voiceId: string) => void;
+  archetype?: string;
 }
 
-export function VoiceCard({ voice, onPurchase, onPreview }: VoiceCardProps) {
+export function VoiceCard({ voice, onPurchase, onPreview, archetype }: VoiceCardProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoadingSample, setIsLoadingSample] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -111,6 +112,7 @@ export function VoiceCard({ voice, onPurchase, onPreview }: VoiceCardProps) {
           } voice. Secure, licensed, and ready for your AI agent.`,
           voiceId: voice.contractVoiceId || voice.id,
           preview: true,
+          archetype,
         }),
       });
 

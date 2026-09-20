@@ -628,6 +628,7 @@ export default function MarketplacePage() {
                   )}
                   <VoiceCard
                     voice={voice}
+                    archetype={match?.archetype}
                     onPurchase={
                       voice.source === "platform"
                         ? undefined

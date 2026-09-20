@@ -72,6 +72,7 @@ function GeneratePageInner() {
   const [brief, setBrief] = useState("");
   const [matchScores, setMatchScores] = useState<Record<string, number>>({});
   const [matchReasons, setMatchReasons] = useState<Record<string, string[]>>({});
+  const [archetype, setArchetype] = useState<string | undefined>(undefined);
   const [matching, setMatching] = useState(false);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const [previewingId, setPreviewingId] = useState<string | null>(null);
@@ -133,6 +134,7 @@ function GeneratePageInner() {
     if (brief.trim().length < 3) {
       setMatchScores({});
       setMatchReasons({});
+      setArchetype(undefined);
       return;
     }
     const controller = new AbortController();
@@ -149,6 +151,7 @@ function GeneratePageInner() {
         if (data.success) {
           setMatchScores(data.data.scores || {});
           setMatchReasons(data.data.reasons || {});
+          setArchetype(data.data.archetype);
         }
       } catch (e) {
         if (!controller.signal.aborted) console.error("Voice match failed:", e);
@@ -211,7 +214,8 @@ function GeneratePageInner() {
           text: text.trim().slice(0, 500),
           voiceId: selectedVoice.contractVoiceId || selectedVoice.id,
           agentAddress: "0xDEMO0000000000000000000000000000000000001",
-          demo: true,
+          preview: true,
+          archetype,
         }),
       });
 
