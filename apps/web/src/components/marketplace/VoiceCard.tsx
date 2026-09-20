@@ -265,7 +265,7 @@ export function VoiceCard({ voice, onPurchase, onPreview }: VoiceCardProps) {
           </button>
 
           <Link
-            href={`/demo?voiceId=${encodeURIComponent(voice.contractVoiceId || voice.id)}`}
+            href={`/generate?voiceId=${encodeURIComponent(voice.contractVoiceId || voice.id)}`}
             className="px-4 py-2 text-xs font-bold uppercase tracking-wider bg-purple-600 text-white rounded-lg hover:bg-purple-500 shadow-lg shadow-purple-900/20 transition-all text-center"
           >
             Try in demo

@@ -1,3 +1,3 @@
 import { createPageMetadata, PageMetadataLayout } from "../page-metadata-layout";
-export const metadata = createPageMetadata("/arkiv");
+export const metadata = createPageMetadata("/sell");
 export default PageMetadataLayout;

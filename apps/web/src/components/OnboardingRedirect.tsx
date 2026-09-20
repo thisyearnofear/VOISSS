@@ -16,15 +16,15 @@ interface OnboardingProfile {
 }
 
 function computeRedirectUrl(profile: OnboardingProfile): string {
-  if (profile.role === "creator" || profile.goal === "list") return "/studio";
-  if (profile.role === "developer" || profile.goal === "license" || profile.goal === "build") return "/for-agents";
-  return "/demo";
+  if (profile.role === "creator" || profile.goal === "list") return "/sell";
+  if (profile.role === "developer" || profile.goal === "license" || profile.goal === "build") return "/developers";
+  return "/marketplace";
 }
 
 function destinationLabel(url: string): string {
-  if (url === "/studio") return "Studio";
-  if (url === "/for-agents") return "Developer Docs";
-  return "Demo";
+  if (url === "/sell") return "Sell";
+  if (url === "/developers") return "API Docs";
+  return "Marketplace";
 }
 
 function readRedirectUrl(): string | null {

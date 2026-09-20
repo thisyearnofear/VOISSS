@@ -135,7 +135,7 @@ export default function QuickRecordStudio({
         <button
           onClick={() => {
             cancelRecording();
-            router.push("/studio");
+            router.push("/sell");
           }}
           className="absolute top-0 left-0 text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-1"
           aria-label="Back to Studio"
@@ -272,13 +272,13 @@ export default function QuickRecordStudio({
                 Browse Marketplace
               </a>
               <a
-                href="/demo"
+                href="/generate"
                 className="px-3 py-2 bg-[#2A2A2A] hover:bg-[#3A3A3A] rounded-lg text-xs text-white font-medium transition-colors"
               >
                 Try Demo
               </a>
               <a
-                href="/studio"
+                href="/sell"
                 className="px-3 py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 rounded-lg text-xs font-medium transition-colors"
               >
                 Open Full Studio &rarr;

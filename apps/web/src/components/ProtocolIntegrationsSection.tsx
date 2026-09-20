@@ -160,7 +160,7 @@ export default function ProtocolIntegrationsSection() {
 
         <div className="mt-16 text-center">
           <a
-            href="/for-agents"
+            href="/developers"
             className="inline-flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-white font-semibold hover:bg-white/10 transition-all group"
           >
             Read the API quickstart

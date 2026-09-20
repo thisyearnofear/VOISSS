@@ -81,7 +81,7 @@ export default function StudioConnectionStatus({
                     </div>
                 </div>
                 <a
-                    href="/features"
+                    href="/"
                     className="text-xs text-purple-400 hover:text-purple-300 font-bold transition-colors"
                     aria-label="Manage save modes"
                 >

@@ -7,22 +7,12 @@ import { useBasename } from "../hooks/useBasename";
 import { useBaseAccount } from "../hooks/useBaseAccount";
 import { useAssistant } from "../contexts/AssistantContext";
 import { Sparkles, Menu, X } from "lucide-react";
-import { useRouter } from "next/navigation";
 import VoissMascotMark from "./VoissMascotMark";
 
 const ONBOARDING_STORAGE_KEY = "voisss_onboarding_profile";
 const NEW_USER_HINT_KEY = "voisss_new_user_hint_dismissed";
 
-interface OnboardingProfile {
-  role: "creator" | "developer" | "exploring";
-  goal: string;
-  style: string;
-  completedAt: number;
-  redirectUrl: string;
-}
-
 export default function Nav() {
-  const router = useRouter();
   const { address, isAuthenticated, isAuthenticating, isCheckingSession, signIn, signOut } = useAuth();
   const { isExpanded, toggleAssistant } = useAssistant();
 
@@ -83,7 +73,7 @@ export default function Nav() {
     };
   }, [showMobileMenu]);
 
-  // First-visit hint on Demo link — dismiss on click or after onboarding
+  // First-visit hint on Discover link — dismiss on click or after onboarding
   useEffect(() => {
     try {
       if (localStorage.getItem(NEW_USER_HINT_KEY) === "true") return;
@@ -127,40 +117,15 @@ export default function Nav() {
     isTestnet: false
   };
 
-  // Load onboarding persona from localStorage to tailor nav
-  const [personaRole, setPersonaRole] = useState<string | null>(null);
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-      if (raw) {
-        const profile: OnboardingProfile = JSON.parse(raw);
-        if (profile.role) setPersonaRole(profile.role);
-      }
-    } catch {
-      // localStorage unavailable — use default nav
-    }
-  }, []);
 
-  // Build nav links based on persona
-  // Developer → first link is "API Docs" (replaces "Studio" + "Devs" deduplicated)
-  // Creator / default → first link is "Studio", "Devs" shown as normal
-  const baseLinks = [
-    { href: "/demo", label: "Demo", className: "text-purple-400 hover:text-purple-300 transition-colors text-sm font-bold uppercase tracking-wider" },
-    {
-      href: personaRole === "developer" ? "/for-agents" : "/studio",
-      label: personaRole === "developer" ? "API Docs" : "Studio",
-      className: "text-white hover:text-[#9C88FF] transition-colors text-sm font-bold uppercase tracking-wider",
-    },
-    { href: "/marketplace", label: "Voices", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
-    { href: "/import", label: "Import", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
+  // One funnel, four surfaces: discover → generate → sell → build.
+  const navLinks = [
+    { href: "/marketplace", label: "Discover", className: "text-white hover:text-[#9C88FF] transition-colors text-sm font-bold uppercase tracking-wider" },
+    { href: "/generate", label: "Generate", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
+    { href: "/sell", label: "Sell", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
+    { href: "/developers", label: "API", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
+    { href: "/benchmarks", label: "Benchmarks", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
   ];
-
-  // ACP only for developer persona — keeps nav lean for creators/testing
-  const extraLinks = personaRole === "developer"
-    ? [{ href: "/acp-dashboard", label: "ACP", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" }]
-    : [{ href: "/for-agents", label: "Devs", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" }];
-
-  const navLinks = [...baseLinks, ...extraLinks];
 
   return (
     <nav className="border-b border-[#2A2A2A] bg-[#0A0A0A]/95 backdrop-blur-sm sticky top-0 z-50">
@@ -179,11 +144,11 @@ export default function Nav() {
                   <Link
                     href={link.href}
                     className={link.className}
-                    onClick={link.href === "/demo" ? dismissNewHint : undefined}
+                    onClick={link.href === "/marketplace" ? dismissNewHint : undefined}
                   >
                     {link.label}
                   </Link>
-                  {link.href === "/demo" && showNewHint && (
+                  {link.href === "/marketplace" && showNewHint && (
                     <span className="absolute -top-2 -right-3 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide bg-purple-500 text-white rounded-full whitespace-nowrap pointer-events-none">
                       New?
                     </span>
@@ -224,7 +189,7 @@ export default function Nav() {
               ) : !isAuthenticated ? (
                 <div className="hidden sm:flex items-center gap-3">
                   <Link
-                    href="/studio"
+                    href="/sell"
                     className="px-4 py-2 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-lg text-white text-sm font-medium hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-200 shadow-lg hover:shadow-purple-500/25"
                   >
                     Start Recording
@@ -450,13 +415,13 @@ export default function Nav() {
                   key={link.href}
                   href={link.href}
                   onClick={() => {
-                    if (link.href === "/demo") dismissNewHint();
+                    if (link.href === "/marketplace") dismissNewHint();
                     setShowMobileMenu(false);
                   }}
                   className="flex items-center gap-2 px-6 py-4 text-white hover:bg-white/5 transition-colors text-lg font-medium"
                 >
                   {link.label}
-                  {link.href === "/demo" && showNewHint && (
+                  {link.href === "/marketplace" && showNewHint && (
                     <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-purple-500 text-white rounded-full">
                       New?
                     </span>
@@ -469,7 +434,7 @@ export default function Nav() {
               {!isAuthenticated ? (
                 <>
                   <Link
-                    href="/studio"
+                    href="/sell"
                     onClick={() => setShowMobileMenu(false)}
                     className="block w-full text-center px-6 py-3 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-lg text-white font-semibold hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all"
                   >

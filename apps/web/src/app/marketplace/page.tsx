@@ -65,6 +65,17 @@ export default function MarketplacePage() {
     initWebMCP().catch(console.error);
   }, []);
 
+  // Deep-link support — /marketplace?brief=... seeds the intent box so the
+  // landing page search and shared links land mid-match.
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search).get("brief");
+      if (q) setBrief(q);
+    } catch {
+      // location unavailable
+    }
+  }, []);
+
   const fetchVoices = useCallback(async () => {
     try {
       setLoading(true);
@@ -538,9 +549,9 @@ export default function MarketplacePage() {
               <p className="text-sm text-gray-300 font-medium">Welcome to the Voice Marketplace</p>
               <p className="text-xs text-gray-500 mt-1">
                 Try voices free in the{" "}
-                <a href="/demo" className="text-[#9C88FF] hover:underline">demo</a>
+                <a href="/generate" className="text-[#9C88FF] hover:underline">demo</a>
                 {" "}first — no wallet needed. Contributors can head to the{" "}
-                <a href="/studio" className="text-[#9C88FF] hover:underline">Studio</a>.
+                <a href="/sell" className="text-[#9C88FF] hover:underline">Studio</a>.
               </p>
             </div>
           </motion.div>

@@ -24,7 +24,7 @@ export default function HelpPage() {
         window.location.href = '/studio';
         break;
       case 'transcript':
-        window.location.href = '/studio?mode=transcript';
+        window.location.href = '/sell?mode=transcript';
         break;
       case 'features':
         window.location.href = '/features';
@@ -95,17 +95,17 @@ export default function HelpPage() {
             The fastest way to learn is by doing. Jump into the Studio and experiment!
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a href="/studio" className="voisss-btn-primary text-center">
+            <a href="/sell" className="voisss-btn-primary text-center">
               Open Studio
             </a>
             <a
-              href="/studio?mode=transcript"
+              href="/sell?mode=transcript"
               className="px-4 py-2 rounded-lg bg-[#2A2A2A] border border-[#3A3A3A] text-white text-sm hover:bg-[#3A3A3A] text-center"
             >
               Transcript Composer
             </a>
             <a
-              href="/agents"
+              href="/developers"
               className="px-4 py-2 rounded-lg bg-[#2A2A2A] border border-[#3A3A3A] text-white text-sm hover:bg-[#3A3A3A] text-center"
             >
               Discover Agents

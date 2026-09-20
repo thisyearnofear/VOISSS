@@ -196,7 +196,7 @@ export default function QuickVoicePreview() {
           The marketplace is still indexing contributor voices. In the meantime, try the free demo — no wallet needed.
         </p>
         <Link
-          href="/demo"
+          href="/generate"
           className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl text-white text-sm font-semibold hover:from-purple-500 hover:to-blue-500 transition-all"
         >
           <Play className="w-4 h-4" />

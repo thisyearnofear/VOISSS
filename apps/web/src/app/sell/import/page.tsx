@@ -218,13 +218,13 @@ export default function ImportVoicePage() {
         </p>
         <div className="flex flex-col gap-3">
           <a
-            href="/marketplace/dashboard"
+            href="/sell/dashboard"
             className="py-3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl text-white font-semibold hover:from-purple-600 hover:to-blue-600 transition-all"
           >
             View Dashboard
           </a>
           <a
-            href="/studio"
+            href="/sell"
             className="py-3 border border-gray-600 rounded-xl text-gray-300 font-semibold hover:border-gray-400 transition-all"
           >
             Record More Voices

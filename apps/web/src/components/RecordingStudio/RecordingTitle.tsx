@@ -165,7 +165,7 @@ export default function RecordingTitle({
           {!isVerifiedAgent && (
             <p className="text-xs text-gray-500 mt-2 text-center">
               Agent Mode requires registration in the Agent Registry.{" "}
-              <a href="/agents" className="text-indigo-400 hover:text-indigo-300">Learn more</a>
+              <a href="/developers" className="text-indigo-400 hover:text-indigo-300">Learn more</a>
             </p>
           )}
         </div>

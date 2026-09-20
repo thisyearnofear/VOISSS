@@ -534,7 +534,7 @@ export default function OriginalVsAiShowcase() {
               </p>
               <div className="flex flex-col sm:flex-row gap-2 w-full max-w-sm">
                 <a
-                  href="/demo?from=showcase"
+                  href="/generate?from=showcase"
                   className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl text-white text-sm font-semibold hover:from-purple-500 hover:to-blue-500 transition-all"
                 >
                   Try it yourself
@@ -583,7 +583,7 @@ export default function OriginalVsAiShowcase() {
                     VOISSS exists because the best AI voices aren&apos;t synthetic —
                     they&apos;re <em>licensed</em>. Contributors earn{" "}
                     <a
-                      href="/studio"
+                      href="/sell"
                       className="text-purple-300 underline underline-offset-2 hover:text-purple-200 transition-colors font-medium"
                     >
                       70% of every character

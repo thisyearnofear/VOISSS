@@ -59,26 +59,39 @@ const nextConfig = {
     ];
   },
 
-  // Redirect configuration
+  // Redirect configuration — relaunch consolidation: one funnel
+  // (discover → generate → sell → build), everything else 308s to its
+  // nearest live neighbor. Killed pages live in git history.
   async redirects() {
     return [
-      {
-        source: '/app',
-        destination: '/',
-        permanent: true,
-      },
-      {
-        // The marketplace itself is the demo now — intent matching runs on
-        // the live catalog there.
-        source: '/demo/jev',
-        destination: '/marketplace',
-        permanent: false,
-      },
-      {
-        source: '/demo/jev-compare',
-        destination: '/benchmarks',
-        permanent: false,
-      },
+      { source: '/app', destination: '/', permanent: true },
+
+      // Buyer funnel — specific /demo paths before the wildcard
+      { source: '/demo/jev', destination: '/marketplace', permanent: true },
+      { source: '/demo/jev-compare', destination: '/benchmarks', permanent: true },
+      { source: '/demo/ows-agent', destination: '/developers', permanent: true },
+      { source: '/demo', destination: '/generate', permanent: true },
+      { source: '/demo/:path*', destination: '/generate', permanent: true },
+
+      // Contributor funnel
+      { source: '/studio', destination: '/sell', permanent: true },
+      { source: '/import', destination: '/sell/import', permanent: true },
+      { source: '/marketplace/dashboard', destination: '/sell/dashboard', permanent: true },
+
+      // Developer funnel
+      { source: '/for-agents', destination: '/developers', permanent: true },
+      { source: '/acp-dashboard', destination: '/developers', permanent: true },
+      { source: '/agents', destination: '/developers', permanent: true },
+
+      // Retired surfaces → nearest live neighbor
+      { source: '/missions', destination: '/sell', permanent: true },
+      { source: '/achievements', destination: '/', permanent: true },
+      { source: '/leaderboard', destination: '/', permanent: true },
+      { source: '/submissions', destination: '/', permanent: true },
+      { source: '/arkiv', destination: '/', permanent: true },
+      { source: '/hackathon', destination: '/', permanent: true },
+      { source: '/features', destination: '/', permanent: true },
+      { source: '/platform', destination: '/', permanent: true },
     ];
   },
 

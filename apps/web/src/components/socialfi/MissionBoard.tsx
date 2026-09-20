@@ -80,7 +80,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
       if (mission.topic === 'onboarding') {
         router.push(`/demo/ows-agent?missionId=${mission.id}`);
       } else {
-        router.push(`/studio?missionId=${mission.id}`);
+        router.push(`/sell?missionId=${mission.id}`);
       }
     } catch (err) {
       console.error("Failed to accept mission:", err);

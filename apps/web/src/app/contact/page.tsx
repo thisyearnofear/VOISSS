@@ -52,7 +52,7 @@ export default function ContactPage() {
               Our team will reach out at {email}.
             </p>
             <a
-              href="/demo"
+              href="/generate"
               className="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 text-sm font-medium"
             >
               Try the demo while you wait <ArrowRight className="w-4 h-4" />

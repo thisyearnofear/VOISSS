@@ -2,41 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
-import { Mic, Store, Upload, FileText, Play } from "lucide-react";
-
-const ONBOARDING_STORAGE_KEY = "voisss_onboarding_profile";
+import { Mic, Store, AudioLines, FileText, Gauge } from "lucide-react";
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
-  const [personaRole, setPersonaRole] = useState<string | null>(null);
 
-  // Load onboarding persona from localStorage
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-      if (raw) {
-        const profile = JSON.parse(raw);
-        if (profile.role) setPersonaRole(profile.role);
-      }
-    } catch {
-      // localStorage unavailable
-    }
-  }, []);
-
-  const isDev = personaRole === "developer";
-
-  // Bottom links — primary action changes based on persona
+  // One funnel: discover → generate (primary) → sell → build.
   const BOTTOM_LINKS = [
-    { href: "/demo", label: "Demo", icon: Play },
-    { href: "/marketplace", label: "Voices", icon: Store },
+    { href: "/marketplace", label: "Discover", icon: Store },
     {
-      href: isDev ? "/for-agents" : "/studio",
-      label: isDev ? "API" : "Record",
-      icon: isDev ? FileText : Mic,
+      href: "/generate",
+      label: "Generate",
+      icon: AudioLines,
       primary: true,
     },
-    { href: "/import", label: "Import", icon: Upload },
+    { href: "/sell", label: "Sell", icon: Mic },
+    { href: "/developers", label: "API", icon: FileText },
+    { href: "/benchmarks", label: "Bench", icon: Gauge },
   ];
 
   return (

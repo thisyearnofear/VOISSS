@@ -131,7 +131,7 @@ function StudioPageInner() {
               </button>
 
               <a
-                href="/import"
+                href="/sell/import"
                 className="group p-8 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl hover:border-green-500/40 hover:bg-green-500/5 transition-all text-left block"
               >
                 <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center mb-4">
@@ -162,13 +162,13 @@ function StudioPageInner() {
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <a
-                    href="/marketplace/dashboard"
+                    href="/sell/dashboard"
                     className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm text-white font-medium transition-colors flex items-center gap-1"
                   >
                     List on marketplace <ArrowRight className="w-3 h-3" />
                   </a>
                   <a
-                    href="/demo"
+                    href="/generate"
                     className="px-4 py-2 bg-[#1A1A1A] border border-[#2A2A2A] hover:border-purple-500/40 rounded-lg text-sm text-white font-medium transition-colors"
                   >
                     Preview agent experience

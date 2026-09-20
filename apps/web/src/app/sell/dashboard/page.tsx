@@ -339,7 +339,7 @@ function DashboardContent() {
               </p>
             </div>
             <button
-              onClick={() => router.push("/studio")}
+              onClick={() => router.push("/sell")}
               className="bg-white text-black px-6 py-2.5 rounded-full font-bold hover:bg-zinc-200 transition-colors inline-flex items-center gap-2"
             >
               <svg
@@ -400,7 +400,7 @@ function DashboardContent() {
                   transactions land on Base.
                 </p>
                 <button
-                  onClick={() => router.push("/studio")}
+                  onClick={() => router.push("/sell")}
                   className="text-blue-500 font-bold hover:underline"
                 >
                   Open Studio →

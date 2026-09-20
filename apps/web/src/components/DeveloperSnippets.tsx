@@ -131,7 +131,7 @@ export default function DeveloperSnippets() {
 
         <div className="mt-6 text-center">
           <a
-            href="/for-agents"
+            href="/developers"
             className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 font-medium transition-colors"
           >
             <Code2 className="w-4 h-4" />

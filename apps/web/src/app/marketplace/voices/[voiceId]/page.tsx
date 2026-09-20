@@ -243,7 +243,7 @@ export default async function VoiceDetailPage({ params }: VoiceDetailPageProps) 
                     Sample not available for this voice. Try the full demo.
                   </p>
                   <Link
-                    href={`/demo?voiceId=${displayVoice.contractVoiceId || displayVoice.id}`}
+                    href={`/generate?voiceId=${displayVoice.contractVoiceId || displayVoice.id}`}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl text-white text-sm font-semibold hover:from-purple-500 hover:to-pink-500 transition-all"
                   >
                     <Play className="w-4 h-4" />
@@ -282,7 +282,7 @@ export default async function VoiceDetailPage({ params }: VoiceDetailPageProps) 
               </div>
               <p className="text-xs text-gray-500 mb-4">Per-character rate: ${displayVoice.price === "1" ? "0.000001" : (parseInt(displayVoice.price, 10) / 10_000_000).toFixed(7)}</p>
               <Link
-                href={`/demo?voiceId=${displayVoice.contractVoiceId || displayVoice.id}`}
+                href={`/generate?voiceId=${displayVoice.contractVoiceId || displayVoice.id}`}
                 className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 mb-3"
               >
                 <Play className="w-4 h-4" />

@@ -13,52 +13,36 @@ export type PageMetadata = {
 
 export const PAGE_METADATA: Record<string, PageMetadata> = {
   '/': {
-    title: 'VOISSS | Enterprise Voice Licensing Marketplace for AI Agents',
-    description: 'License authentic human voices for your AI agents and applications. Enterprise-grade API, blockchain-verified provenance, and instant scaling. Built on Base.',
+    title: 'VOISSS | Voice Marketplace — Describe the Voice, Get Ranked Matches',
+    description: 'Type what you need in plain English. Every real voice is scored, ranked, and explained by an auditable matching rubric. Preview instantly, pay per use. Built on Base.',
   },
-  '/studio': {
-    title: 'Studio | Record & Manage Your VOISSS Voices',
-    description: 'Record clean voice samples for your AI agent. Import from ElevenLabs, set pricing, and earn 70% of every license.',
+  '/marketplace': {
+    title: 'Discover | VOISSS Voice Marketplace',
+    description: 'Describe the voice you need — intent matching scores and ranks real voices with reasons. Preview instantly, license or pay per character.',
   },
-  '/import': {
+  '/generate': {
+    title: 'Generate | VOISSS Voice Generation',
+    description: 'Turn text into speech with a real marketplace voice. Free previews, pay-per-character pricing, 70% to voice creators.',
+  },
+  '/sell': {
+    title: 'Sell Your Voice | VOISSS',
+    description: 'Record or import your ElevenLabs voices to the VOISSS marketplace. Earn 70% of every license and use.',
+  },
+  '/sell/import': {
     title: 'Import | Bring Your ElevenLabs Voices to VOISSS',
     description: 'Import your ElevenLabs voices to the VOISSS marketplace. Earn 70% revenue share when AI agents license your voice.',
   },
-  '/marketplace': {
-    title: 'Marketplace | Voice Marketplace for AI Agents',
-    description: 'Browse and license authentic human voices for your AI agents. Pay per character with x402 payments. 70% revenue to voice creators.',
+  '/sell/dashboard': {
+    title: 'Dashboard | VOISSS Contributor',
+    description: 'Manage your VOISSS voice listings, pricing, and earnings.',
   },
-  '/demo': {
-    title: 'Demo | Try VOISSS Voice Generation',
-    description: 'Try VOISSS voice generation for free. Convert text to speech with licensed voices. No sign-up required.',
+  '/developers': {
+    title: 'API | VOISSS for Developers',
+    description: 'Integrate licensed human voices into your AI agent. REST API, x402 payments, OpenAPI spec, agent wallets.',
   },
   '/benchmarks': {
     title: 'Benchmarks | VOISSS Matching Engine',
     description: 'Live benchmark of the VOISSS intent-matching engine. Jev vs GPT-4o-mini scoring the real marketplace catalog — measured, reproducible.',
-  },
-  '/agents': {
-    title: 'Agents | Autonomous Agent Commentary Network',
-    description: 'Browse content published by autonomous AI agents. Voice insights across DeFi, governance, and market analysis.',
-  },
-  '/acp-dashboard': {
-    title: 'ACP Dashboard | Autonomous Job Discovery',
-    description: 'Monitor and control the Autonomous Commercial Protocol (ACP) listener. Auto-bid on voice/narration jobs.',
-  },
-  '/for-agents': {
-    title: 'For Agents | VOISSS API Documentation',
-    description: 'Developer resources for VOISSS API. Integrate voice generation into your AI agent with simple REST calls.',
-  },
-  '/features': {
-    title: 'Features | VOISSS Voice Platform',
-    description: 'Discover VOISSS features: voice licensing, x402 payments, blockchain provenance, and 70% revenue share.',
-  },
-  '/platform': {
-    title: 'Platform | VOISSS Voice Infrastructure',
-    description: 'The VOISSS platform: enterprise voice infrastructure for AI agents with multi-chain payments.',
-  },
-  '/missions': {
-    title: 'Missions | VOISSS Voice Creator Missions',
-    description: 'Complete voice creator missions on VOISSS. Earn bonus credits and achievements.',
   },
   '/help': {
     title: 'Help | VOISSS FAQ & Support',
@@ -67,22 +51,6 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
   '/contact': {
     title: 'Contact | VOISSS',
     description: 'Get in touch with the VOISSS team. Questions about voice licensing, partnerships, or API access.',
-  },
-  '/leaderboard': {
-    title: 'Leaderboard | Top Voice Contributors',
-    description: 'See top-performing voice contributors on VOISSS. Earned from AI agent licensing.',
-  },
-  '/achievements': {
-    title: 'Achievements | VOISSS Creator Badges',
-    description: 'View your VOISSS creator achievements and badges. Complete missions to earn rewards.',
-  },
-  '/arkiv': {
-    title: 'Arkiv | Decentralized Voice Memory',
-    description: 'Decentralized memory for your VOISSS voice profile. Connected via IPFS and Gemini AI.',
-  },
-  '/submissions': {
-    title: 'Submissions | VOISSS',
-    description: 'Review voice and agent submissions on VOISSS.',
   },
   '/privacy': {
     title: 'Privacy | VOISSS',
