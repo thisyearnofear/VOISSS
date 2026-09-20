@@ -474,7 +474,7 @@ h1, h2, h3, h4, h5, h6 {
   to { clip-path: inset(0 0 0 0); }
 }
 
-/* ── Scroll life — staged reveals (ScrollLife adds .is-in) ─────────────────
+/* ── Scroll life — staged reveals (ScrollLife adds [data-is-in]) ───────────
  * Scoped to `.js` (set by an inline head script) so that without JS the
  * content is simply visible rather than stuck at opacity 0. */
 .js [data-reveal] {
@@ -487,7 +487,7 @@ h1, h2, h3, h4, h5, h6 {
   clip-path: inset(0 0 14% 0);
   will-change: opacity, transform;
 }
-.js [data-reveal].is-in {
+.js [data-reveal][data-is-in] {
   opacity: 1;
   transform: translateY(0);
   clip-path: inset(0 0 0 0);
@@ -506,11 +506,11 @@ h1, h2, h3, h4, h5, h6 {
 .js [data-reveal] .voisss-split-fill {
   transform: scaleX(0);
 }
-.js [data-reveal].is-in .voisss-split-fill {
+.js [data-reveal][data-is-in] .voisss-split-fill {
   transform: scaleX(1);
   transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.15s;
 }
-.js [data-reveal].is-in .voisss-split-fill-late {
+.js [data-reveal][data-is-in] .voisss-split-fill-late {
   transition-delay: 0.4s;
 }
 
@@ -542,7 +542,7 @@ h1, h2, h3, h4, h5, h6 {
     transition: none;
   }
   .js [data-reveal] .voisss-split-fill,
-  .js [data-reveal].is-in .voisss-split-fill {
+  .js [data-reveal][data-is-in] .voisss-split-fill {
     transform: scaleX(1);
     transition: none;
   }
@@ -581,6 +581,40 @@ h1, h2, h3, h4, h5, h6 {
   .voisss-masked-reveal { animation: none; clip-path: none; }
   .voisss-beam-glow::after { display: none; }
   .voisss-progressive-blur { backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+
+/* ── MatchConsole — the instrument readout ──────────────────────────────────
+ * Hallmark · macrostructure: Console (Licensed Signal instrument) ·
+ * tone: technical-instrument · anchor hue: violet · genre: atmospheric
+ * Dimension fills ride transform: scaleX (SplitBar's own idiom — no layout
+ * animation). The scan line remounts per match, so each re-read is visible. */
+.voisss-dim-fill {
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.voisss-scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(156, 136, 255, 0.55) 30%, rgba(103, 232, 249, 0.55) 70%, transparent);
+  opacity: 0;
+  transform: translateY(0);
+  animation: voisss-scan 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.05s 1;
+  pointer-events: none;
+  z-index: 3;
+}
+@keyframes voisss-scan {
+  0%   { opacity: 0; transform: translateY(0); }
+  12%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(320px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voisss-dim-fill { transition: none; }
+  .voisss-scan-line { animation: none; display: none; }
 }
 
 /* ── Agentic UI primitive keyframes ─────────────────────────────────────── */

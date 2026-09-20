@@ -7,9 +7,15 @@ import { useEffect, useRef } from "react";
  *
  * Two jobs, both cheap:
  *  1. Staged reveals. Any element with `data-reveal` (optionally
- *     `data-reveal-delay="1|2|3"`) gets `.is-in` once it enters the viewport,
- *     triggering a pure-CSS masked rise. One IntersectionObserver for the whole
- *     page, unobserved after it fires — no re-renders, no layout thrash.
+ *     `data-reveal-delay="1|2|3"`) gets `data-is-in` once it enters the
+ *     viewport, triggering a pure-CSS masked rise. One IntersectionObserver
+ *     for the whole page, unobserved after it fires — no re-renders, no
+ *     layout thrash.
+ *
+ *     `data-is-in` is an attribute React never renders: writing it can never
+ *     desync hydration, whereas mutating `class` during the hydration window
+ *     forces React to discard and regenerate the subtree (stranding this
+ *     observer on dead nodes — the page then looks blank).
  *  2. A hairline scroll progress rule — the page telling you it's moving.
  *     rAF-throttled, transform-only, so it never triggers layout.
  *
@@ -20,39 +26,49 @@ export default function ScrollLife() {
   const railRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const nodes = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]"));
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    const revealAll = () => nodes.forEach((n) => n.classList.add("is-in"));
-
     let io: IntersectionObserver | null = null;
-    if (nodes.length > 0) {
-      if (reduced || typeof IntersectionObserver === "undefined") {
-        revealAll();
-      } else {
-        io = new IntersectionObserver(
-          (entries) => {
-            for (const entry of entries) {
-              if (!entry.isIntersecting) continue;
-              entry.target.classList.add("is-in");
-              io?.unobserve(entry.target);
-            }
-          },
-          { rootMargin: "0px 0px -12% 0px", threshold: 0.12 }
-        );
-        nodes.forEach((n) => io?.observe(n));
+    let cancelled = false;
 
-        // Anything already on screen at load reveals immediately (no pop-in).
-        requestAnimationFrame(() => {
-          nodes.forEach((n) => {
-            if (n.getBoundingClientRect().top < window.innerHeight * 0.9) {
-              n.classList.add("is-in");
-              io?.unobserve(n);
-            }
-          });
-        });
+    // Wait two frames before touching the DOM: this component commits before
+    // sibling page boundaries finish hydrating, and nodes captured too early
+    // can be discarded by React's hydration-diff regeneration.
+    const arm = () => {
+      if (cancelled) return;
+      const nodes = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]"));
+      if (nodes.length === 0) return;
+
+      if (reduced || typeof IntersectionObserver === "undefined") {
+        nodes.forEach((n) => n.setAttribute("data-is-in", ""));
+        return;
       }
-    }
+
+      io = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            entry.target.setAttribute("data-is-in", "");
+            io?.unobserve(entry.target);
+          }
+        },
+        { rootMargin: "0px 0px -12% 0px", threshold: 0.12 }
+      );
+      nodes.forEach((n) => io?.observe(n));
+
+      // Anything already on screen at load reveals immediately (no pop-in).
+      requestAnimationFrame(() => {
+        if (cancelled) return;
+        nodes.forEach((n) => {
+          if (n.getBoundingClientRect().top < window.innerHeight * 0.9) {
+            n.setAttribute("data-is-in", "");
+            io?.unobserve(n);
+          }
+        });
+      });
+    };
+
+    const armFrame = requestAnimationFrame(() => requestAnimationFrame(arm));
+
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     // ── progress rail ──────────────────────────────────────────────────────
     let frame = 0;
@@ -102,6 +118,8 @@ export default function ScrollLife() {
     }
 
     return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(armFrame);
       io?.disconnect();
       if (frame) window.cancelAnimationFrame(frame);
       window.removeEventListener("scroll", onScroll);
