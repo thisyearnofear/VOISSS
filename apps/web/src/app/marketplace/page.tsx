@@ -31,6 +31,7 @@ interface VoiceMatchResult {
     latencyMs?: number;
     questionCount?: number;
     model?: string;
+    provider?: string;
     usage?: { input_tokens?: number; output_tokens?: number } | null;
   };
 }
@@ -430,10 +431,28 @@ export default function MarketplacePage() {
             className="w-full bg-[#0A0A0A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#7C5DFA] focus:ring-1 focus:ring-[#7C5DFA]/30 transition-all placeholder:text-zinc-600"
           />
 
+          {/* Clickable example briefs — instant demo of the re-rank without
+              needing to know what to type. */}
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {[
+              "calm meditation narrator",
+              "urgent ad read for a product drop",
+              "friendly podcast host",
+            ].map((example) => (
+              <button
+                key={example}
+                onClick={() => setBrief(example)}
+                className="text-[11px] px-2 py-1 rounded-md bg-[#7C5DFA]/10 text-[#9C88FF] border border-[#7C5DFA]/20 hover:bg-[#7C5DFA]/20 hover:border-[#7C5DFA]/40 transition-all"
+              >
+                {example}
+              </button>
+            ))}
+          </div>
+
           {matchUnavailable && (
             <p className="mt-2 text-xs text-zinc-500">
-              Intent matching is off — set <code>TYPESAFE_API_KEY</code> to
-              enable live Jev matching.
+              Intent matching is off — set <code>AI_GATEWAY_API_KEY</code> or{" "}
+              <code>TYPESAFE_API_KEY</code> to enable live Jev matching.
             </p>
           )}
 
@@ -469,6 +488,8 @@ export default function MarketplacePage() {
                       (match.meta.usage.input_tokens ?? 0) +
                       (match.meta.usage.output_tokens ?? 0)
                     } tokens`}
+                  {match.meta.provider === "vercel-ai-gateway" &&
+                    " · via Vercel AI Gateway"}
                 </span>
               )}
             </div>
