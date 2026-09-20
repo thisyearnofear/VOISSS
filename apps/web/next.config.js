@@ -18,9 +18,12 @@ const nextConfig = {
     maxDuration: 300, // 5 minutes for AI processing
   },
 
-  // Optimize images
+  // Optimize images. AVIF intentionally absent — GHSA-2xp9-vwfh-vxw4
+  // (unauthenticated RCE via libheif in sharp) is mitigated the same way
+  // upstream patched it: AVIF optimization stays disabled until libheif
+  // ships a fix. Re-add 'image/avif' once the upstream advisory clears.
   images: {
-    formats: ['image/webp', 'image/avif'],
+    formats: ['image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
@@ -30,6 +33,13 @@ const nextConfig = {
 
   // Security headers
   async headers() {
+    // Next's dev Fast Refresh runtime (react-refresh-utils) evaluates code
+    // strings, so 'unsafe-eval' is required for hydration in development.
+    // Production scripts never eval — keep the directive out of prod.
+    const scriptSrc =
+      process.env.NODE_ENV === 'development'
+        ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com blob: data:"
+        : "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com blob: data:";
     return [
       {
         source: '/(.*)',
@@ -52,7 +62,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; connect-src 'self' https://api.cdp.coinbase.com https://api.coinbase.com https://cca-lite.coinbase.com https://chain-proxy.wallet.coinbase.com https://mainnet.base.org https://sepolia.base.org https://voisss.famile.xyz https://8453.rpc.thirdweb.com wss://www.walletlink.org https://www.walletlink.org wss://api.elevenlabs.io; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com blob: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https://ipfs.io https://*.ipfs.dweb.link blob:; media-src 'self' blob: https://storage.googleapis.com https://api.us.elevenlabs.io; frame-src 'self' https://verify.coinbase.com;",
+            value: `default-src 'self'; connect-src 'self' https://api.cdp.coinbase.com https://api.coinbase.com https://cca-lite.coinbase.com https://chain-proxy.wallet.coinbase.com https://mainnet.base.org https://sepolia.base.org https://voisss.famile.xyz https://8453.rpc.thirdweb.com wss://www.walletlink.org https://www.walletlink.org wss://api.elevenlabs.io; ${scriptSrc}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https://ipfs.io https://*.ipfs.dweb.link blob:; media-src 'self' blob: https://storage.googleapis.com https://api.us.elevenlabs.io; frame-src 'self' https://verify.coinbase.com;`,
           },
         ],
       },

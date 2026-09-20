@@ -35,7 +35,7 @@
     "idb": "8.0.3",
     "jsonwebtoken": "9.0.2",
     "lucide-react": "^0.525.0",
-    "next": "14.1.0",
+    "next": "15.5.24",
     "pg": "^8.11.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -48,7 +48,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "3.3.6",
-    "@next/bundle-analyzer": "^14.1.0",
+    "@next/bundle-analyzer": "^15.5.24",
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@types/canvas-confetti": "1.9.0",
     "@types/node": "^20",

@@ -8,22 +8,12 @@ import { ReferralTracker } from "./referral-tracker";
 import "./globals.css";
 import { validateX402Config } from "@/lib/x402-startup-check";
 import { getPageMetadata } from "@/lib/page-metadata";
-import dynamic from "next/dynamic";
+import VoiceAssistantLoader from "../components/VoiceAssistantLoader";
 
 // Validate x402 configuration on server startup
 if (typeof window === 'undefined') {
   validateX402Config();
 }
-
-// Lazy-load VoiceAssistant so anonymous users don't download
-// the heavy conversation SDK on first paint
-const VoiceAssistant = dynamic(
-  () => import("../components/VoiceAssistant"),
-  {
-    ssr: false,
-    loading: () => null,
-  }
-);
 
 const inter = Inter({
   variable: "--font-inter",
@@ -192,7 +182,7 @@ export default function RootLayout({
           <Nav />
           {children}
           <MobileBottomNav />
-          <VoiceAssistant />
+          <VoiceAssistantLoader />
         </BaseProvider>
       </body>
     </html>

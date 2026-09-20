@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Sparkles, Check, AlertCircle } from "lucide-react";
 
 interface StudioConnectionStatusProps {
@@ -80,13 +81,13 @@ export default function StudioConnectionStatus({
                         </div>
                     </div>
                 </div>
-                <a
+                <Link
                     href="/"
                     className="text-xs text-purple-400 hover:text-purple-300 font-bold transition-colors"
                     aria-label="Manage save modes"
                 >
                     Manage Modes →
-                </a>
+                </Link>
             </div>
         </div>
     );

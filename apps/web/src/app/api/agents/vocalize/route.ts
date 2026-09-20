@@ -240,7 +240,11 @@ export async function POST(req: NextRequest): Promise<Response> {
 
     // SECURITY LAYER 2: Comprehensive Security Check
     const agentId = agentAddress || owsWallet?.address || "anonymous-agent";
-    const ip = req.ip || req.headers.get('x-forwarded-for') || '127.0.0.1';
+    // NextRequest.ip was removed in Next 15 — derive from proxy headers.
+    const ip =
+      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      req.headers.get('x-real-ip') ||
+      '127.0.0.1';
     const securityService = getAgentSecurityService();
     const securityCheck = await securityService.securityCheck({
       agentId,
