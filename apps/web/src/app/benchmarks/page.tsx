@@ -276,6 +276,11 @@ export default function JevComparePage() {
             {state.result.briefInsights.useCase.choice}
           </span>
         )}
+        {state.result?.archetype && (
+          <span className="px-1.5 py-0.5 rounded bg-[#7C5DFA]/15 text-[#9C88FF] border border-[#7C5DFA]/25">
+            rubric: {state.result.archetype}
+          </span>
+        )}
         {state.result?.meta && state.result.meta.usage != null && (
           <span className="ml-auto font-mono text-zinc-500">
             {(state.result.meta.usage.input_tokens ?? 0) +
@@ -352,7 +357,7 @@ export default function JevComparePage() {
           {panel(
             jev,
             "Jev",
-            "typesafe-ai/jev · 1 evaluate call · Vercel AI Gateway",
+            "typesafe-ai/jev · typed probabilities + rubric reasons · Vercel AI Gateway",
             "text-[#9C88FF]",
             "bg-[#7C5DFA]",
             "border-[#7C5DFA] bg-[#7C5DFA]/10"
