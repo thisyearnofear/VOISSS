@@ -276,6 +276,9 @@ export const VoiceGenerationRequestSchema = z.object({
     model: z.string().optional(),
     stability: z.number().min(0).max(1).optional(),
     similarity_boost: z.number().min(0).max(1).optional(),
+    // Eleven v3 audio tags prepended to the text (e.g. ["whispers"]). Empty
+    // array disables the archetype-derived default tag.
+    audioTags: z.array(z.string()).optional(),
     autoSave: z.boolean().default(false),
   }).optional().default({}),
 });

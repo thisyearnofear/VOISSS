@@ -45,7 +45,8 @@ export async function POST(req: NextRequest) {
       voiceId,
       text,
       model,
-      settingsForModel(model, styleForArchetype(undefined))
+      settingsForModel(model, styleForArchetype(undefined)),
+      true // stream endpoint — audio starts flowing sooner
     );
 
     if (!response.ok) {
@@ -72,13 +73,13 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Return audio data
-    const audioBuffer = await response.arrayBuffer();
-    return new Response(audioBuffer, {
+    // Pass the audio stream through — no server-side buffering
+    return new Response(response.body, {
       status: 200,
       headers: {
         "Content-Type": "audio/mpeg",
         "Cache-Control": "no-store",
+        "X-Voisss-Model": model,
       },
     });
   } catch (err: unknown) {

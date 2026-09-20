@@ -219,13 +219,19 @@ function GeneratePageInner() {
         }),
       });
 
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Generation failed. Please try again.");
+      // Preview responses stream audio/mpeg directly; errors stay JSON.
+      let url: string;
+      if (response.headers.get("content-type")?.includes("audio")) {
+        if (!response.ok) throw new Error("Generation failed. Please try again.");
+        url = URL.createObjectURL(await response.blob());
+      } else {
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Generation failed. Please try again.");
+        }
+        url = data.data?.audioUrl || data.data?.url;
+        if (!url) throw new Error("No audio URL returned");
       }
-
-      const url = data.data?.audioUrl || data.data?.url;
-      if (!url) throw new Error("No audio URL returned");
 
       setAudioUrl(url);
       setGenerationsLeft((prev) => prev - 1);

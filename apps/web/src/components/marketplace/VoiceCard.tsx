@@ -116,10 +116,17 @@ export function VoiceCard({ voice, onPurchase, onPreview, archetype }: VoiceCard
         }),
       });
 
-      const data = await response.json();
+      // Preview responses stream audio/mpeg directly; errors stay JSON.
+      let audioUrl: string | undefined;
+      if (response.headers.get("content-type")?.includes("audio")) {
+        if (response.ok) audioUrl = URL.createObjectURL(await response.blob());
+      } else {
+        const data = await response.json();
+        if (data.success) audioUrl = data.data?.audioUrl;
+      }
 
-      if (data.success && data.data?.audioUrl) {
-        const audio = new Audio(data.data.audioUrl);
+      if (audioUrl) {
+        const audio = new Audio(audioUrl);
         audioRef.current = audio;
         audio.onended = () => {
           setIsPlaying(false);
@@ -130,7 +137,7 @@ export function VoiceCard({ voice, onPurchase, onPreview, archetype }: VoiceCard
         beginEnergy(audio);
         onPreview?.(voice.id);
       } else {
-        console.error("Failed to generate preview:", data.error);
+        console.error("Failed to generate preview: HTTP", response.status);
         alert(
           "Preview generation requires a playable sample URL or a valid synthesis voice ID."
         );

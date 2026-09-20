@@ -19,6 +19,7 @@ import { getAgentSecurityService, AgentSecurityProfile } from "@voisss/shared/se
 import { getAgentEventHub, VOISSS_EVENT_TYPES } from "@voisss/shared/services/agent-event-hub";
 import { createHash } from "crypto";
 import {
+  applyAudioTags,
   resolveModel,
   settingsForModel,
   styleForArchetype,
@@ -118,7 +119,7 @@ const paymentRouter = getPaymentRouter({
  * 2. Token-gated tier access (for $VOISSS holders)
  * 3. x402 USDC payment (fallback)
  */
-export async function POST(req: NextRequest): Promise<NextResponse<VocalizeResponse>> {
+export async function POST(req: NextRequest): Promise<Response> {
   const requestStart = Date.now();
 
   try {
@@ -153,6 +154,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
       archetype,
       stability: options?.stability,
       similarity_boost: options?.similarity_boost,
+      audioTags: options?.audioTags,
     };
     const userAgent = req.headers.get("user-agent") || "unknown";
     const headers = Object.fromEntries(req.headers.entries());
@@ -646,26 +648,16 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
 
     // No payment header - check if we can process without x402
     if (preview === true) {
-      console.log(`✨ Generating voice for preview without payment (gasless magic moment)`);
-      const response = await generateAndReturnVoice(
+      console.log(`✨ Streaming preview without payment (gasless magic moment)`);
+      return streamPreviewVoice(
         text,
         voiceId,
         effectiveAgentAddress,
         characterCount,
-        BigInt(0),
-        'preview',
-        req,
-        undefined,
-        undefined,
-        undefined,
         recordingId,
-        agentTier,
-        quote.baseCost,
-        0,
-        owsWallet || undefined,
+        req,
         generationOptions
       );
-      return response;
     }
 
     if (quote.recommendedMethod !== 'x402') {
@@ -784,6 +776,91 @@ export async function POST(req: NextRequest): Promise<NextResponse<VocalizeRespo
 }
 
 /**
+ * Stream a preview directly from ElevenLabs — audio/mpeg pass-through, no
+ * IPFS upload (previews are ephemeral; provenance only matters for paid
+ * generations). Cuts time-to-audio by the entire storage roundtrip.
+ */
+async function streamPreviewVoice(
+  text: string,
+  voiceId: string,
+  agentAddress: string,
+  characterCount: number,
+  recordingId: string | undefined,
+  req: NextRequest,
+  generationOptions?: GenerationOptions
+): Promise<Response> {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({
+      success: false,
+      error: "Voice service not configured"
+    }, { status: 500 });
+  }
+
+  const model = resolveModel({
+    requested: generationOptions?.model,
+    isFree: true,
+    textLength: text.length,
+  });
+  const voiceSettings = settingsForModel(model, styleForArchetype(generationOptions?.archetype, {
+    stability: generationOptions?.stability,
+    similarity_boost: generationOptions?.similarity_boost,
+  }));
+  const ttsText = applyAudioTags(text, {
+    model,
+    archetype: generationOptions?.archetype,
+    audioTags: generationOptions?.audioTags,
+  });
+
+  const ttsResponse = await synthesizeVoice(apiKey, voiceId, ttsText, model, voiceSettings, true);
+
+  if (!ttsResponse.ok || !ttsResponse.body) {
+    const errorText = await ttsResponse.text().catch(() => "");
+    console.error("ElevenLabs preview stream error:", {
+      status: ttsResponse.status,
+      responseText: errorText,
+      voiceId,
+    });
+    return NextResponse.json({
+      success: false,
+      error: `Voice generation failed: ${ttsResponse.status}`
+    }, { status: ttsResponse.status });
+  }
+
+  const agentId = agentAddress || getIdentifier(req);
+  const finalRecordingId = recordingId || `voc_${Date.now()}_${generateContentHash(text, voiceId, agentId).slice(0, 8)}`;
+
+  try {
+    await getAgentEventHub().publish({
+      type: VOISSS_EVENT_TYPES.VOICE_GENERATION_COMPLETED,
+      source: 'vocalize-api',
+      data: {
+        recordingId: finalRecordingId,
+        agentId,
+        characterCount,
+        cost: '0',
+        paymentMethod: 'preview',
+        voiceId,
+        isTemporary: true,
+      },
+      metadata: { priority: 'low', tags: ['voice-generation', 'preview', 'stream'] },
+    });
+  } catch (e) {
+    console.warn('[vocalize] preview event publish failed:', e);
+  }
+
+  return new Response(ttsResponse.body, {
+    status: 200,
+    headers: {
+      'Content-Type': 'audio/mpeg',
+      'Cache-Control': 'no-store',
+      'X-Voisss-Model': model,
+      'X-Voisss-Recording-Id': finalRecordingId,
+    },
+  });
+}
+
+/**
  * Generate voice using ElevenLabs and return response
  */
 async function generateAndReturnVoice(
@@ -842,7 +919,13 @@ async function generateAndReturnVoice(
       similarity_boost: generationOptions?.similarity_boost,
     }));
 
-    let ttsResponse = await synthesizeVoice(apiKey, voiceId, text, model, voiceSettings);
+    const ttsText = applyAudioTags(text, {
+      model,
+      archetype: generationOptions?.archetype,
+      audioTags: generationOptions?.audioTags,
+    });
+
+    let ttsResponse = await synthesizeVoice(apiKey, voiceId, ttsText, model, voiceSettings);
 
     // One fallback shot: if the voice/model combo is rejected, retry on the
     // stable multilingual model with neutral settings.

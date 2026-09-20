@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
+import { transcribeUrl } from '@/lib/scribe';
 
 interface ElevenLabsVoice {
   voice_id: string;
@@ -29,6 +30,8 @@ interface ImportedVoiceListing extends ImportedVoice {
   source: 'elevenlabs';
   status: 'pending_publish';
   importedAt: string;
+  transcript?: string;
+  languageCode?: string;
 }
 
 async function persistImport(listings: ImportedVoiceListing[]) {
@@ -143,6 +146,25 @@ export async function POST(request: NextRequest) {
         status: 'pending_publish',
         importedAt,
       }));
+
+      // Scribe enrichment: transcribe each voice's preview sample for a
+      // transcript + language signal used at publish review. Best-effort —
+      // transcription failures never block an import.
+      const scribeKey = process.env.ELEVENLABS_API_KEY;
+      if (scribeKey) {
+        await Promise.all(
+          listings.map(async (listing) => {
+            if (!listing.previewUrl) return;
+            try {
+              const scribe = await transcribeUrl(scribeKey, listing.previewUrl);
+              if (scribe.text) listing.transcript = scribe.text;
+              if (scribe.languageCode) listing.languageCode = scribe.languageCode;
+            } catch (e) {
+              console.warn(`Scribe enrichment failed for ${listing.elevenlabsVoiceId}:`, e);
+            }
+          })
+        );
+      }
 
       try {
         await persistImport(listings);

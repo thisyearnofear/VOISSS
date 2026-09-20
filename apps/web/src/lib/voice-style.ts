@@ -82,7 +82,45 @@ export type GenerationOptions = {
   archetype?: string;
   stability?: number;
   similarity_boost?: number;
+  audioTags?: string[];
 };
+
+/**
+ * Leading audio tag per archetype, applied to v3 models only. Kept to a
+ * single register tag — v3 docs warn tags must suit the voice's character,
+ * and the catalog voice was already matched to this archetype's targets.
+ */
+export const ARCHETYPE_AUDIO_TAGS: Record<string, string> = {
+  advertising: "excited",
+  narration: "dramatically",
+  meditation: "whispers",
+  assistant: "professional",
+  character: "dramatically",
+  podcast: "warmly",
+};
+
+/**
+ * Prepend v3 audio tags directing delivery register. Skipped when:
+ * - the resolved model isn't v3 (tags are v3-only syntax)
+ * - the caller already wrote [tags] into their text
+ * - options.audioTags is an empty array (explicit opt-out)
+ */
+export function applyAudioTags(
+  text: string,
+  opts: { model: string; archetype?: string; audioTags?: string[] }
+): string {
+  if (!opts.model.startsWith("eleven_v3")) return text;
+  if (/\[[a-zA-Z][^\]]{0,40}\]/.test(text)) return text;
+  const tags =
+    opts.audioTags ??
+    (opts.archetype && ARCHETYPE_AUDIO_TAGS[opts.archetype]
+      ? [ARCHETYPE_AUDIO_TAGS[opts.archetype]]
+      : []);
+  if (tags.length === 0) return text;
+  const prefix = tags.map((t) => `[${t}]`).join(" ");
+  if (text.length + prefix.length + 1 > V3_CHAR_LIMIT) return text;
+  return `${prefix} ${text}`;
+}
 
 /**
  * Prune settings a given model doesn't honor. v3 supports only stability
@@ -97,15 +135,19 @@ export function settingsForModel(model: string, s: VoiceSettings): VoiceSettings
   return { ...s, speed };
 }
 
-/** One ElevenLabs TTS call. Returns the raw response so callers can retry. */
+/** One ElevenLabs TTS call. Returns the raw response so callers can retry
+ *  or stream the body through. `stream` hits the /stream endpoint — same
+ *  audio, chunked sooner. */
 export async function synthesizeVoice(
   apiKey: string,
   voiceId: string,
   text: string,
   model: string,
-  settings: VoiceSettings
+  settings: VoiceSettings,
+  stream = false
 ): Promise<Response> {
-  return fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+  const suffix = stream ? "/stream" : "";
+  return fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}${suffix}`, {
     method: "POST",
     headers: {
       Accept: "audio/mpeg",
