@@ -4,7 +4,7 @@ import { VoiceLicenseMarketABI } from "@/contracts/VoiceLicenseMarketABI";
 import { VoiceRecordsABI } from "@/contracts/VoiceRecordsABI";
 
 type LicenseType = "exclusive" | "non-exclusive";
-type Source = "envio" | "rpc";
+type Source = "envio" | "rpc" | "catalog";
 
 export interface MarketplaceVoice {
   id: string;
@@ -33,6 +33,9 @@ export interface MarketplaceVoice {
     usageCount: number;
   };
   status: "approved" | "delisted";
+  // "platform" = ElevenLabs catalog voice (pay-per-use via vocalize);
+  // absent/undefined = on-chain licensed listing.
+  source?: "platform";
   sampleUrl?: string;
   reputation?: {
     trustScore: number;
@@ -88,6 +91,8 @@ const rpcUrl =
 const ipfsGateway =
   process.env.NEXT_PUBLIC_IPFS_GATEWAY_URL || "https://gateway.pinata.cloud/ipfs/";
 const envioIndexerUrl = process.env.ENVIO_INDEXER_URL;
+const backendApiUrl =
+  process.env.VOISSS_API || process.env.NEXT_PUBLIC_VOISSS_API;
 
 const client = createPublicClient({
   chain: base,
@@ -508,4 +513,123 @@ export async function getMarketplaceListings(
   });
 
   return applyFilters(voices, filters);
+}
+
+// ─── Platform voices (ElevenLabs catalog) ────────────────────────────────
+// The marketplace's day-one inventory: voices users can generate with right
+// now via /api/agents/vocalize. On-chain licensed listings merge into the
+// same grid as supply arrives (see getMarketplaceCatalog below).
+
+interface ElevenLabsVoice {
+  voice_id: string;
+  name?: string;
+  description?: string;
+  preview_url?: string;
+  labels?: {
+    accent?: string;
+    age?: string;
+    gender?: string;
+    use_case?: string;
+    descriptive?: string;
+    language?: string;
+  };
+}
+
+function normalizeLanguage(language?: string, accent?: string): string {
+  if (!language) return "en-US";
+  if (language === "en") {
+    return accent === "british" ? "en-GB" : "en-US";
+  }
+  return language;
+}
+
+function mapPlatformVoice(v: ElevenLabsVoice): MarketplaceVoice {
+  const labels = v.labels ?? {};
+  const tags = [labels.use_case, labels.descriptive, labels.gender, labels.age]
+    .filter((t): t is string => !!t)
+    .map((t) => t.replace(/_/g, " "));
+
+  return {
+    id: `platform_${v.voice_id}`,
+    // The ElevenLabs voice id doubles as the vocalize/demo voice id, so
+    // Preview and "Try in demo" work against real generation infra.
+    contractVoiceId: v.voice_id,
+    contributorAddress: "0x0000000000000000000000000000000000000000",
+    price: "0",
+    licenseType: "non-exclusive",
+    voiceProfile: {
+      tone: labels.descriptive ?? v.name?.split(" - ")[1]?.split(",")[0]?.trim(),
+      language: normalizeLanguage(labels.language, labels.accent),
+      accent: labels.accent ?? "Neutral",
+      tags,
+    },
+    metadata: { title: v.name },
+    stats: { views: 0, purchases: 0, usageCount: 0 },
+    status: "approved",
+    source: "platform",
+    sampleUrl: v.preview_url,
+    reputation: { trustScore: 95, reputation: 1000, threatLevel: "green" },
+    trust: {
+      badge: "Platform Voice",
+      status: "verified",
+      source: "catalog",
+      details: "ElevenLabs catalog voice — instant generation, pay per use.",
+    },
+    provenance: { source: "catalog" },
+  };
+}
+
+let platformCache: { voices: MarketplaceVoice[]; at: number } | null = null;
+const PLATFORM_TTL_MS = 60_000;
+
+async function fetchPlatformVoices(origin?: string): Promise<MarketplaceVoice[]> {
+  if (platformCache && Date.now() - platformCache.at < PLATFORM_TTL_MS) {
+    return platformCache.voices;
+  }
+
+  // Prefer the same-origin /api/voices path — on Netlify it proxies to the
+  // voice backend (allowlisted origin); fall back to the backend URL directly.
+  const candidates = [
+    origin ? `${origin}/api/voices` : null,
+    backendApiUrl ? `${backendApiUrl}/api/voices` : null,
+    "https://voisss.famile.xyz/api/voices",
+  ].filter((u): u is string => !!u);
+
+  for (const url of candidates) {
+    try {
+      const res = await fetch(url, {
+        cache: "no-store",
+        signal: AbortSignal.timeout(8_000),
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const raw: ElevenLabsVoice[] = Array.isArray(data?.voices)
+        ? data.voices
+        : [];
+      if (raw.length === 0) continue;
+      const voices = raw.map(mapPlatformVoice);
+      platformCache = { voices, at: Date.now() };
+      return voices;
+    } catch {
+      continue;
+    }
+  }
+
+  return [];
+}
+
+/**
+ * The full browsable catalog: on-chain licensed listings plus platform
+ * (ElevenLabs) voices. Used by browse/detail/match surfaces — NOT by the
+ * license purchase flow, which must only resolve contract-listed voices.
+ */
+export async function getMarketplaceCatalog(
+  filters: ListingFilters = {},
+  origin?: string
+): Promise<MarketplaceVoice[]> {
+  const [chainVoices, platformVoices] = await Promise.all([
+    getMarketplaceListings({}),
+    fetchPlatformVoices(origin).catch(() => [] as MarketplaceVoice[]),
+  ]);
+  return applyFilters([...chainVoices, ...platformVoices], filters);
 }

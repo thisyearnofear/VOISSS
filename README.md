@@ -67,10 +67,13 @@ pnpm dev:web      # http://localhost:4445
 ## ✨ Features
 
 ### Voice Marketplace
-- **21+ Professional Voices** — Browse and license authentic human voices
-- **Instant Licensing** — Smart contract-based automatic licensing
-- **Transparent Pricing** — $49-$2K+/mo with 70% revenue to contributors
-- **Blockchain Provenance** — Every voice verified on Base mainnet
+
+> **Wedge:** the marketplace leads with *voice discovery*, not licensing — describe the voice you need in plain language and the grid re-ranks in ~300ms. Day-one inventory is the platform's ElevenLabs catalog (usable immediately via the vocalize API, pay-per-use). Contributor-listed voices licensed on-chain merge into the same ranked grid as supply arrives — the agent-native loop (intent → voice → audio → per-call payment via x402/ACP) is the wedge; the on-chain licensing layer is the moat for studios once there's real supply.
+
+- **Intent-Based Discovery** — Describe the voice in plain language; Jev scores every voice in the catalog in one call and re-ranks the grid live
+- **22+ Platform Voices** — ElevenLabs catalog with real preview audio, usable instantly via `/api/agents/vocalize`
+- **On-Chain Licensing** — Contributor-listed voices with smart-contract licensing merge into the same grid when listed (VoiceLicenseMarket deploy pending)
+- **Transparent Pricing** — Pay-per-use for platform voices; subscription licensing for on-chain listings with 70% revenue to contributors
 
 ### Agent API
 - **Pay-Per-Character** — ~$0.000001/char with no monthly fees
@@ -121,6 +124,92 @@ VOISSS uses Arkiv Braga Testnet as a decentralized data layer for voice insights
 - **AI:** Google Gemini, ElevenLabs, Venice AI
 - **Storage:** IPFS (Pinata), Arkiv Braga Testnet (decentralized insights)
 - **Payments:** x402 protocol, OWS multi-chain
+
+---
+
+## Jev Intent Layer
+
+Jev (TypeSafe AI's System One evaluation model) is an **optional** intent-classification layer on top of the existing voice pipeline. It does **not** replace any routing or model selection — it adds a new dimension: reading *what the agent wants the voice to sound like* and classifying emotional/intent categories in a single fast call, fractions of a cent per call.
+
+### Shipped: marketplace intent search
+
+**Live on `/marketplace`.** Typing a natural-language brief ("warm narrator for a meditation app") fires `POST /api/marketplace/voice-match`, which fans out one Jev call containing a boolean fit-check per voice plus brief-level questions (emotion Choice, use-case Choice, urgency Score). The grid re-sorts by fit probability as you type; the response also returns detected emotion/use-case/urgency, measured latency, and token usage.
+
+- Auth: `AI_GATEWAY_API_KEY` (free via the Vercel AI Gateway, `typesafe-ai/jev`, AI SDK `experimental_evaluate`) or `TYPESAFE_API_KEY` (direct `POST /v1/systemone`, `jev-latest`)
+- Catalog: scores the merged marketplace catalog — platform voices + on-chain listings
+- B2B: callers may pass `{ brief, voices[] }` to score their own roster through the same endpoint
+- Graceful: returns `jev_not_configured` (503) with no key; the marketplace degrades to normal browsing
+
+### Proposed pipeline layer (additive, opt-in)
+
+Jev reads the *intent* of the voice request and classifies it before the generation pipeline runs. One API call (`POST /v1/systemone`) carries a `state` (the voice spec / transcript) plus a `questions` map — all questions are evaluated **in parallel**, so adding questions barely changes response time. This is an **optional pre-flight signal** that enhances the routing logic:
+
+```
+Agent sends voice request
+    │
+    ├── [OPTIONAL] Jev fan-out — one call, many questions:
+    │   Choice:  emotion?       → { choice, probabilities, confidence }
+    │   Choice:  intent?        → { choice, probabilities, confidence }
+    │   Score:   urgency?       → { score, legend, probabilities, confidence }
+    │   Noul:    "has a CTA?"   → { noul: 0-1 }   (no confidence field)
+    │   Noul:    "needs a disclaimer voice?" → { noul: 0-1 }
+    │
+    ├── Voice generation pipeline (existing, unchanged)
+    │   Uses the classified signals as additional hints
+    │   If Jev is unavailable, the pipeline proceeds as normal
+    │
+    └── Returns audio (unchanged)
+```
+
+Answers are typed per-question, not a single blob — your code composes them. **Gating note:** only Choice and Score answers return `confidence`; Noul returns a raw probability you threshold yourself. So questions that drive the "proceed unchanged if uncertain" fallback should be Choice/Score.
+
+### Concept from examples
+
+Like the "intent-based search" example — Jev reads the Gmail inbox and understands intent, not patterns. For VOISSS, Jev reads the voice spec and understands *emotional intent* — not just keyword matching, but what the agent actually wants the voice to convey.
+
+- Agent says "make this sound excited" → `emotion` Choice answers `excited` at confidence 0.95 — an intent read, not a keyword match
+- Agent says "this is a professional announcement" → `intent` Choice answers `announcement`, `emotion` answers `authoritative`
+- Agent sends a raw transcript → `emotion` answers `conversational`, a `formality` Score lands low, a `"mentions pricing"` Noul returns ~0.0
+
+### Why optionality
+
+- The existing voice generation pipeline (Gemini, ElevenLabs) is the **source of truth** — Jev is a signal, not a generator
+- If Jev is unavailable or returns uncertain, the pipeline proceeds unchanged
+- Jev is ~100ms and fractions of a cent per call — it's a real-time decision layer, not the voice engine
+- Not every voice request needs intent classification — the agent/operator chooses when to invoke it
+- The `@solana/spl-token` payment flow and x402 settlement remain unchanged
+- Jev's `state` is **text** — it judges fit from the voice spec and voice metadata/descriptions, not from listening to audio samples
+
+### Beyond voice specs — other Jev hooks already in the codebase
+
+- ~~**Voice matching / marketplace search**~~ — shipped (see above). One fan-out call returns a per-voice fit distribution plus brief insights, replacing the `tone=` keyword filter with intent matching.
+- **ACP auto-bidder** — the listener already scores inbound jobs 0–100 and auto-bids at 80+ (see `docs/ACP_SPECIFICATION.md`). A Jev Score does that in ~100ms instead of a full LLM call.
+- **Security confidence tiers** — the existing allow/challenge/block gates (0.9+/0.4–0.7/<0.4) map directly onto TypeSafe's confidence-gated routing pattern.
+- **Pre-flight Nouls** — cheap yes/no checks before a paid generation: "is this usage covered by a non-exclusive license?", "does the content match this voice's tags?"
+
+### Architecture sketch
+
+```
+apps/web/ (existing Next.js + Flutter)
+    │
+    ├── [OPTIONAL] jev-intent.ts module
+    │   Reads: voice spec, transcript, agent prompt
+    │   Sends: intent evaluation to Jev
+    │   Returns: { emotion, confidence, intent }
+    │
+    ├── Voice generation pipeline (existing, unchanged)
+    │   Google Gemini, ElevenLabs, Venice AI
+    │
+    └── x402 payment (existing, unchanged)
+        ~$0.000001/char, multi-chain OWS
+```
+
+### Key files to reference (if implementing)
+
+- `apps/web/` — existing Next.js marketplace (unchanged)
+- `apps/flutter/` — existing Flutter AI butler (could accept Jev intent hints)
+- Existing AI adapters (Gemini, ElevenLabs) — unchanged
+- The x402 payment flow — unchanged
 
 ---
 

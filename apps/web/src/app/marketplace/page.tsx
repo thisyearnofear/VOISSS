@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { VoiceCard } from "@/components/marketplace/VoiceCard";
 import { VoiceMarketTrends } from "@/components/marketplace/VoiceMarketTrends";
@@ -8,13 +8,32 @@ import { LicensePurchaseModal } from "@/components/payment/LicensePurchaseModal"
 import { BuyCreditsModal } from "@/components/payment/BuyCreditsModal";
 import MascotEmptyState from "@/components/MascotEmptyState";
 import { useAuth } from "@/contexts/AuthContext";
-import { ChevronDown, Sparkles } from "lucide-react";
+import { ChevronDown, Sparkles, Zap } from "lucide-react";
 import { initWebMCP } from "@/lib/webmcp";
 import { MascotEvents } from "@/lib/mascot-events";
 import type { MarketplaceVoice } from "@/lib/marketplace-indexer";
 import { DismissibleRuntimeTracks } from "@/components/payment/RuntimePaymentChips";
 import { BuyerCreditsStrip } from "@/components/payment/DashboardBalanceChips";
 import MarketplaceTerrain from "@/components/marketplace/MarketplaceTerrain";
+
+interface VoiceMatchResult {
+  scores: Record<string, number>;
+  briefInsights: {
+    emotion: { choice: string; confidence: number } | null;
+    useCase: { choice: string; confidence: number } | null;
+    urgency: {
+      score: number;
+      legend?: Record<string, string>;
+      confidence: number;
+    } | null;
+  } | null;
+  meta: {
+    latencyMs?: number;
+    questionCount?: number;
+    model?: string;
+    usage?: { input_tokens?: number; output_tokens?: number } | null;
+  };
+}
 
 export default function MarketplacePage() {
   const { isAuthenticated } = useAuth();
@@ -29,6 +48,10 @@ export default function MarketplacePage() {
   const [showFilters, setShowFilters] = useState(false);
   const [modalVoice, setModalVoice] = useState<MarketplaceVoice | null>(null);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
+  const [brief, setBrief] = useState("");
+  const [match, setMatch] = useState<VoiceMatchResult | null>(null);
+  const [matchLoading, setMatchLoading] = useState(false);
+  const [matchUnavailable, setMatchUnavailable] = useState(false);
 
   const activeFilterCount = [filters.language, filters.tone, filters.licenseType].filter(Boolean).length;
 
@@ -71,6 +94,48 @@ export default function MarketplacePage() {
     void fetchVoices();
   }, [fetchVoices]);
 
+  // Jev intent matching — debounced so each pause in typing fires one fan-out
+  // call (N Nouls + meta questions) that re-ranks the grid in ~100ms.
+  useEffect(() => {
+    if (brief.trim().length < 3 || matchUnavailable) {
+      setMatch(null);
+      setMatchLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setMatchLoading(true);
+      try {
+        const res = await fetch("/api/marketplace/voice-match", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ brief: brief.trim() }),
+          signal: controller.signal,
+        });
+        const data = await res.json();
+        if (data.success) {
+          setMatch(data.data);
+        } else if (res.status === 503 && data.error === "jev_not_configured") {
+          setMatchUnavailable(true);
+        }
+      } catch (e) {
+        if (!controller.signal.aborted) {
+          console.error("Voice match failed:", e);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setMatchLoading(false);
+        }
+      }
+    }, 450);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [brief, matchUnavailable]);
+
   const handlePurchaseClick = (voiceId: string) => {
     const voice = voices.find((v) => v.id === voiceId) || null;
     setModalVoice(voice);
@@ -102,6 +167,30 @@ export default function MarketplacePage() {
     }
     return true;
   });
+
+  const displayedVoices = useMemo(() => {
+    if (!match?.scores || Object.keys(match.scores).length === 0) {
+      return filteredVoices;
+    }
+    return [...filteredVoices].sort(
+      (a, b) => (match.scores[b.id] ?? 0) - (match.scores[a.id] ?? 0)
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voices, filters, match]);
+
+  const topMatchId = useMemo(() => {
+    if (!match?.scores) return null;
+    let best: string | null = null;
+    let bestScore = 0.5;
+    for (const voice of displayedVoices) {
+      const s = match.scores[voice.id] ?? 0;
+      if (s > bestScore) {
+        bestScore = s;
+        best = voice.id;
+      }
+    }
+    return best;
+  }, [displayedVoices, match]);
 
   const FilterSelect = ({ label, value, onChange, options }: {
     label: string;
@@ -322,6 +411,70 @@ export default function MarketplacePage() {
           </motion.div>
         )}
 
+        {/* Jev intent matching — one fan-out call scores every voice against
+            the brief; the grid re-ranks live as you type. */}
+        <div className="mb-6 border border-[#7C5DFA]/30 rounded-sm p-4 bg-gradient-to-r from-[#7C5DFA]/10 to-transparent">
+          <label
+            htmlFor="jev-brief"
+            className="flex items-center gap-2 text-xs font-medium text-[#9C88FF] mb-2 uppercase tracking-wider"
+          >
+            <Zap className="w-3.5 h-3.5" />
+            Intent match · powered by Jev
+          </label>
+          <input
+            id="jev-brief"
+            type="text"
+            value={brief}
+            onChange={(e) => setBrief(e.target.value)}
+            placeholder='Describe what you need — e.g. "warm narrator for a meditation app, unhurried"'
+            className="w-full bg-[#0A0A0A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#7C5DFA] focus:ring-1 focus:ring-[#7C5DFA]/30 transition-all placeholder:text-zinc-600"
+          />
+
+          {matchUnavailable && (
+            <p className="mt-2 text-xs text-zinc-500">
+              Intent matching is off — set <code>TYPESAFE_API_KEY</code> to
+              enable live Jev matching.
+            </p>
+          )}
+
+          {(matchLoading || match?.briefInsights || match?.meta) && !matchUnavailable && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
+              {matchLoading && (
+                <span className="text-zinc-400 animate-pulse">matching…</span>
+              )}
+              {match?.briefInsights?.emotion && (
+                <span className="px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/20">
+                  emotion: {match.briefInsights.emotion.choice}
+                </span>
+              )}
+              {match?.briefInsights?.useCase && (
+                <span className="px-2 py-0.5 rounded bg-blue-500/15 text-blue-300 border border-blue-500/20">
+                  use case: {match.briefInsights.useCase.choice}
+                </span>
+              )}
+              {match?.briefInsights?.urgency?.legend && (
+                <span className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/20">
+                  urgency:{" "}
+                  {match.briefInsights.urgency.legend[
+                    String(match.briefInsights.urgency.score)
+                  ] ?? match.briefInsights.urgency.score}
+                </span>
+              )}
+              {match?.meta?.latencyMs != null && (
+                <span className="ml-auto text-zinc-500 font-mono">
+                  {match.meta.questionCount ?? "?"} questions · 1 call ·{" "}
+                  {match.meta.latencyMs}ms
+                  {match.meta.usage?.input_tokens != null &&
+                    ` · ${
+                      (match.meta.usage.input_tokens ?? 0) +
+                      (match.meta.usage.output_tokens ?? 0)
+                    } tokens`}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Onboarding hint for first-time visitors */}
         {!loading && voices.length === 0 && !error && !isAuthenticated && (
           <motion.div
@@ -356,26 +509,62 @@ export default function MarketplacePage() {
               />
             ))}
           </motion.div>
-        ) : filteredVoices.length > 0 ? (
+        ) : displayedVoices.length > 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            {filteredVoices.map((voice, i) => (
-              <motion.div
-                key={voice.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05, duration: 0.3 }}
-              >
-                <VoiceCard
-                  voice={voice}
-                  onPurchase={() => handlePurchaseClick(voice.id)}
-                />
-              </motion.div>
-            ))}
+            {displayedVoices.map((voice, i) => {
+              const fitScore = match?.scores?.[voice.id];
+              const isTop = voice.id === topMatchId;
+              return (
+                <motion.div
+                  key={voice.id}
+                  layout
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05, duration: 0.3, layout: { duration: 0.25 } }}
+                  className={`relative rounded-xl transition-shadow ${
+                    isTop
+                      ? "ring-2 ring-[#7C5DFA] shadow-lg shadow-[#7C5DFA]/20"
+                      : ""
+                  }`}
+                >
+                  {fitScore != null && (
+                    <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md border ${
+                          isTop
+                            ? "bg-[#7C5DFA] text-white border-[#7C5DFA]"
+                            : "bg-black/70 text-[#9C88FF] border-[#7C5DFA]/40"
+                        }`}
+                      >
+                        {isTop ? "Best match · " : ""}
+                        {Math.round(fitScore * 100)}%
+                      </span>
+                      <div className="w-16 h-1 rounded-full bg-white/10 overflow-hidden">
+                        <motion.div
+                          className="h-full bg-[#7C5DFA]"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.round(fitScore * 100)}%` }}
+                          transition={{ duration: 0.3 }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <VoiceCard
+                    voice={voice}
+                    onPurchase={
+                      voice.source === "platform"
+                        ? undefined
+                        : () => handlePurchaseClick(voice.id)
+                    }
+                  />
+                </motion.div>
+              );
+            })}
           </motion.div>
         ) : (
           <motion.div

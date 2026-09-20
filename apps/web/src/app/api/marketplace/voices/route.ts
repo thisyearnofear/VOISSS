@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getMarketplaceListings } from "@/lib/marketplace-indexer";
+import { getMarketplaceCatalog } from "@/lib/marketplace-indexer";
 
 const VALID_LICENSE_TYPES = ["exclusive", "non-exclusive"] as const;
 
@@ -34,14 +34,20 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       }, { status: 400 });
     }
 
-    const voices = await getMarketplaceListings({
-      language,
-      tone,
-      minPrice,
-      maxPrice,
-      contributor,
-      licenseType,
-    });
+    // Merged catalog: on-chain licensed listings + platform (ElevenLabs)
+    // voices. Origin is passed so the catalog fetch can use the same-origin
+    // /api/voices proxy where one is configured.
+    const voices = await getMarketplaceCatalog(
+      {
+        language,
+        tone,
+        minPrice,
+        maxPrice,
+        contributor,
+        licenseType,
+      },
+      new URL(req.url).origin
+    );
 
     return NextResponse.json({
       success: true,

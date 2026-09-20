@@ -19,6 +19,7 @@ interface VoiceCardProps {
       accent?: string;
       tags?: string[];
     };
+    source?: "platform";
     stats: {
       views: number;
       purchases: number;
@@ -228,11 +229,18 @@ export function VoiceCard({ voice, onPurchase }: VoiceCardProps) {
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <div className="text-xl font-bold text-white">
-          <span className="text-zinc-500 text-xs font-normal mr-1">$</span>
-          {priceUSDC}
-          <span className="text-[10px] font-normal text-zinc-600 ml-1">/mo</span>
-        </div>
+        {voice.source === "platform" ? (
+          <div className="text-sm font-bold text-white">
+            Pay-per-use
+            <span className="text-[10px] font-normal text-zinc-600 ml-1">via API</span>
+          </div>
+        ) : (
+          <div className="text-xl font-bold text-white">
+            <span className="text-zinc-500 text-xs font-normal mr-1">$</span>
+            {priceUSDC}
+            <span className="text-[10px] font-normal text-zinc-600 ml-1">/mo</span>
+          </div>
+        )}
 
         <div className="flex gap-2">
           <button

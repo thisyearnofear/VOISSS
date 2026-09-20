@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getMarketplaceListings } from '@/lib/marketplace-indexer';
+import { getMarketplaceCatalog } from '@/lib/marketplace-indexer';
 
 /**
  * GET /api/marketplace/voices/[voiceId]
@@ -14,7 +14,10 @@ export async function GET(
   try {
     const { voiceId } = await params;
 
-    const allVoices = await getMarketplaceListings({});
+    const allVoices = await getMarketplaceCatalog(
+      {},
+      new URL(request.url).origin
+    );
     const voice = allVoices.find(
       (v) => v.id === voiceId || v.contractVoiceId === voiceId
     ) as typeof allVoices[number] | undefined;
