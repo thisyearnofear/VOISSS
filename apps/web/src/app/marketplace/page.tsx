@@ -12,6 +12,7 @@ import { DismissibleRuntimeTracks } from "@/components/payment/RuntimePaymentChi
 import { BuyerCreditsStrip } from "@/components/payment/DashboardBalanceChips";
 import { VoiceMarketTrends } from "@/components/marketplace/VoiceMarketTrends";
 import { VoiceAuditionRow, voiceDisplayName } from "@/components/listening/VoiceAuditionRow";
+import { Badge, Button, Chip, Disclosure, Notice } from "@/components/ui";
 import { useListeningRoom } from "@/contexts/ListeningRoomContext";
 import { useVoiceCatalog } from "@/hooks/useVoiceCatalog";
 import { useAuth } from "@/contexts/AuthContext";
@@ -309,17 +310,13 @@ function MarketplacePageInner() {
             {matchUnavailable && (
               <span className="lr-quiet" style={{ margin: 0 }}>
                 Matching is unavailable. You can still browse voices.{" "}
-                <button
-                  type="button"
-                  className="lr-chip"
-                  onClick={() => setMatchUnavailable(false)}
-                >
+                <Chip onClick={() => setMatchUnavailable(false)}>
                   Retry matching
-                </button>
+                </Chip>
               </span>
             )}
             {match?.archetype && !matchUnavailable && (
-              <span className="lr-badge">rubric: {match.archetype}</span>
+              <Badge>rubric: {match.archetype}</Badge>
             )}
           </div>
         </header>
@@ -329,44 +326,39 @@ function MarketplacePageInner() {
         {/* Mobile Filter Toggle */}
         {/* Collapsible Filters */}
         {/* Mobile Filters (animated) */}
-        <details className="lr-details" style={{ borderTop: "none", paddingTop: 0 }}>
-          <summary>
-            <span>
-              Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
-            </span>
-          </summary>
-          <div className="lr-details-body">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <FilterSelect
-                label="Language"
-                value={filters.language}
-                onChange={(v) => setFilters({ ...filters, language: v })}
-                options={LANGUAGE_OPTIONS}
-              />
-              <FilterSelect
-                label="Tone"
-                value={filters.tone}
-                onChange={(v) => setFilters({ ...filters, tone: v })}
-                options={TONE_OPTIONS}
-              />
-              <FilterSelect
-                label="License"
-                value={filters.licenseType}
-                onChange={(v) => setFilters({ ...filters, licenseType: v })}
-                options={LICENSE_OPTIONS}
-              />
-              <div className="flex items-end">
-                <button
-                  type="button"
-                  onClick={() => setFilters({ language: "", tone: "", licenseType: "" })}
-                  className="lr-btn lr-btn-ghost"
-                >
-                  Clear all
-                </button>
-              </div>
+        <Disclosure
+          title={<span>Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}</span>}
+          style={{ borderTop: "none", paddingTop: 0 }}
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <FilterSelect
+              label="Language"
+              value={filters.language}
+              onChange={(v) => setFilters({ ...filters, language: v })}
+              options={LANGUAGE_OPTIONS}
+            />
+            <FilterSelect
+              label="Tone"
+              value={filters.tone}
+              onChange={(v) => setFilters({ ...filters, tone: v })}
+              options={TONE_OPTIONS}
+            />
+            <FilterSelect
+              label="License"
+              value={filters.licenseType}
+              onChange={(v) => setFilters({ ...filters, licenseType: v })}
+              options={LICENSE_OPTIONS}
+            />
+            <div className="flex items-end">
+              <Button
+                variant="ghost"
+                onClick={() => setFilters({ language: "", tone: "", licenseType: "" })}
+              >
+                Clear all
+              </Button>
             </div>
           </div>
-        </details>
+        </Disclosure>
 
         {draft.shortlist.length > 0 && (
           <section className="lr-compare" aria-label="Compare catalog samples" style={{ marginBottom: "1.5rem", marginTop: "1rem" }}>
@@ -374,13 +366,9 @@ function MarketplacePageInner() {
               <h2 style={{ fontFamily: "var(--lr-font-display)", fontWeight: 700, fontSize: "1.125rem", margin: 0 }}>
                 Compare samples · {draft.shortlist.length}/3
               </h2>
-              <button
-                type="button"
-                className="lr-chip"
-                onClick={() => updateDraft({ shortlist: [] })}
-              >
+              <Chip onClick={() => updateDraft({ shortlist: [] })}>
                 Clear comparison
-              </button>
+              </Chip>
             </div>
             <p className="lr-quiet" style={{ marginTop: "0.25rem" }}>
               {unavailableShortlist > 0
@@ -417,12 +405,10 @@ function MarketplacePageInner() {
         )}
 
         {error && (
-          <p className="lr-notice lr-error-text" role="status">
+          <Notice tone="error">
             {error}{" "}
-            <button type="button" className="lr-chip" onClick={() => void query.refetch()}>
-              Retry
-            </button>
-          </p>
+            <Chip onClick={() => void query.refetch()}>Retry</Chip>
+          </Notice>
         )}
 
         {loading ? (
@@ -446,12 +432,12 @@ function MarketplacePageInner() {
                     actions={shortlistButton(voice)}
                   />
                   <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem" }}>
-                    <span className="lr-badge">
+                    <Badge>
                       {voice.source === "platform"
                         ? "Platform catalog · Pay per use"
                         : `Contributor listing · ${voice.licenseType}`}
-                    </span>
-                    {isTop && <span className="lr-badge" style={{ borderColor: "var(--lr-accent)", color: "var(--lr-accent)" }}>Best match</span>}
+                    </Badge>
+                    {isTop && <Badge style={{ borderColor: "var(--lr-accent)", color: "var(--lr-accent)" }}>Best match</Badge>}
                     <Link
                       href={`/marketplace/voices/${encodeURIComponent(voice.id)}`}
                       className="lr-nav-link"
@@ -460,52 +446,44 @@ function MarketplacePageInner() {
                       Voice details
                     </Link>
                     {voice.source !== "platform" && (
-                      <button
-                        type="button"
-                        className="lr-chip"
-                        onClick={() => handlePurchaseClick(voice.id)}
-                      >
+                      <Chip onClick={() => handlePurchaseClick(voice.id)}>
                         License
-                      </button>
+                      </Chip>
                     )}
                   </div>
                   {/* Explainable fit: the rubric dimensions that drove
                       this voice's ranking for the detected archetype. */}
                   {reasons.length > 0 && (
-                    <details className="lr-inline-details">
-                      <summary>Why this match?</summary>
+                    <Disclosure title="Why this match?" variant="inline">
                       <ul className="lr-reasons">
                         {reasons.map((reason) => (
                           <li key={reason}>{reason}</li>
                         ))}
                       </ul>
-                    </details>
+                    </Disclosure>
                   )}
-                  <details className="lr-inline-details">
-                    <summary>Provenance &amp; trust</summary>
+                  <Disclosure title="Provenance & trust" variant="inline">
                     <p className="lr-quiet" style={{ marginTop: "0.5rem" }}>
                       {voice.trust?.details || "No additional provenance details."}
                     </p>
-                  </details>
+                  </Disclosure>
                 </article>
               );
             })}
           </div>
         ) : (
           !error && (
-            <div className="lr-notice" role="status">
+            <Notice>
               {/* Onboarding hint for first-time visitors */}
               {activeFilterCount > 0 ? (
                 <>
                   <p style={{ margin: 0 }}>No voices matched these filters.</p>
-                  <button
-                    type="button"
-                    className="lr-chip"
+                  <Chip
                     style={{ marginTop: "0.5rem" }}
                     onClick={() => setFilters({ language: "", tone: "", licenseType: "" })}
                   >
                     Clear filters
-                  </button>
+                  </Chip>
                 </>
               ) : (
                 <p style={{ margin: 0 }}>
@@ -515,19 +493,17 @@ function MarketplacePageInner() {
                   </Link>
                 </p>
               )}
-            </div>
+            </Notice>
           )
         )}
 
         {/* Runtime rails — dismissible so browsing stays clean; judges can restore in one click. */}
-        <details className="lr-details" style={{ marginTop: "2rem" }}>
-          <summary>Catalog stats, payments &amp; trends</summary>
-          <div className="lr-details-body">
+        <Disclosure title="Catalog stats, payments & trends" style={{ marginTop: "2rem" }}>
             {/* Stats bar */}
             <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginBottom: "1rem" }}>
-              <span className="lr-badge">{totalVoices} voices</span>
-              <span className="lr-badge">{totalLicenses} licenses sold</span>
-              <span className="lr-badge">{totalUsage.toLocaleString()} total uses</span>
+              <Badge>{totalVoices} voices</Badge>
+              <Badge>{totalLicenses} licenses sold</Badge>
+              <Badge>{totalUsage.toLocaleString()} total uses</Badge>
             </div>
             {isAuthenticated && (
               <div className="mb-4 max-w-2xl">
@@ -541,8 +517,7 @@ function MarketplacePageInner() {
               </div>
               <VoiceMarketTrends />
             </div>
-          </div>
-        </details>
+        </Disclosure>
       </div>
 
       <LicensePurchaseModal

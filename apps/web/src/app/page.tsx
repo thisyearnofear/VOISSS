@@ -8,6 +8,7 @@ import HomeStructuredData from "../components/HomeStructuredData";
 import SplitBar from "../components/SplitBar";
 import { SignalRibbon } from "../components/listening/SignalRibbon";
 import { VoiceAuditionRow } from "../components/listening/VoiceAuditionRow";
+import { Button, Chip, Disclosure } from "../components/ui";
 import { useListeningPlayback, useListeningRoom } from "../contexts/ListeningRoomContext";
 import { useVoiceCatalog } from "../hooks/useVoiceCatalog";
 import { initTelemetry, flushNow } from "../lib/telemetry";
@@ -97,21 +98,16 @@ export default function Home() {
                 placeholder="warm narrator for a sleep app, unhurried"
                 maxLength={500}
               />
-              <button type="submit" className="lr-btn lr-btn-primary">
+              <Button type="submit">
                 Find a voice <ArrowRight className="w-4 h-4" aria-hidden />
-              </button>
+              </Button>
             </form>
 
             <div className="lr-examples">
               {EXAMPLE_BRIEFS.map((example) => (
-                <button
-                  key={example}
-                  type="button"
-                  className="lr-chip"
-                  onClick={() => goDiscover(example)}
-                >
+                <Chip key={example} onClick={() => goDiscover(example)}>
                   {example}
-                </button>
+                </Chip>
               ))}
             </div>
 
@@ -133,9 +129,7 @@ export default function Home() {
             {query.isError && (
               <p className="lr-error-text" role="status">
                 Voices could not be loaded.{" "}
-                <button type="button" className="lr-chip" onClick={() => void query.refetch()}>
-                  Retry
-                </button>
+                <Chip onClick={() => void query.refetch()}>Retry</Chip>
               </p>
             )}
             {!query.isLoading && !query.isError && sampleVoices.length === 0 && (
@@ -178,51 +172,45 @@ export default function Home() {
         </section>
 
         {/* ── Pipeline — the match, anatomised ─────────────────────────────── */}
-        <details className="lr-details">
-          <summary>How a match is made</summary>
-          <div className="lr-details-body">
-            <div className="lr-pipeline">
-              {PIPELINE.map((s) => (
-                <div key={s.stage} className="lr-pipeline-stage">
-                  <h4>{s.title}</h4>
-                  <p>{s.desc}</p>
-                </div>
-              ))}
-            </div>
-            <p className="lr-quiet">
-              <Link href="/benchmarks" style={{ color: "var(--lr-accent)" }}>
-                Measured vs GPT-4o-mini on the benchmarks page →
-              </Link>
-            </p>
+        <Disclosure title="How a match is made">
+          <div className="lr-pipeline">
+            {PIPELINE.map((s) => (
+              <div key={s.stage} className="lr-pipeline-stage">
+                <h4>{s.title}</h4>
+                <p>{s.desc}</p>
+              </div>
+            ))}
           </div>
-        </details>
+          <p className="lr-quiet">
+            <Link href="/benchmarks" style={{ color: "var(--lr-accent)" }}>
+              Measured vs GPT-4o-mini on the benchmarks page →
+            </Link>
+          </p>
+        </Disclosure>
 
         {/* ── Economics — the split, drawn not claimed ─────────────────────── */}
-        <details className="lr-details">
-          <summary>On-chain economics</summary>
-          <div className="lr-details-body">
-            <div className="lr-legacy-inset">
-              <div className="lr-pipeline">
-                <div className="lr-pipeline-stage" style={{ background: "var(--lr-night-raised)", borderColor: "var(--lr-night-line)" }}>
-                  <h4>License purchases</h4>
-                  <SplitBar variant="license" />
-                  <p style={{ marginTop: "0.75rem" }}>
-                    Split at purchase time, on-chain. The proportion is a contract
-                    constant — platformFeeBps 3000 — not a promise.
-                  </p>
-                </div>
-                <div className="lr-pipeline-stage" style={{ background: "var(--lr-night-raised)", borderColor: "var(--lr-night-line)" }}>
-                  <h4>x402 recording sales</h4>
-                  <SplitBar variant="x402" />
-                  <p style={{ marginTop: "0.75rem" }}>
-                    The better deal for creators — platformFeePercent 5 in
-                    VoiceRecords.sol, so 95% of every access payment is theirs.
-                  </p>
-                </div>
+        <Disclosure title="On-chain economics">
+          <div className="lr-legacy-inset">
+            <div className="lr-pipeline">
+              <div className="lr-pipeline-stage" style={{ background: "var(--lr-night-raised)", borderColor: "var(--lr-night-line)" }}>
+                <h4>License purchases</h4>
+                <SplitBar variant="license" />
+                <p style={{ marginTop: "0.75rem" }}>
+                  Split at purchase time, on-chain. The proportion is a contract
+                  constant — platformFeeBps 3000 — not a promise.
+                </p>
+              </div>
+              <div className="lr-pipeline-stage" style={{ background: "var(--lr-night-raised)", borderColor: "var(--lr-night-line)" }}>
+                <h4>x402 recording sales</h4>
+                <SplitBar variant="x402" />
+                <p style={{ marginTop: "0.75rem" }}>
+                  The better deal for creators — platformFeePercent 5 in
+                  VoiceRecords.sol, so 95% of every access payment is theirs.
+                </p>
               </div>
             </div>
           </div>
-        </details>
+        </Disclosure>
 
         {/* ── Footer ───────────────────────────────────────────────────────── */}
         <footer className="lr-home-footer">

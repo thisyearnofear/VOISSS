@@ -178,3 +178,27 @@ From `apps/web`, run the focused Listening Room tests:
 ```bash
 pnpm exec vitest run test/listening-room.test.ts test/listening-player.test.ts test/listening-preview.test.ts
 ```
+
+## UI conventions (Listening Room system)
+
+The product's visual system lives in `src/styles/tokens.css` (values) and
+`src/styles/listening-room.css` (`lr-*` classes). `tailwind.config.ts` binds the
+tokens as `lr-*` utilities (`bg-lr-paper`, `text-lr-muted`, `border-lr-line`,
+`rounded-lr`, `p-lr-md`, `ease-lr`, `duration-lr`).
+
+- No new hardcoded hex colors in components — use tokens or `var(--lr-*)`.
+- Compose screens from `src/components/ui` primitives: `Disclosure`
+  (`variant="section" | "inline"`), `Chip`, `Badge`, `Notice`, `Button`.
+  Links styled as buttons keep raw classes (`className="lr-btn lr-btn-ghost"`).
+- Progressive disclosure tiers: tier 0 = the page's one task + one primary
+  action, always visible; tier 1 = explanations/fit/provenance inside
+  `Disclosure`; tier 2 = payment config, contracts, benchmarks — separate
+  route or modal. Nothing tier-2 renders above tier-0 content.
+- Give related disclosures the same `name` attribute for exclusive accordion
+  behavior; give them `id`s for deep-linking (browsers auto-open hash targets).
+- All audio goes through the shared Listening Room player
+  (`contexts/ListeningRoomContext`) — never a second `<audio>` element.
+- Interactive targets stay ≥44px; every animated element needs a
+  `prefers-reduced-motion` fallback.
+- `src/app/dev/primitives` renders a dev-only catalog of primitives in both
+  themes — update it when adding or changing a primitive.

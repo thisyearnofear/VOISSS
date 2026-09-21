@@ -12,6 +12,7 @@ import { useVoiceCatalog } from "@/hooks/useVoiceCatalog";
 import { pickInitialVoice } from "@/lib/listening-room";
 import { parsePreviewAllowance, readPreviewResponse } from "@/lib/listening-preview";
 import { VoiceAuditionRow, voiceDisplayName, voiceMetaLine } from "@/components/listening/VoiceAuditionRow";
+import { Button, Chip, Notice } from "@/components/ui";
 
 const DEMO_GENERATIONS_KEY = "voisss_demo_generations";
 const MAX_GENERATIONS = 3;
@@ -383,18 +384,16 @@ function GeneratePageInner() {
         </p>
 
         {query.isError && (
-          <p className="lr-notice lr-error-text" role="status" style={{ marginTop: "1rem" }}>
+          <Notice tone="error" style={{ marginTop: "1rem" }}>
             Voices could not be loaded.{" "}
-            <button type="button" className="lr-chip" onClick={() => void query.refetch()}>
-              Retry
-            </button>
-          </p>
+            <Chip onClick={() => void query.refetch()}>Retry</Chip>
+          </Notice>
         )}
 
         {voiceUnavailable && (
-          <p className="lr-notice lr-error-text" role="status" style={{ marginTop: "1rem" }}>
+          <Notice tone="error" style={{ marginTop: "1rem" }}>
             This voice is unavailable. Choose another voice.
-          </p>
+          </Notice>
         )}
 
         {/* Main card */}
@@ -409,15 +408,13 @@ function GeneratePageInner() {
             </div>
             <div className="lr-examples" style={{ marginTop: 0, marginBottom: "0.75rem" }}>
               {SAMPLE_TEXTS.map((sample) => (
-                <button
+                <Chip
                   key={sample.label}
-                  type="button"
-                  className="lr-chip"
                   onClick={() => handleScriptChange(sample.text)}
                   disabled={generating}
                 >
                   {sample.label}
-                </button>
+                </Chip>
               ))}
             </div>
             <textarea
@@ -441,12 +438,10 @@ function GeneratePageInner() {
             <div style={{ marginTop: "1rem" }}>
               {generationsLeft > 0 ? (
                 <>
-                  <button
-                    type="button"
+                  <Button
                     onClick={handleGenerate}
                     disabled={!ready || !allowanceReady || generating || !text.trim() || !selectedVoice}
                     id="generate-btn"
-                    className="lr-btn lr-btn-primary"
                     style={{ width: "100%" }}
                   >
                     {generating ? (
@@ -460,13 +455,13 @@ function GeneratePageInner() {
                         <span>Generate preview</span>
                       </>
                     )}
-                  </button>
+                  </Button>
                   <p className="lr-quiet" style={{ textAlign: "center" }}>
                     Free preview · up to 500 characters
                   </p>
                 </>
               ) : (
-                <div className="lr-notice">
+                <Notice>
                   {/* Conversion */}
                   <p style={{ margin: 0, fontWeight: 600 }}>Preview limit reached</p>
                   <p style={{ margin: "0.4rem 0 0.75rem" }}>
@@ -475,15 +470,11 @@ function GeneratePageInner() {
                   {/* API teaser */}
                   <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                     <Link href="/developers" className="lr-btn lr-btn-ghost">Developers</Link>
-                    <button
-                      type="button"
-                      className="lr-btn lr-btn-primary"
-                      onClick={() => setShowBuyCredits(true)}
-                    >
+                    <Button onClick={() => setShowBuyCredits(true)}>
                       <Zap className="w-4 h-4" aria-hidden /> Buy API credits
-                    </button>
+                    </Button>
                   </div>
-                </div>
+                </Notice>
               )}
             </div>
 
@@ -491,9 +482,8 @@ function GeneratePageInner() {
               <div className="lr-result">
                 <p style={{ margin: 0, fontWeight: 600 }}>Your preview is ready</p>
                 <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.75rem" }}>
-                  <button
-                    type="button"
-                    className="lr-btn lr-btn-ghost"
+                  <Button
+                    variant="ghost"
                     onClick={() => void player.toggle(generationTrack)}
                   >
                     {generationPlaying ? (
@@ -501,7 +491,7 @@ function GeneratePageInner() {
                     ) : (
                       <><Play className="w-4 h-4" aria-hidden /> Play</>
                     )}
-                  </button>
+                  </Button>
                   <a
                     className="lr-btn lr-btn-ghost"
                     href={audioUrl}
@@ -511,9 +501,8 @@ function GeneratePageInner() {
                   >
                     Open audio
                   </a>
-                  <button
-                    type="button"
-                    className="lr-btn lr-btn-ghost"
+                  <Button
+                    variant="ghost"
                     onClick={() => void shareVoiceLink()}
                   >
                     {copied ? (
@@ -521,7 +510,7 @@ function GeneratePageInner() {
                     ) : (
                       <><Share2 className="w-4 h-4" aria-hidden /> Copy voice link</>
                     )}
-                  </button>
+                  </Button>
                 </div>
                 {copyError && (
                   <p className="lr-error-text" role="status" style={{ marginTop: "0.5rem" }}>

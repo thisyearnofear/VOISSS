@@ -60,9 +60,50 @@ const config: Config = {
           500: '#06b6d4',
           600: '#0891b2',
         },
+        // Listening Room system — CSS vars defined in src/styles/tokens.css.
+        // Use these (e.g. bg-lr-paper, text-lr-muted) instead of new hex values.
+        lr: {
+          paper: 'var(--lr-paper)',
+          surface: 'var(--lr-surface)',
+          ink: 'var(--lr-ink)',
+          muted: 'var(--lr-muted)',
+          line: 'var(--lr-line)',
+          accent: 'var(--lr-accent)',
+          'accent-soft': 'var(--lr-accent-soft)',
+          focus: 'var(--lr-focus)',
+          night: {
+            DEFAULT: 'var(--lr-night)',
+            raised: 'var(--lr-night-raised)',
+            ink: 'var(--lr-night-ink)',
+            muted: 'var(--lr-night-muted)',
+            line: 'var(--lr-night-line)',
+            accent: 'var(--lr-night-accent)',
+          },
+          error: 'var(--lr-error)',
+          'error-dark': 'var(--lr-error-dark)',
+        },
+      },
+      spacing: {
+        'lr-xs': 'var(--lr-space-xs)',
+        'lr-sm': 'var(--lr-space-sm)',
+        'lr-md': 'var(--lr-space-md)',
+        'lr-lg': 'var(--lr-space-lg)',
+        'lr-xl': 'var(--lr-space-xl)',
+        'lr-2xl': 'var(--lr-space-2xl)',
+        'lr-3xl': 'var(--lr-space-3xl)',
+      },
+      borderRadius: {
+        lr: 'var(--lr-radius)',
+      },
+      transitionTimingFunction: {
+        lr: 'var(--lr-ease)',
+      },
+      transitionDuration: {
+        lr: 'var(--lr-duration)',
       },
       fontFamily: {
         display: ['var(--font-syne)', 'sans-serif'],
+        body: ['var(--font-inter)', 'sans-serif'],
         mono: ['var(--font-courier-prime)', 'monospace'],
         accent: ['var(--font-anton)', 'Impact', 'sans-serif'],
       },
