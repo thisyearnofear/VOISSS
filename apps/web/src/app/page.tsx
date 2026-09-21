@@ -1,16 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Mic, Sparkles, Terminal, Zap } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import OnboardingRedirect from "../components/OnboardingRedirect";
 import HomeStructuredData from "../components/HomeStructuredData";
-import VoiceTerrain from "../components/VoiceTerrain";
 import SplitBar from "../components/SplitBar";
-import TerrainBand from "../components/marketplace/TerrainBand";
-import QuickVoicePreview from "../components/marketplace/QuickVoicePreview";
-import MatchConsole from "../components/landing/MatchConsole";
-import { pulseVoice } from "../lib/terrain-bus";
+import { SignalRibbon } from "../components/listening/SignalRibbon";
+import { VoiceAuditionRow } from "../components/listening/VoiceAuditionRow";
+import { useListeningPlayback, useListeningRoom } from "../contexts/ListeningRoomContext";
+import { useVoiceCatalog } from "../hooks/useVoiceCatalog";
 import { initTelemetry, flushNow } from "../lib/telemetry";
 
 if (typeof window !== "undefined") {
@@ -19,9 +18,9 @@ if (typeof window !== "undefined") {
 }
 
 const EXAMPLE_BRIEFS = [
-  "calm meditation narrator",
-  "urgent ad read for a product drop",
-  "friendly podcast host",
+  "Calm narration",
+  "A warm welcome",
+  "An energetic ad",
 ];
 
 const PIPELINE = [
@@ -47,379 +46,192 @@ const PIPELINE = [
   },
 ];
 
-const PATHS = [
-  {
-    icon: Zap,
-    title: "Discover voices",
-    desc: "Describe it in plain English — ranked matches with reasons, instant preview, pay per character.",
-    href: "/marketplace",
-    cta: "marketplace",
-  },
-  {
-    icon: Mic,
-    title: "Sell your voice",
-    desc: "Record in the studio or import from ElevenLabs. 70% of every license settles to you on Base.",
-    href: "/sell",
-    cta: "start selling",
-  },
-  {
-    icon: Terminal,
-    title: "Build with the API",
-    desc: "One POST to /api/agents/vocalize. x402 micropayments, OpenAPI spec, agent wallets that pay for themselves.",
-    href: "/developers",
-    cta: "read the docs",
-  },
-];
-
 export default function Home() {
   const router = useRouter();
-  const [brief, setBrief] = useState("");
-  const [voiceCount, setVoiceCount] = useState<number | null>(null);
+  const { draft, updateDraft } = useListeningRoom();
+  const playback = useListeningPlayback();
+  const { query, voices } = useVoiceCatalog();
 
   // Live catalog size for the wireframe index — honest number, quiet fallback.
-  useEffect(() => {
-    fetch("/api/marketplace/voices?limit=1")
-      .then((r) => r.json())
-      .then((d) => {
-        const t = d?.data?.total;
-        if (typeof t === "number" && t > 0) setVoiceCount(t);
-      })
-      .catch(() => {});
-  }, []);
+  const sampleVoices = voices.filter((v) => Boolean(v.sampleUrl)).slice(0, 3);
 
-  const submitBrief = (value: string) => {
+  const goDiscover = (value: string) => {
     const q = value.trim();
-    pulseVoice("lift");
+    updateDraft({ brief: q });
     router.push(q ? `/marketplace?brief=${encodeURIComponent(q)}` : "/marketplace");
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white overflow-hidden">
+    <main id="listening-main" className="lr-home">
       <HomeStructuredData />
       <OnboardingRedirect />
 
-      {/* ── Hero — the instrument frame. The page performs the match. ──────── */}
-      <div className="voisss-container pt-6 sm:pt-10">
-        <div className="voisss-frame voisss-corner-diagonals voisss-corner-ticks relative overflow-hidden">
-          {/* Licensed Signal — procedural field, pointer-reactive, one rAF */}
-          <VoiceTerrain />
-          <div className="voisss-progressive-blur" aria-hidden />
+      <div className="lr-wrap">
+        {/* ── Hero — the instrument frame. The page performs the match. ──────── */}
+        <section className="lr-home-hero">
+          {/* Main grid — copy + instrument */}
+          <div className="lr-home-copy">
+            <small className="lr-eyebrow">A voice worth listening to.</small>
+            <h1 className="lr-h1">Find the voice your project needs.</h1>
+            <p className="lr-lede">
+              Describe the sound. Hear the options. Try your words.
+            </p>
 
-          <div className="relative z-10">
-            {/* Wireframe index */}
-            <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4 px-4 sm:px-6 lg:px-7 py-3 border-b border-white/[0.06] text-[10px] font-mono uppercase tracking-[0.14em] text-white/45">
-              <span className="flex items-center gap-2.5 min-w-0">
-                <span className="inline-flex h-5 items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 text-[10px] font-bold tracking-[0.12em] text-white/70">
-                  01 — Licensed Signal
-                </span>
-                <span className="hidden sm:inline truncate">Voice IP · settled on Base</span>
-                <span className="sm:hidden">Base 8453</span>
-              </span>
-              <span className="flex items-center gap-2.5 shrink-0">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.6)]" aria-hidden />
-                  {voiceCount !== null ? `${voiceCount} voices live` : "voices live"}
-                </span>
-                <span className="hidden md:inline h-3 w-px bg-white/10" aria-hidden />
-                <span className="hidden md:inline">$0.000001/char</span>
-                <span className="hidden sm:inline h-3 w-px bg-white/10" aria-hidden />
-                <span className="hidden sm:inline">70% → contributor</span>
-              </span>
-            </div>
+            {/* The search — demonstrates the match here, submits into the live marketplace */}
+            <form
+              className="lr-brief-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                goDiscover(draft.brief);
+              }}
+            >
+              <label htmlFor="home-brief" className="lr-label" style={{ flexBasis: "100%", color: "var(--lr-muted)" }}>
+                What should it sound like?
+              </label>
+              <input
+                id="home-brief"
+                type="text"
+                className="lr-input"
+                value={draft.brief}
+                onChange={(e) => updateDraft({ brief: e.target.value.slice(0, 500) })}
+                placeholder="warm narrator for a sleep app, unhurried"
+                maxLength={500}
+              />
+              <button type="submit" className="lr-btn lr-btn-primary">
+                Find a voice <ArrowRight className="w-4 h-4" aria-hidden />
+              </button>
+            </form>
 
-            {/* Main grid — copy + instrument */}
-            <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-7 lg:gap-9 px-4 sm:px-6 lg:px-7 py-7 sm:py-9 lg:py-11 items-center">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-3 mb-5">
-                  <span className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full voisss-border-gradient">
-                    <Sparkles className="w-3.5 h-3.5 text-[#9C88FF]" aria-hidden />
-                    <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-white/75">
-                      Live marketplace · rubric-explained matching
-                    </span>
-                  </span>
-                </div>
-
-                <h1 className="font-syne font-bold leading-[0.92] tracking-[-0.045em] text-[36px] sm:text-[48px] lg:text-[56px] xl:text-[60px]" data-reveal>
-                  <span className="voisss-masked-reveal block text-white">Describe the voice.</span>
-                  <span className="voisss-masked-reveal voisss-masked-reveal-delay-1 block voisss-gradient-text">
-                    Get ranked matches
-                  </span>
-                  <span className="voisss-masked-reveal voisss-masked-reveal-delay-2 block text-white/90">
-                    with reasons.
-                  </span>
-                </h1>
-
-                <div className="voisss-editorial-rule mt-5 max-w-[36rem]" data-reveal data-reveal-delay="1" aria-hidden />
-
-                <p className="mt-4 text-[15px] sm:text-[16px] leading-relaxed text-zinc-300 max-w-[38rem]" data-reveal data-reveal-delay="1">
-                  Type what you need in plain English — every real voice is scored,
-                  ranked, and explained in under a second. Preview instantly, pay per use.
-                </p>
-
-                {/* The search — demonstrates the match here, submits into the live marketplace */}
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    submitBrief(brief);
-                  }}
-                  className="mt-6 flex flex-col sm:flex-row gap-3 max-w-xl"
-                  data-reveal
-                  data-reveal-delay="2"
-                >
-                  <input
-                    type="text"
-                    value={brief}
-                    onChange={(e) => setBrief(e.target.value)}
-                    placeholder='"warm narrator for a sleep app, unhurried"'
-                    aria-label="Describe the voice you need"
-                    className="flex-1 bg-[#0A0A0A]/70 backdrop-blur border border-white/15 focus:border-[#7C5DFA] focus:ring-1 focus:ring-[#7C5DFA]/30 rounded-xl px-4 py-3.5 text-[15px] text-white placeholder:text-zinc-600 outline-none transition-all"
-                  />
-                  <button
-                    type="submit"
-                    className="voisss-beam-glow inline-flex items-center justify-center gap-2.5 rounded-xl bg-white px-6 py-3.5 text-[15px] font-semibold tracking-[-0.01em] text-black shadow-[0_10px_30px_rgba(255,255,255,0.12)] hover:bg-zinc-50 transition-colors shrink-0"
-                  >
-                    Match voices <ArrowRight className="w-4 h-4" aria-hidden />
-                  </button>
-                </form>
-
-                <div className="mt-3 flex flex-wrap gap-1.5" data-reveal data-reveal-delay="2">
-                  {EXAMPLE_BRIEFS.map((example) => (
-                    <button
-                      key={example}
-                      type="button"
-                      onClick={() => setBrief(example)}
-                      className="text-[11px] px-2.5 py-1.5 rounded-md bg-[#7C5DFA]/10 text-[#9C88FF] border border-[#7C5DFA]/20 hover:bg-[#7C5DFA]/20 hover:border-[#7C5DFA]/40 transition-all"
-                    >
-                      {example}
-                    </button>
-                  ))}
-                </div>
-
-                <div
-                  className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] font-mono tracking-wide text-white/50"
-                  data-reveal
-                  data-reveal-delay="3"
-                >
-                  <span className="voisss-number-detail text-white/80">
-                    $0.000001<span className="text-white/40">/char</span>
-                  </span>
-                  <span className="h-3 w-px bg-white/10" aria-hidden />
-                  <span>x402 on Base</span>
-                  <span className="h-3 w-px bg-white/10" aria-hidden />
-                  <span className="text-white/40">agent wallets settle themselves</span>
-                </div>
-              </div>
-
-              {/* The instrument — a real rubric match, replayed in-browser */}
-              <div className="min-w-0" data-reveal data-reveal-delay="2">
-                <MatchConsole brief={brief} />
-                <p className="mt-2.5 text-center text-[10px] font-mono uppercase tracking-[0.12em] text-white/30">
-                  the page performs the match — the marketplace keeps it
-                </p>
-              </div>
-            </div>
-
-            {/* Bottom proof strip */}
-            <div className="border-t border-white/[0.06] bg-[#0A0A0A]/55 backdrop-blur px-4 sm:px-6 lg:px-7 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
-              <span className="inline-flex flex-wrap items-center gap-2 sm:gap-3 text-white/55">
-                <span className="inline-flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
-                  <span className="font-mono text-white/75">Production ready</span>
-                  <span className="text-white/25">·</span>
-                  <span>Live on Base</span>
-                </span>
-                <span className="hidden sm:inline h-3 w-px bg-white/10" aria-hidden />
-                <span className="hidden sm:inline text-white/40">consent · provenance · fair pay</span>
-              </span>
-              <span className="flex items-center gap-3">
+            <div className="lr-examples">
+              {EXAMPLE_BRIEFS.map((example) => (
                 <button
+                  key={example}
                   type="button"
-                  onClick={() => pulseVoice("settle")}
-                  className="inline-flex items-center gap-1.5 text-white/45 hover:text-white transition-colors font-mono text-[11px] uppercase tracking-widest"
-                  title="Animate the 70/30 contributor split across the voice terrain"
+                  className="lr-chip"
+                  onClick={() => goDiscover(example)}
                 >
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#9C88FF]" aria-hidden />
-                  Preview 70/30 settle
+                  {example}
                 </button>
-                <span className="text-white/15" aria-hidden>·</span>
-                <a
-                  href="/benchmarks"
-                  className="inline-flex items-center gap-1.5 text-white/45 hover:text-white transition-colors font-mono text-[11px] uppercase tracking-widest"
-                >
-                  Benchmarks <span aria-hidden>↗</span>
-                </a>
-              </span>
+              ))}
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* ── Pipeline — the match, anatomised ─────────────────────────────── */}
-      <div className="voisss-container py-14 sm:py-16">
-        <div className="flex items-end justify-between flex-wrap gap-3 mb-7" data-reveal>
-          <div>
-            <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-white/40 mb-2">
-              How a match is made
-            </p>
-            <h2 className="font-syne text-2xl sm:text-3xl font-bold tracking-[-0.02em] text-white">
-              Explainable by construction
-            </h2>
+            <p className="lr-quiet">Listen to catalog samples. No account needed.</p>
           </div>
-          <a
-            href="/benchmarks"
-            className="text-sm text-[#9C88FF] hover:text-[#C4B5FD] transition-colors flex items-center gap-1"
-          >
-            Measured vs GPT-4o-mini <ArrowRight className="w-3.5 h-3.5" aria-hidden />
-          </a>
-        </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {PIPELINE.map((s, i) => (
-            <div
-              key={s.stage}
-              data-reveal
-              data-reveal-delay={String(Math.min(i + 1, 4))}
-              className="voisss-container-lines voisss-specular relative rounded-xl bg-[#0F0F0F]/70 p-5"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[10px] font-mono tracking-[0.14em] text-[#9C88FF]">{s.stage}</span>
-                <span className="text-[10px] font-mono text-white/25" aria-hidden>
-                  {i < PIPELINE.length - 1 ? "→" : "◼"}
-                </span>
-              </div>
-              <h3 className="font-syne text-[15px] font-bold tracking-[-0.01em] text-white mb-1.5">{s.title}</h3>
-              <p className="text-[13px] leading-relaxed text-zinc-400">{s.desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Hear it — playback energizes the field ───────────────────────── */}
-      <div className="voisss-container pb-14 sm:pb-16">
-        <div className="grid lg:grid-cols-2 gap-4 items-stretch">
-          <div className="min-w-0" data-reveal>
-            <QuickVoicePreview />
-          </div>
-          <div className="flex min-w-0 flex-col gap-4">
-            <div data-reveal data-reveal-delay="1">
-              <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-white/40 mb-2">
-                The signature
+          {/* The instrument — a real rubric match, replayed in-browser */}
+          <section className="lr-audition" aria-label="Listen to voices">
+            {/* Wireframe index */}
+            <header className="lr-audition-head">
+              <h2>Start by listening</h2>
+              <span>Catalog samples</span>
+            </header>
+            {/* Licensed Signal — procedural field, pointer-reactive, one rAF */}
+            <SignalRibbon playing={playback.status === "playing"} />
+            {query.isLoading && (
+              <p className="lr-quiet" role="status">Loading voices…</p>
+            )}
+            {query.isError && (
+              <p className="lr-error-text" role="status">
+                Voices could not be loaded.{" "}
+                <button type="button" className="lr-chip" onClick={() => void query.refetch()}>
+                  Retry
+                </button>
               </p>
-              <h2 className="font-syne text-2xl sm:text-3xl font-bold tracking-[-0.02em] text-white">
-                Press play — the field wakes.
-              </h2>
-              <p className="mt-3 text-[14px] leading-relaxed text-zinc-400 max-w-md">
-                Voices are heard, not read. Every preview anywhere on the site drives
-                the terrain through one shared bus — browsing becomes using.
-              </p>
-            </div>
-            <TerrainBand
-              readyLabel="Idle — press play and the field wakes"
-              heightClass="flex-1 min-h-[180px]"
-              className="flex-1"
-            />
-          </div>
-        </div>
-      </div>
+            )}
+            {!query.isLoading && !query.isError && sampleVoices.length === 0 && (
+              <p className="lr-quiet">No catalog samples are available right now.</p>
+            )}
+            {/* ── Hear it — playback energizes the field ───────────────────────── */}
+            {sampleVoices.map((voice) => (
+              <VoiceAuditionRow key={voice.id} voice={voice} />
+            ))}
+          </section>
+        </section>
 
-      {/* ── Economics — the split, drawn not claimed ─────────────────────── */}
-      <div className="voisss-container pb-14 sm:pb-16">
-        <div className="mb-7" data-reveal>
-          <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-white/40 mb-2">
-            On-chain economics
+        {/* Bottom proof strip */}
+        <section className="lr-home-proof">
+          <h2>Find the fit. Keep the context.</h2>
+          {/* ── Three paths ──────────────────────────────────────────────────── */}
+          <div className="lr-entries">
+            <Link className="lr-entry" href="/marketplace">
+              <h3>For your next project</h3>
+              <p>
+                Describe the voice in plain English, hear ranked matches with
+                reasons, then carry your pick into the workspace to try your own
+                words.
+              </p>
+            </Link>
+            <Link className="lr-entry" href="/developers">
+              <h3>For your application</h3>
+              <p>
+                One POST to /api/agents/vocalize. OpenAPI spec, x402
+                micropayments, and voices licensed for programmatic use.
+              </p>
+            </Link>
+          </div>
+          <p className="lr-quiet">
+            Have a voice worth licensing?{" "}
+            <Link href="/sell" style={{ color: "var(--lr-accent)" }}>
+              Contributors record or import in the Studio →
+            </Link>
           </p>
-          <h2 className="font-syne text-2xl sm:text-3xl font-bold tracking-[-0.02em] text-white">
-            The split, drawn.
-          </h2>
-        </div>
-        <div className="grid md:grid-cols-2 gap-3">
-          <div
-            className="voisss-container-lines voisss-specular rounded-2xl bg-[#0F0F0F]/70 p-5 sm:p-6"
-            data-reveal
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-syne text-[15px] font-bold text-white">License purchases</h3>
-              <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-white/35">marketplace</span>
+        </section>
+
+        {/* ── Pipeline — the match, anatomised ─────────────────────────────── */}
+        <details className="lr-details">
+          <summary>How a match is made</summary>
+          <div className="lr-details-body">
+            <div className="lr-pipeline">
+              {PIPELINE.map((s) => (
+                <div key={s.stage} className="lr-pipeline-stage">
+                  <h4>{s.title}</h4>
+                  <p>{s.desc}</p>
+                </div>
+              ))}
             </div>
-            <SplitBar variant="license" />
-            <p className="mt-4 text-[13px] leading-relaxed text-zinc-400">
-              Split at purchase time, on-chain. The proportion is a contract
-              constant — <span className="text-white/70">platformFeeBps 3000</span> — not a promise.
+            <p className="lr-quiet">
+              <Link href="/benchmarks" style={{ color: "var(--lr-accent)" }}>
+                Measured vs GPT-4o-mini on the benchmarks page →
+              </Link>
             </p>
           </div>
-          <div
-            className="voisss-container-lines voisss-specular rounded-2xl bg-[#0F0F0F]/70 p-5 sm:p-6"
-            data-reveal
-            data-reveal-delay="1"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-syne text-[15px] font-bold text-white">x402 recording sales</h3>
-              <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-white/35">agent-native</span>
+        </details>
+
+        {/* ── Economics — the split, drawn not claimed ─────────────────────── */}
+        <details className="lr-details">
+          <summary>On-chain economics</summary>
+          <div className="lr-details-body">
+            <div className="lr-legacy-inset">
+              <div className="lr-pipeline">
+                <div className="lr-pipeline-stage" style={{ background: "var(--lr-night-raised)", borderColor: "var(--lr-night-line)" }}>
+                  <h4>License purchases</h4>
+                  <SplitBar variant="license" />
+                  <p style={{ marginTop: "0.75rem" }}>
+                    Split at purchase time, on-chain. The proportion is a contract
+                    constant — platformFeeBps 3000 — not a promise.
+                  </p>
+                </div>
+                <div className="lr-pipeline-stage" style={{ background: "var(--lr-night-raised)", borderColor: "var(--lr-night-line)" }}>
+                  <h4>x402 recording sales</h4>
+                  <SplitBar variant="x402" />
+                  <p style={{ marginTop: "0.75rem" }}>
+                    The better deal for creators — platformFeePercent 5 in
+                    VoiceRecords.sol, so 95% of every access payment is theirs.
+                  </p>
+                </div>
+              </div>
             </div>
-            <SplitBar variant="x402" />
-            <p className="mt-4 text-[13px] leading-relaxed text-zinc-400">
-              The better deal for creators — <span className="text-white/70">platformFeePercent 5</span> in
-              VoiceRecords.sol, so 95% of every access payment is theirs.
-            </p>
           </div>
-        </div>
-      </div>
+        </details>
 
-      {/* ── Three paths ──────────────────────────────────────────────────── */}
-      <div className="voisss-container pb-16 sm:pb-20">
-        <div className="grid md:grid-cols-3 gap-3">
-          {PATHS.map((p, i) => (
-            <a
-              key={p.title}
-              href={p.href}
-              data-reveal
-              data-reveal-delay={String(Math.min(i + 1, 4))}
-              className="group voisss-container-lines voisss-specular voisss-corner-ticks rounded-2xl bg-[#0F0F0F]/70 p-5 sm:p-6 hover:border-white/20 transition-colors"
-            >
-              <span className="grid h-10 w-10 place-items-center rounded-xl border border-white/12 bg-white/[0.04] text-[#9C88FF] mb-4">
-                <p.icon className="w-5 h-5" aria-hidden />
-              </span>
-              <h3 className="font-syne text-[16px] font-bold tracking-[-0.01em] text-white mb-2">{p.title}</h3>
-              <p className="text-[13px] leading-relaxed text-zinc-400 mb-4">{p.desc}</p>
-              <span className="text-[11px] font-mono uppercase tracking-[0.12em] text-[#9C88FF] group-hover:text-[#C4B5FD] transition-colors inline-flex items-center gap-1.5">
-                {p.cta} <ArrowRight className="w-3.5 h-3.5" aria-hidden />
-              </span>
-            </a>
-          ))}
-        </div>
+        {/* ── Footer ───────────────────────────────────────────────────────── */}
+        <footer className="lr-home-footer">
+          <Link href="/help">Help</Link>
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/sell">Contributors</Link>
+          <Link href="/developers">Developers</Link>
+        </footer>
       </div>
-
-      {/* ── Footer ───────────────────────────────────────────────────────── */}
-      <div className="voisss-container py-10 border-t border-white/[0.08]">
-        <div className="flex flex-wrap gap-x-10 gap-y-3 text-xs font-bold uppercase tracking-[0.14em]">
-          <a href="/marketplace" className="text-white hover:text-purple-400 transition-colors">
-            Discover
-          </a>
-          <a href="/generate" className="text-zinc-400 hover:text-white transition-colors">
-            Generate
-          </a>
-          <a href="/sell" className="text-zinc-400 hover:text-white transition-colors">
-            Sell
-          </a>
-          <a href="/developers" className="text-zinc-400 hover:text-white transition-colors">
-            API
-          </a>
-          <a href="/benchmarks" className="text-zinc-400 hover:text-white transition-colors">
-            Benchmarks
-          </a>
-          <a
-            href="https://github.com/thisyearnofear/VOISSS"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-zinc-400 hover:text-white transition-colors"
-          >
-            GitHub
-          </a>
-        </div>
-        <p className="mt-10 text-zinc-600 text-[10px] tracking-widest uppercase">
-          © 2026 VOISSS. Built on Base • Open Source • MIT License
-        </p>
-      </div>
-    </div>
+    </main>
   );
 }

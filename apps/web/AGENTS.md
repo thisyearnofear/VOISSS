@@ -160,3 +160,21 @@ curl -X POST https://voisss.netlify.app/api/agents/vocalize \
 # Check agent info
 curl "https://voisss.netlify.app/api/agents/vocalize?agentAddress=0x..."
 ```
+
+## Local build prerequisites and Listening Room checks
+
+On a fresh checkout, build workspace package outputs before running the web production build. Both packages expose their types and entry points from `dist/`.
+
+From the repository root:
+
+```bash
+pnpm --filter @voisss/shared build
+pnpm --filter @voisss/ui build
+pnpm --filter @voisss/web build
+```
+
+From `apps/web`, run the focused Listening Room tests:
+
+```bash
+pnpm exec vitest run test/listening-room.test.ts test/listening-player.test.ts test/listening-preview.test.ts
+```

@@ -1,145 +1,151 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback, Suspense } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import {
-  Mic,
-  Play,
-  Pause,
-  Loader2,
-  Sparkles,
-  Zap,
-  CheckCircle,
-  ArrowRight,
-  Volume2,
-  Share2,
-  Check,
-} from "lucide-react";
+import { Loader2, Mic, Pause, Play, Share2, Check, Zap } from "lucide-react";
 import { BuyCreditsModal } from "../../components/payment/BuyCreditsModal";
 import { MascotEvents, publishAppEvent } from "@/lib/mascot-events";
 import type { MarketplaceVoice } from "@/lib/marketplace-indexer";
+import { useListeningRoom, useListeningPlayback } from "@/contexts/ListeningRoomContext";
+import { useVoiceCatalog } from "@/hooks/useVoiceCatalog";
+import { pickInitialVoice } from "@/lib/listening-room";
+import { parsePreviewAllowance, readPreviewResponse } from "@/lib/listening-preview";
+import { VoiceAuditionRow, voiceDisplayName, voiceMetaLine } from "@/components/listening/VoiceAuditionRow";
 
 const DEMO_GENERATIONS_KEY = "voisss_demo_generations";
+const MAX_GENERATIONS = 3;
 
 const SAMPLE_TEXTS = [
   {
-    label: "Podcast Intro",
-    text: "Welcome to the future of voice. Today we're exploring how AI agents are reshaping the creator economy — and why authentic human voices still matter more than ever.",
+    label: "Welcome",
+    text: "Welcome back. Today we are looking at a small idea that grew into something much bigger — and the people who made it happen.",
   },
   {
-    label: "Product Ad",
-    text: "Introducing VOISSS — the voice marketplace where AI agents pay humans for their most uniquely valuable asset. Real voices. Real income. Zero middlemen.",
+    label: "Story opening",
+    text: "The train was already moving when she reached the platform. She watched it go, then sat down on the bench and opened her notebook.",
   },
   {
-    label: "Tech Explainer",
-    text: "Every time an AI agent needs to speak, it searches our marketplace, finds a licensed human voice, pays in USDC, and receives studio-quality audio in milliseconds.",
+    label: "Explainer",
+    text: "Here is how it works. You describe the voice you need, listen to real samples, and then try the winning voice on your own words.",
   },
   {
-    label: "YouTube Narration",
-    text: "In the next ninety seconds, you'll hear why over twenty voice contributors are already earning passive income on VOISSS — and how you can too.",
+    label: "Outro",
+    text: "That is all for this week. Thanks for listening — and if this helped, share it with someone who would enjoy it too.",
   },
 ];
 
-type GenerateStep = "idle" | "generating" | "ready" | "playing";
-
-function voiceName(v: MarketplaceVoice): string {
-  return v.metadata?.title || v.id;
-}
-
-function voiceDesc(v: MarketplaceVoice): string {
-  const parts = [
-    v.voiceProfile?.tone,
-    v.voiceProfile?.accent,
-    v.voiceProfile?.language,
-  ].filter(Boolean);
-  return parts.join(" • ") || "Marketplace voice";
-}
-
 function GeneratePageInner() {
   const searchParams = useSearchParams();
-  const [voices, setVoices] = useState<MarketplaceVoice[]>([]);
-  const [voicesLoading, setVoicesLoading] = useState(true);
+  const { draft, ready, updateDraft, player } = useListeningRoom();
+  const playback = useListeningPlayback();
+  const { query, voices } = useVoiceCatalog();
+
   const [selectedVoice, setSelectedVoice] = useState<MarketplaceVoice | null>(null);
-  const [text, setText] = useState(SAMPLE_TEXTS[0].text);
-  const [step, setStep] = useState<GenerateStep>("idle");
+  const [voiceUnavailable, setVoiceUnavailable] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioIsBlob, setAudioIsBlob] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [generationsLeft, setGenerationsLeft] = useState(3);
+  const [generationsLeft, setGenerationsLeft] = useState(MAX_GENERATIONS);
+  const [allowanceReady, setAllowanceReady] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [copied, setCopied] = useState(false);
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [brief, setBrief] = useState("");
-  const [matchScores, setMatchScores] = useState<Record<string, number>>({});
-  const [matchReasons, setMatchReasons] = useState<Record<string, string[]>>({});
+  const [copyError, setCopyError] = useState(false);
   const [archetype, setArchetype] = useState<string | undefined>(undefined);
-  const [matching, setMatching] = useState(false);
-  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
-  const [previewingId, setPreviewingId] = useState<string | null>(null);
+  const generationToken = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+  const resultUrlRef = useRef<string | null>(null);
+  const lastAppliedParams = useRef<string | null>(null);
+
+  const text = draft.script;
+  const brief = draft.brief;
+
+  const releaseResultUrl = useCallback(() => {
+    if (resultUrlRef.current?.startsWith("blob:")) {
+      URL.revokeObjectURL(resultUrlRef.current);
+    }
+    resultUrlRef.current = null;
+  }, []);
+
+  const clearResult = useCallback(() => {
+    const snap = player.getSnapshot();
+    if (
+      snap.track?.kind === "generation" &&
+      resultUrlRef.current &&
+      snap.track.url === resultUrlRef.current
+    ) {
+      player.stop();
+    }
+    releaseResultUrl();
+    setAudioUrl(null);
+    setAudioIsBlob(false);
+    setError(null);
+    setCopied(false);
+    setCopyError(false);
+  }, [player, releaseResultUrl]);
 
   // Load the real marketplace catalog — same voices buyers see.
+  // Seed brief from deep link — e.g. /generate?brief=calm meditation narrator
   useEffect(() => {
-    fetch("/api/marketplace/voices")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.success) {
-          const list: MarketplaceVoice[] = data.data.voices || [];
-          setVoices(list);
-          const wanted = searchParams.get("voiceId");
-          const pre = wanted
-            ? list.find(
-                (v) => v.id === wanted || v.contractVoiceId === wanted
-              )
-            : undefined;
-          setSelectedVoice(pre || list[0] || null);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setVoicesLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!ready || !query.isSuccess || !voices.length) return;
+    const key = searchParams.toString();
+    if (lastAppliedParams.current === key) return;
+    lastAppliedParams.current = key;
+
+    generationToken.current += 1;
+    abortRef.current?.abort();
+    setGenerating(false);
+    clearResult();
+
+    const requested = searchParams.get("voiceId");
+    const { voice, requestedInvalid } = pickInitialVoice(
+      voices,
+      requested,
+      draft.voiceId
+    );
+    if (requested && requestedInvalid) {
+      setVoiceUnavailable(true);
+      setSelectedVoice(null);
+      updateDraft({ voiceId: "" });
+    } else {
+      setVoiceUnavailable(false);
+      setSelectedVoice(voice);
+      if (voice) updateDraft({ voiceId: voice.id });
+    }
+    const paramBrief = searchParams.get("brief");
+    if (paramBrief !== null) updateDraft({ brief: paramBrief.slice(0, 500) });
+  }, [searchParams, ready, query.isSuccess, voices, draft.voiceId, updateDraft, clearResult]);
 
   // Persist free generation count in localStorage
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(DEMO_GENERATIONS_KEY);
-      if (stored !== null) {
-        const parsed = parseInt(stored, 10);
-        if (!isNaN(parsed) && parsed >= 0 && parsed <= 3) {
-          setGenerationsLeft(parsed);
-        }
-      }
+      setGenerationsLeft(
+        parsePreviewAllowance(localStorage.getItem(DEMO_GENERATIONS_KEY))
+      );
     } catch {
       // localStorage unavailable — use default
     }
+    setAllowanceReady(true);
   }, []);
 
   useEffect(() => {
+    if (!allowanceReady) return;
     try {
       localStorage.setItem(DEMO_GENERATIONS_KEY, String(generationsLeft));
     } catch {
       // silent
     }
-  }, [generationsLeft]);
-
-  // Seed brief from deep link — e.g. /generate?brief=calm meditation narrator
-  useEffect(() => {
-    const b = searchParams.get("brief");
-    if (b) setBrief(b);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [generationsLeft, allowanceReady]);
 
   // Optional intent matching — reorders the picker and shows fit + reasons.
   useEffect(() => {
+    setArchetype(undefined);
     if (brief.trim().length < 3) {
-      setMatchScores({});
-      setMatchReasons({});
-      setArchetype(undefined);
       return;
     }
     const controller = new AbortController();
     const timer = setTimeout(async () => {
-      setMatching(true);
       try {
         const res = await fetch("/api/marketplace/voice-match", {
           method: "POST",
@@ -148,15 +154,11 @@ function GeneratePageInner() {
           signal: controller.signal,
         });
         const data = await res.json();
-        if (data.success) {
-          setMatchScores(data.data.scores || {});
-          setMatchReasons(data.data.reasons || {});
+        if (!controller.signal.aborted && data.success) {
           setArchetype(data.data.archetype);
         }
       } catch (e) {
         if (!controller.signal.aborted) console.error("Voice match failed:", e);
-      } finally {
-        if (!controller.signal.aborted) setMatching(false);
       }
     }, 450);
     return () => {
@@ -165,39 +167,54 @@ function GeneratePageInner() {
     };
   }, [brief]);
 
-  const orderedVoices = React.useMemo(() => {
-    if (Object.keys(matchScores).length === 0) return voices;
-    return [...voices].sort(
-      (a, b) => (matchScores[b.id] ?? 0) - (matchScores[a.id] ?? 0)
-    );
-  }, [voices, matchScores]);
-
-  const topMatchId = React.useMemo(() => {
-    let best: string | null = null;
-    let bestScore = 0.5;
-    for (const [id, s] of Object.entries(matchScores)) {
-      if (s > bestScore) {
-        bestScore = s;
-        best = id;
+  useEffect(() => {
+    return () => {
+      generationToken.current += 1;
+      abortRef.current?.abort();
+      const snap = player.getSnapshot();
+      if (
+        snap.track?.kind === "generation" &&
+        resultUrlRef.current &&
+        snap.track.url === resultUrlRef.current
+      ) {
+        player.stop();
       }
-    }
-    return best;
-  }, [matchScores]);
+      releaseResultUrl();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleScriptChange = (value: string) => {
+    updateDraft({ script: value.slice(0, 500) });
+    clearResult();
+  };
+
+  const handleVoiceChange = (id: string) => {
+    const voice = voices.find((v) => v.id === id) || null;
+    setSelectedVoice(voice);
+    setVoiceUnavailable(false);
+    updateDraft({ voiceId: voice?.id ?? "" });
+    clearResult();
+  };
 
   const handleGenerate = async () => {
-    if (!selectedVoice) return;
-    if (generationsLeft <= 0) {
-      setShowBuyCredits(true);
-      return;
-    }
-    if (!text.trim()) {
-      setError("Please enter some text to convert");
+    if (
+      !ready ||
+      !allowanceReady ||
+      generating ||
+      !selectedVoice ||
+      generationsLeft <= 0 ||
+      !text.trim()
+    ) {
       return;
     }
 
-    setStep("generating");
-    setError(null);
-    setAudioUrl(null);
+    const myToken = ++generationToken.current;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setGenerating(true);
+    clearResult();
+    player.stop();
     publishAppEvent({
       type: "voice:generate",
       voiceId: selectedVoice.contractVoiceId || selectedVoice.id,
@@ -217,25 +234,19 @@ function GeneratePageInner() {
           preview: true,
           archetype,
         }),
+        signal: controller.signal,
       });
 
       // Preview responses stream audio/mpeg directly; errors stay JSON.
-      let url: string;
-      if (response.headers.get("content-type")?.includes("audio")) {
-        if (!response.ok) throw new Error("Generation failed. Please try again.");
-        url = URL.createObjectURL(await response.blob());
-      } else {
-        const data = await response.json();
-        if (!response.ok || !data.success) {
-          throw new Error(data.error || "Generation failed. Please try again.");
-        }
-        url = data.data?.audioUrl || data.data?.url;
-        if (!url) throw new Error("No audio URL returned");
+      const result = await readPreviewResponse(response, controller.signal);
+      if (generationToken.current !== myToken) {
+        if (result.isBlob) URL.revokeObjectURL(result.url);
+        return;
       }
-
-      setAudioUrl(url);
-      setGenerationsLeft((prev) => prev - 1);
-      setStep("ready");
+      resultUrlRef.current = result.url;
+      setAudioUrl(result.url);
+      setAudioIsBlob(result.isBlob);
+      setGenerationsLeft((prev) => Math.max(0, prev - 1));
       publishAppEvent({
         type: "voice:complete",
         voiceId: selectedVoice.contractVoiceId || selectedVoice.id,
@@ -253,416 +264,281 @@ function GeneratePageInner() {
         keepalive: true,
       }).catch(() => {});
     } catch (err) {
+      if (generationToken.current !== myToken) return;
+      if (err instanceof Error && err.name === "AbortError") return;
       const errMsg = err instanceof Error ? err.message : "Generation failed";
       setError(errMsg);
       publishAppEvent({ type: "error", message: `voice generation: ${errMsg}` });
-      setStep("idle");
+    } finally {
+      if (generationToken.current === myToken) {
+        setGenerating(false);
+      }
     }
   };
 
-  const togglePlay = () => {
-    if (!audioRef.current) return;
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-      setStep("ready");
-    } else {
-      audioRef.current.play();
-      setIsPlaying(true);
-      setStep("playing");
-    }
-  };
+  const generationTrack = audioUrl && selectedVoice
+    ? {
+        id: `generation:${selectedVoice.id}:${audioUrl.slice(-24)}`,
+        url: audioUrl,
+        title: voiceDisplayName(selectedVoice),
+        subtitle: "Your words",
+        kind: "generation" as const,
+      }
+    : null;
+  const generationPlaying =
+    generationTrack &&
+    playback.track?.id === generationTrack.id &&
+    playback.status === "playing";
 
-  const togglePreview = (voice: MarketplaceVoice) => {
-    if (previewingId === voice.id) {
-      previewAudioRef.current?.pause();
-      previewAudioRef.current = null;
-      setPreviewingId(null);
-      return;
-    }
-    if (!voice.sampleUrl) return;
-    previewAudioRef.current?.pause();
-    const audio = new Audio(voice.sampleUrl);
-    previewAudioRef.current = audio;
-    audio.onended = () => setPreviewingId(null);
-    audio.play().then(() => setPreviewingId(voice.id)).catch(() => {});
-    fetch("/api/marketplace/match-events", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        event: "voice_preview",
-        voiceId: voice.id,
-        brief: brief.trim(),
-      }),
-      keepalive: true,
-    }).catch(() => {});
-  };
-
-  const shareAudio = useCallback(() => {
-    if (!audioUrl || !selectedVoice) return;
-    const shareText = `I just generated this voice on VOISSS using the "${voiceName(selectedVoice)}" voice: "${text.slice(0, 100)}${text.length > 100 ? "..." : ""}"\n\nTry it free: ${window.location.origin}/generate?voiceId=${encodeURIComponent(selectedVoice.contractVoiceId || selectedVoice.id)}`;
-    navigator.clipboard.writeText(shareText).then(() => {
+  const shareVoiceLink = useCallback(async () => {
+    if (!selectedVoice) return;
+    const link = `${window.location.origin}/generate?voiceId=${encodeURIComponent(selectedVoice.contractVoiceId || selectedVoice.id)}`;
+    try {
+      await navigator.clipboard.writeText(link);
       setCopied(true);
+      setCopyError(false);
       setTimeout(() => setCopied(false), 2000);
-    }).catch(() => {});
-  }, [audioUrl, selectedVoice, text]);
+    } catch {
+      setCopyError(true);
+    }
+  }, [selectedVoice]);
 
-  const estimatedCost =
-    text.length > 0 ? (text.length * 0.000001).toFixed(6) : "0.000000";
+  const voicePicker = (
+    <div>
+      <label htmlFor="voice-select" className="lr-label">
+        Choose a voice
+      </label>
+      <select
+        id="voice-select"
+        className="lr-select"
+        value={selectedVoice?.id ?? ""}
+        onChange={(e) => handleVoiceChange(e.target.value)}
+        disabled={generating || query.isLoading}
+      >
+        {query.isLoading && <option value="">Loading voices…</option>}
+        {!query.isLoading && voices.length === 0 && (
+          <option value="">No voices available</option>
+        )}
+        {!selectedVoice && !query.isLoading && voices.length > 0 && (
+          <option value="">Select a voice</option>
+        )}
+        {voices.map((voice) => (
+          <option key={voice.id} value={voice.id}>
+            {voiceDisplayName(voice)}
+            {voiceMetaLine(voice) ? ` — ${voiceMetaLine(voice)}` : ""}
+          </option>
+        ))}
+      </select>
+
+      {selectedVoice && (
+        <div style={{ marginTop: "0.75rem" }}>
+          <VoiceAuditionRow voice={selectedVoice} showUse={false} />
+          <p className="lr-quiet" style={{ marginTop: "0.5rem" }}>
+            <Link href={`/marketplace/voices/${encodeURIComponent(selectedVoice.id)}`} style={{ color: "var(--lr-night-accent)" }}>
+              Source &amp; rights details →
+            </Link>
+          </p>
+        </div>
+      )}
+
+      {/* Brief → suggested voices */}
+      <div style={{ marginTop: "1rem" }}>
+        <label htmlFor="workspace-brief" className="lr-label">
+          Brief (optional — guides matching)
+        </label>
+        <input
+          id="workspace-brief"
+          type="text"
+          className="lr-input"
+          value={brief}
+          onChange={(e) => updateDraft({ brief: e.target.value.slice(0, 500) })}
+          placeholder="calm meditation narrator"
+          maxLength={500}
+          disabled={generating}
+        />
+      </div>
+    </div>
+  );
 
   return (
-    <>
+    <main id="listening-main">
       <MascotEvents />
-      <div className="min-h-screen bg-[#0A0A0A] text-white">
+      <div className="lr-wrap">
         {/* Header */}
-        <div className="relative overflow-hidden">
-          <div className="absolute inset-0">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-purple-600/10 rounded-full blur-3xl" />
-          </div>
-          <div className="relative z-10 max-w-4xl mx-auto px-4 pt-16 pb-8 text-center">
-            <h1 className="text-4xl sm:text-5xl font-bold mb-4">
-              <span className="text-white">Generate speech.</span>{" "}
-              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
-                Real voices.
-              </span>
-            </h1>
-            <p className="text-lg text-gray-400 mb-6 max-w-2xl mx-auto">
-              Every voice below is live marketplace inventory — matched, previewed,
-              and licensed through the same flow agents use.
-            </p>
-            <div className="inline-flex items-center gap-2 text-sm text-gray-400">
-              <Sparkles className="w-4 h-4 text-yellow-400" />
-              <span>
-                {generationsLeft > 0
-                  ? `${generationsLeft} free generation${generationsLeft !== 1 ? "s" : ""} remaining`
-                  : "Free generations used — buy credits to continue"}
-              </span>
-            </div>
-          </div>
-        </div>
+        <nav className="lr-breadcrumb" aria-label="Breadcrumb">
+          <Link href="/marketplace">Discover voices</Link>
+          <span aria-hidden>/</span>
+          <span aria-current="page">Workspace</span>
+        </nav>
+
+        <h1 className="lr-h1" style={{ marginTop: "1rem", fontSize: "clamp(2.2rem, 4vw, 3.4rem)" }}>
+          Give your words a voice.
+        </h1>
+        <p className="lr-quiet" role="status">
+          {allowanceReady && generationsLeft > 0
+            ? `${generationsLeft} preview generation${generationsLeft !== 1 ? "s" : ""} remaining in this browser`
+            : allowanceReady
+              ? "Preview limit reached in this browser"
+              : "…"}
+        </p>
+
+        {query.isError && (
+          <p className="lr-notice lr-error-text" role="status" style={{ marginTop: "1rem" }}>
+            Voices could not be loaded.{" "}
+            <button type="button" className="lr-chip" onClick={() => void query.refetch()}>
+              Retry
+            </button>
+          </p>
+        )}
+
+        {voiceUnavailable && (
+          <p className="lr-notice lr-error-text" role="status" style={{ marginTop: "1rem" }}>
+            This voice is unavailable. Choose another voice.
+          </p>
+        )}
 
         {/* Main card */}
-        <div className="max-w-3xl mx-auto px-4 pb-24">
-          <div className="bg-[#111111] border border-[#222222] rounded-2xl overflow-hidden shadow-2xl">
-            {/* Brief → suggested voices */}
-            <div className="p-5 border-b border-[#1E1E1E]">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
-                  Find a voice by intent
-                </p>
-                {matching && (
-                  <span className="text-[11px] text-zinc-400 animate-pulse">
-                    matching…
-                  </span>
-                )}
-              </div>
-              <input
-                type="text"
-                value={brief}
-                onChange={(e) => setBrief(e.target.value)}
-                placeholder='Describe it — e.g. "calm meditation narrator"'
-                className="w-full bg-[#0F0F0F] border border-[#2A2A2A] focus:border-purple-500/60 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm outline-none transition-colors"
-              />
+        <div className="lr-workspace-grid" style={{ marginTop: "1.5rem" }}>
+          {/* Text */}
+          <section className="lr-panel" aria-label="Script">
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+              <label htmlFor="script-editor" className="lr-label" style={{ marginBottom: 0 }}>
+                Your script
+              </label>
+              <span className="lr-quiet" style={{ margin: 0 }}>{text.length}/500</span>
             </div>
+            <div className="lr-examples" style={{ marginTop: 0, marginBottom: "0.75rem" }}>
+              {SAMPLE_TEXTS.map((sample) => (
+                <button
+                  key={sample.label}
+                  type="button"
+                  className="lr-chip"
+                  onClick={() => handleScriptChange(sample.text)}
+                  disabled={generating}
+                >
+                  {sample.label}
+                </button>
+              ))}
+            </div>
+            <textarea
+              id="script-editor"
+              className="lr-textarea"
+              value={text}
+              onChange={(e) => handleScriptChange(e.target.value)}
+              rows={10}
+              maxLength={500}
+              placeholder="Type or paste your text here…"
+              disabled={generating}
+            />
 
-            {/* Voice picker — real catalog, match-ordered when a brief is set */}
-            <div className="p-5 border-b border-[#1E1E1E]">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">
-                Choose a Voice
+            {error && (
+              <p className="lr-error-text" role="status" style={{ marginTop: "0.75rem" }}>
+                {error}
               </p>
-              {voicesLoading ? (
-                <div className="flex items-center gap-2 text-sm text-gray-500 py-4">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Loading marketplace voices…
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-72 overflow-y-auto pr-1">
-                  {orderedVoices.map((voice) => {
-                    const fit = matchScores[voice.id];
-                    const isTop = voice.id === topMatchId;
-                    return (
-                      <button
-                        key={voice.id}
-                        onClick={() => setSelectedVoice(voice)}
-                        className={`relative p-3 rounded-xl border text-left transition-all duration-200 ${
-                          selectedVoice?.id === voice.id
-                            ? "bg-purple-600/20 border-purple-500/60 shadow-sm shadow-purple-500/10"
-                            : isTop
-                              ? "bg-[#1A1A1A] border-[#7C5DFA]/50 hover:border-[#7C5DFA]/70"
-                              : "bg-[#1A1A1A] border-[#2A2A2A] hover:border-[#3A3A3A]"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-1">
-                          <p
-                            className={`text-sm font-semibold truncate ${
-                              selectedVoice?.id === voice.id
-                                ? "text-purple-200"
-                                : "text-white"
-                            }`}
-                          >
-                            {voiceName(voice)}
-                          </p>
-                          {voice.sampleUrl && (
-                            <span
-                              role="button"
-                              tabIndex={0}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                togglePreview(voice);
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.stopPropagation();
-                                  togglePreview(voice);
-                                }
-                              }}
-                              className="shrink-0 p-1 rounded-md text-gray-500 hover:text-purple-300 transition-colors"
-                              title="Preview sample"
-                            >
-                              {previewingId === voice.id ? (
-                                <Pause className="w-3.5 h-3.5" />
-                              ) : (
-                                <Play className="w-3.5 h-3.5" />
-                              )}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-0.5 truncate">
-                          {voiceDesc(voice)}
-                        </p>
-                        {fit !== undefined && (
-                          <div className="mt-1.5 flex items-center gap-1.5">
-                            <div className="h-1 flex-1 rounded-full bg-[#2A2A2A] overflow-hidden">
-                              <div
-                                className="h-full bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF]"
-                                style={{ width: `${Math.round(fit * 100)}%` }}
-                              />
-                            </div>
-                            <span className="text-[10px] font-mono text-[#9C88FF]">
-                              {Math.round(fit * 100)}%
-                            </span>
-                          </div>
-                        )}
-                        {isTop && matchReasons[voice.id]?.length ? (
-                          <p className="mt-1 text-[10px] text-[#9C88FF]">
-                            {matchReasons[voice.id].join(" · ")}
-                          </p>
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Text */}
-            <div className="p-5 border-b border-[#1E1E1E]">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
-                  Your Text
-                </p>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-600">
-                    {text.length}/500 chars
-                  </span>
-                  <span className="text-xs text-gray-600">
-                    Est. cost:{" "}
-                    <span className="text-green-400 font-mono">
-                      ${estimatedCost}
-                    </span>
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {SAMPLE_TEXTS.map((sample) => (
-                  <button
-                    key={sample.label}
-                    onClick={() => {
-                      setText(sample.text);
-                      setStep("idle");
-                      setAudioUrl(null);
-                    }}
-                    className="px-3 py-1.5 text-xs bg-[#1A1A1A] border border-[#2A2A2A] hover:border-[#3A3A3A] rounded-lg text-gray-400 hover:text-white transition-all"
-                  >
-                    {sample.label}
-                  </button>
-                ))}
-              </div>
-              <textarea
-                value={text}
-                onChange={(e) => {
-                  setText(e.target.value.slice(0, 500));
-                  setStep("idle");
-                  setAudioUrl(null);
-                }}
-                rows={4}
-                placeholder="Type or paste your text here…"
-                className="w-full bg-[#0F0F0F] border border-[#2A2A2A] focus:border-purple-500/60 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm resize-none outline-none transition-colors"
-              />
-            </div>
+            )}
 
             {/* Actions */}
-            <div className="p-5">
-              {error && (
-                <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3 mb-4">
-                  {error}
-                </p>
-              )}
-
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleGenerate}
-                  disabled={step === "generating" || !text.trim() || !selectedVoice}
-                  id="generate-btn"
-                  className="flex-1 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-gray-700 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20"
-                >
-                  {step === "generating" ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Generating…</span>
-                    </>
-                  ) : generationsLeft <= 0 ? (
-                    <>
-                      <Sparkles className="w-5 h-5" />
-                      <span>Buy Credits to Continue</span>
-                    </>
-                  ) : (
-                    <>
-                      <Mic className="w-5 h-5" />
-                      <span>Generate Voice</span>
-                      <span className="text-xs opacity-60 font-normal ml-1">
-                        (free)
-                      </span>
-                    </>
-                  )}
-                </button>
-
-                {audioUrl && (
+            <div style={{ marginTop: "1rem" }}>
+              {generationsLeft > 0 ? (
+                <>
                   <button
-                    onClick={togglePlay}
-                    id="generate-play-btn"
-                    className="p-4 bg-[#1A1A1A] border border-[#2A2A2A] hover:border-purple-500/50 rounded-xl text-white transition-all duration-200"
+                    type="button"
+                    onClick={handleGenerate}
+                    disabled={!ready || !allowanceReady || generating || !text.trim() || !selectedVoice}
+                    id="generate-btn"
+                    className="lr-btn lr-btn-primary"
+                    style={{ width: "100%" }}
                   >
-                    {isPlaying ? (
-                      <Pause className="w-5 h-5" />
+                    {generating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+                        <span>Generating…</span>
+                      </>
                     ) : (
-                      <Play className="w-5 h-5" />
+                      <>
+                        <Mic className="w-4 h-4" aria-hidden />
+                        <span>Generate preview</span>
+                      </>
                     )}
                   </button>
-                )}
-              </div>
-
-              {audioUrl && (
-                <audio
-                  ref={audioRef}
-                  src={audioUrl}
-                  onEnded={() => {
-                    setIsPlaying(false);
-                    setStep("ready");
-                  }}
-                  className="hidden"
-                />
-              )}
-
-              {step === "ready" && (
-                <div className="mt-4 space-y-3">
-                  <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-green-300">
-                        Audio ready! Hit play ▶
-                      </p>
-                      <p className="text-xs text-green-400/60 truncate">
-                        Stored on IPFS •{" "}
-                        <a
-                          href={audioUrl ?? undefined}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="underline hover:text-green-300 transition-colors"
-                        >
-                          View file
-                        </a>
-                      </p>
-                    </div>
-                    <Volume2 className="w-4 h-4 text-green-400 shrink-0" />
+                  <p className="lr-quiet" style={{ textAlign: "center" }}>
+                    Free preview · up to 500 characters
+                  </p>
+                </>
+              ) : (
+                <div className="lr-notice">
+                  {/* Conversion */}
+                  <p style={{ margin: 0, fontWeight: 600 }}>Preview limit reached</p>
+                  <p style={{ margin: "0.4rem 0 0.75rem" }}>
+                    Browser previews are used up. Credits are for API usage.
+                  </p>
+                  {/* API teaser */}
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <Link href="/developers" className="lr-btn lr-btn-ghost">Developers</Link>
+                    <button
+                      type="button"
+                      className="lr-btn lr-btn-primary"
+                      onClick={() => setShowBuyCredits(true)}
+                    >
+                      <Zap className="w-4 h-4" aria-hidden /> Buy API credits
+                    </button>
                   </div>
+                </div>
+              )}
+            </div>
 
+            {audioUrl && generationTrack && (
+              <div className="lr-result">
+                <p style={{ margin: 0, fontWeight: 600 }}>Your preview is ready</p>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.75rem" }}>
                   <button
-                    onClick={shareAudio}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#1A1A1A] border border-[#2A2A2A] hover:border-purple-500/40 rounded-xl text-sm text-gray-300 hover:text-white transition-all"
+                    type="button"
+                    className="lr-btn lr-btn-ghost"
+                    onClick={() => void player.toggle(generationTrack)}
+                  >
+                    {generationPlaying ? (
+                      <><Pause className="w-4 h-4" aria-hidden /> Pause</>
+                    ) : (
+                      <><Play className="w-4 h-4" aria-hidden /> Play</>
+                    )}
+                  </button>
+                  <a
+                    className="lr-btn lr-btn-ghost"
+                    href={audioUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={audioIsBlob ? "voisss-preview.mp3" : undefined}
+                  >
+                    Open audio
+                  </a>
+                  <button
+                    type="button"
+                    className="lr-btn lr-btn-ghost"
+                    onClick={() => void shareVoiceLink()}
                   >
                     {copied ? (
-                      <>
-                        <Check className="w-4 h-4 text-green-400" />
-                        <span className="text-green-400">Copied to clipboard!</span>
-                      </>
+                      <><Check className="w-4 h-4" aria-hidden /> Copied</>
                     ) : (
-                      <>
-                        <Share2 className="w-4 h-4" />
-                        <span>Share this voice — copy text + link</span>
-                      </>
+                      <><Share2 className="w-4 h-4" aria-hidden /> Copy voice link</>
                     )}
                   </button>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Conversion */}
-          {(generationsLeft < 3 || generationsLeft === 0) && (
-            <div className="mt-8 bg-gradient-to-br from-purple-900/20 to-pink-900/10 border border-purple-500/20 rounded-2xl p-6 sm:p-8">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-xl font-bold text-white mb-1">
-                    Ready to use voices in your app?
-                  </h3>
-                  <p className="text-gray-400 text-sm">
-                    $5 gets you 5 million characters (~6,600 full articles). No
-                    monthly fees. 70% to voice creators.
+                {copyError && (
+                  <p className="lr-error-text" role="status" style={{ marginTop: "0.5rem" }}>
+                    Could not copy the link.
                   </p>
-                </div>
-                <button
-                  onClick={() => setShowBuyCredits(true)}
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-xl whitespace-nowrap transition-all duration-200 shadow-lg shadow-purple-500/20 shrink-0"
-                >
-                  <Zap className="w-4 h-4" />
-                  Buy credits — $5
-                </button>
+                )}
               </div>
-            </div>
-          )}
+            )}
+          </section>
 
-          {/* API teaser */}
-          <div className="mt-8 p-6 bg-[#111111] border border-[#222222] rounded-2xl">
-            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-              <Zap className="w-5 h-5 text-yellow-400" />
-              Use in your project — 3 lines of code
-            </h3>
-            <pre className="bg-[#0A0A0A] rounded-xl p-4 text-sm font-mono overflow-x-auto text-gray-300 leading-relaxed border border-[#1E1E1E]">
-              <code>{`const res = await fetch("https://voisss.netlify.app/api/agents/vocalize", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ text: "Hello world", voiceId: "${selectedVoice?.contractVoiceId || selectedVoice?.id || "…"}", agentAddress: "0x..." }),
-});
-
-const { audioUrl } = (await res.json()).data; // IPFS URL, ready instantly`}</code>
-            </pre>
-            <div className="flex flex-col sm:flex-row gap-3 mt-4">
-              <a
-                href="/developers"
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1A1A1A] border border-[#2A2A2A] hover:border-[#3A3A3A] rounded-xl text-sm text-gray-300 hover:text-white transition-all"
-              >
-                Read API Docs
-                <ArrowRight className="w-4 h-4" />
-              </a>
-              <button
-                onClick={() => setShowBuyCredits(true)}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 rounded-xl text-sm text-white font-semibold transition-all"
-              >
-                Get API Credits
-                <Sparkles className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+          {/* Voice picker — real catalog, match-ordered when a brief is set */}
+          <details className="lr-panel" open>
+            <summary style={{ cursor: "pointer", fontFamily: "var(--lr-font-display)", fontWeight: 700 }}>
+              Voice
+            </summary>
+            <div style={{ marginTop: "0.75rem" }}>{voicePicker}</div>
+          </details>
         </div>
 
         <BuyCreditsModal
@@ -670,7 +546,7 @@ const { audioUrl } = (await res.json()).data; // IPFS URL, ready instantly`}</co
           onClose={() => setShowBuyCredits(false)}
         />
       </div>
-    </>
+    </main>
   );
 }
 
@@ -678,9 +554,11 @@ export default function GeneratePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#0A0A0A] text-white flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
-        </div>
+        <main id="listening-main">
+          <div className="lr-wrap" style={{ paddingTop: "4rem" }}>
+            <Loader2 className="w-8 h-8 animate-spin" aria-hidden />
+          </div>
+        </main>
       }
     >
       <GeneratePageInner />

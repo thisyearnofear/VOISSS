@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { Inter, Anton, Syne, Courier_Prime } from "next/font/google";
 import { BaseProvider } from "./providers";
-import Nav from "../components/Nav";
-import MobileBottomNav from "../components/MobileBottomNav";
 import ScrollLife from "../components/ScrollLife";
 import { ReferralTracker } from "./referral-tracker";
 import "./globals.css";
+import "../styles/listening-room.css";
 import { validateX402Config } from "@/lib/x402-startup-check";
 import { getPageMetadata } from "@/lib/page-metadata";
-import VoiceAssistantLoader from "../components/VoiceAssistantLoader";
+import { ListeningRoomProvider } from "../contexts/ListeningRoomContext";
+import ListeningShell from "../components/listening/ListeningShell";
 
 // Validate x402 configuration on server startup
 if (typeof window === 'undefined') {
@@ -179,10 +179,9 @@ export default function RootLayout({
           {/* One observer for every route: staged reveals for [data-reveal] plus
               the scroll progress rail. Mounted here so any page can opt in. */}
           <ScrollLife />
-          <Nav />
-          {children}
-          <MobileBottomNav />
-          <VoiceAssistantLoader />
+          <ListeningRoomProvider>
+            <ListeningShell>{children}</ListeningShell>
+          </ListeningRoomProvider>
         </BaseProvider>
       </body>
     </html>

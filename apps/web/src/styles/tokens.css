@@ -1,0 +1,30 @@
+:root {
+  --lr-paper: oklch(97% .012 85);
+  --lr-surface: oklch(99% .006 85);
+  --lr-ink: oklch(23% .012 65);
+  --lr-muted: oklch(45% .015 65);
+  --lr-line: oklch(84% .014 85);
+  --lr-accent: oklch(49% .20 290);
+  --lr-accent-soft: oklch(93% .028 290);
+  --lr-focus: oklch(49% .20 290);
+  --lr-night: oklch(20% .012 280);
+  --lr-night-raised: oklch(25% .012 280);
+  --lr-night-ink: oklch(96% .009 85);
+  --lr-night-muted: oklch(76% .012 280);
+  --lr-night-line: oklch(39% .012 280);
+  --lr-night-accent: oklch(79% .12 290);
+  --lr-error: oklch(45% .16 25);
+  --lr-error-dark: oklch(80% .10 25);
+  --lr-font-display: var(--font-syne), sans-serif;
+  --lr-font-body: var(--font-inter), sans-serif;
+  --lr-space-xs: .5rem;
+  --lr-space-sm: .75rem;
+  --lr-space-md: 1rem;
+  --lr-space-lg: 1.5rem;
+  --lr-space-xl: 2.5rem;
+  --lr-space-2xl: 4rem;
+  --lr-space-3xl: 6rem;
+  --lr-radius: .875rem;
+  --lr-ease: cubic-bezier(.16, 1, .3, 1);
+  --lr-duration: 180ms;
+}

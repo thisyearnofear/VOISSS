@@ -1,20 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { VoiceCard } from "@/components/marketplace/VoiceCard";
-import { VoiceMarketTrends } from "@/components/marketplace/VoiceMarketTrends";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { LicensePurchaseModal } from "@/components/payment/LicensePurchaseModal";
-import { BuyCreditsModal } from "@/components/payment/BuyCreditsModal";
-import MascotEmptyState from "@/components/MascotEmptyState";
-import { useAuth } from "@/contexts/AuthContext";
-import { ChevronDown, Sparkles, Zap } from "lucide-react";
+import { Check, Loader2, Plus } from "lucide-react";
 import { initWebMCP } from "@/lib/webmcp";
 import { MascotEvents } from "@/lib/mascot-events";
 import type { MarketplaceVoice } from "@/lib/marketplace-indexer";
 import { DismissibleRuntimeTracks } from "@/components/payment/RuntimePaymentChips";
 import { BuyerCreditsStrip } from "@/components/payment/DashboardBalanceChips";
-import MarketplaceTerrain from "@/components/marketplace/MarketplaceTerrain";
+import { VoiceMarketTrends } from "@/components/marketplace/VoiceMarketTrends";
+import { VoiceAuditionRow, voiceDisplayName } from "@/components/listening/VoiceAuditionRow";
+import { useListeningRoom } from "@/contexts/ListeningRoomContext";
+import { useVoiceCatalog } from "@/hooks/useVoiceCatalog";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface VoiceMatchResult {
   scores: Record<string, number>;
@@ -40,23 +40,76 @@ interface VoiceMatchResult {
   };
 }
 
-export default function MarketplacePage() {
+const LANGUAGE_OPTIONS = [
+  { value: "", label: "All Languages" },
+  { value: "en-US", label: "English (US)" },
+  { value: "en-GB", label: "English (UK)" },
+  { value: "es-ES", label: "Spanish" },
+  { value: "fr-FR", label: "French" },
+  { value: "de-DE", label: "German" },
+];
+
+const TONE_OPTIONS = [
+  { value: "", label: "All Tones" },
+  { value: "professional", label: "Professional" },
+  { value: "friendly", label: "Friendly" },
+  { value: "energetic", label: "Energetic" },
+  { value: "calm", label: "Calm" },
+  { value: "warm", label: "Warm" },
+  { value: "authoritative", label: "Authoritative" },
+];
+
+const LICENSE_OPTIONS = [
+  { value: "", label: "All License Types" },
+  { value: "non-exclusive", label: "Non-exclusive" },
+  { value: "exclusive", label: "Exclusive" },
+];
+
+function FilterSelect({ label, value, onChange, options }: {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  const id = `filter-${label.toLowerCase()}`;
+  return (
+    <div>
+      <label htmlFor={id} className="lr-label" style={{ color: "var(--lr-muted)" }}>
+        {label}
+      </label>
+      <select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="lr-select"
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function MarketplacePageInner() {
+  const searchParams = useSearchParams();
   const { isAuthenticated } = useAuth();
-  const [voices, setVoices] = useState<MarketplaceVoice[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { draft, ready, updateDraft, toggleShortlist, player } = useListeningRoom();
+  const { query, voices } = useVoiceCatalog();
   const [filters, setFilters] = useState({
     language: "",
     tone: "",
     licenseType: "",
   });
-  const [showFilters, setShowFilters] = useState(false);
   const [modalVoice, setModalVoice] = useState<MarketplaceVoice | null>(null);
-  const [showBuyCredits, setShowBuyCredits] = useState(false);
-  const [brief, setBrief] = useState("");
   const [match, setMatch] = useState<VoiceMatchResult | null>(null);
   const [matchLoading, setMatchLoading] = useState(false);
   const [matchUnavailable, setMatchUnavailable] = useState(false);
+  const lastAppliedParams = useRef<string | null>(null);
+
+  const brief = draft.brief;
+  const loading = query.isLoading;
+  const error = query.isError ? "Voices could not be loaded. Please try again." : null;
 
   const activeFilterCount = [filters.language, filters.tone, filters.licenseType].filter(Boolean).length;
 
@@ -68,53 +121,19 @@ export default function MarketplacePage() {
   // Deep-link support — /marketplace?brief=... seeds the intent box so the
   // landing page search and shared links land mid-match.
   useEffect(() => {
-    try {
-      const q = new URLSearchParams(window.location.search).get("brief");
-      if (q) setBrief(q);
-    } catch {
-      // location unavailable
-    }
-  }, []);
-
-  const fetchVoices = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const params = new URLSearchParams();
-      if (filters.language) params.append("language", filters.language);
-      if (filters.tone) params.append("tone", filters.tone);
-      if (filters.licenseType) {
-        params.append("licenseType", filters.licenseType);
-      }
-
-      const response = await fetch(`/api/marketplace/voices?${params}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setVoices(data.data.voices || []);
-      } else {
-        setVoices([]);
-        setError(data.error || "Failed to fetch live marketplace listings.");
-      }
-    } catch (fetchError) {
-      console.error("Failed to fetch voices:", fetchError);
-      setVoices([]);
-      setError("Failed to fetch live marketplace listings.");
-    } finally {
-      setLoading(false);
-    }
-  }, [filters]);
-
-  useEffect(() => {
-    void fetchVoices();
-  }, [fetchVoices]);
+    if (!ready) return;
+    const key = searchParams.toString();
+    if (lastAppliedParams.current === key) return;
+    lastAppliedParams.current = key;
+    const paramBrief = searchParams.get("brief");
+    if (paramBrief !== null) updateDraft({ brief: paramBrief.slice(0, 500) });
+  }, [searchParams, ready, updateDraft]);
 
   // Jev intent matching — debounced so each pause in typing fires one fan-out
   // call (N Nouls + meta questions) that re-ranks the grid in ~100ms.
   useEffect(() => {
+    setMatch(null);
     if (brief.trim().length < 3 || matchUnavailable) {
-      setMatch(null);
       setMatchLoading(false);
       return;
     }
@@ -130,14 +149,16 @@ export default function MarketplacePage() {
           signal: controller.signal,
         });
         const data = await res.json();
+        if (controller.signal.aborted) return;
         if (data.success) {
           setMatch(data.data);
-        } else if (res.status === 503 && data.error === "jev_not_configured") {
+        } else {
           setMatchUnavailable(true);
         }
       } catch (e) {
         if (!controller.signal.aborted) {
           console.error("Voice match failed:", e);
+          setMatchUnavailable(true);
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -153,6 +174,7 @@ export default function MarketplacePage() {
   }, [brief, matchUnavailable]);
 
   const handlePurchaseClick = (voiceId: string) => {
+    player.stop();
     const voice = voices.find((v) => v.id === voiceId) || null;
     setModalVoice(voice);
   };
@@ -171,7 +193,6 @@ export default function MarketplacePage() {
       keepalive: true,
     }).catch(() => {});
   };
-
 
   const totalVoices = voices.length;
   const totalLicenses = voices.reduce(
@@ -223,443 +244,309 @@ export default function MarketplacePage() {
     return best;
   }, [displayedVoices, match]);
 
-  const FilterSelect = ({ label, value, onChange, options }: {
-    label: string;
-    value: string;
-    onChange: (val: string) => void;
-    options: { value: string; label: string }[];
-  }) => (
-    <div>
-      <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
-        {label}
-      </label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-[#0A0A0A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#7C5DFA] focus:ring-1 focus:ring-[#7C5DFA]/30 transition-all"
-      >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        ))}
-      </select>
-    </div>
+  const shortlistedVoices = useMemo(
+    () =>
+      draft.shortlist
+        .map((id) => voices.find((v) => v.id === id))
+        .filter((v): v is MarketplaceVoice => Boolean(v)),
+    [draft.shortlist, voices]
   );
+  const unavailableShortlist = draft.shortlist.length - shortlistedVoices.length;
+  const shortlistFull = draft.shortlist.length >= 3;
+
+  const shortlistButton = (voice: MarketplaceVoice) => {
+    const shortlisted = draft.shortlist.includes(voice.id);
+    const name = voiceDisplayName(voice);
+    return (
+      <button
+        type="button"
+        className="lr-shortlist"
+        aria-pressed={shortlisted}
+        aria-label={shortlisted ? `Remove ${name} from comparison` : `Add ${name} to comparison`}
+        disabled={!shortlisted && shortlistFull}
+        onClick={() => toggleShortlist(voice.id)}
+      >
+        {shortlisted ? (
+          <Check className="w-4 h-4" aria-hidden />
+        ) : (
+          <Plus className="w-4 h-4" aria-hidden />
+        )}
+      </button>
+    );
+  };
 
   return (
-    <>
+    <main id="listening-main">
       <MascotEvents />
-      <div className="min-h-screen bg-[#0A0A0A] voisss-bg-grid voisss-bg-noise">
-      <div className="border-b border-[#2A2A2A] voisss-bg-mesh">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
-            <h1 className="text-3xl sm:text-4xl font-bold text-white">Voice Marketplace</h1>
-            <span className="text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 px-2.5 py-1 rounded-sm w-fit uppercase tracking-wider">
-              LIVE ON BASE
-            </span>
+      <div className="lr-wrap">
+        <header className="lr-discover-head">
+          <h1 className="lr-h1" style={{ fontSize: "clamp(2.2rem, 4vw, 3.4rem)" }}>
+            Find a voice.
+          </h1>
+          <p className="lr-lede">Listen first. Choose what fits.</p>
+
+          {/* Jev intent matching — one fan-out call scores every voice against
+              the brief; the grid re-ranks live as you type. */}
+          <div className="lr-brief-form">
+            <label htmlFor="marketplace-brief" className="lr-label" style={{ flexBasis: "100%" }}>
+              Describe the voice you need
+            </label>
+            <input
+              id="marketplace-brief"
+              type="text"
+              className="lr-input"
+              value={brief}
+              onChange={(e) => updateDraft({ brief: e.target.value.slice(0, 500) })}
+              placeholder='e.g. "warm narrator for a meditation app, unhurried"'
+              maxLength={500}
+            />
           </div>
-          <p className="text-base sm:text-lg text-gray-400 mb-6">
-            License authentic human voices for your AI agents
-          </p>
-
-          {/* Stats bar */}
-          <div className="flex items-center gap-0 border border-[#2A2A2A] rounded-sm overflow-hidden w-fit">
-            <div className="px-4 sm:px-5 py-3 border-r border-[#2A2A2A] bg-[#0A0A0A]/80">
-              <div className="text-xl sm:text-2xl font-bold text-white font-mono">{totalVoices}</div>
-              <div className="text-[10px] text-gray-500 uppercase tracking-widest">Voices</div>
-            </div>
-            <div className="px-4 sm:px-5 py-3 border-r border-[#2A2A2A] bg-[#0A0A0A]/80">
-              <div className="text-xl sm:text-2xl font-bold text-white font-mono">{totalLicenses}</div>
-              <div className="text-[10px] text-gray-500 uppercase tracking-widest">Licenses Sold</div>
-            </div>
-            <div className="px-4 sm:px-5 py-3 bg-[#0A0A0A]/80">
-              <div className="text-xl sm:text-2xl font-bold text-white font-mono">{totalUsage.toLocaleString()}</div>
-              <div className="text-[10px] text-gray-500 uppercase tracking-widest">Total Uses</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Voice terrain — sandboxed to this page's hero. Already wired to the
-            bus, so previewing any voice card below lights it up. */}
-        <MarketplaceTerrain />
-
-        {/* Buyer credits — compact when connected; explains cost before browsing. */}
-        {isAuthenticated ? (
-          <div className="mb-4 max-w-2xl">
-            <BuyerCreditsStrip agentRegistryAddress={(process.env.NEXT_PUBLIC_AGENT_REGISTRY_CONTRACT as string) || "0xBE857DB4B4bD71a8bf8f50f950eecD7dDe68b85c"} />
-          </div>
-        ) : null}
-        {/* Runtime rails — dismissible so browsing stays clean; judges can restore in one click. */}
-        <div className="mb-6 max-w-2xl">
-          <DismissibleRuntimeTracks bankrCompact dynamicCompact={!isAuthenticated} storageKey="voisss_runtime_marketplace" />
-        </div>
-        <VoiceMarketTrends />
-
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"
-          >
-            {error}
-          </motion.div>
-        )}
-
-        {/* Mobile Filter Toggle */}
-        <div className="md:hidden mb-4">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="w-full flex items-center justify-between px-4 py-3 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            <span className="flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-              </svg>
-              Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
-            </span>
-            <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`} />
-          </button>
-        </div>
-
-        {/* Collapsible Filters */}
-        <AnimatePresence>
-          <motion.div
-            initial={false}
-            animate={{ opacity: 1, height: 'auto' }}
-            className="hidden md:block"
-          >
-            <div className="border border-[#2A2A2A] rounded-sm p-4 mb-6 bg-[#0A0A0A]/60 backdrop-blur-sm">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                <FilterSelect
-                  label="Language"
-                  value={filters.language}
-                  onChange={(v) => setFilters({ ...filters, language: v })}
-                  options={[
-                    { value: "", label: "All Languages" },
-                    { value: "en-US", label: "English (US)" },
-                    { value: "en-GB", label: "English (UK)" },
-                    { value: "es-ES", label: "Spanish" },
-                    { value: "fr-FR", label: "French" },
-                    { value: "de-DE", label: "German" },
-                  ]}
-                />
-                <FilterSelect
-                  label="Tone"
-                  value={filters.tone}
-                  onChange={(v) => setFilters({ ...filters, tone: v })}
-                  options={[
-                    { value: "", label: "All Tones" },
-                    { value: "professional", label: "Professional" },
-                    { value: "friendly", label: "Friendly" },
-                    { value: "energetic", label: "Energetic" },
-                    { value: "calm", label: "Calm" },
-                    { value: "warm", label: "Warm" },
-                    { value: "authoritative", label: "Authoritative" },
-                  ]}
-                />
-                <FilterSelect
-                  label="License"
-                  value={filters.licenseType}
-                  onChange={(v) => setFilters({ ...filters, licenseType: v })}
-                  options={[
-                    { value: "", label: "All License Types" },
-                    { value: "non-exclusive", label: "Non-exclusive" },
-                    { value: "exclusive", label: "Exclusive" },
-                  ]}
-                />
-                <div className="flex items-end">
-                  <button
-                    onClick={() => setFilters({ language: "", tone: "", licenseType: "" })}
-                    className="w-full px-4 py-2.5 border border-[#2A2A2A] text-gray-400 rounded-lg hover:border-gray-600 hover:text-white transition-all text-sm"
-                  >
-                    Clear All
-                  </button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Mobile Filters (animated) */}
-        {showFilters && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden md:hidden"
-          >
-            <div className="border border-[#2A2A2A] rounded-sm p-4 mb-6 bg-[#0A0A0A]/60 backdrop-blur-sm">
-              <div className="grid grid-cols-1 gap-4">
-                <FilterSelect
-                  label="Language"
-                  value={filters.language}
-                  onChange={(v) => setFilters({ ...filters, language: v })}
-                  options={[
-                    { value: "", label: "All Languages" },
-                    { value: "en-US", label: "English (US)" },
-                    { value: "en-GB", label: "English (UK)" },
-                    { value: "es-ES", label: "Spanish" },
-                    { value: "fr-FR", label: "French" },
-                    { value: "de-DE", label: "German" },
-                  ]}
-                />
-                <FilterSelect
-                  label="Tone"
-                  value={filters.tone}
-                  onChange={(v) => setFilters({ ...filters, tone: v })}
-                  options={[
-                    { value: "", label: "All Tones" },
-                    { value: "professional", label: "Professional" },
-                    { value: "friendly", label: "Friendly" },
-                    { value: "energetic", label: "Energetic" },
-                    { value: "calm", label: "Calm" },
-                    { value: "warm", label: "Warm" },
-                    { value: "authoritative", label: "Authoritative" },
-                  ]}
-                />
-                <FilterSelect
-                  label="License"
-                  value={filters.licenseType}
-                  onChange={(v) => setFilters({ ...filters, licenseType: v })}
-                  options={[
-                    { value: "", label: "All License Types" },
-                    { value: "non-exclusive", label: "Non-exclusive" },
-                    { value: "exclusive", label: "Exclusive" },
-                  ]}
-                />
-                <button
-                  onClick={() => {
-                    setFilters({ language: "", tone: "", licenseType: "" });
-                    setShowFilters(false);
-                  }}
-                  className="w-full px-4 py-2.5 border border-[#2A2A2A] text-gray-400 rounded-lg hover:border-gray-600 hover:text-white transition-all text-sm"
-                >
-                  Clear All Filters
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Jev intent matching — one fan-out call scores every voice against
-            the brief; the grid re-ranks live as you type. */}
-        <div className="mb-6 border border-[#7C5DFA]/30 rounded-sm p-4 bg-gradient-to-r from-[#7C5DFA]/10 to-transparent">
-          <label
-            htmlFor="jev-brief"
-            className="flex items-center gap-2 text-xs font-medium text-[#9C88FF] mb-2 uppercase tracking-wider"
-          >
-            <Zap className="w-3.5 h-3.5" />
-            Intent match · powered by Jev
-            <a
-              href="/benchmarks"
-              className="ml-auto normal-case tracking-normal text-zinc-500 hover:text-[#9C88FF] transition-colors"
-            >
-              How we match →
-            </a>
-          </label>
-          <input
-            id="jev-brief"
-            type="text"
-            value={brief}
-            onChange={(e) => setBrief(e.target.value)}
-            placeholder='Describe what you need — e.g. "warm narrator for a meditation app, unhurried"'
-            className="w-full bg-[#0A0A0A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#7C5DFA] focus:ring-1 focus:ring-[#7C5DFA]/30 transition-all placeholder:text-zinc-600"
-          />
 
           {/* Clickable example briefs — instant demo of the re-rank without
               needing to know what to type. */}
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {[
-              "calm meditation narrator",
-              "urgent ad read for a product drop",
-              "friendly podcast host",
-            ].map((example) => (
-              <button
-                key={example}
-                onClick={() => setBrief(example)}
-                className="text-[11px] px-2 py-1 rounded-md bg-[#7C5DFA]/10 text-[#9C88FF] border border-[#7C5DFA]/20 hover:bg-[#7C5DFA]/20 hover:border-[#7C5DFA]/40 transition-all"
-              >
-                {example}
-              </button>
-            ))}
+          <div className="mt-2 flex flex-wrap items-center gap-2" style={{ fontSize: "0.8125rem" }} role="status">
+            {matchLoading && <span className="lr-quiet" style={{ margin: 0 }}>matching…</span>}
+            {matchUnavailable && (
+              <span className="lr-quiet" style={{ margin: 0 }}>
+                Matching is unavailable. You can still browse voices.{" "}
+                <button
+                  type="button"
+                  className="lr-chip"
+                  onClick={() => setMatchUnavailable(false)}
+                >
+                  Retry matching
+                </button>
+              </span>
+            )}
+            {match?.archetype && !matchUnavailable && (
+              <span className="lr-badge">rubric: {match.archetype}</span>
+            )}
           </div>
+        </header>
 
-          {matchUnavailable && (
-            <p className="mt-2 text-xs text-zinc-500">
-              Intent matching is off — set <code>AI_GATEWAY_API_KEY</code> or{" "}
-              <code>TYPESAFE_API_KEY</code> to enable live Jev matching.
+        {/* Voice terrain — sandboxed to this page's hero. Already wired to the
+            bus, so previewing any voice card below lights it up. */}
+        {/* Mobile Filter Toggle */}
+        {/* Collapsible Filters */}
+        {/* Mobile Filters (animated) */}
+        <details className="lr-details" style={{ borderTop: "none", paddingTop: 0 }}>
+          <summary>
+            <span>
+              Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+            </span>
+          </summary>
+          <div className="lr-details-body">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <FilterSelect
+                label="Language"
+                value={filters.language}
+                onChange={(v) => setFilters({ ...filters, language: v })}
+                options={LANGUAGE_OPTIONS}
+              />
+              <FilterSelect
+                label="Tone"
+                value={filters.tone}
+                onChange={(v) => setFilters({ ...filters, tone: v })}
+                options={TONE_OPTIONS}
+              />
+              <FilterSelect
+                label="License"
+                value={filters.licenseType}
+                onChange={(v) => setFilters({ ...filters, licenseType: v })}
+                options={LICENSE_OPTIONS}
+              />
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  onClick={() => setFilters({ language: "", tone: "", licenseType: "" })}
+                  className="lr-btn lr-btn-ghost"
+                >
+                  Clear all
+                </button>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        {draft.shortlist.length > 0 && (
+          <section className="lr-compare" aria-label="Compare catalog samples" style={{ marginBottom: "1.5rem", marginTop: "1rem" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.75rem" }}>
+              <h2 style={{ fontFamily: "var(--lr-font-display)", fontWeight: 700, fontSize: "1.125rem", margin: 0 }}>
+                Compare samples · {draft.shortlist.length}/3
+              </h2>
+              <button
+                type="button"
+                className="lr-chip"
+                onClick={() => updateDraft({ shortlist: [] })}
+              >
+                Clear comparison
+              </button>
+            </div>
+            <p className="lr-quiet" style={{ marginTop: "0.25rem" }}>
+              {unavailableShortlist > 0
+                ? `${unavailableShortlist} saved selection${unavailableShortlist !== 1 ? "s are" : " is"} no longer in the catalog.`
+                : "Samples may use different scripts. Use the workspace to try your own words."}
             </p>
-          )}
-
-          {(matchLoading || match?.briefInsights || match?.meta) && !matchUnavailable && (
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
-              {matchLoading && (
-                <span className="text-zinc-400 animate-pulse">matching…</span>
-              )}
-              {match?.briefInsights?.emotion && (
-                <span className="px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/20">
-                  emotion: {match.briefInsights.emotion.choice}
-                </span>
-              )}
-              {match?.briefInsights?.useCase && (
-                <span className="px-2 py-0.5 rounded bg-blue-500/15 text-blue-300 border border-blue-500/20">
-                  use case: {match.briefInsights.useCase.choice}
-                </span>
-              )}
-              {match?.briefInsights?.urgency?.legend && (
-                <span className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/20">
-                  urgency:{" "}
-                  {match.briefInsights.urgency.legend[
-                    String(match.briefInsights.urgency.score)
-                  ] ?? match.briefInsights.urgency.score}
-                </span>
-              )}
-              {match?.archetype && (
-                <span className="px-2 py-0.5 rounded bg-[#7C5DFA]/15 text-[#9C88FF] border border-[#7C5DFA]/25">
-                  rubric: {match.archetype}
-                </span>
-              )}
-              {match?.meta?.latencyMs != null && (
-                <span className="ml-auto text-zinc-500 font-mono">
-                  {match.meta.questionCount ?? "?"} questions · 1 call ·{" "}
-                  {match.meta.latencyMs}ms
-                  {match.meta.usage?.input_tokens != null &&
-                    ` · ${
-                      (match.meta.usage.input_tokens ?? 0) +
-                      (match.meta.usage.output_tokens ?? 0)
-                    } tokens`}
-                  {match.meta.provider === "vercel-ai-gateway" &&
-                    " · via Vercel AI Gateway"}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Onboarding hint for first-time visitors */}
-        {!loading && voices.length === 0 && !error && !isAuthenticated && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-4 bg-gradient-to-r from-[#7C5DFA]/10 to-blue-500/10 border border-[#7C5DFA]/20 rounded-lg flex items-start gap-3"
-          >
-            <Sparkles className="w-5 h-5 text-[#9C88FF] mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-sm text-gray-300 font-medium">Welcome to the Voice Marketplace</p>
-              <p className="text-xs text-gray-500 mt-1">
-                Try voices free in the{" "}
-                <a href="/generate" className="text-[#9C88FF] hover:underline">demo</a>
-                {" "}first — no wallet needed. Contributors can head to the{" "}
-                <a href="/sell" className="text-[#9C88FF] hover:underline">Studio</a>.
+            <p className="sr-only" role="status">
+              {draft.shortlist.length} of 3 comparison slots used
+            </p>
+            {shortlistFull && (
+              <p className="lr-quiet" style={{ marginTop: "0.25rem" }}>
+                Choose up to three voices. Remove one to add another.
               </p>
-            </div>
-          </motion.div>
+            )}
+            {shortlistedVoices.map((voice) => (
+              <VoiceAuditionRow
+                key={voice.id}
+                voice={voice}
+                onPlayed={(v) => trackMatchEvent("voice_preview", v.id)}
+                actions={
+                  <button
+                    type="button"
+                    className="lr-shortlist"
+                    aria-pressed="true"
+                    aria-label={`Remove ${voiceDisplayName(voice)} from comparison`}
+                    onClick={() => toggleShortlist(voice.id)}
+                  >
+                    <Check className="w-4 h-4" aria-hidden />
+                  </button>
+                }
+              />
+            ))}
+          </section>
+        )}
+
+        {error && (
+          <p className="lr-notice lr-error-text" role="status">
+            {error}{" "}
+            <button type="button" className="lr-chip" onClick={() => void query.refetch()}>
+              Retry
+            </button>
+          </p>
         )}
 
         {loading ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
-            {[...Array(6)].map((_, i) => (
-              <div
-                key={i}
-                className="h-80 rounded-xl border border-[#2A2A2A] bg-[#111111] animate-pulse"
-                style={{ animationDelay: `${i * 100}ms` }}
-              />
+          <div className="lr-list" role="status">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="lr-card" style={{ minHeight: "7rem", opacity: 0.5 }}>
+                Loading…
+              </div>
             ))}
-          </motion.div>
+          </div>
         ) : displayedVoices.length > 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
-            {displayedVoices.map((voice, i) => {
-              const fitScore = match?.scores?.[voice.id];
+          <div className="lr-list">
+            {displayedVoices.map((voice) => {
               const isTop = voice.id === topMatchId;
+              const reasons = match?.reasons?.[voice.id] ?? [];
               return (
-                <motion.div
-                  key={voice.id}
-                  layout
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05, duration: 0.3, layout: { duration: 0.25 } }}
-                  className={`relative rounded-xl transition-shadow ${
-                    isTop
-                      ? "ring-2 ring-[#7C5DFA] shadow-lg shadow-[#7C5DFA]/20"
-                      : ""
-                  }`}
-                >
-                  {fitScore != null && (
-                    <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
-                      <span
-                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md border ${
-                          isTop
-                            ? "bg-[#7C5DFA] text-white border-[#7C5DFA]"
-                            : "bg-black/70 text-[#9C88FF] border-[#7C5DFA]/40"
-                        }`}
-                      >
-                        {isTop ? "Best match · " : ""}
-                        {Math.round(fitScore * 100)}%
-                      </span>
-                      <div className="w-16 h-1 rounded-full bg-white/10 overflow-hidden">
-                        <motion.div
-                          className="h-full bg-[#7C5DFA]"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${Math.round(fitScore * 100)}%` }}
-                          transition={{ duration: 0.3 }}
-                        />
-                      </div>
-                      {/* Explainable fit: the rubric dimensions that drove
-                          this voice's ranking for the detected archetype. */}
-                      {match?.reasons?.[voice.id]?.map((reason) => (
-                        <span
-                          key={reason}
-                          className="text-[9px] px-1.5 py-0.5 rounded bg-black/60 text-[#9C88FF] border border-[#7C5DFA]/30"
-                        >
-                          {reason}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <VoiceCard
+                <article key={voice.id} className="lr-card">
+                  <VoiceAuditionRow
                     voice={voice}
-                    archetype={match?.archetype}
-                    onPurchase={
-                      voice.source === "platform"
-                        ? undefined
-                        : () => handlePurchaseClick(voice.id)
-                    }
-                    onPreview={(voiceId) =>
-                      trackMatchEvent("voice_preview", voiceId)
-                    }
+                    onPlayed={(v) => trackMatchEvent("voice_preview", v.id)}
+                    actions={shortlistButton(voice)}
                   />
-                </motion.div>
+                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem" }}>
+                    <span className="lr-badge">
+                      {voice.source === "platform"
+                        ? "Platform catalog · Pay per use"
+                        : `Contributor listing · ${voice.licenseType}`}
+                    </span>
+                    {isTop && <span className="lr-badge" style={{ borderColor: "var(--lr-accent)", color: "var(--lr-accent)" }}>Best match</span>}
+                    <Link
+                      href={`/marketplace/voices/${encodeURIComponent(voice.id)}`}
+                      className="lr-nav-link"
+                      style={{ minHeight: 44, padding: 0 }}
+                    >
+                      Voice details
+                    </Link>
+                    {voice.source !== "platform" && (
+                      <button
+                        type="button"
+                        className="lr-chip"
+                        onClick={() => handlePurchaseClick(voice.id)}
+                      >
+                        License
+                      </button>
+                    )}
+                  </div>
+                  {/* Explainable fit: the rubric dimensions that drove
+                      this voice's ranking for the detected archetype. */}
+                  {reasons.length > 0 && (
+                    <details className="lr-inline-details">
+                      <summary>Why this match?</summary>
+                      <ul className="lr-reasons">
+                        {reasons.map((reason) => (
+                          <li key={reason}>{reason}</li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                  <details className="lr-inline-details">
+                    <summary>Provenance &amp; trust</summary>
+                    <p className="lr-quiet" style={{ marginTop: "0.5rem" }}>
+                      {voice.trust?.details || "No additional provenance details."}
+                    </p>
+                  </details>
+                </article>
               );
             })}
-          </motion.div>
+          </div>
         ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <MascotEmptyState
-              title={activeFilterCount > 0 ? "No voices matched these filters" : "No voices listed yet"}
-              description={
-                activeFilterCount > 0
-                  ? "Try adjusting your filters or clearing them to see all available voices."
-                  : "Be the first to list your voice! Head to the Studio to record and publish."
-              }
-            />
-          </motion.div>
+          !error && (
+            <div className="lr-notice" role="status">
+              {/* Onboarding hint for first-time visitors */}
+              {activeFilterCount > 0 ? (
+                <>
+                  <p style={{ margin: 0 }}>No voices matched these filters.</p>
+                  <button
+                    type="button"
+                    className="lr-chip"
+                    style={{ marginTop: "0.5rem" }}
+                    onClick={() => setFilters({ language: "", tone: "", licenseType: "" })}
+                  >
+                    Clear filters
+                  </button>
+                </>
+              ) : (
+                <p style={{ margin: 0 }}>
+                  No voices are listed in the catalog yet.{" "}
+                  <Link href="/sell" style={{ color: "var(--lr-accent)" }}>
+                    Contributors can record and publish in the Studio →
+                  </Link>
+                </p>
+              )}
+            </div>
+          )
         )}
+
+        {/* Runtime rails — dismissible so browsing stays clean; judges can restore in one click. */}
+        <details className="lr-details" style={{ marginTop: "2rem" }}>
+          <summary>Catalog stats, payments &amp; trends</summary>
+          <div className="lr-details-body">
+            {/* Stats bar */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginBottom: "1rem" }}>
+              <span className="lr-badge">{totalVoices} voices</span>
+              <span className="lr-badge">{totalLicenses} licenses sold</span>
+              <span className="lr-badge">{totalUsage.toLocaleString()} total uses</span>
+            </div>
+            {isAuthenticated && (
+              <div className="mb-4 max-w-2xl">
+                {/* Buyer credits — compact when connected; explains cost before browsing. */}
+                <BuyerCreditsStrip agentRegistryAddress={(process.env.NEXT_PUBLIC_AGENT_REGISTRY_CONTRACT as string) || "0xBE857DB4B4bD71a8bf8f50f950eecD7dDe68b85c"} />
+              </div>
+            )}
+            <div className="lr-legacy-inset">
+              <div className="mb-4 max-w-2xl">
+                <DismissibleRuntimeTracks bankrCompact dynamicCompact={!isAuthenticated} storageKey="voisss_runtime_marketplace" />
+              </div>
+              <VoiceMarketTrends />
+            </div>
+          </div>
+        </details>
       </div>
 
       <LicensePurchaseModal
+        key={modalVoice?.id ?? "license-modal"}
         visible={!!modalVoice}
         onClose={() => setModalVoice(null)}
         voiceId={modalVoice?.id || ''}
@@ -668,13 +555,22 @@ export default function MarketplacePage() {
         licenseType={modalVoice?.licenseType || "non-exclusive"}
         price={modalVoice ? Number(modalVoice.price) / 1_000_000 : 0}
       />
+    </main>
+  );
+}
 
-      <BuyCreditsModal
-        isOpen={showBuyCredits}
-        onClose={() => setShowBuyCredits(false)}
-        context={modalVoice ? { voiceId: modalVoice.id, voiceName: modalVoice.metadata.title || modalVoice.voiceProfile?.tone || 'Unknown' } : undefined}
-      />
-    </div>
-    </>
+export default function MarketplacePage() {
+  return (
+    <Suspense
+      fallback={
+        <main id="listening-main">
+          <div className="lr-wrap" style={{ paddingTop: "4rem" }}>
+            <Loader2 className="w-8 h-8 animate-spin" aria-hidden />
+          </div>
+        </main>
+      }
+    >
+      <MarketplacePageInner />
+    </Suspense>
   );
 }
