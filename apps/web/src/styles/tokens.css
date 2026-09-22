@@ -19,6 +19,14 @@
   --lr-bench-jev: #7c5dfa;
   --lr-bench-jev-soft: #9c88ff;
   --lr-bench-gpt: #10b981;
+  /* Agentic-primes neutrals + chart accents — SVG fills and shimmer stops in
+     components/ui/agentic (InsightCards, ThinkingState, LoadingState). */
+  --lr-agentic-gray: #6b7280;
+  --lr-agentic-gray-deep: #4b5563;
+  --lr-agentic-white: #ffffff;
+  --lr-agentic-danger: #ef4444;
+  --lr-agentic-accent: #7c5dfa;
+  --lr-agentic-success: #10b981;
   --lr-font-display: var(--font-syne), sans-serif;
   --lr-font-body: var(--font-inter), sans-serif;
   --lr-font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;

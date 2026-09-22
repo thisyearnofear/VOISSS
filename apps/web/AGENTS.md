@@ -197,7 +197,15 @@ tokens as `lr-*` utilities (`bg-lr-paper`, `text-lr-muted`, `border-lr-line`,
 - Give related disclosures the same `name` attribute for exclusive accordion
   behavior; give them `id`s for deep-linking (browsers auto-open hash targets).
 - All audio goes through the shared Listening Room player
-  (`contexts/ListeningRoomContext`) — never a second `<audio>` element.
+  (`contexts/ListeningRoomContext`) — never a second `<audio>` element or
+  `new Audio()`. Sample previews (`VoiceCard`, `LicensePurchaseModal`) use
+  `sample:${voiceId}` tracks; synthesized results (`useVoicePreview`,
+  `QuickVoicePreview`) use `generation:*` tracks. The player's own
+  `createAudio` factory in `lib/listening-player.ts` is the single exception.
+- CI enforces this plus token hygiene on migrated surfaces
+  (`ci-web.yml` → "Listening Room token hygiene", warn-only until the legacy
+  mass migrates): no hardcoded hex and no second audio path outside the
+  canonical sources (`tokens.css`, tailwind bindings, theme source).
 - Listening Room routes are declared in `components/listening/ListeningShell.tsx`
   (`isListeningRoute`) — add new LR pages there so they get the shell chrome,
   shared player bar, and cross-page playback continuity. Current surfaces:
@@ -206,7 +214,10 @@ tokens as `lr-*` utilities (`bg-lr-paper`, `text-lr-muted`, `border-lr-line`,
   `/benchmarks` (dark — keeps its own `bench` identity accents from tokens).
 - Free browser previews (3 per browser) go through `hooks/useVoicePreview` —
   the request lifecycle, allowance, and result track live there; surfaces
-  supply the voice, a script field, and the CTA.
+  supply the voice, a script field, and the CTA. Adopted by `/generate`, the
+  voice listening room, and `/developers`. `generate` passes `archetype` +
+  mascot/telemetry callbacks (`onStart`/`onVocalized`/`onError`) and calls
+  `cancel()` on voice/param switches.
 - Legacy components that haven't been migrated sit inside `.lr-legacy-inset`
   (dark panel) and, when secondary, behind a `Disclosure` — wrap, don't rewrite.
 - Interactive targets stay ≥44px; every animated element needs a

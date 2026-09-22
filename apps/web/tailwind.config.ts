@@ -86,6 +86,14 @@ const config: Config = {
             'jev-soft': 'var(--lr-bench-jev-soft)',
             gpt: 'var(--lr-bench-gpt)',
           },
+          agentic: {
+            gray: 'var(--lr-agentic-gray)',
+            'gray-deep': 'var(--lr-agentic-gray-deep)',
+            white: 'var(--lr-agentic-white)',
+            danger: 'var(--lr-agentic-danger)',
+            accent: 'var(--lr-agentic-accent)',
+            success: 'var(--lr-agentic-success)',
+          },
         },
       },
       spacing: {

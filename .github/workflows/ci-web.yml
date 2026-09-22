@@ -39,6 +39,44 @@ jobs:
       - name: Build packages
         run: pnpm build:packages
 
+      - name: Listening Room token hygiene (warn-only)
+        # Migrated surfaces must stay token-clean: no hardcoded hex outside the
+        # canonical sources (tokens.css values, tailwind bindings, theme source,
+        # svg-render string defaults). Legacy surfaces are excluded until they
+        # migrate — the allowlist shrinks as migration proceeds. Non-blocking
+        # until the legacy mass is wrapped (warn-only: `|| true` is deliberate).
+        run: |
+          echo "--- hex outside canonical token sources (migrated surfaces) ---"
+          grep -rEn '#[0-9a-fA-F]{3,8}\b' \
+            apps/web/src/app/benchmarks \
+            apps/web/src/app/developers \
+            apps/web/src/app/generate \
+            apps/web/src/app/marketplace/voices \
+            apps/web/src/app/sell \
+            apps/web/src/components/listening \
+            apps/web/src/components/ui \
+            apps/web/src/hooks/useVoicePreview.ts \
+            apps/web/src/hooks/useVoiceCatalog.ts \
+            apps/web/src/contexts/ListeningRoomContext.tsx \
+            apps/web/src/lib/listening-player.ts \
+            apps/web/src/lib/listening-preview.ts \
+            apps/web/src/lib/listening-room.ts \
+            apps/web/src/lib/voice-detail.ts \
+            2>/dev/null | grep -v 'tokens.css' || true
+          echo "--- second <audio> outside the shared player ---"
+          grep -rEn 'new Audio\(|<audio[ >]' \
+            apps/web/src/app/benchmarks \
+            apps/web/src/app/developers \
+            apps/web/src/app/generate \
+            apps/web/src/app/marketplace/voices \
+            apps/web/src/app/sell \
+            apps/web/src/components/listening \
+            apps/web/src/components/ui \
+            apps/web/src/hooks/useVoicePreview.ts \
+            apps/web/src/lib/listening-player.ts \
+            2>/dev/null || true
+          echo "(warn-only — informational until legacy migration completes)"
+
       - name: Lint
         run: pnpm lint
 

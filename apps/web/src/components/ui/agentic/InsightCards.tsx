@@ -159,7 +159,7 @@ const INSIGHTS = [
       <BarChart
         data={makePoints([274, 289, 264, 307, 331, 1210, 1718, 2112], 7).map((p) => p.value)}
         threshold={600}
-        color="#ef4444"
+        color="var(--lr-agentic-danger)"
         height={100}
       />
     ),
@@ -174,7 +174,7 @@ const INSIGHTS = [
     chart: (
       <Sparkline
         data={smooth([4.2, 4.5, 4.8, 4.6, 5.1, 5.3, 5.0, 5.8, 6.1, 5.9, 6.4, 6.8, 7.2, 8.4])}
-        color="#10b981"
+        color="var(--lr-agentic-success)"
         height={100}
       />
     ),
@@ -190,7 +190,7 @@ const INSIGHTS = [
       <BarChart
         data={[120, 98, 87, 64, 45, 32]}
         threshold={100}
-        color="#7C5DFA"
+        color="var(--lr-agentic-accent)"
         height={100}
       />
     ),

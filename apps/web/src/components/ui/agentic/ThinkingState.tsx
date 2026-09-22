@@ -135,7 +135,7 @@ export default function ThinkingState({
         onClick={() => setManualExpanded((current) => !(current ?? autoExpanded))}
         className="-mx-1.5 flex w-fit items-center gap-2 rounded-lg px-1.5 py-1 transition-colors duration-100 hover:bg-gray-800/50"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill={working ? "#6B7280" : "#4B5563"}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill={working ? "var(--lr-agentic-gray)" : "var(--lr-agentic-gray-deep)"}>
           <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z" />
         </svg>
         <span role="status" className="contents">
@@ -143,7 +143,7 @@ export default function ThinkingState({
             <span
               className="bg-clip-text text-[13px] font-medium whitespace-nowrap text-transparent"
               style={{
-                backgroundImage: "linear-gradient(90deg, #6B7280 35%, #FFFFFF 50%, #6B7280 65%)",
+                backgroundImage: "linear-gradient(90deg, var(--lr-agentic-gray) 35%, var(--lr-agentic-white) 50%, var(--lr-agentic-gray) 65%)",
                 backgroundSize: "200% 100%",
                 animation: "shimmer-text 1.4s linear infinite",
               }}
@@ -163,7 +163,7 @@ export default function ThinkingState({
           width="14" height="14"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="#6B7280"
+          stroke="var(--lr-agentic-gray)"
           strokeWidth="2.2"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -193,7 +193,7 @@ export default function ThinkingState({
             <div ref={traceRef} className="flex flex-col gap-1 py-1">
               {v.query && (
                 <div className="flex h-6 items-center gap-2 px-1.5" style={{ animation: "fade-up 300ms cubic-bezier(0.23,1,0.32,1) both" }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--lr-agentic-gray)" strokeWidth="2" strokeLinecap="round">
                     <circle cx="11" cy="11" r="7" />
                     <path d="M21 21l-4.3-4.3" />
                   </svg>
@@ -206,7 +206,7 @@ export default function ThinkingState({
                     {variant === "Search" && <Dot tone={TONES[i % 3]} />}
                     {variant === "Steps" && (
                       i < visible - 1 || !working ? (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--lr-agentic-gray)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                           <path d="M20 6L9 17l-5-5" />
                         </svg>
                       ) : (
