@@ -201,7 +201,10 @@ tokens as `lr-*` utilities (`bg-lr-paper`, `text-lr-muted`, `border-lr-line`,
   `new Audio()`. Sample previews (`VoiceCard`, `LicensePurchaseModal`) use
   `sample:${voiceId}` tracks; synthesized results (`useVoicePreview`,
   `QuickVoicePreview`) use `generation:*` tracks. The player's own
-  `createAudio` factory in `lib/listening-player.ts` is the single exception.
+  `createAudio` factory in `lib/listening-player.ts` is the single exception —
+  plus `components/dubbing/AudioComparison`, which needs two *simultaneous*
+  elements for original-vs-dubbed A/B (incl. "play together" sync); it stays
+  token-styled inside the legacy inset.
 - CI enforces this plus token hygiene on migrated surfaces
   (`ci-web.yml` → "Listening Room token hygiene", warn-only until the legacy
   mass migrates): no hardcoded hex and no second audio path outside the

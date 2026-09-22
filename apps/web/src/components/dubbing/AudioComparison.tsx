@@ -254,11 +254,11 @@ export default function AudioComparison({
   return (
     <div 
       ref={containerRef}
-      className={`bg-[#1A1A1A] border rounded-xl p-4 sm:p-6 ${showCelebration ? 'border-[#7C5DFA] shadow-lg shadow-[#7C5DFA]/20 animate-pulse' : 'border-[#2A2A2A]'} ${className}`}
+      className={`lr-legacy-inset ${showCelebration ? 'animate-pulse' : ''} ${className}`}
     >
       {/* Success Banner - Mobile Optimized */}
       {showCelebration && (
-        <div className="mb-4 p-3 sm:p-4 bg-gradient-to-r from-green-600/20 to-[#7C5DFA]/20 border border-green-500/30 rounded-lg animate-fade-in">
+        <div className="mb-4 p-3 sm:p-4 border border-green-500/30 rounded-lg animate-fade-in" style={{ background: "color-mix(in oklab, var(--lr-accent) 12%, transparent)" }}>
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="text-2xl sm:text-3xl">🎉</div>
             <div className="flex-1">
@@ -280,7 +280,7 @@ export default function AudioComparison({
 
       <div className="mb-4 sm:mb-6">
         <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 flex items-center gap-2">
-          <svg className="w-5 h-5 text-[#7C5DFA]" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5" style={{ color: "var(--lr-night-accent)" }} fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
           </svg>
           Audio Comparison
@@ -297,8 +297,9 @@ export default function AudioComparison({
           className={`flex-1 px-3 sm:px-4 py-4 sm:py-3 min-h-[48px] rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 ${
             isPlaying === 'original'
               ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-              : 'bg-[#2A2A2A] text-gray-300 hover:bg-[#3A3A2A]'
+              : 'text-gray-300'
           }`}
+          style={isPlaying === 'original' ? { background: "var(--lr-accent)" } : { background: "var(--lr-night-raised)", border: "1px solid var(--lr-night-line)" }}
         >
           <svg className="w-5 h-5 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 24 24">
             {isPlaying === 'original' ? (
@@ -315,8 +316,9 @@ export default function AudioComparison({
           className={`flex-1 px-3 sm:px-4 py-4 sm:py-3 min-h-[48px] rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 ${
             isPlaying === 'dubbed'
               ? 'bg-green-600 text-white shadow-lg shadow-green-600/30'
-              : 'bg-[#2A2A2A] text-gray-300 hover:bg-[#3A3A2A]'
+              : 'text-gray-300'
           }`}
+          style={isPlaying === 'dubbed' ? { background: "var(--lr-accent)" } : { background: "var(--lr-night-raised)", border: "1px solid var(--lr-night-line)" }}
         >
           <svg className="w-5 h-5 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 24 24">
             {isPlaying === 'dubbed' ? (
@@ -332,9 +334,10 @@ export default function AudioComparison({
           onClick={() => handlePlayPause('both')}
           className={`flex-1 px-3 sm:px-4 py-4 sm:py-3 min-h-[48px] rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 md:flex-[0.8] ${
             isPlaying === 'both'
-              ? 'bg-[#7C5DFA] text-white shadow-lg shadow-[#7C5DFA]/30'
-              : 'bg-[#2A2A2A] text-gray-300 hover:bg-[#3A3A2A]'
+              ? 'text-white'
+              : 'text-gray-300'
           }`}
+          style={isPlaying === 'both' ? { background: "var(--lr-accent)" } : { background: "var(--lr-night-raised)", border: "1px solid var(--lr-night-line)" }}
         >
           <svg className="w-5 h-5 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 24 24">
             {isPlaying === 'both' ? (
@@ -355,7 +358,7 @@ export default function AudioComparison({
           <span>{formatTime(duration)}</span>
         </div>
         <div
-          className="w-full h-2 bg-[#2A2A2A] rounded-full cursor-pointer relative"
+          className="w-full h-2 rounded-full cursor-pointer relative" style={{ background: "var(--lr-night-line)" }}
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
@@ -364,8 +367,8 @@ export default function AudioComparison({
           }}
         >
           <div
-            className="h-full bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-full transition-all duration-100"
-            style={{ width: `${progressPercentage}%` }}
+            className="h-full rounded-full transition-all duration-100"
+            style={{ background: "var(--lr-accent)", width: `${progressPercentage}%` }}
           />
         </div>
       </div>
@@ -407,7 +410,7 @@ export default function AudioComparison({
       {(originalTranscript || translatedTranscript) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {originalTranscript && (
-            <div className="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
+            <div className="rounded-lg p-4" style={{ background: "var(--lr-night)", border: "1px solid var(--lr-night-line)" }}>
               <h4 className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
                 <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
@@ -421,7 +424,7 @@ export default function AudioComparison({
           )}
 
           {translatedTranscript && (
-            <div className="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
+            <div className="rounded-lg p-4" style={{ background: "var(--lr-night)", border: "1px solid var(--lr-night-line)" }}>
               <h4 className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
                 <span className="text-lg">{targetLanguage ? '🌍' : '🎭'}</span>
                 {targetLanguage ? `${targetLanguage.toUpperCase()} Translation` : 'Translated Transcript'}

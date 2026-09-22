@@ -257,7 +257,7 @@ export default function DubbingPanel({
   const activeVersion = versions.find(v => v.id === activeVersionId);
   if (!activeVersion) {
     return (
-      <div className="bg-gradient-to-br from-[#1A1A1A] to-[#2A2A2A] border border-[#3A3A3A] rounded-2xl p-8">
+      <div className="lr-legacy-inset">
         <div className="text-center py-8">
           <div className="w-16 h-16 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
             <svg
@@ -286,7 +286,7 @@ export default function DubbingPanel({
             {POPULAR_LANGUAGES.slice(0, 8).map((lang) => (
               <div
                 key={lang.code}
-                className="p-3 bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg opacity-50"
+                className="p-3 rounded-lg opacity-50"
               >
                 <div className="text-lg mb-1">{lang.flag}</div>
                 <div className="text-xs text-gray-500">{lang.name}</div>
@@ -303,12 +303,12 @@ export default function DubbingPanel({
   }
 
   return (
-    <div className="p-4 bg-[#1A1A1A] rounded-xl border border-[#2A2A2A] space-y-4">
+    <div className="lr-legacy-inset space-y-4">
       <div className="flex justify-between items-center">
         <div>
           <h4 className="text-white font-semibold flex items-center gap-2">
             <svg
-              className="w-4 h-4 text-[#7C5DFA]"
+              className="w-4 h-4" style={{ color: "var(--lr-night-accent)" }}
               fill="currentColor"
               viewBox="0 0 24 24"
             >
@@ -346,7 +346,7 @@ export default function DubbingPanel({
               <p className="text-xs text-yellow-400">Weekly limit reached!</p>
               <button
                 onClick={onWalletModalOpen}
-                className="text-xs text-[#7C5DFA] hover:text-[#9C88FF] underline"
+                className="text-xs underline" style={{ color: "var(--lr-night-accent)" }}
               >
                 Upgrade for unlimited →
               </button>
@@ -360,7 +360,7 @@ export default function DubbingPanel({
           disabled={
             !canUseDubbing() || isLoadingLangs || availableLanguages.length > 0
           }
-          className="w-full px-3 py-2 bg-[#2A2A2A] rounded-lg text-gray-300 hover:bg-[#3A3A3A] disabled:opacity-50 transition-colors"
+          className="w-full px-3 py-2 rounded-lg text-gray-300 disabled:opacity-50 transition-colors" style={{ background: "var(--lr-night-raised)", border: "1px solid var(--lr-night-line)" }}
           onClick={loadLanguages}
         >
           {isLoadingLangs ? (
@@ -419,7 +419,7 @@ export default function DubbingPanel({
                 <label className="text-lg font-bold text-white flex items-center gap-2">
                   <span className="text-xl">🌍</span> Target Language
                 </label>
-                <div className="text-[10px] uppercase tracking-widest text-[#7C5DFA] font-bold bg-[#7C5DFA]/10 px-2 py-1 rounded">
+                <div className="text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded" style={{ color: "var(--lr-night-accent)", background: "color-mix(in oklab, var(--lr-accent) 12%, transparent)" }}>
                   Neural Translation Active
                 </div>
               </div>
@@ -432,12 +432,24 @@ export default function DubbingPanel({
                     onClick={() => setSelectedTargetLanguage(lang.code)}
                     disabled={disabled || isDubbing}
                     className={`group relative p-4 rounded-xl border transition-all duration-300 ${selectedTargetLanguage === lang.code
-                        ? "border-[#7C5DFA] bg-[#7C5DFA]/20 shadow-[0_0_20px_rgba(124,93,250,0.2)]"
-                        : "border-[#2A2A2A] bg-[#0F0F0F] hover:border-[#3A3A3A] hover:bg-[#1A1A1A]"
+                        ? "shadow-[0_0_20px_rgba(124,93,250,0.2)]"
+                        : ""
                       } ${disabled || isDubbing
                         ? "opacity-50 cursor-not-allowed"
                         : "cursor-pointer active:scale-95"
                       }`}
+                    style={
+                      selectedTargetLanguage === lang.code
+                        ? {
+                            borderColor: "var(--lr-accent)",
+                            background:
+                              "color-mix(in oklab, var(--lr-accent) 20%, transparent)",
+                          }
+                        : {
+                            borderColor: "var(--lr-night-line)",
+                            background: "var(--lr-night)",
+                          }
+                    }
                   >
                     <div className="text-3xl mb-3 transform group-hover:scale-110 transition-transform">{lang.flag}</div>
                     <div className="text-sm font-bold text-white">
@@ -445,7 +457,7 @@ export default function DubbingPanel({
                     </div>
                     {selectedTargetLanguage === lang.code && (
                       <div className="absolute top-2 right-2">
-                        <div className="w-2 h-2 rounded-full bg-[#7C5DFA] animate-pulse" />
+                        <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: "var(--lr-accent)" }} />
                       </div>
                     )}
                   </button>
@@ -483,7 +495,7 @@ export default function DubbingPanel({
                 isDubbing ||
                 !!dubbedBlob
               }
-              className="w-full px-4 py-3 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-lg text-white disabled:opacity-50 font-medium transition-all duration-200 hover:from-[#6B4CE6] hover:to-[#8B7AFF]"
+              className="w-full px-4 py-3 rounded-lg text-white disabled:opacity-50 font-medium transition-all duration-200" style={{ background: "var(--lr-accent)" }}
               onClick={handleDubAudio}
             >
               {isDubbing ? (
@@ -509,10 +521,10 @@ export default function DubbingPanel({
 
             {/* Enhanced Progress Visualization */}
             {isDubbing && (
-              <div className="mt-4 p-6 bg-gradient-to-br from-[#0F0F0F] to-[#1A1A1A] border border-[#2A2A2A] rounded-2xl shadow-xl">
+              <div className="lr-legacy-inset mt-4">
                 {/* Header with spinning icon */}
                 <div className="flex flex-col items-center text-center mb-6">
-                  <div className="w-16 h-16 bg-gradient-to-br from-[#7C5DFA] to-[#9C88FF] rounded-full flex items-center justify-center mb-4 shadow-lg shadow-purple-500/20">
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: "var(--lr-accent)" }}>
                     <svg
                       className="w-8 h-8 text-white animate-spin"
                       fill="none"
@@ -537,13 +549,13 @@ export default function DubbingPanel({
 
                 {/* Cultural Fun Fact - Highlighted */}
                 {dubbingProgress.includes("Fun fact:") && (
-                  <div className="mb-6 p-4 bg-[#7C5DFA]/10 border border-[#7C5DFA]/30 rounded-xl">
+                  <div className="mb-6 p-4 rounded-xl" style={{ background: "color-mix(in oklab, var(--lr-accent) 10%, transparent)", border: "1px solid color-mix(in oklab, var(--lr-accent) 30%, transparent)" }}>
                     <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 bg-[#7C5DFA]/20 rounded-lg flex items-center justify-center mt-0.5">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center mt-0.5" style={{ background: "color-mix(in oklab, var(--lr-accent) 20%, transparent)" }}>
                         <span className="text-lg">💡</span>
                       </div>
                       <div className="flex-1">
-                        <p className="text-xs font-semibold text-[#9C88FF] uppercase tracking-wide mb-1">
+                        <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--lr-night-accent)" }}>
                           Cultural Insight
                         </p>
                         <p className="text-sm text-gray-200 leading-relaxed">
@@ -734,7 +746,7 @@ export default function DubbingPanel({
                 </div>
 
                 {/* Progress bar */}
-                <div className="mt-6 pt-4 border-t border-[#2A2A2A]">
+                <div className="mt-6 pt-4" style={{ borderTop: "1px solid var(--lr-night-line)" }}>
                   <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
                     <span>Processing...</span>
                     <span>
@@ -745,10 +757,11 @@ export default function DubbingPanel({
                       {dubbingStage === "complete" && "100%"}
                     </span>
                   </div>
-                  <div className="w-full h-2 bg-[#2A2A2A] rounded-full overflow-hidden">
+                  <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: "var(--lr-night-line)" }}>
                     <div
-                      className="h-full bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] transition-all duration-500 ease-out"
+                      className="h-full transition-all duration-500 ease-out"
                       style={{
+                        background: "var(--lr-accent)",
                         width:
                           dubbingStage === "preparing"
                             ? "25%"
@@ -786,7 +799,7 @@ export default function DubbingPanel({
                 />
 
                 {/* Dubbed Audio Download - Simplified */}
-                <div className="p-4 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl">
+                <div className="lr-legacy-inset">
                   <h5 className="text-white font-medium mb-3 flex items-center gap-2">
                     <svg
                       className="w-4 h-4 text-green-400"
