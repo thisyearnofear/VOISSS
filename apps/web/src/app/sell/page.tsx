@@ -1,16 +1,17 @@
 "use client";
 
 import { useMemo, useState, Suspense, useCallback, useEffect } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import RecordingStudio from "../../components/RecordingStudio";
 import QuickRecordStudio from "../../components/RecordingStudio/QuickRecordStudio";
 import StudioRecordingsList from "../../components/StudioRecordingsList";
-import StudioEarningsHero from "../../components/StudioEarningsHero";
 import { useRecordings } from "../../hooks/queries/useRecordings";
 import { useAuth } from "../../contexts/AuthContext";
-import { Mic, Upload, ArrowRight, CheckCircle } from "lucide-react";
+import { ArrowRight, Mic, Upload, Zap } from "lucide-react";
 import { initWebMCP } from "../../lib/webmcp";
 import { MascotEvents, publishAppEvent } from "@/lib/mascot-events";
+import { Chip, Disclosure, Notice } from "@/components/ui";
 
 type StudioStep = "choose" | "record" | "import" | "manage";
 
@@ -81,189 +82,218 @@ function StudioPageInner() {
   const showStepIndicator = !mode && !missionId;
 
   return (
-    <>
+    <main id="listening-main">
       <MascotEvents />
-      <div className="min-h-screen bg-[#0A0A0A] text-white">
-      <div className="voisss-container py-8 sm:py-12">
-        <StudioEarningsHero />
+      <div className="lr-wrap">
+        <nav className="lr-breadcrumb" aria-label="Breadcrumb">
+          <Link href="/marketplace">Discover voices</Link>
+          <span aria-hidden>/</span>
+          <span aria-current="page">Sell your voice</span>
+        </nav>
 
+        <header
+          className="lr-discover-head"
+          style={{ paddingTop: "var(--lr-space-md)" }}
+        >
+          <h1
+            className="lr-h1"
+            style={{ fontSize: "clamp(2.2rem, 4vw, 3.4rem)" }}
+          >
+            Sell your voice.
+          </h1>
+          <p className="lr-lede">
+            Record or import once. Earn 70% of every license.
+          </p>
+        </header>
+
+        {/* Tier 0 — the three ways in. */}
         {showStepIndicator && activeStep === "choose" && (
-          <div className="max-w-3xl mx-auto mb-12">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <button
-                onClick={() => {
-                  setRecordingVariant("quick");
-                  setActiveStep("record");
-                }}
-                className="group p-8 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl hover:border-purple-500/40 hover:bg-purple-500/5 transition-all text-left"
-              >
-                <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4">
-                  <Mic className="w-6 h-6 text-purple-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-white mb-2">Quick Record</h3>
-                <p className="text-sm text-gray-400 mb-2">
-                  Start recording right away — no tools, no options.
-                </p>
-                <span className="text-sm text-purple-400 group-hover:text-purple-300 flex items-center gap-1">
-                  Start recording <ArrowRight className="w-3 h-3" />
-                </span>
-              </button>
+          <div className="lr-options">
+            <button
+              className="lr-option"
+              onClick={() => {
+                setRecordingVariant("quick");
+                setActiveStep("record");
+              }}
+            >
+              <h3>
+                <Mic className="w-5 h-5" aria-hidden /> Quick record
+              </h3>
+              <p>Start recording right away — no tools, no options.</p>
+              <span className="lr-option-cta">
+                Start recording <ArrowRight className="w-3 h-3" aria-hidden />
+              </span>
+            </button>
 
-              <button
-                onClick={() => {
-                  setRecordingVariant("full");
-                  setActiveStep("record");
-                }}
-                className="group p-8 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl hover:border-indigo-500/40 hover:bg-indigo-500/5 transition-all text-left"
-              >
-                <div className="w-12 h-12 bg-indigo-500/20 rounded-lg flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-semibold text-white mb-2">Full Studio</h3>
-                <p className="text-sm text-gray-400 mb-2">
-                  Advanced tools: AI voice transforms, dubbing, version management, and agent integration.
-                </p>
-                <span className="text-sm text-indigo-400 group-hover:text-indigo-300 flex items-center gap-1">
-                  Open full studio <ArrowRight className="w-3 h-3" />
-                </span>
-              </button>
+            <button
+              className="lr-option"
+              onClick={() => {
+                setRecordingVariant("full");
+                setActiveStep("record");
+              }}
+            >
+              <h3>
+                <Zap className="w-5 h-5" aria-hidden /> Full studio
+              </h3>
+              <p>
+                AI voice transforms, dubbing, version management, and agent
+                integration.
+              </p>
+              <span className="lr-option-cta">
+                Open full studio <ArrowRight className="w-3 h-3" aria-hidden />
+              </span>
+            </button>
 
-              <a
-                href="/sell/import"
-                className="group p-8 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl hover:border-green-500/40 hover:bg-green-500/5 transition-all text-left block"
-              >
-                <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center mb-4">
-                  <Upload className="w-6 h-6 text-green-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-white mb-2">Import from ElevenLabs</h3>
-                <p className="text-sm text-gray-400 mb-2">
-                  Already have voices on ElevenLabs? Import them in one click and start earning 70% revenue share.
-                </p>
-                <span className="text-sm text-green-400 group-hover:text-green-300 flex items-center gap-1">
-                  Import voices <ArrowRight className="w-3 h-3" />
-                </span>
-              </a>
-            </div>
+            <Link className="lr-option" href="/sell/import">
+              <h3>
+                <Upload className="w-5 h-5" aria-hidden /> Import from
+                ElevenLabs
+              </h3>
+              <p>
+                Already have voices on ElevenLabs? Import them in one click and
+                start earning 70% revenue share.
+              </p>
+              <span className="lr-option-cta">
+                Import voices <ArrowRight className="w-3 h-3" aria-hidden />
+              </span>
+            </Link>
           </div>
         )}
 
         {activeStep === "manage" && (
-          <div className="max-w-3xl mx-auto mb-12 border border-green-500/30 bg-green-500/10 rounded-2xl p-6">
-            <div className="flex items-start gap-4">
-              <CheckCircle className="w-8 h-8 text-green-400 shrink-0" />
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-white mb-1">Recording saved — what&apos;s next?</h3>
-                <p className="text-sm text-gray-400 mb-4">
-                  {!isAuthenticated
-                    ? "Sign in via the top nav to publish on-chain, then list your voice on the marketplace to start earning 70%."
-                    : "List your voice on the marketplace to start earning 70% every time an AI agent uses it."}
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  <a
-                    href="/sell/dashboard"
-                    className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm text-white font-medium transition-colors flex items-center gap-1"
-                  >
-                    List on marketplace <ArrowRight className="w-3 h-3" />
-                  </a>
-                  <a
-                    href="/generate"
-                    className="px-4 py-2 bg-[#1A1A1A] border border-[#2A2A2A] hover:border-purple-500/40 rounded-lg text-sm text-white font-medium transition-colors"
-                  >
-                    Preview agent experience
-                  </a>
-                </div>
-              </div>
+          <Notice style={{ marginTop: "var(--lr-space-lg)" }}>
+            <p style={{ margin: 0, fontWeight: 600, color: "var(--lr-ink)" }}>
+              Recording saved — what&apos;s next?
+            </p>
+            <p style={{ margin: "0.4rem 0 0.75rem" }}>
+              {!isAuthenticated
+                ? "Sign in via the top nav to publish on-chain, then list your voice on the marketplace to start earning 70%."
+                : "List your voice on the marketplace to start earning 70% every time an AI agent uses it."}
+            </p>
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <Link href="/sell/dashboard" className="lr-btn lr-btn-primary">
+                List on marketplace
+              </Link>
+              <Link href="/generate" className="lr-btn lr-btn-ghost">
+                Preview agent experience
+              </Link>
             </div>
-          </div>
+          </Notice>
         )}
 
         {activeStep === "record" && (
-          <div id="recording-section" className="mb-12">
-            <button
+          <div
+            id="recording-section"
+            style={{ marginTop: "var(--lr-space-lg)" }}
+          >
+            <Chip
               onClick={() => setActiveStep("choose")}
-              className="text-sm text-gray-400 hover:text-white mb-4 transition-colors"
+              style={{ marginBottom: "0.75rem" }}
             >
               &larr; Back to options
-            </button>
-            {recordingVariant === "quick" && !templateId && !mode && !missionId ? (
-              <QuickRecordStudio
-                onRecordingComplete={handleRecordingComplete}
-              />
-            ) : (
-              <RecordingStudio
-                onRecordingComplete={handleRecordingComplete}
-                initialTranscriptTemplateId={templateId}
-                initialMode={mode}
-                missionId={missionId}
-              />
-            )}
+            </Chip>
+            {/* Recording studios are pre-LR legacy surfaces — wrapped in a
+                dark inset until they get their own migration pass. */}
+            <div className="lr-legacy-inset">
+              {recordingVariant === "quick" &&
+              !templateId &&
+              !mode &&
+              !missionId ? (
+                <QuickRecordStudio
+                  onRecordingComplete={handleRecordingComplete}
+                />
+              ) : (
+                <RecordingStudio
+                  onRecordingComplete={handleRecordingComplete}
+                  initialTranscriptTemplateId={templateId}
+                  initialMode={mode}
+                  missionId={missionId}
+                />
+              )}
+            </div>
           </div>
         )}
+
+        {/* Tier 1 — how the contributor journey works. */}
+        <Disclosure
+          title="How selling works"
+          variant="section"
+          id="how-selling-works"
+          style={{ marginTop: "var(--lr-space-xl)" }}
+        >
+          <ol className="lr-reasons">
+            <li>Record in the studio or import your voices from ElevenLabs.</li>
+            <li>
+              Publish on-chain and list on the marketplace — you set the price.
+            </li>
+            <li>
+              Earn 70% of every license, paid in USDC on Base, each time an AI
+              agent speaks in your voice.
+            </li>
+          </ol>
+        </Disclosure>
 
         {isAuthenticated &&
           (allRecordings.length > 0 || isLoadingRecordings) && (
-            <div className="max-w-4xl mx-auto">
-              <div className="flex items-center justify-between mb-4 sm:mb-6">
-                <h2 className="text-2xl sm:text-3xl font-bold text-white">
-                  Your Recordings
-                </h2>
-                {isLoadingRecordings && (
-                  <div className="flex items-center gap-2 text-gray-400">
-                    <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm">Loading...</span>
-                  </div>
-                )}
+            <section style={{ marginTop: "var(--lr-space-xl)" }}>
+              <div className="lr-audition-head">
+                <h2>Your recordings</h2>
+                {isLoadingRecordings && <span role="status">Loading…</span>}
               </div>
-              <StudioRecordingsList
-                recordings={allRecordings.map((r: RecordingWithIpfs) => ({
-                  id: r.id,
-                  title: r.title,
-                  duration: r.duration,
-                  createdAt:
-                    typeof r.createdAt === "string"
-                      ? r.createdAt
-                      : r.createdAt instanceof Date
-                        ? r.createdAt.toISOString()
-                        : new Date().toISOString(),
-                  tags: r.onChain ? ["on-chain"] : ["local"],
-                  onChain: r.onChain,
-                  ipfsHash: r.ipfsHash,
-                }))}
-                isLoading={isLoadingRecordings}
-                isAuthenticated={isAuthenticated}
-                userId={address || undefined}
-              />
-            </div>
+              <div className="lr-legacy-inset">
+                <StudioRecordingsList
+                  recordings={allRecordings.map((r: RecordingWithIpfs) => ({
+                    id: r.id,
+                    title: r.title,
+                    duration: r.duration,
+                    createdAt:
+                      typeof r.createdAt === "string"
+                        ? r.createdAt
+                        : r.createdAt instanceof Date
+                          ? r.createdAt.toISOString()
+                          : new Date().toISOString(),
+                    tags: r.onChain ? ["on-chain"] : ["local"],
+                    onChain: r.onChain,
+                    ipfsHash: r.ipfsHash,
+                  }))}
+                  isLoading={isLoadingRecordings}
+                  isAuthenticated={isAuthenticated}
+                  userId={address || undefined}
+                />
+              </div>
+            </section>
           )}
 
         {!isAuthenticated && localRecordings.length > 0 && (
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4 sm:mb-6">
-              Session Recordings
-              <span className="text-sm font-normal text-gray-400 ml-2">
-                (Sign in to save permanently)
-              </span>
-            </h2>
-            <StudioRecordingsList
-              recordings={localRecordings.map((r) => ({
-                id: r.id,
-                title: r.title,
-                duration: r.duration,
-                createdAt: r.createdAt,
-                tags: ["session"],
-              }))}
-              localRecordings={localRecordings}
-              isAuthenticated={isAuthenticated}
-              onDeleteLocal={handleDeleteLocal}
-              userId={address || undefined}
-            />
-          </div>
+          <section
+            style={{
+              marginTop: "var(--lr-space-xl)",
+              paddingBottom: "var(--lr-space-2xl)",
+            }}
+          >
+            <div className="lr-audition-head">
+              <h2>Session recordings</h2>
+              <span>Sign in to save permanently</span>
+            </div>
+            <div className="lr-legacy-inset">
+              <StudioRecordingsList
+                recordings={localRecordings.map((r) => ({
+                  id: r.id,
+                  title: r.title,
+                  duration: r.duration,
+                  createdAt: r.createdAt,
+                  tags: ["session"],
+                }))}
+                localRecordings={localRecordings}
+                isAuthenticated={isAuthenticated}
+                onDeleteLocal={handleDeleteLocal}
+                userId={address || undefined}
+              />
+            </div>
+          </section>
         )}
       </div>
-    </div>
-    </>
+    </main>
   );
 }
 
@@ -271,11 +301,11 @@ export default function StudioPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#0A0A0A] text-white">
-          <div className="voisss-container py-8 sm:py-12">
-            Loading studio...
+        <main id="listening-main">
+          <div className="lr-wrap" style={{ paddingTop: "4rem" }}>
+            Loading studio…
           </div>
-        </div>
+        </main>
       }
     >
       <StudioPageInner />

@@ -1,49 +1,51 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Check, Terminal, Code2, Bot, ExternalLink, Sparkles, Wallet } from "lucide-react";
-import { PRODUCT_TAGLINE } from "@voisss/shared";
-import { RuntimeInlineCallout } from "@/components/payment/RuntimePaymentChips";
+import Link from "next/link";
+import { Check, Copy, Loader2, Mic, Pause, Play } from "lucide-react";
 import TerrainBand from "@/components/marketplace/TerrainBand";
 import SplitBar from "@/components/SplitBar";
+import { RuntimeInlineCallout } from "@/components/payment/RuntimePaymentChips";
+import { Badge, Button, Chip, Disclosure, Notice } from "@/components/ui";
+import {
+  useListeningPlayback,
+  useListeningRoom,
+} from "@/contexts/ListeningRoomContext";
+import { useVoiceCatalog } from "@/hooks/useVoiceCatalog";
+import { useVoicePreview } from "@/hooks/useVoicePreview";
+import { previewRequestBody } from "@/lib/listening-preview";
+import { DEMO_VOICES, voiceDisplayName } from "@/lib/voice-detail";
+import { voiceMetaLine } from "@/components/listening/VoiceAuditionRow";
 
-const snippets = [
+const DEFAULT_TEXT =
+  "Your agent can speak with licensed human voices. One POST — metered per character, settled on Base.";
+
+const linkStyle: React.CSSProperties = {
+  color: "var(--lr-accent)",
+  minHeight: "44px",
+  display: "inline-flex",
+  alignItems: "center",
+};
+
+const QUICKSTART_SNIPPETS = [
   {
-    id: "langchain",
-    name: "LangChain",
-    icon: "🦜",
-    language: "typescript",
-    code: `import { ChatOpenAI } from "@langchain/openai";
-
-const voice = new ChatOpenAI({
-  apiKey: "YOUR_VOISSS_API_KEY",
-  configuration: {
-    baseURL: "https://voisss.netlify.app/api/agents",
+    id: "curl",
+    name: "cURL",
+    icon: "⎈",
+    code: `curl -X POST https://voisss.netlify.app/api/agents/vocalize \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "text": "AI agents deserve authentic human voices.",
+    "voiceId": "21m00Tcm4TlvDq8ikWAM",
+    "agentAddress": "0xYOUR_WALLET",
+    "preview": true
+  }'`,
   },
-});
-
-// Generate speech from text
-const response = await fetch(
-  "https://voisss.netlify.app/api/agents/vocalize",
   {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      text: "Hello, I'm an AI agent using a licensed human voice.",
-      voiceId: "21m00Tcm4TlvDq8ikWAM",
-      agentAddress: "0xYOUR_WALLET",
-    }),
-  }
-);`,
-  },
-  {
-    id: "vercel",
-    name: "Vercel AI SDK",
-    icon: "▲",
-    language: "typescript",
-    code: `import { generateText } from "ai";
-
-// VOISSS works with any fetch-compatible AI SDK
+    id: "fetch",
+    name: "TypeScript",
+    icon: "◆",
+    code: `// Any fetch-compatible stack works — Node, edge, browser.
 const response = await fetch(
   "https://voisss.netlify.app/api/agents/vocalize",
   {
@@ -51,20 +53,49 @@ const response = await fetch(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       text: "Your AI agent can speak with licensed human voices.",
-      voiceId: "professional_male_01",
+      voiceId: "21m00Tcm4TlvDq8ikWAM",
       agentAddress: "0xYOUR_WALLET",
       preview: true, // Free preview, no payment needed
     }),
   }
 );
 
+// Previews stream audio/mpeg; paid calls return JSON with audioUrl.
 const { audioUrl } = (await response.json()).data;`,
   },
   {
+    id: "langchain",
+    name: "LangChain",
+    icon: "🦜",
+    code: `import { DynamicStructuredTool } from "@langchain/core/tools";
+import { z } from "zod";
+
+// Give your agent a "speak" tool backed by a licensed human voice.
+export const speakTool = new DynamicStructuredTool({
+  name: "speak",
+  description: "Say text aloud with a licensed human voice",
+  schema: z.object({ text: z.string() }),
+  func: async ({ text }) => {
+    const res = await fetch(
+      "https://voisss.netlify.app/api/agents/vocalize",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          voiceId: "21m00Tcm4TlvDq8ikWAM",
+          agentAddress: "0xYOUR_WALLET",
+        }),
+      }
+    );
+    return (await res.json()).data.audioUrl;
+  },
+});`,
+  },
+  {
     id: "eliza",
-    name: "Eliza / Virtuals",
+    name: "Eliza",
     icon: "🤖",
-    language: "typescript",
     code: `// Eliza plugin for VOISSS voice generation
 const voisssPlugin = {
   name: "voisss",
@@ -90,161 +121,13 @@ const voisssPlugin = {
   ],
 };`,
   },
-  {
-    id: "curl",
-    name: "cURL",
-    icon: "⎈",
-    language: "bash",
-    code: `curl -X POST https://voisss.netlify.app/api/agents/vocalize \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "text": "AI agents deserve authentic human voices.",
-    "voiceId": "21m00Tcm4TlvDq8ikWAM",
-    "agentAddress": "0xYOUR_WALLET",
-    "preview": true
-  }'`,
-  },
 ];
 
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      onClick={() => {
-        navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }}
-      className="absolute top-3 right-3 p-2 rounded-lg bg-[#2A2A2A] hover:bg-[#3A3A3A] transition-colors"
-    >
-      {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-gray-400" />}
-    </button>
-  );
-}
-
-export default function ForAgentsPage() {
-  const [activeTab, setActiveTab] = useState(snippets[0].id);
-
-  const active = snippets.find((s) => s.id === activeTab)!;
-
-  return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white">
-      <div className="voisss-container py-16 sm:py-24">
-        {/* Voice terrain — the developer page shows the same field the product
-            runs on. Previewing a voice below (or the playground on /) lights
-            it via the shared bus. */}
-        <TerrainBand
-          eyebrow="00 — Signal"
-          readyLabel="Idle — your agent's first word wakes it"
-          heightClass="h-[128px] sm:h-[148px]"
-          className="mb-14"
-        >
-          <span className="ml-auto hidden sm:inline text-[10px] font-mono uppercase tracking-[0.12em] text-white/30">
-            x402 · Base · every character metered
-          </span>
-        </TerrainBand>
-
-        {/* Header */}
-        <div className="max-w-3xl mx-auto text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-full mb-6">
-            <Terminal className="w-4 h-4 text-blue-400" />
-            <span className="text-sm font-medium text-blue-300">Developer Quickstart</span>
-          </div>
-          <h1 className="text-4xl sm:text-5xl font-bold mb-6">
-            Integrate VOISSS in{" "}
-            <span className="voisss-gradient-text">5 Lines</span>
-          </h1>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-            {PRODUCT_TAGLINE} Pick your framework, copy the code, and your AI agent is speaking with a licensed human voice.
-          </p>
-        </div>
-
-        {/* Tab Bar */}
-        <div className="max-w-4xl mx-auto mb-8">
-          <div className="flex flex-wrap gap-2 p-1 bg-[#1A1A1A] rounded-xl border border-[#2A2A2A]">
-            {snippets.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setActiveTab(s.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === s.id
-                    ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                <span>{s.icon}</span>
-                {s.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Code Block */}
-        <div className="max-w-4xl mx-auto">
-          <div className="relative bg-[#111] border border-[#2A2A2A] rounded-2xl overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-3 bg-[#1A1A1A] border-b border-[#2A2A2A]">
-              <div className="w-3 h-3 rounded-full bg-red-500" />
-              <div className="w-3 h-3 rounded-full bg-yellow-500" />
-              <div className="w-3 h-3 rounded-full bg-green-500" />
-              <span className="ml-3 text-xs text-gray-500 font-mono">{active.name}</span>
-            </div>
-            <CopyButton text={active.code} />
-            <pre className="p-6 overflow-x-auto">
-              <code className="text-sm font-mono text-gray-300 leading-relaxed whitespace-pre">
-                {active.code}
-              </code>
-            </pre>
-          </div>
-        </div>
-
-        {/* Runtime: self-paying agents — where the Dynamic + Bankr integrations live for real */}
-        <div className="max-w-4xl mx-auto mt-16">
-          <div className="rounded-2xl border border-[#2A2A2A] bg-[#0F0F0F] overflow-hidden">
-            <div className="px-6 py-5 border-b border-[#2A2A2A] bg-[#0A0A0A]/60 flex flex-wrap items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#7C5DFA]/15 border border-[#7C5DFA]/20 text-[#9C88FF]">
-                  <Wallet className="h-5 w-5" />
-                </span>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-lg font-bold text-white">Your agent can pay for itself</h2>
-                    <span className="rounded-full border border-[#7C5DFA]/20 bg-[#7C5DFA]/10 px-2 py-0.5 text-[10px] font-bold tracking-widest uppercase text-[#C4B5FD]">
-                      Runtime Week
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-400 mt-1 max-w-xl">
-                    No top-up. No human click. The agent&apos;s <span className="text-gray-200">Dynamic server wallet</span> signs x402 on Base and 70% settles to the voice owner on-chain.
-                  </p>
-                </div>
-              </div>
-              <a href="https://www.dynamic.xyz/docs/overview/agents/agent-payments" target="_blank" rel="noopener noreferrer" className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-xs font-medium text-gray-300 hover:text-white hover:border-[#3A3A3A] transition-colors">
-                Dynamic docs <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-
-            <div className="grid lg:grid-cols-2 gap-0">
-              <div className="relative bg-[#0A0A0A] border-b lg:border-b-0 lg:border-r border-[#2A2A2A] flex flex-col">
-                <div className="flex items-center gap-2 px-4 py-3 bg-[#1A1A1A] border-b border-[#2A2A2A]">
-                  <span className="text-xs font-bold tracking-widest uppercase text-gray-500">One header</span>
-                  <span className="ml-auto font-mono text-[11px] text-[#9C88FF] bg-[#7C5DFA]/10 border border-[#7C5DFA]/20 rounded-full px-2 py-0.5">X-DYNAMIC-WALLET: 1</span>
-                </div>
-                <div className="relative p-4 flex-1">
-                  <button onClick={() => { navigator.clipboard.writeText(`fetch("https://voisss.netlify.app/api/agents/vocalize", {
-  method: "POST",
-  headers: { "Content-Type": "application/json", "X-DYNAMIC-WALLET": "1" },
-  body: JSON.stringify({
-    text: "warm female ad for NYC coffee shop, 15s",
-    voiceId: "21m00Tcm4TlvDq8ikWAM",
-    agentAddress: "0xYourAgent"
-  })
-});`); }} className="absolute top-3 right-3 p-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-gray-500 hover:text-white transition-colors" aria-label="Copy agentic pay snippet">
-                    <Copy className="h-3.5 w-3.5" />
-                  </button>
-                  <pre className="text-xs font-mono leading-relaxed text-gray-300 overflow-x-auto whitespace-pre pr-10"><code>{`fetch("https://voisss.netlify.app/api/agents/vocalize", {
+const AGENTIC_SNIPPET = `fetch("https://voisss.netlify.app/api/agents/vocalize", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
-    "X-DYNAMIC-WALLET": "1"  // ← agent wallet pays
+    "X-DYNAMIC-WALLET": "1"  // ← the agent's server wallet pays
   },
   body: JSON.stringify({
     text: "warm female ad for NYC coffee shop, 15s",
@@ -253,84 +136,479 @@ export default function ForAgentsPage() {
   })
 });
 // → server signs TransferWithAuthorization (EIP-3009)
-// → CDP facilitator verifies → audio + IPFS + 70/30 split`}</code></pre>
-                </div>
-                <div className="px-4 py-3 bg-[#111] border-t border-[#2A2A2A]">
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                    <Sparkles className="h-3 w-3 text-[#9C88FF]" /> Base · x402 · no private key in browser
-                  </div>
-                  {/* the split this flow settles, drawn — cites the contract constant */}
-                  <SplitBar variant="license" compact className="mt-2.5" />
-                </div>
-              </div>
-              <div className="p-4 bg-[#0F0F0F] flex flex-col gap-3">
-                <p className="text-xs font-bold tracking-widest uppercase text-gray-500">Try it live</p>
-                <RuntimeInlineCallout />
-                <p className="text-xs leading-relaxed text-gray-500">
-                  Create the server wallet once, then any brief becomes a self-checkout. Bankr rails handle the Grand Prize story — same checkout, same 70/30 contract.
-                </p>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  <a href="/api/agents/dynamic-wallet" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-1.5 text-xs font-medium text-gray-300 hover:text-white hover:border-[#3A3A3A] transition-colors">Inspect API <ExternalLink className="h-3 w-3" /></a>
-                  <a href="/api/bankr" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-white transition-colors">/api/bankr</a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+// → facilitator verifies → audio + IPFS + 70/30 split`;
 
-        {/* Integration Features */}
-        <div className="max-w-4xl mx-auto mt-16 grid sm:grid-cols-3 gap-6">
-          <div className="p-6 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl">
-            <Code2 className="w-8 h-8 text-blue-400 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Framework Agnostic</h3>
-            <p className="text-sm text-gray-400">
-              Works with any HTTP client. LangChain, Vercel AI SDK, Eliza, or raw fetch.
-            </p>
-          </div>
-          <div className="p-6 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl">
-            <Bot className="w-8 h-8 text-purple-400 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Autonomous Commerce</h3>
-            <p className="text-sm text-gray-400">
-              VOISSS auto-bids on ACP voice jobs. Your agent finds work, we handle delivery.
-            </p>
-          </div>
-          <div className="p-6 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl">
-            <ExternalLink className="w-8 h-8 text-green-400 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">OpenAPI Spec</h3>
-            <p className="text-sm text-gray-400">
-              <a href="/api/agents/openapi.json" className="text-blue-400 hover:underline">
-                Download OpenAPI spec
-              </a>{" "}
-              for type-safe client generation.
-            </p>
-          </div>
-        </div>
-
-        {/* Pricing */}
-        <div className="max-w-2xl mx-auto mt-20 text-center">
-          <div className="p-8 bg-gradient-to-br from-blue-500/5 to-purple-500/5 border border-[#2A2A2A] rounded-2xl">
-            <h2 className="text-2xl font-bold mb-4">Pay-Per-Character Pricing</h2>
-            <p className="text-5xl font-bold voisss-gradient-text mb-4">$0.000001</p>
-            <p className="text-gray-400 mb-6">per character — no monthly fees, no minimum commitment</p>
-            <div className="mx-auto max-w-sm text-left">
-              <p className="mb-2 text-[10px] font-mono uppercase tracking-[0.12em] text-white/35">
-                Where the money goes
-              </p>
-              <SplitBar variant="x402" />
-              <p className="mt-2 text-[11px] leading-relaxed text-white/30">
-                Licensing splits 70/30 (VoiceLicenseMarket.sol) · paywalled recordings pay creators 95/5
-                (VoiceRecords.sol) — both settle on-chain, instantly.
-              </p>
-            </div>
-            <a
-              href="/marketplace"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl text-white font-semibold hover:from-blue-500 hover:to-purple-500 transition-all"
-            >
-              Browse Voices <ExternalLink className="w-4 h-4" />
-            </a>
-          </div>
-        </div>
+/** Token-styled code block with a header row and copy control. */
+function CodeBlock({ label, code }: { label: string; code: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="lr-code">
+      <div className="lr-code-head">
+        <span>{label}</span>
+        <button
+          type="button"
+          className="lr-code-copy"
+          aria-label={`Copy ${label} snippet`}
+          onClick={() => {
+            navigator.clipboard
+              .writeText(code)
+              .then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              })
+              .catch(() => {});
+          }}
+        >
+          {copied ? (
+            <>
+              <Check className="w-3.5 h-3.5" aria-hidden /> Copied
+            </>
+          ) : (
+            <>
+              <Copy className="w-3.5 h-3.5" aria-hidden /> Copy
+            </>
+          )}
+        </button>
       </div>
+      <pre>
+        <code>{code}</code>
+      </pre>
     </div>
   );
 }
+
+export default function DevelopersPage() {
+  const { player } = useListeningRoom();
+  const playback = useListeningPlayback();
+  const { query, voices } = useVoiceCatalog();
+  const [voiceId, setVoiceId] = useState("");
+  const [text, setText] = useState(DEFAULT_TEXT);
+  const [activeTab, setActiveTab] = useState(QUICKSTART_SNIPPETS[0].id);
+
+  // Real catalog voices; the curated demo voice keeps the panel usable when
+  // the catalog is unreachable.
+  const selectedVoice =
+    voices.find((v) => v.id === voiceId) ??
+    voices[0] ??
+    DEMO_VOICES["demo-rachel"];
+
+  const trackVocalize = () => {
+    fetch("/api/marketplace/match-events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event: "voice_vocalize",
+        voiceId: selectedVoice.id,
+        brief: "",
+      }),
+      keepalive: true,
+    }).catch(() => {});
+  };
+
+  const {
+    generate,
+    clearResult,
+    generating,
+    error,
+    audioUrl,
+    audioIsBlob,
+    generationsLeft,
+    allowanceReady,
+    resultTrack,
+  } = useVoicePreview(selectedVoice, voiceDisplayName(selectedVoice), {
+    onVocalized: trackVocalize,
+  });
+
+  const resultPlaying =
+    resultTrack !== null &&
+    playback.track?.id === resultTrack.id &&
+    playback.status === "playing";
+
+  const activeSnippet =
+    QUICKSTART_SNIPPETS.find((s) => s.id === activeTab) ??
+    QUICKSTART_SNIPPETS[0];
+
+  // The exact call the live preview makes — the bridge from try → integrate.
+  const lastCallSnippet = [
+    'fetch("/api/agents/vocalize", {',
+    '  method: "POST",',
+    '  headers: { "Content-Type": "application/json" },',
+    `  body: JSON.stringify(${JSON.stringify(previewRequestBody(text, selectedVoice), null, 2).split("\n").join("\n  ")}),`,
+    "});",
+  ].join("\n");
+
+  return (
+    <main id="listening-main">
+      <div className="lr-wrap" style={{ paddingBottom: "var(--lr-space-2xl)" }}>
+        <nav className="lr-breadcrumb" aria-label="Breadcrumb">
+          <Link href="/">Home</Link>
+          <span aria-hidden>/</span>
+          <span aria-current="page">Developers</span>
+        </nav>
+
+        <header
+          className="lr-discover-head"
+          style={{ paddingTop: "var(--lr-space-md)" }}
+        >
+          <h1
+            className="lr-h1"
+            style={{ fontSize: "clamp(2.2rem, 4vw, 3.4rem)" }}
+          >
+            Give your agent a voice.
+          </h1>
+          <p className="lr-lede">
+            One POST. Licensed human voices, metered per character, settled on
+            Base.
+          </p>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "0.5rem",
+              marginTop: "1rem",
+            }}
+          >
+            <Badge>x402 · metered per character</Badge>
+            <Badge>Settles on Base</Badge>
+            <Badge>70% to voice owners</Badge>
+          </div>
+        </header>
+
+        {/* The shared signal field — the preview below wakes it. */}
+        <div
+          className="lr-legacy-inset"
+          style={{ padding: 0, overflow: "hidden" }}
+        >
+          <TerrainBand
+            eyebrow="Signal"
+            readyLabel="Idle — run a preview to wake it"
+            heightClass="h-[128px] sm:h-[148px]"
+          />
+        </div>
+
+        {/* Tier 0 — a working request, not a promise. */}
+        <section
+          className="lr-audition"
+          style={{ marginTop: "var(--lr-space-lg)" }}
+          aria-label="Try a real request"
+        >
+          <div className="lr-audition-head">
+            <h2>Make a real request</h2>
+            <span role="status">
+              {allowanceReady && generationsLeft > 0
+                ? `${generationsLeft} free preview${generationsLeft !== 1 ? "s" : ""} left`
+                : allowanceReady
+                  ? "Preview limit reached"
+                  : "…"}
+            </span>
+          </div>
+
+          <div style={{ display: "grid", gap: "0.75rem" }}>
+            <div>
+              <label htmlFor="dev-voice" className="lr-label">
+                Voice
+              </label>
+              <select
+                id="dev-voice"
+                className="lr-select"
+                value={selectedVoice.id}
+                onChange={(e) => {
+                  setVoiceId(e.target.value);
+                  clearResult();
+                }}
+                disabled={generating || query.isLoading}
+              >
+                {query.isLoading && <option>Loading voices…</option>}
+                {!query.isLoading && voices.length === 0 && (
+                  <option value={DEMO_VOICES["demo-rachel"].id}>
+                    Rachel — demo voice
+                  </option>
+                )}
+                {voices.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {voiceDisplayName(v)}
+                    {voiceMetaLine(v) ? ` — ${voiceMetaLine(v)}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="dev-script" className="lr-label">
+                Text
+              </label>
+              <textarea
+                id="dev-script"
+                className="lr-textarea"
+                rows={3}
+                maxLength={500}
+                value={text}
+                onChange={(e) => {
+                  setText(e.target.value);
+                  clearResult();
+                }}
+                disabled={generating}
+              />
+            </div>
+          </div>
+
+          {error && (
+            <p
+              className="lr-error-text"
+              role="status"
+              style={{ marginTop: "0.75rem" }}
+            >
+              {error}
+            </p>
+          )}
+
+          {generationsLeft > 0 ? (
+            <>
+              <div style={{ marginTop: "1rem" }}>
+                <Button
+                  onClick={() => void generate(text)}
+                  disabled={!allowanceReady || generating || !text.trim()}
+                >
+                  {generating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+                      <span>Generating…</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-4 h-4" aria-hidden />
+                      <span>Run a free preview</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+              <p className="lr-quiet">
+                No key, no wallet · up to 500 characters · shares the workspace
+                preview budget
+              </p>
+            </>
+          ) : (
+            <Notice style={{ marginTop: "1rem" }}>
+              <p style={{ margin: 0, fontWeight: 600, color: "var(--lr-ink)" }}>
+                Preview limit reached
+              </p>
+              <p style={{ margin: "0.4rem 0 0.75rem" }}>
+                Browser previews are used up. The snippets below are the same
+                call with your own key and wallet.
+              </p>
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                <Link href="/marketplace" className="lr-btn lr-btn-ghost">
+                  Browse voices
+                </Link>
+                <Link href="/generate" className="lr-btn lr-btn-ghost">
+                  Open the workspace
+                </Link>
+              </div>
+            </Notice>
+          )}
+
+          {audioUrl && resultTrack && (
+            <div className="lr-result">
+              <p style={{ margin: 0, fontWeight: 600 }}>Your preview is ready</p>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "0.5rem",
+                  flexWrap: "wrap",
+                  marginTop: "0.75rem",
+                }}
+              >
+                <Button
+                  variant="ghost"
+                  onClick={() => void player.toggle(resultTrack)}
+                >
+                  {resultPlaying ? (
+                    <>
+                      <Pause className="w-4 h-4" aria-hidden /> Pause
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4" aria-hidden /> Play
+                    </>
+                  )}
+                </Button>
+                <a
+                  className="lr-btn lr-btn-ghost"
+                  href={audioUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download={audioIsBlob ? "voisss-preview.mp3" : undefined}
+                >
+                  Open audio
+                </a>
+              </div>
+              <p className="lr-quiet">The call you just made:</p>
+              <CodeBlock label="request" code={lastCallSnippet} />
+            </div>
+          )}
+        </section>
+
+        {/* Tier 0/1 — the quickstart. */}
+        <section
+          style={{ marginTop: "var(--lr-space-xl)" }}
+          aria-label="Quickstart"
+        >
+          <div className="lr-audition-head">
+            <h2>Integrate in minutes</h2>
+            <span>Any HTTP client works</span>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "0.5rem",
+              marginBottom: "0.75rem",
+            }}
+            role="tablist"
+            aria-label="Framework"
+          >
+            {QUICKSTART_SNIPPETS.map((s) => (
+              <Chip
+                key={s.id}
+                role="tab"
+                aria-selected={activeTab === s.id}
+                onClick={() => setActiveTab(s.id)}
+              >
+                {s.icon} {s.name}
+              </Chip>
+            ))}
+          </div>
+          <CodeBlock label={activeSnippet.name} code={activeSnippet.code} />
+        </section>
+
+
+        {/* Tier 1 — payments, pricing, and ecosystem behind disclosures. */}
+        <div style={{ marginTop: "var(--lr-space-xl)" }}>
+          <Disclosure
+            title="Self-paying agents (x402 + Dynamic)"
+            variant="section"
+            name="developers"
+            id="agentic-payments"
+          >
+            <p style={{ marginTop: 0 }}>
+              No top-up, no human click: the agent&apos;s Dynamic server wallet
+              signs the x402 payment on Base, and 70% settles to the voice
+              owner on-chain.
+            </p>
+            <CodeBlock label="agentic checkout" code={AGENTIC_SNIPPET} />
+            <div
+              className="lr-legacy-inset"
+              style={{ marginTop: "0.75rem", display: "grid", gap: "0.75rem" }}
+            >
+              <RuntimeInlineCallout />
+              <SplitBar variant="license" compact />
+            </div>
+            <p
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "0.25rem 1rem",
+                margin: "0.75rem 0 0",
+              }}
+            >
+              <a
+                href="https://www.dynamic.xyz/docs/overview/agents/agent-payments"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={linkStyle}
+              >
+                Dynamic docs
+              </a>
+              <a
+                href="/api/agents/dynamic-wallet"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={linkStyle}
+              >
+                Inspect the wallet API
+              </a>
+              <a href="/api/bankr" target="_blank" rel="noopener noreferrer" style={linkStyle}>
+                /api/bankr
+              </a>
+            </p>
+          </Disclosure>
+
+          <Disclosure
+            title="Pricing & revenue split"
+            variant="section"
+            name="developers"
+            id="pricing"
+          >
+            <p style={{ marginTop: 0 }}>
+              <strong
+                style={{
+                  fontFamily: "var(--lr-font-display)",
+                  fontSize: "1.5rem",
+                  color: "var(--lr-ink)",
+                }}
+              >
+                $0.000001
+              </strong>{" "}
+              per character — no monthly fees, no minimum commitment.
+            </p>
+            <p>
+              Licensing splits 70/30 (VoiceLicenseMarket.sol); paywalled
+              recordings pay creators 95/5 (VoiceRecords.sol) — both settle
+              on-chain, instantly.
+            </p>
+            <div className="lr-legacy-inset" style={{ marginTop: "0.75rem" }}>
+              <SplitBar variant="x402" />
+            </div>
+          </Disclosure>
+
+          <Disclosure
+            title="Frameworks & agent commerce"
+            variant="section"
+            name="developers"
+            id="frameworks"
+          >
+            <ul className="lr-reasons">
+              <li>
+                <strong>Framework agnostic</strong> — any HTTP client:
+                LangChain, Vercel AI SDK, Eliza, or raw fetch.
+              </li>
+              <li>
+                <strong>Autonomous commerce</strong> — VOISSS auto-bids on ACP
+                voice jobs; your agent finds work, we handle delivery.
+              </li>
+              <li>
+                <strong>Type-safe clients</strong> — generate from the OpenAPI
+                spec (
+                <a
+                  href="/api/agents/openapi.json"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={linkStyle}
+                >
+                  /api/agents/openapi.json
+                </a>
+                ).
+              </li>
+            </ul>
+          </Disclosure>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            gap: "0.5rem",
+            flexWrap: "wrap",
+            marginTop: "var(--lr-space-xl)",
+          }}
+        >
+          <Link href="/marketplace" className="lr-btn lr-btn-primary">
+            Browse voices
+          </Link>
+          <Link href="/generate" className="lr-btn lr-btn-ghost">
+            Open the workspace
+          </Link>
+        </div>
+      </div>
+    </main>
+  );
+}
+

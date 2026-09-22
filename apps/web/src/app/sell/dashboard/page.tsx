@@ -1,11 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAccount, usePublicClient } from "wagmi";
+import { Pause, Play } from "lucide-react";
 import { useVoiceMarketplace } from "@/hooks/useVoiceMarketplace";
 import { DismissibleRuntimeTracks } from "@/components/payment/RuntimePaymentChips";
 import { DashboardBalanceStrip } from "@/components/payment/DashboardBalanceChips";
+import {
+  useListeningPlayback,
+  useListeningRoom,
+} from "@/contexts/ListeningRoomContext";
+import { Badge, Chip, Disclosure, Notice } from "@/components/ui";
 
 type DashboardListing = {
   id: string;
@@ -35,8 +41,52 @@ type DashboardListing = {
   pendingAction?: "delisting";
 };
 
+function listingTitle(listing: DashboardListing): string {
+  return (
+    listing.metadata?.title || `${listing.voiceProfile?.tone || "Voice"} Listing`
+  );
+}
+
+/** Sample audition through the shared Listening Room player. */
+function ListingPlayButton({ listing }: { listing: DashboardListing }) {
+  const { player } = useListeningRoom();
+  const playback = useListeningPlayback();
+  if (!listing.sampleUrl) return null;
+  const title = listingTitle(listing);
+  const track = {
+    id: `sample:${listing.id}`,
+    url: listing.sampleUrl,
+    title,
+    subtitle: `${listing.voiceProfile?.language || "en-US"} · ${listing.licenseType}`,
+    kind: "sample" as const,
+  };
+  const isCurrent = playback.track?.id === track.id;
+  const playing = isCurrent && playback.status === "playing";
+  const loading = isCurrent && playback.status === "loading";
+  return (
+    <button
+      type="button"
+      className="lr-play"
+      onClick={() => void player.toggle(track)}
+      aria-label={
+        loading
+          ? `Cancel loading ${title}`
+          : playing
+            ? `Pause ${title}`
+            : `Play ${title}`
+      }
+    >
+      {playing || loading ? (
+        <Pause className="w-4 h-4" aria-hidden />
+      ) : (
+        <Play className="w-4 h-4" aria-hidden />
+      )}
+    </button>
+  );
+}
+
+
 function DashboardContent() {
-  const router = useRouter();
   const publicClient = usePublicClient();
   const { address, isConnected } = useAccount();
   const { delistVoice, updateListingPrice } = useVoiceMarketplace();
@@ -220,396 +270,395 @@ function DashboardContent() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-        <div className="text-center p-8 bg-zinc-900/50 border border-zinc-800 rounded-2xl max-w-md w-full">
-          <h2 className="text-2xl font-bold text-white mb-4">
-            Connect Your Wallet
-          </h2>
-          <p className="text-zinc-400 mb-8">
-            Connect the wallet you used to publish voices on Base to manage your
-            active listings.
-          </p>
-          <button
-            onClick={() => router.push("/marketplace")}
-            className="w-full bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-500 transition-colors"
-          >
-            Open Marketplace
-          </button>
+      <main id="listening-main">
+        <div className="lr-wrap" style={{ paddingBottom: "var(--lr-space-2xl)" }}>
+          <header className="lr-discover-head">
+            <h1 className="lr-h1" style={{ fontSize: "clamp(2rem, 4vw, 3rem)" }}>
+              Contributor dashboard
+            </h1>
+            <p className="lr-lede">
+              Manage live Base listings, trust badges, and licensing
+              performance.
+            </p>
+          </header>
+          <Notice>
+            <p style={{ margin: "0 0 0.75rem" }}>
+              Connect the wallet you used to publish voices on Base to manage
+              your active listings. Sign-in lives in the top nav.
+            </p>
+            <Link href="/marketplace" className="lr-btn lr-btn-ghost">
+              Open marketplace
+            </Link>
+          </Notice>
         </div>
-      </div>
+      </main>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white">
-      <div className="border-b border-zinc-800 bg-zinc-900/30 backdrop-blur-md sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            Contributor Dashboard
-          </h1>
-          <p className="text-lg text-zinc-400">
-            Manage live Base listings, trust badges, and licensing performance
-          </p>
-        </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+  return (
+    <main id="listening-main">
+      <div className="lr-wrap" style={{ paddingBottom: "var(--lr-space-2xl)" }}>
+        <nav className="lr-breadcrumb" aria-label="Breadcrumb">
+          <Link href="/sell">Sell your voice</Link>
+          <span aria-hidden>/</span>
+          <span aria-current="page">Dashboard</span>
+        </nav>
+
+        <header
+          className="lr-discover-head"
+          style={{ paddingTop: "var(--lr-space-md)" }}
+        >
+          <h1
+            className="lr-h1"
+            style={{ fontSize: "clamp(2rem, 4vw, 3rem)" }}
+          >
+            Contributor dashboard
+          </h1>
+          <p className="lr-lede">
+            Manage live Base listings, trust badges, and licensing performance.
+          </p>
+        </header>
+
         {error && (
-          <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <Notice tone="error" style={{ marginBottom: "1rem" }}>
             {error}
-          </div>
+          </Notice>
         )}
 
         {statusMessage && (
-          <div className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
-            <div>{statusMessage}</div>
+          <Notice style={{ marginBottom: "1rem" }}>
+            <p style={{ margin: 0 }}>{statusMessage}</p>
             {lastTxHash && (
-              <div className="mt-1 text-xs text-blue-300/80 break-all">
+              <p
+                style={{
+                  margin: "0.25rem 0 0",
+                  fontSize: "0.75rem",
+                  overflowWrap: "anywhere",
+                }}
+              >
                 Tx: {lastTxHash}
-              </div>
+              </p>
             )}
-          </div>
+          </Notice>
         )}
 
-        {/* Balance strip — live credits + wallet USDC + tier + agent wallet. Same row for contributors. */}
-        <div className="mb-6">
-          <DashboardBalanceStrip agentRegistryAddress={(process.env.NEXT_PUBLIC_AGENT_REGISTRY_CONTRACT as string) || "0xBE857DB4B4bD71a8bf8f50f950eecD7dDe68b85c"} />
-        </div>
-
-        {/* Runtime rails — collapsible/dismissible; contributors see it but it doesn't steal focus from listings. */}
-        <div className="mb-6 max-w-2xl">
-          <DismissibleRuntimeTracks agentAddress={address ?? undefined} bankrCompact dynamicCompact storageKey="voisss_runtime_dashboard" />
-        </div>
-
-        <div className="mb-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
-          <div className="text-sm font-semibold text-emerald-200">
+        <Notice style={{ marginBottom: "1.5rem" }}>
+          <p style={{ margin: 0, fontWeight: 600, color: "var(--lr-ink)" }}>
             Contract upgrade active: repricing and relisting are now supported.
-          </div>
-          <div className="mt-1 text-sm text-emerald-100/80">
+          </p>
+          <p style={{ margin: "0.25rem 0 0" }}>
             Active listings can now be repriced onchain, and delisted voice IDs
-            can be listed again by the same contributor after redeploying the updated contract.
-          </div>
-        </div>
+            can be listed again by the same contributor after redeploying the
+            updated contract.
+          </p>
+        </Notice>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
-            <div className="text-sm font-medium text-zinc-500 mb-2 uppercase tracking-wider">
-              Total Earnings
+        {/* Tier 0 — how the contributor is doing. */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(12rem, 1fr))",
+            gap: "var(--lr-space-md)",
+          }}
+        >
+          <div className="lr-card">
+            <div className="lr-label" style={{ marginBottom: "0.25rem" }}>
+              Total earnings
             </div>
-            <div className="text-4xl font-bold text-white">
+            <div
+              style={{
+                fontFamily: "var(--lr-font-display)",
+                fontSize: "2rem",
+                fontWeight: 800,
+              }}
+            >
               ${metrics.totalRevenue.toFixed(2)}
             </div>
-            <div className="mt-4 text-xs text-zinc-500">
-              Derived from listed price x completed licenses
-            </div>
+            <p className="lr-quiet" style={{ margin: "0.25rem 0 0" }}>
+              Listed price × completed licenses
+            </p>
           </div>
-
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
-            <div className="text-sm font-medium text-zinc-500 mb-2 uppercase tracking-wider">
-              Active Listings
+          <div className="lr-card">
+            <div className="lr-label" style={{ marginBottom: "0.25rem" }}>
+              Active listings
             </div>
-            <div className="text-4xl font-bold text-white">{listings.length}</div>
-            <div className="mt-4 text-xs text-zinc-500">
-              Live voices currently discoverable in marketplace
+            <div
+              style={{
+                fontFamily: "var(--lr-font-display)",
+                fontSize: "2rem",
+                fontWeight: 800,
+              }}
+            >
+              {listings.length}
             </div>
+            <p className="lr-quiet" style={{ margin: "0.25rem 0 0" }}>
+              Live voices discoverable in the marketplace
+            </p>
           </div>
-
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
-            <div className="text-sm font-medium text-zinc-500 mb-2 uppercase tracking-wider">
-              Pending Balance
+          <div className="lr-card">
+            <div className="lr-label" style={{ marginBottom: "0.25rem" }}>
+              Pending balance
             </div>
-            <div className="text-4xl font-bold text-white">
+            <div
+              style={{
+                fontFamily: "var(--lr-font-display)",
+                fontSize: "2rem",
+                fontWeight: 800,
+              }}
+            >
               ${metrics.pending.toFixed(2)}
             </div>
-            <div className="mt-4 text-xs text-zinc-500">
+            <p className="lr-quiet" style={{ margin: "0.25rem 0 0" }}>
               Placeholder until payout accounting is added
-            </div>
+            </p>
           </div>
         </div>
 
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden mb-12">
-          <div className="p-8 border-b border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-bold text-white">
-                Your Voice Listings
-              </h2>
-              <p className="text-zinc-500 mt-1">
-                Listings published from the Studio and resolved from live chain
-                state
-              </p>
-            </div>
-            <button
-              onClick={() => router.push("/sell")}
-              className="bg-white text-black px-6 py-2.5 rounded-full font-bold hover:bg-zinc-200 transition-colors inline-flex items-center gap-2"
+        {/* Tier 1 — balances and payment rails stay available but quiet. */}
+        <Disclosure
+          title="Balances & payment rails"
+          variant="section"
+          id="payments"
+          style={{ marginTop: "var(--lr-space-xl)" }}
+        >
+          <div
+            className="lr-legacy-inset"
+            style={{ display: "grid", gap: "1rem" }}
+          >
+            <DashboardBalanceStrip
+              agentRegistryAddress={
+                (process.env.NEXT_PUBLIC_AGENT_REGISTRY_CONTRACT as string) ||
+                "0xBE857DB4B4bD71a8bf8f50f950eecD7dDe68b85c"
+              }
+            />
+            <DismissibleRuntimeTracks
+              agentAddress={address ?? undefined}
+              bankrCompact
+              dynamicCompact
+              storageKey="voisss_runtime_dashboard"
+            />
+          </div>
+        </Disclosure>
+
+        {/* Tier 0 — the listings themselves. */}
+        <section style={{ marginTop: "var(--lr-space-xl)" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "0.75rem",
+              marginBottom: "1rem",
+            }}
+          >
+            <h2
+              style={{
+                fontFamily: "var(--lr-font-display)",
+                fontSize: "1.5rem",
+                fontWeight: 700,
+                margin: 0,
+              }}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              List New Voice
-            </button>
+              Your voice listings
+            </h2>
+            <Link href="/sell" className="lr-btn lr-btn-primary">
+              List new voice
+            </Link>
           </div>
 
-          <div className="p-8">
-            {isLoading ? (
-              <div className="grid grid-cols-1 gap-4">
-                {[...Array(3)].map((_, index) => (
-                  <div
-                    key={index}
-                    className="h-32 rounded-xl border border-zinc-800 bg-zinc-950/40 animate-pulse"
-                  />
-                ))}
-              </div>
-            ) : listings.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="w-16 h-16 bg-zinc-800/50 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="32"
-                    height="32"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-zinc-600"
-                  >
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                    <line x1="12" y1="19" x2="12" y2="23"></line>
-                    <line x1="8" y1="23" x2="16" y2="23"></line>
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">
-                  No active listings
-                </h3>
-                <p className="text-zinc-500 max-w-sm mx-auto mb-8">
-                  Publish a recording from the Studio with marketplace listing
-                  enabled, and it will appear here automatically once the
-                  transactions land on Base.
-                </p>
-                <button
-                  onClick={() => router.push("/sell")}
-                  className="text-blue-500 font-bold hover:underline"
-                >
-                  Open Studio →
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4">
-                {listings.map((listing) => {
-                  const isDelisting = listing.pendingAction === "delisting";
-
-                  return (
+          {isLoading ? (
+            <Notice>Loading your listings…</Notice>
+          ) : listings.length === 0 ? (
+            <Notice>
+              <p style={{ margin: "0 0 0.75rem" }}>
+                No active listings. Publish a recording from the Studio with
+                marketplace listing enabled, and it will appear here once the
+                transactions land on Base.
+              </p>
+              <Link href="/sell" className="lr-btn lr-btn-ghost">
+                Open studio
+              </Link>
+            </Notice>
+          ) : (
+            <div style={{ display: "grid", gap: "var(--lr-space-md)" }}>
+              {listings.map((listing) => {
+                const isDelisting = listing.pendingAction === "delisting";
+                return (
+                  <article className="lr-card" key={listing.id}>
                     <div
-                      key={listing.id}
-                      className={`bg-zinc-800/30 border rounded-xl p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6 transition-colors ${
-                        isDelisting
-                          ? "border-blue-500/30 bg-blue-500/5"
-                          : "border-zinc-800 hover:border-zinc-700"
-                      }`}
+                      style={{
+                        display: "flex",
+                        gap: "0.75rem",
+                        alignItems: "flex-start",
+                      }}
                     >
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-blue-600/20 rounded-lg flex items-center justify-center text-blue-400 font-bold">
-                          {(listing.metadata?.title ||
-                            listing.voiceProfile?.tone ||
-                            "V")
-                            .charAt(0)
-                            .toUpperCase()}
+                      <ListingPlayButton listing={listing} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            alignItems: "center",
+                            gap: "0.5rem",
+                          }}
+                        >
+                          <strong>{listingTitle(listing)}</strong>
+                          {listing.trust && (
+                            <Badge>{listing.trust.badge}</Badge>
+                          )}
+                          {isDelisting && <Badge>Pending delist</Badge>}
                         </div>
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2 mb-2">
-                            <h4 className="font-bold text-white">
-                              {listing.metadata?.title ||
-                                `${listing.voiceProfile?.tone || "Voice"} Listing`}
-                            </h4>
-                            {listing.trust && (
-                              <span
-                                className={`rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-wider ${
-                                  listing.trust.status === "verified"
-                                    ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/20"
-                                    : listing.trust.status === "review"
-                                    ? "bg-amber-500/15 text-amber-300 border border-amber-500/20"
-                                    : "bg-cyan-500/15 text-cyan-300 border border-cyan-500/20"
-                                }`}
-                              >
-                                {listing.trust.badge}
-                              </span>
-                            )}
-                            {isDelisting && (
-                              <span className="rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-wider bg-blue-500/15 text-blue-300 border border-blue-500/20">
-                                Pending Delist
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-zinc-500">
-                            {listing.voiceProfile?.language || "en-US"} •{" "}
-                            {listing.licenseType} • Voice ID #
-                            {listing.contractVoiceId}
-                          </p>
-                          <p className="mt-2 text-sm text-zinc-400 max-w-2xl">
+                        <p
+                          className="lr-quiet"
+                          style={{ margin: "0.25rem 0 0" }}
+                        >
+                          {listing.voiceProfile?.language || "en-US"} ·{" "}
+                          {listing.licenseType} · Voice ID #
+                          {listing.contractVoiceId}
+                        </p>
+                        <Disclosure title="Details" variant="inline">
+                          <p className="lr-quiet" style={{ marginTop: "0.5rem" }}>
                             {listing.trust?.details ||
                               "Live listing sourced from the marketplace contract."}
                           </p>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-                        <div className="grid grid-cols-3 gap-4 text-center">
-                          <div>
-                            <div className="text-lg font-bold text-white">
-                              $
-                              {(
-                                parseInt(listing.price || "0", 10) / 1_000_000
-                              ).toFixed(2)}
-                            </div>
-                            <div className="text-[10px] uppercase tracking-wider text-zinc-500">
-                              Price
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-lg font-bold text-white">
-                              {listing.stats?.purchases || 0}
-                            </div>
-                            <div className="text-[10px] uppercase tracking-wider text-zinc-500">
-                              Sales
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-lg font-bold text-white">
-                              {listing.stats?.usageCount || 0}
-                            </div>
-                            <div className="text-[10px] uppercase tracking-wider text-zinc-500">
-                              Uses
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col gap-2 min-w-[170px]">
-                          <div className="rounded-lg border border-zinc-700 bg-zinc-900 p-2">
-                            <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">
-                              Reprice
-                            </div>
-                            <div className="flex gap-2">
-                              <input
-                                type="number"
-                                min="0.01"
-                                step="0.01"
-                                value={draftPrices[listing.contractVoiceId] || ""}
-                                onChange={(event) =>
-                                  setDraftPrices((current) => ({
-                                    ...current,
-                                    [listing.contractVoiceId]: event.target.value,
-                                  }))
-                                }
-                                className="w-full rounded-md border border-zinc-700 bg-black px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
-                              />
-                              <button
-                                onClick={() =>
-                                  handleReprice(listing.contractVoiceId || "0")
-                                }
-                                disabled={isDelisting}
-                                className="rounded-md border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-sm font-semibold text-blue-300 hover:bg-blue-500/20 transition-colors disabled:opacity-50"
-                              >
-                                Update
-                              </button>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() =>
-                              handleDelist(listing.contractVoiceId || "0")
-                            }
-                            disabled={isDelisting}
-                            className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 hover:bg-red-500/20 transition-colors disabled:opacity-50"
-                          >
-                            {isDelisting ? "Delisting..." : "Delist"}
-                          </button>
-                          {listing.sampleUrl && (
-                            <a
-                              href={listing.sampleUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-semibold text-zinc-300 hover:border-zinc-600 transition-colors text-center"
-                            >
-                              Open Sample
-                            </a>
-                          )}
-                        </div>
+                        </Disclosure>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
 
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-blue-500"
-            >
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-            </svg>
-            License Performance
-          </h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="space-y-1">
-              <div className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
-                Total Views
-              </div>
-              <div className="text-3xl font-bold text-white">
-                {metrics.totalViews}
-              </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        alignItems: "flex-end",
+                        gap: "1rem var(--lr-space-lg)",
+                        marginTop: "0.75rem",
+                      }}
+                    >
+                      <div style={{ display: "flex", gap: "var(--lr-space-lg)" }}>
+                        <div>
+                          <div style={{ fontWeight: 700 }}>
+                            $
+                            {(
+                              parseInt(listing.price || "0", 10) / 1_000_000
+                            ).toFixed(2)}
+                          </div>
+                          <div
+                            className="lr-quiet"
+                            style={{ margin: 0, fontSize: "0.75rem" }}
+                          >
+                            Price
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 700 }}>
+                            {listing.stats?.purchases || 0}
+                          </div>
+                          <div
+                            className="lr-quiet"
+                            style={{ margin: 0, fontSize: "0.75rem" }}
+                          >
+                            Sales
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 700 }}>
+                            {listing.stats?.usageCount || 0}
+                          </div>
+                          <div
+                            className="lr-quiet"
+                            style={{ margin: 0, fontSize: "0.75rem" }}
+                          >
+                            Uses
+                          </div>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                        }}
+                      >
+                        <label
+                          htmlFor={`reprice-${listing.contractVoiceId}`}
+                          className="lr-label"
+                          style={{ margin: 0 }}
+                        >
+                          Reprice
+                        </label>
+                        <input
+                          id={`reprice-${listing.contractVoiceId}`}
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          className="lr-input"
+                          style={{ width: "7rem" }}
+                          value={draftPrices[listing.contractVoiceId] || ""}
+                          onChange={(event) =>
+                            setDraftPrices((current) => ({
+                              ...current,
+                              [listing.contractVoiceId]: event.target.value,
+                            }))
+                          }
+                        />
+                        <Chip
+                          onClick={() =>
+                            handleReprice(listing.contractVoiceId || "0")
+                          }
+                          disabled={isDelisting}
+                        >
+                          Update
+                        </Chip>
+                        <Chip
+                          onClick={() =>
+                            handleDelist(listing.contractVoiceId || "0")
+                          }
+                          disabled={isDelisting}
+                          style={{ color: "var(--lr-error)" }}
+                        >
+                          {isDelisting ? "Delisting…" : "Delist"}
+                        </Chip>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
-            <div className="space-y-1">
-              <div className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
-                Total Sales
-              </div>
-              <div className="text-3xl font-bold text-white">
-                {metrics.totalSales}
-              </div>
+          )}
+        </section>
+
+        {/* Tier 1 — aggregate performance. */}
+        <Disclosure
+          title="License performance"
+          variant="section"
+          id="performance"
+          style={{ marginTop: "var(--lr-space-xl)" }}
+        >
+          <dl className="lr-specs">
+            <div>
+              <dt>Total views</dt>
+              <dd>{metrics.totalViews}</dd>
             </div>
-            <div className="space-y-1">
-              <div className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
-                Active Licenses
-              </div>
-              <div className="text-3xl font-bold text-white">
-                {metrics.totalSales}
-              </div>
+            <div>
+              <dt>Total sales</dt>
+              <dd>{metrics.totalSales}</dd>
             </div>
-            <div className="space-y-1">
-              <div className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
-                Total Usage
-              </div>
-              <div className="text-3xl font-bold text-white">
-                {metrics.totalUsage}
-              </div>
+            <div>
+              <dt>Active licenses</dt>
+              <dd>{metrics.totalSales}</dd>
             </div>
-          </div>
-        </div>
+            <div>
+              <dt>Total usage</dt>
+              <dd>{metrics.totalUsage}</dd>
+            </div>
+          </dl>
+        </Disclosure>
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -622,11 +671,14 @@ export default function ContributorDashboard() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
+      <main id="listening-main">
+        <div className="lr-wrap" style={{ paddingTop: "4rem" }}>
+          Loading dashboard…
+        </div>
+      </main>
     );
   }
 
   return <DashboardContent />;
 }
+

@@ -1,3 +1,48 @@
+/** localStorage key + cap for free browser previews — shared by the workspace
+ *  and the voice detail room so the allowance is global across surfaces. */
+export const PREVIEW_STORAGE_KEY = "voisss_demo_generations";
+export const MAX_PREVIEW_GENERATIONS = 3;
+
+/** One-click starters for the script editor (workspace + voice detail room). */
+export const SAMPLE_SCRIPTS = [
+  {
+    label: "Welcome",
+    text: "Welcome back. Today we are looking at a small idea that grew into something much bigger — and the people who made it happen.",
+  },
+  {
+    label: "Story opening",
+    text: "The train was already moving when she reached the platform. She watched it go, then sat down on the bench and opened her notebook.",
+  },
+  {
+    label: "Explainer",
+    text: "Here is how it works. You describe the voice you need, listen to real samples, and then try the winning voice on your own words.",
+  },
+  {
+    label: "Outro",
+    text: "That is all for this week. Thanks for listening — and if this helped, share it with someone who would enjoy it too.",
+  },
+];
+
+export interface PreviewVoiceRef {
+  id: string;
+  contractVoiceId?: string;
+}
+
+/** Request body for a free browser preview via /api/agents/vocalize. */
+export function previewRequestBody(
+  text: string,
+  voice: PreviewVoiceRef,
+  archetype?: string
+): Record<string, unknown> {
+  return {
+    text: text.trim().slice(0, 500),
+    voiceId: voice.contractVoiceId || voice.id,
+    agentAddress: "0xDEMO0000000000000000000000000000000000001",
+    preview: true,
+    ...(archetype ? { archetype } : {}),
+  };
+}
+
 export function parsePreviewAllowance(raw: string | null): number {
   if (raw === null || raw.trim() === "") return 3;
   const value = Number(raw);

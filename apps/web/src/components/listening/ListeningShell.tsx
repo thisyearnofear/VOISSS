@@ -9,7 +9,27 @@ import { useListeningRoom } from "@/contexts/ListeningRoomContext";
 import { ListeningNav } from "./ListeningNav";
 import { ListeningPlayerBar } from "./ListeningPlayerBar";
 
-const LISTENING_ROUTES = new Set(["/", "/marketplace", "/generate"]);
+const LISTENING_ROUTES = new Set([
+  "/",
+  "/marketplace",
+  "/generate",
+  "/developers",
+  "/benchmarks",
+]);
+
+/** Dark graphite surfaces (workspace-style tooling). */
+const DARK_ROUTES = new Set(["/generate", "/benchmarks"]);
+
+/** Listening Room surfaces get the lr-shell chrome (nav + shared player bar)
+ *  and keep playback alive across navigation; everything else is legacy. */
+function isListeningRoute(pathname: string): boolean {
+  return (
+    LISTENING_ROUTES.has(pathname) ||
+    pathname.startsWith("/marketplace/voices/") ||
+    pathname === "/sell" ||
+    pathname.startsWith("/sell/")
+  );
+}
 
 export default function ListeningShell({
   children,
@@ -18,13 +38,13 @@ export default function ListeningShell({
 }) {
   const pathname = usePathname();
   const { player } = useListeningRoom();
-  const isListeningRoute = LISTENING_ROUTES.has(pathname);
+  const listening = isListeningRoute(pathname);
 
   useEffect(() => {
-    if (!LISTENING_ROUTES.has(pathname)) player.stop();
+    if (!isListeningRoute(pathname)) player.stop();
   }, [pathname, player]);
 
-  if (!isListeningRoute) {
+  if (!listening) {
     return (
       <>
         <Nav />
@@ -36,7 +56,7 @@ export default function ListeningShell({
   }
 
   return (
-    <div className={`lr-shell${pathname === "/generate" ? " lr-dark" : ""}`}>
+    <div className={`lr-shell${DARK_ROUTES.has(pathname) ? " lr-dark" : ""}`}>
       <a className="lr-skip" href="#listening-main">
         Skip to content
       </a>

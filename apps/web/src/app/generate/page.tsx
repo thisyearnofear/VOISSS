@@ -10,31 +10,15 @@ import type { MarketplaceVoice } from "@/lib/marketplace-indexer";
 import { useListeningRoom, useListeningPlayback } from "@/contexts/ListeningRoomContext";
 import { useVoiceCatalog } from "@/hooks/useVoiceCatalog";
 import { pickInitialVoice } from "@/lib/listening-room";
-import { parsePreviewAllowance, readPreviewResponse } from "@/lib/listening-preview";
+import {
+  MAX_PREVIEW_GENERATIONS,
+  PREVIEW_STORAGE_KEY,
+  SAMPLE_SCRIPTS,
+  parsePreviewAllowance,
+  readPreviewResponse,
+} from "@/lib/listening-preview";
 import { VoiceAuditionRow, voiceDisplayName, voiceMetaLine } from "@/components/listening/VoiceAuditionRow";
 import { Button, Chip, Notice } from "@/components/ui";
-
-const DEMO_GENERATIONS_KEY = "voisss_demo_generations";
-const MAX_GENERATIONS = 3;
-
-const SAMPLE_TEXTS = [
-  {
-    label: "Welcome",
-    text: "Welcome back. Today we are looking at a small idea that grew into something much bigger — and the people who made it happen.",
-  },
-  {
-    label: "Story opening",
-    text: "The train was already moving when she reached the platform. She watched it go, then sat down on the bench and opened her notebook.",
-  },
-  {
-    label: "Explainer",
-    text: "Here is how it works. You describe the voice you need, listen to real samples, and then try the winning voice on your own words.",
-  },
-  {
-    label: "Outro",
-    text: "That is all for this week. Thanks for listening — and if this helped, share it with someone who would enjoy it too.",
-  },
-];
 
 function GeneratePageInner() {
   const searchParams = useSearchParams();
@@ -47,7 +31,7 @@ function GeneratePageInner() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [audioIsBlob, setAudioIsBlob] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [generationsLeft, setGenerationsLeft] = useState(MAX_GENERATIONS);
+  const [generationsLeft, setGenerationsLeft] = useState(MAX_PREVIEW_GENERATIONS);
   const [allowanceReady, setAllowanceReady] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
@@ -122,7 +106,7 @@ function GeneratePageInner() {
   useEffect(() => {
     try {
       setGenerationsLeft(
-        parsePreviewAllowance(localStorage.getItem(DEMO_GENERATIONS_KEY))
+        parsePreviewAllowance(localStorage.getItem(PREVIEW_STORAGE_KEY))
       );
     } catch {
       // localStorage unavailable — use default
@@ -133,7 +117,7 @@ function GeneratePageInner() {
   useEffect(() => {
     if (!allowanceReady) return;
     try {
-      localStorage.setItem(DEMO_GENERATIONS_KEY, String(generationsLeft));
+      localStorage.setItem(PREVIEW_STORAGE_KEY, String(generationsLeft));
     } catch {
       // silent
     }
@@ -407,7 +391,7 @@ function GeneratePageInner() {
               <span className="lr-quiet" style={{ margin: 0 }}>{text.length}/500</span>
             </div>
             <div className="lr-examples" style={{ marginTop: 0, marginBottom: "0.75rem" }}>
-              {SAMPLE_TEXTS.map((sample) => (
+              {SAMPLE_SCRIPTS.map((sample) => (
                 <Chip
                   key={sample.label}
                   onClick={() => handleScriptChange(sample.text)}

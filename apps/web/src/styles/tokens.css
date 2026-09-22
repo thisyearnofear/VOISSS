@@ -15,8 +15,13 @@
   --lr-night-accent: oklch(79% .12 290);
   --lr-error: oklch(45% .16 25);
   --lr-error-dark: oklch(80% .10 25);
+  /* Benchmark identity accents — Jev vs GPT-4o-mini comparison colors. */
+  --lr-bench-jev: #7c5dfa;
+  --lr-bench-jev-soft: #9c88ff;
+  --lr-bench-gpt: #10b981;
   --lr-font-display: var(--font-syne), sans-serif;
   --lr-font-body: var(--font-inter), sans-serif;
+  --lr-font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
   --lr-space-xs: .5rem;
   --lr-space-sm: .75rem;
   --lr-space-md: 1rem;

@@ -81,6 +81,11 @@ const config: Config = {
           },
           error: 'var(--lr-error)',
           'error-dark': 'var(--lr-error-dark)',
+          bench: {
+            jev: 'var(--lr-bench-jev)',
+            'jev-soft': 'var(--lr-bench-jev-soft)',
+            gpt: 'var(--lr-bench-gpt)',
+          },
         },
       },
       spacing: {

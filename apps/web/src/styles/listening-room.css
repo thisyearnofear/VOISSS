@@ -795,9 +795,13 @@ body:has(.lr-shell) {
 }
 
 .lr-result {
-  border-top: 1px solid var(--lr-night-line);
+  border-top: 1px solid var(--lr-line);
   padding-top: var(--lr-space-md);
   margin-top: var(--lr-space-md);
+}
+
+.lr-dark .lr-result {
+  border-color: var(--lr-night-line);
 }
 
 .lr-breadcrumb {
@@ -806,21 +810,296 @@ body:has(.lr-shell) {
   align-items: center;
   gap: var(--lr-space-xs);
   font-size: 0.875rem;
-  color: var(--lr-night-muted);
+  color: var(--lr-muted);
   padding-top: var(--lr-space-xl);
 }
 
 .lr-breadcrumb a {
-  color: var(--lr-night-muted);
+  color: var(--lr-muted);
   text-decoration: none;
 }
 
 .lr-breadcrumb a:hover {
+  color: var(--lr-accent);
+}
+
+.lr-dark .lr-breadcrumb,
+.lr-dark .lr-breadcrumb a {
+  color: var(--lr-night-muted);
+}
+
+.lr-dark .lr-breadcrumb a:hover {
   color: var(--lr-night-accent);
 }
 
 .lr-dark .lr-details {
   border-color: var(--lr-night-line);
+}
+
+/* Single-voice listening room (/marketplace/voices/[voiceId]) */
+
+.lr-hero-audition {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--lr-space-md) var(--lr-space-lg);
+  background: var(--lr-surface);
+  border: 1px solid var(--lr-line);
+  border-radius: var(--lr-radius);
+  padding: var(--lr-space-xl);
+}
+
+.lr-dark .lr-hero-audition {
+  background: var(--lr-night-raised);
+  border-color: var(--lr-night-line);
+}
+
+.lr-play-lg {
+  width: 64px;
+  height: 64px;
+  flex: none;
+}
+
+.lr-hero-audition-main {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.lr-hero-audition-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--lr-space-xs);
+  margin-top: var(--lr-space-md);
+}
+
+.lr-specs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--lr-space-md);
+  margin: 0;
+}
+
+.lr-specs dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.lr-specs dd {
+  margin: 0.25rem 0 0;
+  color: var(--lr-ink);
+  font-weight: 500;
+}
+
+.lr-dark .lr-specs dd {
+  color: var(--lr-night-ink);
+}
+
+/* Contributor flow (/sell) — tier-0 option cards */
+
+.lr-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--lr-space-md);
+}
+
+.lr-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--lr-surface);
+  border: 1px solid var(--lr-line);
+  border-radius: var(--lr-radius);
+  padding: var(--lr-space-lg);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color var(--lr-duration) var(--lr-ease),
+    transform var(--lr-duration) var(--lr-ease);
+}
+
+.lr-option:hover {
+  border-color: var(--lr-accent);
+  transform: translateY(-1px);
+}
+
+.lr-option h3 {
+  font-family: var(--lr-font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0 0 var(--lr-space-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--lr-space-xs);
+}
+
+.lr-option p {
+  margin: 0 0 var(--lr-space-sm);
+  color: var(--lr-muted);
+  font-size: 0.9375rem;
+}
+
+.lr-option-cta {
+  color: var(--lr-accent);
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.lr-dark .lr-option {
+  background: var(--lr-night-raised);
+  border-color: var(--lr-night-line);
+}
+
+.lr-dark .lr-option:hover {
+  border-color: var(--lr-night-accent);
+}
+
+.lr-dark .lr-option p {
+  color: var(--lr-night-muted);
+}
+
+.lr-dark .lr-option-cta {
+  color: var(--lr-night-accent);
+}
+
+/* Code blocks — dark inset in both themes (code reads as a terminal). */
+
+.lr-code {
+  background: var(--lr-night);
+  color: var(--lr-night-ink);
+  border: 1px solid var(--lr-night-line);
+  border-radius: var(--lr-radius);
+  overflow: hidden;
+}
+
+.lr-code-head {
+  display: flex;
+  align-items: center;
+  gap: var(--lr-space-xs);
+  padding: 0 var(--lr-space-md);
+  border-bottom: 1px solid var(--lr-night-line);
+  font-family: var(--lr-font-mono);
+  font-size: 0.75rem;
+  color: var(--lr-night-muted);
+}
+
+.lr-code-copy {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 44px;
+  padding: 0 var(--lr-space-sm);
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--lr-night-line);
+  color: var(--lr-night-muted);
+  font: inherit;
+  cursor: pointer;
+  transition: color var(--lr-duration) var(--lr-ease);
+}
+
+.lr-code-copy:hover {
+  color: var(--lr-night-accent);
+}
+
+.lr-code pre {
+  margin: 0;
+  padding: var(--lr-space-md) var(--lr-space-lg);
+  overflow-x: auto;
+  font-family: var(--lr-font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  white-space: pre;
+}
+
+/* Matching-engine benchmark (/benchmarks) — dark lab surface. */
+
+.lr-bench-brief {
+  width: 100%;
+  font: inherit;
+  font-size: 1rem;
+  color: var(--lr-night-ink);
+  background: var(--lr-night-raised);
+  border: 1px solid var(--lr-night-line);
+  border-radius: var(--lr-radius);
+  padding: var(--lr-space-md) var(--lr-space-lg);
+}
+
+.lr-bench-brief::placeholder {
+  color: var(--lr-night-muted);
+  opacity: 1;
+}
+
+.lr-bench-win {
+  display: flex;
+  align-items: center;
+  gap: var(--lr-space-md);
+  border-radius: var(--lr-radius);
+  padding: var(--lr-space-md) var(--lr-space-lg);
+}
+
+.lr-bench-row {
+  display: flex;
+  align-items: center;
+  gap: var(--lr-space-sm);
+  border: 1px solid color-mix(in oklab, var(--lr-night-ink) 7%, transparent);
+  border-radius: var(--lr-radius);
+  padding: var(--lr-space-xs) var(--lr-space-sm);
+  font-size: 0.75rem;
+  min-width: 0;
+}
+
+.lr-bench-row-name {
+  width: 10rem;
+  flex: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.lr-bench-row-reasons {
+  display: block;
+  font-size: 0.625rem;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lr-bench-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--lr-night-ink) 12%, transparent);
+  overflow: hidden;
+}
+
+.lr-bench-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s var(--lr-ease);
+}
+
+.lr-bench-score {
+  width: 2.5rem;
+  flex: none;
+  text-align: right;
+  font-family: var(--lr-font-mono);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.lr-bench-meta {
+  font-family: var(--lr-font-mono);
+  font-size: 0.625rem;
+  color: var(--lr-night-muted);
 }
 
 .lr-playerbar {

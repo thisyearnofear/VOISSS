@@ -9,10 +9,11 @@ import {
   useListeningPlayback,
   useListeningRoom,
 } from "@/contexts/ListeningRoomContext";
+import { voiceDisplayName } from "@/lib/voice-detail";
 
-export function voiceDisplayName(voice: MarketplaceVoice): string {
-  return voice.metadata?.title || voice.id;
-}
+// Canonical home is lib/voice-detail (server-safe); re-exported here so
+// existing imports from this module keep working.
+export { voiceDisplayName };
 
 export function voiceMetaLine(voice: MarketplaceVoice): string {
   const parts = [

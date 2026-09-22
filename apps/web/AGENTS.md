@@ -176,7 +176,7 @@ pnpm --filter @voisss/web build
 From `apps/web`, run the focused Listening Room tests:
 
 ```bash
-pnpm exec vitest run test/listening-room.test.ts test/listening-player.test.ts test/listening-preview.test.ts
+pnpm exec vitest run test/listening-room.test.ts test/listening-player.test.ts test/listening-preview.test.ts test/voice-detail.test.ts test/preview-request.test.ts
 ```
 
 ## UI conventions (Listening Room system)
@@ -198,6 +198,17 @@ tokens as `lr-*` utilities (`bg-lr-paper`, `text-lr-muted`, `border-lr-line`,
   behavior; give them `id`s for deep-linking (browsers auto-open hash targets).
 - All audio goes through the shared Listening Room player
   (`contexts/ListeningRoomContext`) — never a second `<audio>` element.
+- Listening Room routes are declared in `components/listening/ListeningShell.tsx`
+  (`isListeningRoute`) — add new LR pages there so they get the shell chrome,
+  shared player bar, and cross-page playback continuity. Current surfaces:
+  `/`, `/marketplace`, `/marketplace/voices/[voiceId]`, `/generate` (dark),
+  `/sell` + `/sell/import` + `/sell/dashboard` (contributor flow), `/developers`,
+  `/benchmarks` (dark — keeps its own `bench` identity accents from tokens).
+- Free browser previews (3 per browser) go through `hooks/useVoicePreview` —
+  the request lifecycle, allowance, and result track live there; surfaces
+  supply the voice, a script field, and the CTA.
+- Legacy components that haven't been migrated sit inside `.lr-legacy-inset`
+  (dark panel) and, when secondary, behind a `Disclosure` — wrap, don't rewrite.
 - Interactive targets stay ≥44px; every animated element needs a
   `prefers-reduced-motion` fallback.
 - `src/app/dev/primitives` renders a dev-only catalog of primitives in both

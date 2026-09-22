@@ -1,8 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Check, Mic, Shield, Upload } from "lucide-react";
+import Link from "next/link";
+import { Check, Pause, Play, Upload } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  useListeningPlayback,
+  useListeningRoom,
+} from "@/contexts/ListeningRoomContext";
+import { Button, Chip, Notice } from "@/components/ui";
 
 interface ElevenLabsVoice {
   voiceId: string;
@@ -13,6 +19,43 @@ interface ElevenLabsVoice {
 
 type Step = "connect" | "api-key" | "select" | "done";
 
+/** Shared-player preview button for an imported voice's ElevenLabs sample. */
+function ImportPreviewButton({ voice }: { voice: ElevenLabsVoice }) {
+  const { player } = useListeningRoom();
+  const playback = useListeningPlayback();
+  if (!voice.previewUrl) return null;
+  const track = {
+    id: `import:${voice.voiceId}`,
+    url: voice.previewUrl,
+    title: voice.name,
+    subtitle: "ElevenLabs preview",
+    kind: "sample" as const,
+  };
+  const isCurrent = playback.track?.id === track.id;
+  const playing = isCurrent && playback.status === "playing";
+  const loading = isCurrent && playback.status === "loading";
+  return (
+    <button
+      type="button"
+      className="lr-play"
+      onClick={() => void player.toggle(track)}
+      aria-label={
+        loading
+          ? `Cancel loading ${voice.name}`
+          : playing
+            ? `Pause ${voice.name}`
+            : `Play ${voice.name}`
+      }
+    >
+      {playing || loading ? (
+        <Pause className="w-4 h-4" aria-hidden />
+      ) : (
+        <Play className="w-4 h-4" aria-hidden />
+      )}
+    </button>
+  );
+}
+
 export default function ImportVoicePage() {
   const { isAuthenticated, signIn, isAuthenticating } = useAuth();
   const [step, setStep] = useState<Step>(isAuthenticated ? "api-key" : "connect");
@@ -21,7 +64,6 @@ export default function ImportVoicePage() {
   const [loading, setLoading] = useState(false);
   const [voices, setVoices] = useState<ElevenLabsVoice[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [pricing, setPricing] = useState("70");
 
   async function handleFetchVoices() {
     setLoading(true);
@@ -84,153 +126,208 @@ export default function ImportVoicePage() {
 
   if (step === "connect") {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] text-white flex items-center justify-center">
-        <div className="max-w-md w-full mx-4 text-center">
-          <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Mic className="w-8 h-8 text-purple-400" />
-          </div>
-          <h1 className="text-3xl font-bold mb-4">Import Your Voice</h1>
-          <p className="text-gray-400 mb-8">
-            Connect your wallet to list your ElevenLabs voices on VOISSS and earn 70% of every license.
-          </p>
-          <div className="p-6 bg-[#1A1A1A] rounded-2xl border border-[#2A2A2A]">
-            <p className="text-sm text-gray-400 mb-4">Connect your wallet to continue</p>
-            <button
+      <main id="listening-main">
+        <div className="lr-wrap" style={{ paddingBottom: "var(--lr-space-2xl)" }}>
+          <header className="lr-discover-head">
+            <h1 className="lr-h1" style={{ fontSize: "clamp(2rem, 4vw, 3rem)" }}>
+              Import your voice.
+            </h1>
+            <p className="lr-lede">
+              List your ElevenLabs voices on VOISSS and earn 70% of every
+              license.
+            </p>
+          </header>
+          <Notice>
+            <p style={{ margin: "0 0 0.75rem" }}>
+              Connect your wallet to continue.
+            </p>
+            <Button
               onClick={() => {
                 void signIn().catch((error: unknown) => {
-                  setApiError(error instanceof Error ? error.message : "Wallet connection failed.");
+                  setApiError(
+                    error instanceof Error
+                      ? error.message
+                      : "Wallet connection failed.",
+                  );
                 });
               }}
               disabled={isAuthenticating}
-              className="w-full py-3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl text-white font-semibold disabled:opacity-50"
             >
-              {isAuthenticating ? "Connecting wallet..." : "Connect wallet"}
-            </button>
-          </div>
+              {isAuthenticating ? "Connecting wallet…" : "Connect wallet"}
+            </Button>
+            {apiError && (
+              <p className="lr-error-text" role="status" style={{ margin: "0.75rem 0 0" }}>
+                {apiError}
+              </p>
+            )}
+          </Notice>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (step === "api-key") {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] text-white flex items-center justify-center">
-        <div className="max-w-md w-full mx-4">
-          <button onClick={() => setStep("connect")} className="text-gray-400 hover:text-white mb-8 flex items-center gap-2">
-            <ArrowLeft className="w-4 h-4" /> Back
-          </button>
-          <div className="text-center mb-8">
-            <Shield className="w-12 h-12 text-green-400 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold mb-2">Enter ElevenLabs API Key</h1>
-            <p className="text-gray-400 text-sm">
-              Your key is sent directly to ElevenLabs and never stored. It&apos;s used once to verify ownership of your voices.
+      <main id="listening-main">
+        <div
+          className="lr-wrap"
+          style={{ maxWidth: "40rem", paddingBottom: "var(--lr-space-2xl)" }}
+        >
+          <header className="lr-discover-head">
+            <Chip onClick={() => setStep("connect")}>&larr; Back</Chip>
+            <h1
+              className="lr-h1"
+              style={{ marginTop: "1rem", fontSize: "clamp(1.75rem, 3vw, 2.5rem)" }}
+            >
+              Enter your ElevenLabs API key
+            </h1>
+            <p className="lr-lede" style={{ fontSize: "1rem" }}>
+              Your key is sent directly to ElevenLabs and never stored. It&apos;s
+              used once to verify ownership of your voices.
             </p>
-          </div>
+          </header>
+          <label htmlFor="el-api-key" className="lr-label">
+            API key
+          </label>
           <input
+            id="el-api-key"
             type="password"
+            className="lr-input"
+            style={{ width: "100%" }}
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             placeholder="sk_..."
-            className="w-full px-4 py-3 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 mb-4"
           />
           {apiError && (
-            <p className="text-red-400 text-sm mb-4">{apiError}</p>
+            <p className="lr-error-text" role="status" style={{ margin: "0.75rem 0 0" }}>
+              {apiError}
+            </p>
           )}
-          <button
-            onClick={handleFetchVoices}
-            disabled={!apiKey.startsWith("sk_") || loading}
-            className="w-full py-3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl text-white font-semibold hover:from-purple-600 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            {loading ? "Fetching voices..." : "Continue"}
-          </button>
+          <div style={{ marginTop: "1rem" }}>
+            <Button
+              onClick={handleFetchVoices}
+              disabled={!apiKey.startsWith("sk_") || loading}
+              style={{ width: "100%" }}
+            >
+              {loading ? "Fetching voices…" : "Continue"}
+            </Button>
+          </div>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (step === "select") {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] text-white">
-        <div className="max-w-2xl mx-auto px-4 py-12">
-          <button onClick={() => setStep("api-key")} className="text-gray-400 hover:text-white mb-8 flex items-center gap-2">
-            <ArrowLeft className="w-4 h-4" /> Back
-          </button>
-          <h1 className="text-2xl font-bold mb-2">Select Voices to Import</h1>
-          <p className="text-gray-400 mb-8">
-            Choose which voices to list on the VOISSS marketplace. You earn 70% of all licensing revenue.
-          </p>
-          <div className="space-y-3 mb-8">
+      <main id="listening-main">
+        <div
+          className="lr-wrap"
+          style={{ maxWidth: "48rem", paddingBottom: "var(--lr-space-2xl)" }}
+        >
+          <header className="lr-discover-head">
+            <Chip onClick={() => setStep("api-key")}>&larr; Back</Chip>
+            <h1
+              className="lr-h1"
+              style={{ marginTop: "1rem", fontSize: "clamp(1.75rem, 3vw, 2.5rem)" }}
+            >
+              Select voices to import
+            </h1>
+            <p className="lr-lede" style={{ fontSize: "1rem" }}>
+              Listen first, then choose which voices to list. You earn 70% of
+              all licensing revenue.
+            </p>
+          </header>
+
+          <div>
             {voices.map((voice) => (
-              <button
-                key={voice.voiceId}
-                onClick={() => toggleVoice(voice.voiceId)}
-                className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all ${
-                  selected.has(voice.voiceId)
-                    ? "bg-purple-500/10 border-purple-500/40"
-                    : "bg-[#1A1A1A] border-[#2A2A2A] hover:border-gray-600"
-                }`}
-              >
-                <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
-                  selected.has(voice.voiceId)
-                    ? "bg-purple-500 border-purple-500"
-                    : "border-gray-600"
-                }`}>
-                  {selected.has(voice.voiceId) && <Check className="w-4 h-4 text-white" />}
+              <div className="lr-vrow" key={voice.voiceId}>
+                {voice.previewUrl ? (
+                  <ImportPreviewButton voice={voice} />
+                ) : (
+                  <span style={{ width: 44, height: 44 }} aria-hidden />
+                )}
+                <div className="lr-vrow-main">
+                  <div className="lr-vrow-title">{voice.name}</div>
+                  <div className="lr-vrow-meta">{voice.voiceId}</div>
                 </div>
-                <div className="flex-1 text-left">
-                  <p className="font-medium">{voice.name}</p>
-                  <p className="text-sm text-gray-400">{voice.voiceId}</p>
+                <div className="lr-vrow-actions">
+                  <Chip
+                    aria-pressed={selected.has(voice.voiceId)}
+                    onClick={() => toggleVoice(voice.voiceId)}
+                  >
+                    {selected.has(voice.voiceId) ? (
+                      <>
+                        <Check className="w-4 h-4" aria-hidden /> Selected
+                      </>
+                    ) : (
+                      "Select"
+                    )}
+                  </Chip>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
-          <div className="p-4 bg-[#1A1A1A] rounded-xl border border-[#2A2A2A] mb-8">
-            <label className="text-sm text-gray-400 mb-2 block">Revenue Share</label>
-            <p className="text-lg font-semibold">You earn <span className="text-green-400">70%</span> of every license</p>
-            <p className="text-xs text-gray-500 mt-1">Platform fee: 30%. Set your own per-character pricing after import.</p>
+
+          <Notice style={{ marginTop: "var(--lr-space-lg)" }}>
+            <p style={{ margin: 0 }}>
+              You earn <strong>70%</strong> of every license.
+            </p>
+            <p style={{ margin: "0.25rem 0 0" }}>
+              Platform fee: 30%. Set your own per-character pricing after
+              import.
+            </p>
+          </Notice>
+
+          <div style={{ marginTop: "1rem" }}>
+            <Button
+              onClick={() => void handleImport()}
+              disabled={selected.size === 0 || loading}
+              style={{ width: "100%" }}
+            >
+              <Upload className="w-4 h-4" aria-hidden />
+              {loading
+                ? "Saving import…"
+                : `Import ${selected.size} voice${selected.size !== 1 ? "s" : ""}`}
+            </Button>
           </div>
-          <button
-            onClick={() => void handleImport()}
-            disabled={selected.size === 0 || loading}
-            className="w-full py-3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl text-white font-semibold hover:from-purple-600 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-          >
-            <Upload className="w-5 h-5" />
-            {loading ? "Saving import..." : `Import ${selected.size} Voice${selected.size !== 1 ? "s" : ""}`}
-          </button>
-          {apiError && <p className="mt-4 text-sm text-red-400">{apiError}</p>}
+          {apiError && (
+            <p className="lr-error-text" role="status" style={{ margin: "0.75rem 0 0" }}>
+              {apiError}
+            </p>
+          )}
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white flex items-center justify-center">
-      <div className="max-w-md w-full mx-4 text-center">
-        <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Check className="w-8 h-8 text-green-400" />
-        </div>
-        <h1 className="text-2xl font-bold mb-4">Voices Imported!</h1>
-        <p className="text-gray-400 mb-2">
-          {selected.size} voice{selected.size !== 1 ? "s" : ""} saved and queued for marketplace publishing.
-        </p>
-        <p className="text-gray-400 mb-8">
-          We&apos;ll show each listing in your dashboard once publishing is complete.
-        </p>
-        <div className="flex flex-col gap-3">
-          <a
-            href="/sell/dashboard"
-            className="py-3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl text-white font-semibold hover:from-purple-600 hover:to-blue-600 transition-all"
-          >
-            View Dashboard
-          </a>
-          <a
-            href="/sell"
-            className="py-3 border border-gray-600 rounded-xl text-gray-300 font-semibold hover:border-gray-400 transition-all"
-          >
-            Record More Voices
-          </a>
-        </div>
+    <main id="listening-main">
+      <div className="lr-wrap" style={{ paddingBottom: "var(--lr-space-2xl)" }}>
+        <header className="lr-discover-head">
+          <h1 className="lr-h1" style={{ fontSize: "clamp(2rem, 4vw, 3rem)" }}>
+            Voices imported.
+          </h1>
+          <p className="lr-lede">
+            {selected.size} voice{selected.size !== 1 ? "s" : ""} saved and
+            queued for marketplace publishing.
+          </p>
+        </header>
+        <Notice>
+          <p style={{ margin: "0 0 0.75rem" }}>
+            We&apos;ll show each listing in your dashboard once publishing is
+            complete.
+          </p>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            <Link href="/sell/dashboard" className="lr-btn lr-btn-primary">
+              View dashboard
+            </Link>
+            <Link href="/sell" className="lr-btn lr-btn-ghost">
+              Record more voices
+            </Link>
+          </div>
+        </Notice>
       </div>
-    </div>
+    </main>
   );
 }
+
