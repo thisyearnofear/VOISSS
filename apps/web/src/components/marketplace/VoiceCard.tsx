@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { generateVoiceFingerprint } from "@/utils/voice-fingerprint";
-import { pulseVoice, trackPlaybackEnergy } from "@/lib/terrain-bus";
+import { pulseVoice } from "@/lib/terrain-bus";
+import {
+  useListeningPlayback,
+  useListeningRoom,
+} from "@/contexts/ListeningRoomContext";
+import type { ListeningTrack } from "@/lib/listening-player";
 
 interface VoiceCardProps {
   voice: {
@@ -46,57 +51,42 @@ interface VoiceCardProps {
 }
 
 export function VoiceCard({ voice, onPurchase, onPreview, archetype }: VoiceCardProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
   const [isLoadingSample, setIsLoadingSample] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const energyStopRef = useRef<(() => void) | null>(null);
-
-  /**
-   * Previews drive the marketplace VoiceTerrain, so browsing feels like using
-   * the product rather than reading a list. Same playback path as before. */
-  const stopEnergy = () => {
-    energyStopRef.current?.();
-    energyStopRef.current = null;
-  };
-
-  const beginEnergy = (audio: HTMLAudioElement) => {
-    stopEnergy();
-    pulseVoice("lift");
-    energyStopRef.current = trackPlaybackEnergy(audio);
-  };
-
-  // never leave the field energized if the card unmounts mid-preview
-  useEffect(() => stopEnergy, []);
+  const [synthUrl, setSynthUrl] = useState<string | null>(null);
+  const { player } = useListeningRoom();
+  const playback = useListeningPlayback();
 
   const priceUSDC = (parseInt(voice.price, 10) / 1_000_000).toFixed(2);
   const fingerprintSvg = generateVoiceFingerprint(voice.id);
+  const title = voice.metadata?.title || voice.voiceProfile.tone || "Voice";
+
+  // The card's preview is a shared-player sample track — audible in the card
+  // *and* the persistent player bar, so two cards can never overlap. The
+  // synthesized fallback (no sampleUrl) reuses the same track id once its
+  // object URL resolves.
+  const previewTrack: ListeningTrack | null =
+    voice.sampleUrl || synthUrl
+      ? {
+          id: `sample:${voice.id}`,
+          url: (voice.sampleUrl || synthUrl) as string,
+          title,
+          subtitle: voice.voiceProfile.accent || undefined,
+          kind: "sample",
+        }
+      : null;
+  const isCurrent = previewTrack !== null && playback.track?.id === previewTrack.id;
+  const isPlaying = isCurrent && playback.status === "playing";
+  const isLoading = isCurrent && playback.status === "loading";
 
   const handlePlaySample = async () => {
-    if (isPlaying) {
-      audioRef.current?.pause();
-      setIsPlaying(false);
-      stopEnergy();
-      return;
-    }
-
-    if (audioRef.current) {
-      await audioRef.current.play();
-      setIsPlaying(true);
-      beginEnergy(audioRef.current);
-      return;
-    }
-
-    if (voice.sampleUrl) {
-      const audio = new Audio(voice.sampleUrl);
-      audioRef.current = audio;
-      audio.onended = () => {
-        setIsPlaying(false);
-        stopEnergy();
-      };
-      await audio.play();
-      setIsPlaying(true);
-      beginEnergy(audio);
-      onPreview?.(voice.id);
+    if (previewTrack) {
+      const started = await player.toggle(previewTrack).catch(() => false);
+      if (started) {
+        // Previews lift the marketplace VoiceTerrain — single shared pulse,
+        // no per-card analyser. The terrain's own 1.2s decay settles it.
+        pulseVoice("lift");
+        onPreview?.(voice.id);
+      }
       return;
     }
 
@@ -126,16 +116,27 @@ export function VoiceCard({ voice, onPurchase, onPreview, archetype }: VoiceCard
       }
 
       if (audioUrl) {
-        const audio = new Audio(audioUrl);
-        audioRef.current = audio;
-        audio.onended = () => {
-          setIsPlaying(false);
-          stopEnergy();
-        };
-        await audio.play();
-        setIsPlaying(true);
-        beginEnergy(audio);
-        onPreview?.(voice.id);
+        // Cache the synthesized URL so the shared track above resolves to it;
+        // playback then flows through the player bar like any sample.
+        setSynthUrl((prev) => {
+          if (prev?.startsWith("blob:") && prev !== audioUrl) {
+            URL.revokeObjectURL(prev);
+          }
+          return audioUrl;
+        });
+        const started = await player
+          .toggle({
+            id: `sample:${voice.id}`,
+            url: audioUrl,
+            title,
+            subtitle: voice.voiceProfile.accent || undefined,
+            kind: "sample",
+          })
+          .catch(() => false);
+        if (started) {
+          pulseVoice("lift");
+          onPreview?.(voice.id);
+        }
       } else {
         console.error("Failed to generate preview: HTTP", response.status);
         alert(
@@ -263,8 +264,17 @@ export function VoiceCard({ voice, onPurchase, onPreview, archetype }: VoiceCard
                 ? "bg-white text-black border-white"
                 : "border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-white"
             } disabled:opacity-50`}
+            aria-label={
+              !voice.sampleUrl && !synthUrl && !isLoadingSample
+                ? `${title} — preview synthesizes on first play`
+                : isLoading
+                  ? `Cancel loading ${title}`
+                  : isPlaying
+                    ? `Pause ${title}`
+                    : `Play ${title}`
+            }
           >
-            {isLoadingSample ? (
+            {isLoadingSample || isLoading ? (
               <div className="w-4 h-4 border-2 border-zinc-500 border-t-transparent rounded-full animate-spin" />
             ) : isPlaying ? (
               "Stop"

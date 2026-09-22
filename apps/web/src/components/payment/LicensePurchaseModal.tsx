@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState } from "react";
+import { useListeningRoom, useListeningPlayback } from "@/contexts/ListeningRoomContext";
+import type { ListeningTrack } from "@/lib/listening-player";
 
 /* ──────────────────────────────────────────────────────────────────────────────
  * License Purchase Modal — end-to-end license flow for a single voice
@@ -51,21 +53,29 @@ export function LicensePurchaseModal({
   const [step, setStep] = useState<"confirm" | "checkout" | "processing" | "done">("confirm");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { player } = useListeningRoom();
+  const playback = useListeningPlayback();
 
-  const handlePlayPreview = useCallback(() => {
-    if (!voicePreviewUrl) return;
-    if (!audioRef.current) {
-      audioRef.current = new Audio(voicePreviewUrl);
-    }
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play().catch(() => {});
-    }
-    setIsPlaying((v) => !v);
-  }, [voicePreviewUrl, isPlaying]);
+  // The preview is a shared-player sample track — audible in the modal *and*
+  // the persistent player bar, pausable from either. Closing the modal leaves
+  // playback alive (the shell owns continuity, per AGENTS.md).
+  const previewTrack: ListeningTrack | null = voicePreviewUrl
+    ? {
+        id: `sample:${voiceId}`,
+        url: voicePreviewUrl,
+        title: voiceName,
+        subtitle: `Preview · ${licenseType}`,
+        kind: "sample",
+      }
+    : null;
+  const isCurrent = previewTrack !== null && playback.track?.id === previewTrack.id;
+  const isPlaying = isCurrent && playback.status === "playing";
+  const isLoading = isCurrent && playback.status === "loading";
+
+  const handlePlayPreview = () => {
+    if (!previewTrack) return;
+    void player.toggle(previewTrack).catch(() => {});
+  };
 
   const handlePurchase = async () => {
     setStep("processing");
@@ -103,10 +113,6 @@ export function LicensePurchaseModal({
   };
 
   const handleClose = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-    setIsPlaying(false);
     setStep("confirm");
     setError(null);
     onClose();
@@ -148,10 +154,20 @@ export function LicensePurchaseModal({
           <div className="flex items-center gap-3 p-3 bg-[#1A1A1A] rounded-xl border border-[#2A2A2A] mb-6">
             <button
               onClick={handlePlayPreview}
+              disabled={!previewTrack}
               className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center hover:bg-purple-500/30 transition-all"
-              aria-label={isPlaying ? "Pause preview" : "Play preview"}
+              aria-label={
+                !previewTrack
+                  ? `${voiceName} — sample unavailable`
+                  : isLoading
+                    ? `Cancel loading ${voiceName}`
+                    : isPlaying
+                      ? `Pause ${voiceName}`
+                      : `Play ${voiceName}`
+              }
+              title={!previewTrack ? "Sample unavailable" : undefined}
             >
-              {isPlaying ? (
+              {isPlaying || isLoading ? (
                 <Pause className="w-4 h-4 text-purple-400" />
               ) : (
                 <Play className="w-4 h-4 text-purple-400" />

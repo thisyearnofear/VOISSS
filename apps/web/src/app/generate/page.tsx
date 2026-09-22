@@ -9,13 +9,10 @@ import { MascotEvents, publishAppEvent } from "@/lib/mascot-events";
 import type { MarketplaceVoice } from "@/lib/marketplace-indexer";
 import { useListeningRoom, useListeningPlayback } from "@/contexts/ListeningRoomContext";
 import { useVoiceCatalog } from "@/hooks/useVoiceCatalog";
+import { useVoicePreview } from "@/hooks/useVoicePreview";
 import { pickInitialVoice } from "@/lib/listening-room";
 import {
-  MAX_PREVIEW_GENERATIONS,
-  PREVIEW_STORAGE_KEY,
   SAMPLE_SCRIPTS,
-  parsePreviewAllowance,
-  readPreviewResponse,
 } from "@/lib/listening-preview";
 import { VoiceAuditionRow, voiceDisplayName, voiceMetaLine } from "@/components/listening/VoiceAuditionRow";
 import { Button, Chip, Notice } from "@/components/ui";
@@ -28,47 +25,71 @@ function GeneratePageInner() {
 
   const [selectedVoice, setSelectedVoice] = useState<MarketplaceVoice | null>(null);
   const [voiceUnavailable, setVoiceUnavailable] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [audioIsBlob, setAudioIsBlob] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [generationsLeft, setGenerationsLeft] = useState(MAX_PREVIEW_GENERATIONS);
-  const [allowanceReady, setAllowanceReady] = useState(false);
-  const [generating, setGenerating] = useState(false);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
   const [archetype, setArchetype] = useState<string | undefined>(undefined);
-  const generationToken = useRef(0);
-  const abortRef = useRef<AbortController | null>(null);
-  const resultUrlRef = useRef<string | null>(null);
   const lastAppliedParams = useRef<string | null>(null);
+
+  const trackVocalize = useCallback(() => {
+    if (!selectedVoice) return;
+    publishAppEvent({
+      type: "voice:complete",
+      voiceId: selectedVoice.contractVoiceId || selectedVoice.id,
+    });
+    // Outcome telemetry — a completed generation is the strongest signal in
+    // the match funnel (brief → shown → previewed → vocalized).
+    fetch("/api/marketplace/match-events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event: "voice_vocalize",
+        voiceId: selectedVoice.id,
+        brief: draft.brief.trim(),
+      }),
+      keepalive: true,
+    }).catch(() => {});
+  }, [selectedVoice, draft.brief]);
+
+  const trackStart = useCallback(() => {
+    if (!selectedVoice) return;
+    publishAppEvent({
+      type: "voice:generate",
+      voiceId: selectedVoice.contractVoiceId || selectedVoice.id,
+    });
+  }, [selectedVoice]);
+
+  const trackError = useCallback((message: string) => {
+    publishAppEvent({ type: "error", message: `voice generation: ${message}` });
+  }, []);
+
+  const {
+    generate,
+    cancel,
+    clearResult,
+    generating,
+    error,
+    audioUrl,
+    audioIsBlob,
+    generationsLeft,
+    allowanceReady,
+    resultTrack: generationTrack,
+  } = useVoicePreview(
+    selectedVoice,
+    selectedVoice ? voiceDisplayName(selectedVoice) : "",
+    { archetype, onStart: trackStart, onVocalized: trackVocalize, onError: trackError }
+  );
+
+  // The hook owns the result lifecycle; this wrapper also resets the
+  // copy-link affordance so a stale "Copied" never survives a new result.
+  const clearResultAndCopy = useCallback(() => {
+    setCopied(false);
+    setCopyError(false);
+    clearResult();
+  }, [clearResult]);
 
   const text = draft.script;
   const brief = draft.brief;
-
-  const releaseResultUrl = useCallback(() => {
-    if (resultUrlRef.current?.startsWith("blob:")) {
-      URL.revokeObjectURL(resultUrlRef.current);
-    }
-    resultUrlRef.current = null;
-  }, []);
-
-  const clearResult = useCallback(() => {
-    const snap = player.getSnapshot();
-    if (
-      snap.track?.kind === "generation" &&
-      resultUrlRef.current &&
-      snap.track.url === resultUrlRef.current
-    ) {
-      player.stop();
-    }
-    releaseResultUrl();
-    setAudioUrl(null);
-    setAudioIsBlob(false);
-    setError(null);
-    setCopied(false);
-    setCopyError(false);
-  }, [player, releaseResultUrl]);
 
   // Load the real marketplace catalog — same voices buyers see.
   // Seed brief from deep link — e.g. /generate?brief=calm meditation narrator
@@ -78,10 +99,7 @@ function GeneratePageInner() {
     if (lastAppliedParams.current === key) return;
     lastAppliedParams.current = key;
 
-    generationToken.current += 1;
-    abortRef.current?.abort();
-    setGenerating(false);
-    clearResult();
+    cancel();
 
     const requested = searchParams.get("voiceId");
     const { voice, requestedInvalid } = pickInitialVoice(
@@ -100,28 +118,7 @@ function GeneratePageInner() {
     }
     const paramBrief = searchParams.get("brief");
     if (paramBrief !== null) updateDraft({ brief: paramBrief.slice(0, 500) });
-  }, [searchParams, ready, query.isSuccess, voices, draft.voiceId, updateDraft, clearResult]);
-
-  // Persist free generation count in localStorage
-  useEffect(() => {
-    try {
-      setGenerationsLeft(
-        parsePreviewAllowance(localStorage.getItem(PREVIEW_STORAGE_KEY))
-      );
-    } catch {
-      // localStorage unavailable — use default
-    }
-    setAllowanceReady(true);
-  }, []);
-
-  useEffect(() => {
-    if (!allowanceReady) return;
-    try {
-      localStorage.setItem(PREVIEW_STORAGE_KEY, String(generationsLeft));
-    } catch {
-      // silent
-    }
-  }, [generationsLeft, allowanceReady]);
+  }, [searchParams, ready, query.isSuccess, voices, draft.voiceId, updateDraft, cancel]);
 
   // Optional intent matching — reorders the picker and shows fit + reasons.
   useEffect(() => {
@@ -152,26 +149,9 @@ function GeneratePageInner() {
     };
   }, [brief]);
 
-  useEffect(() => {
-    return () => {
-      generationToken.current += 1;
-      abortRef.current?.abort();
-      const snap = player.getSnapshot();
-      if (
-        snap.track?.kind === "generation" &&
-        resultUrlRef.current &&
-        snap.track.url === resultUrlRef.current
-      ) {
-        player.stop();
-      }
-      releaseResultUrl();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const handleScriptChange = (value: string) => {
     updateDraft({ script: value.slice(0, 500) });
-    clearResult();
+    clearResultAndCopy();
   };
 
   const handleVoiceChange = (id: string) => {
@@ -179,97 +159,14 @@ function GeneratePageInner() {
     setSelectedVoice(voice);
     setVoiceUnavailable(false);
     updateDraft({ voiceId: voice?.id ?? "" });
-    clearResult();
+    clearResultAndCopy();
   };
 
-  const handleGenerate = async () => {
-    if (
-      !ready ||
-      !allowanceReady ||
-      generating ||
-      !selectedVoice ||
-      generationsLeft <= 0 ||
-      !text.trim()
-    ) {
-      return;
-    }
-
-    const myToken = ++generationToken.current;
-    const controller = new AbortController();
-    abortRef.current = controller;
-    setGenerating(true);
-    clearResult();
-    player.stop();
-    publishAppEvent({
-      type: "voice:generate",
-      voiceId: selectedVoice.contractVoiceId || selectedVoice.id,
-    });
-
-    try {
-      const response = await fetch("/api/agents/vocalize", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Demo-Mode": "true",
-        },
-        body: JSON.stringify({
-          text: text.trim().slice(0, 500),
-          voiceId: selectedVoice.contractVoiceId || selectedVoice.id,
-          agentAddress: "0xDEMO0000000000000000000000000000000000001",
-          preview: true,
-          archetype,
-        }),
-        signal: controller.signal,
-      });
-
-      // Preview responses stream audio/mpeg directly; errors stay JSON.
-      const result = await readPreviewResponse(response, controller.signal);
-      if (generationToken.current !== myToken) {
-        if (result.isBlob) URL.revokeObjectURL(result.url);
-        return;
-      }
-      resultUrlRef.current = result.url;
-      setAudioUrl(result.url);
-      setAudioIsBlob(result.isBlob);
-      setGenerationsLeft((prev) => Math.max(0, prev - 1));
-      publishAppEvent({
-        type: "voice:complete",
-        voiceId: selectedVoice.contractVoiceId || selectedVoice.id,
-      });
-      // Outcome telemetry — a completed generation is the strongest signal in
-      // the match funnel (brief → shown → previewed → vocalized).
-      fetch("/api/marketplace/match-events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          event: "voice_vocalize",
-          voiceId: selectedVoice.id,
-          brief: brief.trim(),
-        }),
-        keepalive: true,
-      }).catch(() => {});
-    } catch (err) {
-      if (generationToken.current !== myToken) return;
-      if (err instanceof Error && err.name === "AbortError") return;
-      const errMsg = err instanceof Error ? err.message : "Generation failed";
-      setError(errMsg);
-      publishAppEvent({ type: "error", message: `voice generation: ${errMsg}` });
-    } finally {
-      if (generationToken.current === myToken) {
-        setGenerating(false);
-      }
-    }
+  const handleGenerate = () => {
+    if (!ready || !text.trim() || !selectedVoice) return;
+    void generate(text);
   };
 
-  const generationTrack = audioUrl && selectedVoice
-    ? {
-        id: `generation:${selectedVoice.id}:${audioUrl.slice(-24)}`,
-        url: audioUrl,
-        title: voiceDisplayName(selectedVoice),
-        subtitle: "Your words",
-        kind: "generation" as const,
-      }
-    : null;
   const generationPlaying =
     generationTrack &&
     playback.track?.id === generationTrack.id &&

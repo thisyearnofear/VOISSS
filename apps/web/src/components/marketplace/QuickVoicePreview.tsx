@@ -1,13 +1,18 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Play, Loader2, Sparkles, MessageSquare, Share2 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence } from "framer-motion";
 import { SocialShare, type ShareableRecording } from "@voisss/ui";
 import { useAuth } from "../../contexts/AuthContext";
 import { PRODUCT_TAGLINE } from "@voisss/shared";
-import { setVoiceEnergy, pulseVoice, trackPlaybackEnergy } from "@/lib/terrain-bus";
+import { pulseVoice } from "@/lib/terrain-bus";
+import {
+  useListeningPlayback,
+  useListeningRoom,
+} from "@/contexts/ListeningRoomContext";
+import type { ListeningTrack } from "@/lib/listening-player";
 import Link from "next/link";
 
 interface MarketplaceVoice {
@@ -46,26 +51,18 @@ export default function QuickVoicePreview() {
   const [text, setText] = useState(PRODUCT_TAGLINE);
   const [voices, setVoices] = useState<MarketplaceVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<MarketplaceVoice | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSynthesized, setHasSynthesized] = useState(false);
   const [voicesLoaded, setVoicesLoaded] = useState(false);
   const [voicesEmpty, setVoicesEmpty] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const energyStopRef = useRef<(() => void) | null>(null);
+  const [synthUrl, setSynthUrl] = useState<string | null>(null);
+  const { player } = useListeningRoom();
+  const playback = useListeningPlayback();
 
-  /** Drive the hero VoiceTerrain from real playback (lib/terrain-bus). */
-  const startVoiceEnergy = (audio: HTMLAudioElement) => {
-    stopVoiceEnergy();
-    energyStopRef.current = trackPlaybackEnergy(audio);
-  };
-
-  const stopVoiceEnergy = () => {
-    energyStopRef.current?.();
-    energyStopRef.current = null;
-    setVoiceEnergy(0);
-  };
+  // The playground result is a shared-player generation track — audible here
+  // *and* the persistent player bar. framer-motion stays for the entrance /
+  // share-card animation (legacy removal comes after the full migration).
 
   const shareRecording = useMemo<ShareableRecording | null>(() => {
     if (!selectedVoice) return null;
@@ -113,17 +110,39 @@ export default function QuickVoicePreview() {
   }, []);
 
   // never leave the field energized after unmount
-  useEffect(() => stopVoiceEnergy, []);
+  useEffect(() => {
+    return () => {
+      if (synthUrl?.startsWith("blob:")) URL.revokeObjectURL(synthUrl);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Shared-player view of the playground result — toggling the same track id
+  // pauses/resumes instead of re-synthesizing.
+  const resultTrack: ListeningTrack | null =
+    selectedVoice && synthUrl
+      ? {
+          id: `generation:${selectedVoice.id}:${synthUrl.slice(-24)}`,
+          url: synthUrl,
+          title: `Try this voice · ${selectedVoice.voiceProfile.tone || "Voice"}`,
+          subtitle: "Your words",
+          kind: "generation",
+        }
+      : null;
+  const isCurrent =
+    resultTrack !== null && playback.track?.id === resultTrack.id;
+  const isPlaying = isCurrent && playback.status === "playing";
+  const isLoadingTrack = isCurrent && playback.status === "loading";
 
   const handlePreview = async () => {
-    if (isPlaying) {
-      audioRef.current?.pause();
-      setIsPlaying(false);
-      stopVoiceEnergy();
+    if (!selectedVoice) return;
+
+    // A resolved result toggles in the shared player — no second audio path.
+    if (resultTrack) {
+      const started = await player.toggle(resultTrack).catch(() => false);
+      if (started) pulseVoice("lift");
       return;
     }
-
-    if (!selectedVoice) return;
 
     try {
       setIsLoading(true);
@@ -142,21 +161,30 @@ export default function QuickVoicePreview() {
       const data = await response.json();
 
       if (data.success && data.data?.audioUrl) {
-        if (audioRef.current) {
-          audioRef.current.pause();
+        const url = data.data.audioUrl as string;
+        setSynthUrl((prev) => {
+          if (prev?.startsWith("blob:") && prev !== url) {
+            try {
+              URL.revokeObjectURL(prev);
+            } catch {
+              // ignore
+            }
+          }
+          return url;
+        });
+        const started = await player
+          .toggle({
+            id: `generation:${selectedVoice.id}:${url.slice(-24)}`,
+            url,
+            title: `Try this voice · ${selectedVoice.voiceProfile.tone || "Voice"}`,
+            subtitle: "Your words",
+            kind: "generation",
+          })
+          .catch(() => false);
+        if (started) {
+          // a licensed voice just lifted off the field
+          pulseVoice("lift");
         }
-        const audio = new Audio(data.data.audioUrl);
-        audioRef.current = audio;
-        audio.onended = () => {
-          setIsPlaying(false);
-          stopVoiceEnergy();
-        };
-        audio.onpause = () => setVoiceEnergy(0);
-        await audio.play();
-        setIsPlaying(true);
-        // a licensed voice just lifted off the field
-        pulseVoice("lift");
-        startVoiceEnergy(audio);
 
         // Trigger celebration on first successful synthesis
         if (!hasSynthesized) {
@@ -224,10 +252,10 @@ export default function QuickVoicePreview() {
                 key={voice.id}
                 onClick={() => {
                   setSelectedVoice(voice);
-                  if (isPlaying) {
-                    audioRef.current?.pause();
-                    setIsPlaying(false);
-                  }
+                  // A new voice invalidates the cached result — the next press
+                  // re-synthesizes instead of replaying the old voice.
+                  setSynthUrl(null);
+                  if (isPlaying) player.stop();
                 }}
                 className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-300 ${
                   selectedVoice?.id === voice.id
@@ -284,14 +312,25 @@ export default function QuickVoicePreview() {
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
             onClick={handlePreview}
-            disabled={isLoading || !selectedVoice}
+            disabled={isLoading || isLoadingTrack || !selectedVoice}
+            aria-label={
+              !selectedVoice
+                ? "Select a voice to preview"
+                : isLoading
+                  ? "Synthesizing preview"
+                  : isLoadingTrack
+                    ? `Cancel loading ${selectedVoice.voiceProfile.tone || "voice"}`
+                    : isPlaying
+                      ? `Pause ${selectedVoice.voiceProfile.tone || "voice"}`
+                      : `Play ${selectedVoice.voiceProfile.tone || "voice"} preview`
+            }
             className={`w-full py-4 rounded-xl flex items-center justify-center gap-3 font-bold text-lg transition-all duration-300 ${
               isPlaying
                 ? "bg-white text-black ring-4 ring-blue-500/20"
                 : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25"
             } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
-            {isLoading ? (
+            {isLoading || isLoadingTrack ? (
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

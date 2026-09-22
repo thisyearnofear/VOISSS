@@ -14,15 +14,19 @@ import {
 
 export interface UseVoicePreviewOptions {
   archetype?: string;
+  onStart?: () => void;
   onVocalized?: () => void;
+  onError?: (message: string) => void;
 }
 
 /**
  * Shared free-preview lifecycle: the browser-wide 3-generation allowance,
  * the /api/agents/vocalize request with race + abort guards, blob cleanup,
- * and the result as a shared-player track. Used by the voice listening room
- * and the developers quickstart; the workspace keeps its own copy until it
- * adopts this hook.
+ * and the result as a shared-player track. Adopted by the voice listening
+ * room, the developers quickstart, and /generate. Optional onStart /
+ * onVocalized / onError callbacks let surfaces fire mascot events and match
+ * telemetry without owning the request. cancel() aborts in-flight work and
+ * clears the result (used on voice/param switches).
  */
 export function useVoicePreview(
   voice: PreviewVoiceRef | null,
@@ -41,6 +45,10 @@ export function useVoicePreview(
   const resultUrlRef = useRef<string | null>(null);
   const onVocalizedRef = useRef(options?.onVocalized);
   onVocalizedRef.current = options?.onVocalized;
+  const onStartRef = useRef(options?.onStart);
+  onStartRef.current = options?.onStart;
+  const onErrorRef = useRef(options?.onError);
+  onErrorRef.current = options?.onError;
   const archetypeRef = useRef(options?.archetype);
   archetypeRef.current = options?.archetype;
 
@@ -105,6 +113,14 @@ export function useVoicePreview(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const cancel = useCallback(() => {
+    generationToken.current += 1;
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setGenerating(false);
+    clearResult();
+  }, [clearResult]);
+
   const generate = useCallback(
     async (text: string) => {
       if (
@@ -121,8 +137,10 @@ export function useVoicePreview(
       const controller = new AbortController();
       abortRef.current = controller;
       setGenerating(true);
+      setError(null);
       clearResult();
       player.stop();
+      onStartRef.current?.();
 
       try {
         const response = await fetch("/api/agents/vocalize", {
@@ -151,7 +169,9 @@ export function useVoicePreview(
       } catch (err) {
         if (generationToken.current !== myToken) return;
         if (err instanceof Error && err.name === "AbortError") return;
-        setError(err instanceof Error ? err.message : "Generation failed");
+        const message = err instanceof Error ? err.message : "Generation failed";
+        setError(message);
+        onErrorRef.current?.(message);
       } finally {
         if (generationToken.current === myToken) {
           setGenerating(false);
@@ -174,6 +194,7 @@ export function useVoicePreview(
 
   return {
     generate,
+    cancel,
     clearResult,
     generating,
     error,
