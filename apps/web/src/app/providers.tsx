@@ -8,7 +8,6 @@ import { base } from "viem/chains";
 import { WagmiProvider } from "wagmi";
 import { getConfig } from "@/wagmi";
 import { AuthProvider } from "../contexts/AuthContext";
-import { AssistantProvider } from "../contexts/AssistantContext";
 
 
 // Create query client
@@ -76,9 +75,7 @@ export function BaseProvider({ children }: { children: React.ReactNode }) {
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <BaseContext.Provider value={sdk && provider ? { sdk, provider } : null}>
-          <AssistantProvider>
-            <AuthProvider>{children}</AuthProvider>
-          </AssistantProvider>
+          <AuthProvider>{children}</AuthProvider>
           {process.env.NODE_ENV === "development" && (
             <ReactQueryDevtools initialIsOpen={false} />
           )}

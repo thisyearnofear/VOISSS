@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useCallback, useEffect, useMemo, Suspense } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBase } from "@/app/providers";
 import { useBaseAccount } from "@/hooks/useBaseAccount";
@@ -718,7 +717,7 @@ export default function RecordingStudio({
   ]);
 
   return (
-    <div className="max-w-2xl mx-auto voisss-card shadow-2xl">
+    <div className="max-w-2xl mx-auto lr-legacy-inset">
       {/* Header */}
       <div className="text-center mb-8 relative">
         <div className="absolute top-0 right-0 sm:right-4 flex justify-end">
@@ -766,42 +765,37 @@ export default function RecordingStudio({
       {/* Studio Hub — audio preview + settings sidebar */}
       {!isRecording && (audioBlob || versions.length > 0) && (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex items-center justify-between border-b border-[#2A2A2A] pb-6">
+          <div className="flex items-center justify-between pb-6" style={{ borderBottom: "1px solid var(--lr-night-line)" }}>
             <div className="text-left">
-              <motion.h3
+              <h3
                 key={isAdvancedMode ? "lab" : "saved"}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
                 className="text-2xl font-black text-white tracking-tight uppercase"
               >
                 {isAdvancedMode ? "Advanced Tools" : "Recording Saved"}
-              </motion.h3>
-              <motion.p
+              </h3>
+              <p
                 key={isAdvancedMode ? "lab" : "preview"}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
                 className="text-sm text-gray-400"
               >
                 {isAdvancedMode
                   ? "Transform, dub, and secure your recording"
                   : "Preview your recording or unlock advanced tools"}
-              </motion.p>
+              </p>
             </div>
             
             <button 
               onClick={() => setIsAdvancedMode(!isAdvancedMode)}
               className={`group relative px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
-                isAdvancedMode 
-                  ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40" 
-                  : "bg-[#2A2A2A] text-zinc-400 hover:text-white"
+                isAdvancedMode
+                  ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40"
+                  : "text-zinc-400 hover:text-white"
               }`}
+              style={isAdvancedMode ? undefined : { background: "var(--lr-night-raised)" }}
+              aria-expanded={isAdvancedMode}
             >
-              <motion.span
-                layout
-                className="flex items-center gap-2"
-              >
+              <span className="flex items-center gap-2">
                 {isAdvancedMode ? "Advanced Tools" : "Show Studio Tools"}
-              </motion.span>
+              </span>
               
               {!isAdvancedMode && (
                 <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 bg-black/90 border border-white/10 p-2 rounded text-[10px] lowercase text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case">
@@ -813,8 +807,7 @@ export default function RecordingStudio({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-            <motion.div 
-              layout
+            <div
               className={`${isAdvancedMode ? "md:col-span-3" : "md:col-span-5"} space-y-6 transition-all duration-500 ease-in-out`}
             >
               <AudioPreview
@@ -822,18 +815,13 @@ export default function RecordingStudio({
                 audioBlob={activeVersion?.blob || audioBlob}
                 formatFileSize={formatFileSize}
               />
-            </motion.div>
-            
-            <AnimatePresence>
-              {isAdvancedMode && (
-                <motion.div 
-                  initial={{ opacity: 0, x: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, x: 0, scale: 1 }}
-                  exit={{ opacity: 0, x: 20, scale: 0.95 }}
-                  transition={{ duration: 0.3 }}
+            </div>
+
+            {isAdvancedMode && (
+                <div
                   className="md:col-span-2 space-y-6"
                 >
-                  <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-6 space-y-6 shadow-xl">
+                  <div className="lr-legacy-inset space-y-6">
                     <RecordingTitle
                       recordingTitle={recordingTitle}
                       onTitleChange={setRecordingTitle}
@@ -862,18 +850,14 @@ export default function RecordingStudio({
                       setToastMessage={setToastMessage}
                     />
                   </div>
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
           </div>
 
-          <AnimatePresence>
-            {isAdvancedMode && (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                className="border-t border-[#2A2A2A] pt-6"
+          {isAdvancedMode && (
+              <div
+                className="pt-6"
+                style={{ borderTop: "1px solid var(--lr-night-line)" }}
               >
                 <VersionSelection
                   versions={versions}
@@ -886,9 +870,8 @@ export default function RecordingStudio({
                   onDeleteVersion={deleteVersion}
                   onOpenTool={handleOpenTool}
                 />
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
 
           {/* Active Tool Panel (Tool Deck) */}
           {activeTool && isAdvancedMode && (
@@ -899,8 +882,8 @@ export default function RecordingStudio({
                 onClick={() => setActiveTool(null)}
               />
 
-              <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#141414] border-t border-[#333] p-4 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)] max-h-[85vh] overflow-y-auto md:static md:bg-transparent md:border-t md:border-[#2A2A2A] md:p-0 md:py-8 md:shadow-none md:max-h-none md:overflow-visible md:rounded-none animate-in slide-in-from-bottom-full md:slide-in-from-bottom-4 duration-500 ease-out-expo">
-                <div className="flex items-center justify-between mb-6 sticky top-0 bg-[#141414] md:bg-transparent z-10 py-2 -mt-2 md:mt-0 md:py-0 border-b border-[#2A2A2A] md:border-none">
+              <div className="fixed bottom-0 left-0 right-0 z-50 p-4 rounded-t-3xl max-h-[85vh] overflow-y-auto md:static md:p-0 md:py-8 md:max-h-none md:overflow-visible md:rounded-none animate-in slide-in-from-bottom-full md:slide-in-from-bottom-4 duration-500 ease-out-expo" style={{ background: "var(--lr-night)", borderTop: "1px solid var(--lr-night-line)" }}>
+                <div className="flex items-center justify-between mb-6 sticky top-0 z-10 py-2 -mt-2 md:mt-0 md:py-0" style={{ background: "var(--lr-night)" }}>
                   <h3 className="text-xl font-bold text-white flex items-center gap-2">
                     {activeTool === "voice" && "Voice Transform"}
                     {activeTool === "clone" && "Contributor Clone"}
@@ -911,7 +894,7 @@ export default function RecordingStudio({
                   </h3>
                   <button
                     onClick={() => setActiveTool(null)}
-                    className="p-2 bg-[#2A2A2A] rounded-full text-gray-400 hover:text-white hover:bg-[#333] transition-colors md:bg-transparent md:p-0 md:rounded-none md:text-sm"
+                    className="p-2 rounded-full text-gray-400 hover:text-white transition-colors md:p-0 md:rounded-none md:text-sm" style={{ background: "var(--lr-night-raised)" }}
                   >
                     <span className="hidden md:inline">Close Panel</span>
                     <span className="md:hidden">✕</span>
@@ -1013,7 +996,7 @@ export default function RecordingStudio({
             </>
           )}
 
-          <div className="border-t border-[#2A2A2A] pt-6">
+          <div className="pt-6" style={{ borderTop: "1px solid var(--lr-night-line)" }}>
             <ActionButtons
               recordingTitle={recordingTitle}
               isDirectSaving={isDirectSaving}
@@ -1036,7 +1019,7 @@ export default function RecordingStudio({
               </p>
             )}
 
-            <div className="p-4 mt-6 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl flex items-center justify-between">
+            <div className="lr-legacy-inset mt-6 flex items-center justify-between">
               <p className="text-sm text-gray-400">Ready to start fresh?</p>
               <button
                 onClick={() => {
@@ -1067,8 +1050,8 @@ export default function RecordingStudio({
 
       {/* Error Display */}
       {error && (
-        <div className="mt-4 p-4 bg-red-900 border border-red-700 rounded-md">
-          <p className="text-red-200">{error}</p>
+        <div className="lr-card mt-4" role="alert">
+          <p className="lr-error-text" style={{ margin: 0 }}>{error}</p>
         </div>
       )}
 

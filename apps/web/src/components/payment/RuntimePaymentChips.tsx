@@ -31,7 +31,6 @@ import {
   Sparkles,
   Wallet,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useDynamicWallet } from "@/hooks/useDynamicWallet";
 import { useBankrStatus } from "@/hooks/useBankrStatus";
 import { pulseVoice } from "@/lib/terrain-bus";
@@ -266,23 +265,13 @@ export function DynamicChip({
                 Create agent wallet
               </button>
             ) : (
-              <motion.span
-                key={justCreated ? "just-created" : "ready"}
-                initial={justCreated ? { scale: 0.92, opacity: 0 } : false}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 420, damping: 18 }}
-                className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-200"
-              >
-                <motion.span
-                  initial={justCreated ? { scale: 0 } : false}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 12, delay: 0.08 }}
-                  className="grid h-5 w-5 place-items-center rounded-full bg-emerald-500 text-white shadow-sm"
-                >
+              <span
+                key={justCreated ? "just-created" : "ready"}>
+                <span>
                   <Check className="h-3.5 w-3.5" />
-                </motion.span>
+                </span>
                 {justCreated ? "Wallet created — ready to pay" : "Wallet ready"}
-              </motion.span>
+              </span>
             )}
 
             <a
@@ -309,15 +298,9 @@ export function DynamicChip({
             )}
           </div>
 
-          <AnimatePresence>
+          <>
             {justCreated && hasWallet && wallet && (
-              <motion.div
-                initial={{ opacity: 0, y: 6, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2.5 text-xs leading-relaxed text-emerald-200"
-              >
+              <div>
                 <span className="grid h-6 w-6 place-items-center rounded-full bg-emerald-500 text-white shrink-0">
                   <Check className="h-3.5 w-3.5" />
                 </span>
@@ -326,20 +309,14 @@ export function DynamicChip({
                   <code className="rounded bg-emerald-500/15 border border-emerald-500/20 px-1 py-0.5 font-mono text-[11px] text-emerald-100">X-DYNAMIC-WALLET: 1</code> with{" "}
                   <code className="rounded bg-emerald-500/15 border border-emerald-500/20 px-1 py-0.5 font-mono text-[11px] text-emerald-100">POST /api/agents/vocalize</code> — no human click.
                 </span>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
+          </>
 
           {/* test panel */}
-          <AnimatePresence>
+          <>
             {hasWallet && showTest && (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.2 }}
-                className="mt-3 rounded-xl border border-[#2A2A2A] bg-[#0A0A0A] p-3 overflow-hidden"
-              >
+              <div>
                 <label className="block text-[11px] font-semibold tracking-widest uppercase text-gray-500 mb-2">
                   Sign a message (server-side)
                 </label>
@@ -366,13 +343,9 @@ export function DynamicChip({
                     Sign
                   </button>
                 </div>
-                <AnimatePresence>
+                <>
                   {lastSig && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-2 flex items-center gap-2 rounded-lg bg-[#111] border border-[#1A1A1A] px-2.5 py-2"
-                    >
+                    <div>
                       <span className="min-w-0 flex-1 truncate font-mono text-xs text-gray-500" title={lastSig}>
                         {lastSig}
                       </span>
@@ -387,9 +360,9 @@ export function DynamicChip({
                       >
                         {copiedSig ? <><Check className="h-3 w-3 text-emerald-400" /> Copied</> : <><Copy className="h-3 w-3" /> Copy</>}
                       </button>
-                    </motion.div>
+                    </div>
                   )}
-                </AnimatePresence>
+                </>
                 <p className="mt-2 text-xs leading-relaxed text-gray-500">
                   Private keys never leave the server. In production the same key signs the{" "}
                   <code className="rounded bg-[#1A1A1A] border border-[#2A2A2A] px-1 py-0.5 font-mono text-[11px] text-gray-300">
@@ -397,9 +370,9 @@ export function DynamicChip({
                   </code>{" "}
                   payment for vocalize — the agent&apos;s wallet is the payer.
                 </p>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
+          </>
 
           {error && (
             <div className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs leading-relaxed text-red-300">

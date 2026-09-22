@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Nav from "../Nav";
 import MobileBottomNav from "../MobileBottomNav";
-import VoiceAssistantLoader from "../VoiceAssistantLoader";
 import { useListeningRoom } from "@/contexts/ListeningRoomContext";
 import { ListeningNav } from "./ListeningNav";
 import { ListeningPlayerBar } from "./ListeningPlayerBar";
@@ -50,7 +49,6 @@ export default function ListeningShell({
         <Nav />
         {children}
         <MobileBottomNav />
-        <VoiceAssistantLoader />
       </>
     );
   }

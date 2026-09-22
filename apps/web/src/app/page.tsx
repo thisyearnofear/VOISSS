@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
-import OnboardingRedirect from "../components/OnboardingRedirect";
 import HomeStructuredData from "../components/HomeStructuredData";
 import SplitBar from "../components/SplitBar";
 import { SignalRibbon } from "../components/listening/SignalRibbon";
@@ -65,7 +64,6 @@ export default function Home() {
   return (
     <main id="listening-main" className="lr-home">
       <HomeStructuredData />
-      <OnboardingRedirect />
 
       <div className="lr-wrap">
         {/* ── Hero — the instrument frame. The page performs the match. ──────── */}

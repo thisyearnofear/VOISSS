@@ -5,8 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useBasename } from "../hooks/useBasename";
 import { useBaseAccount } from "../hooks/useBaseAccount";
-import { useAssistant } from "../contexts/AssistantContext";
-import { Sparkles, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import VoissMascotMark from "./VoissMascotMark";
 
 const ONBOARDING_STORAGE_KEY = "voisss_onboarding_profile";
@@ -14,7 +13,6 @@ const NEW_USER_HINT_KEY = "voisss_new_user_hint_dismissed";
 
 export default function Nav() {
   const { address, isAuthenticated, isAuthenticating, isCheckingSession, signIn, signOut } = useAuth();
-  const { isExpanded, toggleAssistant } = useAssistant();
 
   const { displayName, hasBasename, isLoading: isResolvingBasename } = useBasename(address as `0x${string}` | null);
   const {
@@ -156,19 +154,6 @@ export default function Nav() {
                 </div>
               ))}
             </div>
-
-            {/* AI Assistant Toggle */}
-            <button
-              onClick={toggleAssistant}
-              className={`p-2 rounded-xl border transition-all duration-300 flex items-center gap-2 group ${isExpanded
-                ? 'bg-purple-500/20 border-purple-500/50 text-purple-400'
-                : 'bg-white/5 border-white/10 text-gray-400 hover:border-purple-500/30 hover:text-purple-400'
-                }`}
-              title="Toggle AI Assistant"
-            >
-              <Sparkles className={`w-5 h-5 transition-transform duration-500 ${isExpanded ? 'rotate-180 scale-110' : 'group-hover:rotate-12'}`} />
-              <span className="hidden lg:inline text-xs font-bold uppercase tracking-widest">Assistant</span>
-            </button>
 
             {/* Authentication / Profile Area */}
             <div className="flex items-center gap-3 justify-end">

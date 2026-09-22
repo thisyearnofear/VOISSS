@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, CheckCircle, Download } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useWebAudioRecording } from "@/hooks/useWebAudioRecording";
@@ -189,11 +188,7 @@ export default function QuickRecordStudio({
 
       {/* Post-recording: preview + save options */}
       {showSaveOptions && audioBlob && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500"
-        >
+        <div>
           <AudioPreview
             previewUrl={previewUrl}
             audioBlob={audioBlob}
@@ -285,20 +280,14 @@ export default function QuickRecordStudio({
               </a>
             </div>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* Error Display */}
       {error && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="mt-4 p-4 bg-red-900/30 border border-red-500/30 rounded-xl"
-          role="alert"
-          aria-live="assertive"
-        >
+        <div>
           <p className="text-red-300 text-sm">{error}</p>
-        </motion.div>
+        </div>
       )}
 
       {/* Toast Notification */}

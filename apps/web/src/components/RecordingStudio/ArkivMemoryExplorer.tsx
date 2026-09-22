@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   Database,
   Search,
@@ -83,13 +82,7 @@ function MemoryCard({
   });
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="bg-[#1A1A1A]/80 backdrop-blur-xl border border-white/[0.06] rounded-2xl overflow-hidden hover:border-purple-500/20 transition-colors duration-300"
-    >
+    <div>
       {/* Card Header */}
       <div className="p-5">
         <div className="flex items-start justify-between gap-4">
@@ -178,15 +171,9 @@ function MemoryCard({
       </div>
 
       {/* Expanded Content */}
-      <AnimatePresence>
+      <>
         {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="overflow-hidden"
-          >
+          <div>
             <div className="px-5 pb-5 space-y-4 border-t border-white/[0.04] pt-4">
               {/* Action Items */}
               {payload.actionItems && payload.actionItems.length > 0 && (
@@ -281,10 +268,10 @@ function MemoryCard({
                 )}
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
-    </motion.div>
+      </>
+    </div>
   );
 }
 
@@ -465,7 +452,6 @@ export default function ArkivMemoryExplorer({
       )}
 
       <div className="space-y-4">
-        <AnimatePresence mode="popLayout">
           {entities.map((entity) => (
             <MemoryCard
               key={entity.key}
@@ -473,7 +459,6 @@ export default function ArkivMemoryExplorer({
               certificate={getCertificateForInsight(entity)}
             />
           ))}
-        </AnimatePresence>
       </div>
 
       {/* Pagination */}

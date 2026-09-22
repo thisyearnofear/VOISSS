@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Play, Loader2, Sparkles, MessageSquare, Share2 } from "lucide-react";
 import confetti from "canvas-confetti";
-import { motion, AnimatePresence } from "framer-motion";
 import { SocialShare, type ShareableRecording } from "@voisss/ui";
 import { useAuth } from "../../contexts/AuthContext";
 import { PRODUCT_TAGLINE } from "@voisss/shared";
@@ -61,8 +60,7 @@ export default function QuickVoicePreview() {
   const playback = useListeningPlayback();
 
   // The playground result is a shared-player generation track — audible here
-  // *and* the persistent player bar. framer-motion stays for the entrance /
-  // share-card animation (legacy removal comes after the full migration).
+  // *and* the persistent player bar.
 
   const shareRecording = useMemo<ShareableRecording | null>(() => {
     if (!selectedVoice) return null;
@@ -297,20 +295,14 @@ export default function QuickVoicePreview() {
 
         {/* Play Button */}
         <div className="relative group">
-          <AnimatePresence>
-            {isPlaying && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="absolute -inset-2 bg-blue-500/10 rounded-2xl blur-xl -z-10" 
-              />
-            )}
-          </AnimatePresence>
-          
-          <motion.button
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
+          {isPlaying && (
+            <div
+              className="absolute -inset-2 bg-blue-500/10 rounded-2xl blur-xl -z-10"
+              aria-hidden
+            />
+          )}
+
+          <button
             onClick={handlePreview}
             disabled={isLoading || isLoadingTrack || !selectedVoice}
             aria-label={
@@ -331,52 +323,27 @@ export default function QuickVoicePreview() {
             } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {isLoading || isLoadingTrack ? (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex items-center gap-2"
-              >
+              <span className="flex items-center gap-2">
                 <Loader2 className="w-6 h-6 animate-spin" />
                 Synthesizing...
-              </motion.div>
+              </span>
             ) : isPlaying ? (
-              <div className="flex items-center gap-1">
-                {[...Array(6)].map((_, i) => (
-                  <motion.div 
-                    key={i} 
-                    className="w-1.5 bg-black rounded-full" 
-                    animate={{ 
-                      height: [8, 24, 12, 32, 8],
-                    }}
-                    transition={{
-                      duration: 0.6,
-                      repeat: Infinity,
-                      delay: i * 0.1,
-                      ease: "easeInOut"
-                    }}
-                  />
-                ))}
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-6 bg-black rounded-full animate-pulse" aria-hidden />
                 <span className="ml-2">Stop Playing</span>
-              </div>
+              </span>
             ) : (
               <>
                 <Play className="w-5 h-5 fill-current" />
                 Try this voice
               </>
             )}
-          </motion.button>
+          </button>
         </div>
 
         {/* Share Card — appears after first synthesis */}
-        <AnimatePresence>
-          {hasSynthesized && shareRecording && (
-            <motion.div
-              initial={{ opacity: 0, y: 16, height: 0 }}
-              animate={{ opacity: 1, y: 0, height: "auto" }}
-              exit={{ opacity: 0, y: -8, height: 0 }}
-              transition={{ delay: 0.3, duration: 0.4 }}
-              className="overflow-hidden"
-            >
+        {hasSynthesized && shareRecording && (
+            <div className="overflow-hidden">
               <div className="bg-gradient-to-br from-blue-600/10 to-purple-600/10 border border-white/10 rounded-xl p-5 space-y-4">
                 <div className="flex items-center gap-2 text-white font-semibold">
                   <Share2 className="w-4 h-4 text-blue-400" />
@@ -398,9 +365,8 @@ export default function QuickVoicePreview() {
                   className="justify-center"
                 />
               </div>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
 
         <p className="text-center text-[10px] text-gray-500 uppercase tracking-widest font-medium">
           Powered by VOISSS x402 Protocol • Gasless Preview
@@ -408,13 +374,12 @@ export default function QuickVoicePreview() {
       </div>
 
       {error && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
+          role="alert"
           className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-center"
         >
           {error}
-        </motion.div>
+        </div>
       )}
     </div>
   );
