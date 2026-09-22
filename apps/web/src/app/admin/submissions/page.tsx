@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MissionResponse } from "@voisss/shared/types/socialfi";
 import RewardDistributionForm from "@/components/admin/RewardDistributionForm";
+import { Badge } from "@/components/ui";
 
 export default function AdminSubmissionsPage() {
   const [statusFilter, setStatusFilter] = useState<"approved" | "flagged" | "removed">("approved");
@@ -66,25 +67,43 @@ export default function AdminSubmissionsPage() {
   const submissions: MissionResponse[] = submissionsData?.submissions || [];
 
   return (
-    <div className="voisss-container voisss-section-spacing">
+    <main id="listening-main">
+      <div
+        className="lr-wrap lr-dark"
+        style={{ paddingBottom: "var(--lr-space-2xl)" }}
+      >
       <div className="space-y-6">
         {/* Header */}
-        <div className="border-b border-[#3A3A3A] pb-6">
-          <h1 className="text-3xl font-bold text-white mb-2">Submissions Gallery</h1>
-          <p className="text-gray-400">Review, flag, and reward user submissions</p>
+        <div style={{ paddingTop: "var(--lr-space-md)" }}>
+          <h1
+            className="lr-h1"
+            style={{ fontSize: "clamp(1.6rem, 3vw, 2.25rem)", margin: 0 }}
+          >
+            Submissions Gallery
+          </h1>
+          <p className="lr-quiet">Review, flag, and reward user submissions</p>
         </div>
 
         {/* Status Filter */}
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap" role="group" aria-label="Filter by status">
           {(["approved", "flagged", "removed"] as const).map((status) => (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
+              aria-pressed={statusFilter === status}
               className={`px-4 py-2 rounded-lg font-medium transition-all ${
                 statusFilter === status
-                  ? "bg-[#7C5DFA] text-white"
-                  : "bg-[#2A2A2A] text-gray-400 border border-[#3A3A3A] hover:border-[#4A4A4A]"
+                  ? "text-white"
+                  : "text-gray-400 border hover:text-white"
               }`}
+              style={
+                statusFilter === status
+                  ? { background: "var(--lr-accent)" }
+                  : {
+                      background: "var(--lr-night-raised)",
+                      borderColor: "var(--lr-night-line)",
+                    }
+              }
             >
               {status.charAt(0).toUpperCase() + status.slice(1)} ({submissions.length})
             </button>
@@ -93,18 +112,20 @@ export default function AdminSubmissionsPage() {
 
         {/* Error State */}
         {error && (
-          <div className="voisss-card bg-red-500/10 border-red-500/30">
-            <p className="text-red-400">Failed to load submissions</p>
+          <div className="lr-card" role="alert">
+            <p className="lr-error-text" style={{ margin: 0 }}>Failed to load submissions</p>
           </div>
         )}
 
         {/* Loading State */}
         {isLoading && (
-          <div className="voisss-card text-center py-12">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-[#7C5DFA] to-[#9C88FF] rounded-full mb-4">
-              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            </div>
-            <p className="text-gray-400">Loading submissions...</p>
+          <div className="lr-card" style={{ textAlign: "center", padding: "3rem 1rem" }} role="status">
+            <div
+              className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"
+              style={{ margin: "0 auto 1rem" }}
+              aria-hidden
+            />
+            <p className="lr-quiet" style={{ margin: 0 }}>Loading submissions...</p>
           </div>
         )}
 
@@ -112,9 +133,10 @@ export default function AdminSubmissionsPage() {
         {!isLoading && submissions.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {submissions.map((submission) => (
-              <div
+              <article
                 key={submission.id}
-                className="voisss-card cursor-pointer hover:border-[#4A4A4A] transition-colors group"
+                className="lr-card"
+                style={{ cursor: "pointer" }}
                 onClick={() => setSelectedSubmission(submission)}
               >
                 {/* Submission Header */}
@@ -123,32 +145,23 @@ export default function AdminSubmissionsPage() {
                     <p className="text-xs text-gray-500 mb-1">
                       {submission.submittedAt ? new Date(submission.submittedAt).toLocaleDateString() : 'N/A'}
                     </p>
-                    <p className="text-sm font-mono text-[#7C5DFA] truncate">
+                    <p
+                      className="text-sm font-mono truncate"
+                      style={{ color: "var(--lr-night-accent)" }}
+                    >
                       {submission.userId.slice(0, 6)}...{submission.userId.slice(-4)}
                     </p>
                   </div>
-                  <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
-                    submission.rewardStatus === 'distributed'
-                      ? 'bg-[#22C55E]/20 text-[#22C55E]'
-                      : submission.rewardStatus === 'flagged'
-                      ? 'bg-yellow-600/20 text-yellow-400'
-                      : submission.rewardStatus === 'removed'
-                      ? 'bg-red-600/20 text-red-400'
-                      : 'bg-blue-600/20 text-blue-400'
-                  }`}>
-                    {submission.rewardStatus}
-                  </span>
+                  <Badge>{submission.rewardStatus}</Badge>
                 </div>
 
                 {/* Status */}
-                <div className="mb-4 p-3 bg-[#1A1A1A] rounded-lg">
+                <div
+                  className="lr-legacy-inset"
+                  style={{ marginBottom: "1rem", padding: "0.75rem" }}
+                >
                   <p className="text-xs text-gray-500 mb-1">Status</p>
-                  <p className={`text-sm font-semibold ${
-                    submission.rewardStatus === 'distributed' ? 'text-[#22C55E]' :
-                    submission.rewardStatus === 'flagged' ? 'text-yellow-500' :
-                    submission.rewardStatus === 'removed' ? 'text-red-500' :
-                    'text-blue-500'
-                  }`}>
+                  <p className="text-sm font-semibold" style={{ color: "var(--lr-night-ink)" }}>
                     {submission.rewardStatus === 'distributed' && '✓ Distributed'}
                     {submission.rewardStatus === 'pending' && '⧖ Pending'}
                     {submission.rewardStatus === 'flagged' && '⚠ Flagged'}
@@ -165,14 +178,18 @@ export default function AdminSubmissionsPage() {
                 )}
 
                 {/* Quick Actions */}
-                <div className="flex gap-2 pt-3 border-t border-[#3A3A3A]">
+                <div
+                  className="flex gap-2 pt-3"
+                  style={{ borderTop: "1px solid var(--lr-night-line)" }}
+                >
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedSubmission(submission);
                       setShowRewardForm(true);
                     }}
-                    className="flex-1 px-2 py-1 text-xs bg-[#7C5DFA] hover:bg-[#6D4AE8] text-white rounded transition-colors"
+                    className="flex-1 px-2 py-1 text-xs text-white rounded transition-colors"
+                    style={{ background: "var(--lr-accent)" }}
                   >
                     Reward
                   </button>
@@ -197,16 +214,16 @@ export default function AdminSubmissionsPage() {
                     Remove
                   </button>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         )}
 
         {/* Empty State */}
         {!isLoading && submissions.length === 0 && (
-          <div className="voisss-card text-center py-12">
-            <p className="text-gray-400 mb-4">No {statusFilter} submissions yet</p>
-            <p className="text-sm text-gray-500">Submissions will appear here as users submit content</p>
+          <div className="lr-card" style={{ textAlign: "center", padding: "3rem 1rem" }}>
+            <p className="lr-quiet" style={{ margin: "0 0 0.5rem" }}>No {statusFilter} submissions yet</p>
+            <p className="text-sm text-gray-500" style={{ margin: 0 }}>Submissions will appear here as users submit content</p>
           </div>
         )}
       </div>
@@ -230,12 +247,13 @@ export default function AdminSubmissionsPage() {
       {/* Submission Detail Modal */}
       {selectedSubmission && !showRewardForm && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="voisss-card w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="lr-card w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-white">Submission Details</h2>
               <button
                 onClick={() => setSelectedSubmission(null)}
                 className="text-gray-400 hover:text-white text-2xl leading-none"
+                aria-label="Close submission details"
               >
                 ×
               </button>
@@ -245,7 +263,12 @@ export default function AdminSubmissionsPage() {
               {/* User */}
               <div>
                 <p className="text-xs text-gray-500 mb-1">Wallet Address</p>
-                <p className="text-sm font-mono text-[#7C5DFA] break-all">{selectedSubmission.userId}</p>
+                <p
+                  className="text-sm font-mono break-all"
+                  style={{ color: "var(--lr-night-accent)" }}
+                >
+                  {selectedSubmission.userId}
+                </p>
               </div>
 
               {/* Recording */}
@@ -294,18 +317,26 @@ export default function AdminSubmissionsPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2 pt-4 border-t border-[#3A3A3A]">
+              <div
+                className="flex gap-2 pt-4"
+                style={{ borderTop: "1px solid var(--lr-night-line)" }}
+              >
                 <button
                   onClick={() => {
                     setShowRewardForm(true);
                   }}
-                  className="flex-1 px-4 py-2 bg-[#7C5DFA] hover:bg-[#6D4AE8] text-white rounded-lg font-medium transition-colors"
+                  className="flex-1 px-4 py-2 text-white rounded-lg font-medium transition-colors"
+                  style={{ background: "var(--lr-accent)" }}
                 >
                   Reward
                 </button>
                 <button
                   onClick={() => setSelectedSubmission(null)}
-                  className="flex-1 px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] text-white rounded-lg font-medium hover:bg-[#3A3A3A] transition-colors"
+                  className="flex-1 px-4 py-2 text-white rounded-lg font-medium transition-colors"
+                  style={{
+                    background: "var(--lr-night-raised)",
+                    border: "1px solid var(--lr-night-line)",
+                  }}
                 >
                   Close
                 </button>
@@ -314,6 +345,7 @@ export default function AdminSubmissionsPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </main>
   );
 }

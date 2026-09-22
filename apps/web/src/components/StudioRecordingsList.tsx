@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   RecordingCard,
   SocialShare,
@@ -8,6 +8,10 @@ import {
   type ShareableRecording,
 } from "@voisss/ui";
 import MascotEmptyState from "./MascotEmptyState";
+import {
+  useListeningPlayback,
+  useListeningRoom,
+} from "@/contexts/ListeningRoomContext";
 
 interface RecordingSummary {
   id: string;
@@ -47,86 +51,105 @@ export default function StudioRecordingsList({
   onDeleteLocal,
   userId,
 }: StudioRecordingsListProps) {
-  const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
-  const [audioElements, setAudioElements] = useState<
-    Map<string, HTMLAudioElement>
-  >(new Map());
+  const { player } = useListeningRoom();
+  const playback = useListeningPlayback();
   const [sharingRecording, setSharingRecording] =
     useState<ShareableRecording | null>(null);
+  // Blob URLs minted for local (un-uploaded) recordings. Revoked on delete /
+  // unmount so repeated play/pause cycles never leak object URLs.
+  const blobUrls = useRef(new Map<string, string>());
+  useEffect(() => {
+    const cache = blobUrls.current;
+    return () => {
+      for (const url of cache.values()) {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {
+          // ignore
+        }
+      }
+      cache.clear();
+    };
+  }, []);
+
+  const resolveAudioUrl = useCallback(
+    (recordingId: string): string | null => {
+      const cached = blobUrls.current.get(recordingId);
+      if (cached) return cached;
+      const recording = recordings.find((r) => r.id === recordingId);
+      const localRec = localRecordings?.find((r) => r.id === recordingId);
+      if (localRec?.blob) {
+        const url = URL.createObjectURL(localRec.blob);
+        blobUrls.current.set(recordingId, url);
+        return url;
+      }
+      if (recording?.ipfsHash) {
+        return `https://gateway.pinata.cloud/ipfs/${recording.ipfsHash}`;
+      }
+      return null;
+    },
+    [recordings, localRecordings]
+  );
+
+  const isCurrent = (recordingId: string) =>
+    playback.track?.id === `sample:${recordingId}` &&
+    playback.track?.kind === "sample";
+  const isPlayingId = (recordingId: string) =>
+    isCurrent(recordingId) && playback.status === "playing";
 
   const handlePlayRecording = useCallback(
     async (recordingId: string) => {
-      try {
-        // Stop currently playing audio
-        if (currentlyPlaying && audioElements.has(currentlyPlaying)) {
-          const currentAudio = audioElements.get(currentlyPlaying);
-          currentAudio?.pause();
-          setCurrentlyPlaying(null);
-        }        const recording = recordings.find((r) => r.id === recordingId);
-        const localRec = localRecordings?.find((r) => r.id === recordingId);
-
-        let audioUrl: string;
-
-        if (localRec?.blob) {
-          audioUrl = URL.createObjectURL(localRec.blob);
-        } else if (recording?.ipfsHash) {
-          audioUrl = `https://gateway.pinata.cloud/ipfs/${recording.ipfsHash}`;
-        } else {
-          throw new Error("No audio source available");
-        }
-
-        let audio = audioElements.get(recordingId);
-        if (!audio) {
-          audio = new Audio(audioUrl);
-          audio.addEventListener("ended", () => setCurrentlyPlaying(null));
-          audio.addEventListener("error", (e) => {
-            console.error("Audio playback error:", e);
-            setCurrentlyPlaying(null);
-          });
-          setAudioElements((prev) => new Map(prev).set(recordingId, audio!));
-        }
-
-        await audio.play();
-        setCurrentlyPlaying(recordingId);
-      } catch (error) {
-        console.error("Failed to play recording:", error);
-        setCurrentlyPlaying(null);
-      }
+      const recording =
+        recordings.find((r) => r.id === recordingId) ??
+        localRecordings?.find((r) => r.id === recordingId);
+      const audioUrl = resolveAudioUrl(recordingId);
+      if (!audioUrl || !recording) return;
+      await player
+        .toggle({
+          id: `sample:${recordingId}`,
+          url: audioUrl,
+          title: recording.title || "Recording",
+          subtitle: "Studio recording",
+          kind: "sample",
+        })
+        .catch(() => {});
     },
-    [currentlyPlaying, audioElements, recordings, localRecordings],
+    [player, recordings, localRecordings, resolveAudioUrl]
   );
 
   const handlePauseRecording = useCallback(
     (recordingId: string) => {
-      const audio = audioElements.get(recordingId);
-      if (audio) {
-        audio.pause();
-        setCurrentlyPlaying(null);
+      // Toggling the same shared track pauses; anything else is a no-op.
+      if (isCurrent(recordingId)) {
+        const snap = player.getSnapshot();
+        if (snap.status === "playing" || snap.status === "loading") {
+          player.stop();
+        }
       }
     },
-    [audioElements],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [player, playback.track?.id, playback.status]
   );
 
   const handleDeleteRecording = useCallback(
     (recordingId: string) => {
-      // Clean up audio element
-      const audio = audioElements.get(recordingId);
-      if (audio) {
-        audio.pause();
-        audio.src = "";
-        setAudioElements((prev) => {
-          const newMap = new Map(prev);
-          newMap.delete(recordingId);
-          return newMap;
-        });
-      }
-      if (currentlyPlaying === recordingId) {
-        setCurrentlyPlaying(null);
+      // Stop shared playback if the deleted recording is audible, then free
+      // its blob URL so the object-URL cache can't grow across deletes.
+      if (isCurrent(recordingId)) player.stop();
+      const cached = blobUrls.current.get(recordingId);
+      if (cached) {
+        try {
+          URL.revokeObjectURL(cached);
+        } catch {
+          // ignore
+        }
+        blobUrls.current.delete(recordingId);
       }
       // Notify parent to remove from state
       onDeleteLocal?.(recordingId);
     },
-    [audioElements, currentlyPlaying, onDeleteLocal],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [player, playback.track?.id, onDeleteLocal]
   );
 
   const handleShareRecording = (recording: ShareableRecording) => {
@@ -146,7 +169,7 @@ export default function StudioRecordingsList({
                 duration: recording.duration,
                 createdAt: recording.createdAt,
                 tags: recording.onChain ? ["on-chain"] : ["local"],
-                isPlaying: currentlyPlaying === recording.id,
+                isPlaying: isPlayingId(recording.id),
                 onChain: recording.onChain,
               }}
               onPlay={handlePlayRecording}
