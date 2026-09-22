@@ -1,3 +1,5 @@
+import { trackPlaybackEnergy } from "./terrain-bus";
+
 export type ListeningTrack = {
   id: string;
   url: string;
@@ -39,10 +41,21 @@ export function createListeningPlayer(
   let snapshot: PlaybackSnapshot = IDLE_SNAPSHOT;
   let audio: HTMLAudioElement | null = null;
   let token = 0;
+  let stopEnergy: (() => void) | null = null;
   const listeners = new Set<() => void>();
 
   const publish = (next: PlaybackSnapshot) => {
     snapshot = next;
+    // The shared player is the one true source of voice energy: any playback
+    // — home ribbon, marketplace card, workspace preview — energizes the
+    // hero's VoiceTerrain through the bus. Transitions only; the tracker's
+    // own interval is released the moment playback isn't playing.
+    if (next.status === "playing" && audio && !stopEnergy) {
+      stopEnergy = trackPlaybackEnergy(audio);
+    } else if (next.status !== "playing" && stopEnergy) {
+      stopEnergy();
+      stopEnergy = null;
+    }
     for (const listener of listeners) listener();
   };
 

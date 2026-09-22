@@ -9,6 +9,7 @@ import {
   useListeningPlayback,
   useListeningRoom,
 } from "@/contexts/ListeningRoomContext";
+import { pulseVoice } from "@/lib/terrain-bus";
 import { voiceDisplayName } from "@/lib/voice-detail";
 
 // Canonical home is lib/voice-detail (server-safe); re-exported here so
@@ -56,7 +57,11 @@ export function VoiceAuditionRow({
         kind: "sample",
       })
       .then((started) => {
-        if (started && !isCurrent) onPlayed?.(voice);
+        if (started && !isCurrent) {
+          // A voice lifting off pushes a wavefront through the hero terrain.
+          pulseVoice("lift");
+          onPlayed?.(voice);
+        }
       });
   };
 

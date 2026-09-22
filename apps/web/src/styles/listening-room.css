@@ -257,13 +257,123 @@ body:has(.lr-shell) {
   color: var(--lr-night-muted);
 }
 
+/* ── Hero stages (home + marketplace discover) ─────────────────────────────
+ * The signature terrain paints the world; content floats above it on glass.
+ * `.lr-dark` on the section flips every descendant primitive to night tokens. */
+
+.lr-home-hero,
+.lr-discover-hero {
+  position: relative;
+  isolation: isolate;
+  margin: var(--lr-space-md) clamp(20px, 4vw, 64px) var(--lr-space-2xl);
+  overflow: hidden;
+  color: var(--lr-night-ink);
+}
+
 .lr-home-hero {
+  min-height: min(88svh, 880px);
+  display: grid;
+  place-items: center;
+}
+
+.lr-discover-hero {
+  padding-block: clamp(2rem, 5svh, 4rem);
+}
+
+.lr-hero-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      100deg,
+      color-mix(in oklab, var(--lr-night) 84%, transparent) 0%,
+      color-mix(in oklab, var(--lr-night) 44%, transparent) 46%,
+      transparent 74%
+    ),
+    radial-gradient(
+      130% 110% at 100% 0%,
+      transparent 42%,
+      color-mix(in oklab, var(--lr-night) 55%, transparent) 100%
+    );
+}
+
+.lr-hero-inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
   gap: var(--lr-space-2xl);
-  align-items: start;
-  padding-top: var(--lr-space-2xl);
-  padding-bottom: var(--lr-space-2xl);
+  align-items: center;
+  padding: clamp(2.5rem, 7svh, 5.5rem) clamp(20px, 4vw, 40px);
+}
+
+.lr-dark .lr-eyebrow,
+.lr-dark .lr-audition-head span {
+  color: var(--lr-night-muted);
+}
+
+.lr-dark .lr-lede {
+  color: color-mix(in oklab, var(--lr-night-muted) 85%, var(--lr-night-ink));
+}
+
+/* Floating brief console — glass slab, transparent well, ripple on focus */
+.lr-hero-console {
+  margin-top: var(--lr-space-xl);
+  padding: var(--lr-space-md);
+  border-radius: calc(var(--lr-radius) + 8px);
+  background: color-mix(in oklab, var(--lr-night) 62%, transparent);
+  border: 1px solid var(--lr-night-line);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: border-color var(--lr-duration) var(--lr-ease),
+    box-shadow var(--lr-duration) var(--lr-ease);
+}
+
+.lr-hero-console .lr-label {
+  margin-bottom: var(--lr-space-xs);
+  color: var(--lr-night-muted);
+}
+
+.lr-hero-console-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--lr-space-sm);
+}
+
+.lr-hero-console-row .lr-input {
+  flex: 1 1 16rem;
+  min-width: 0;
+  background: color-mix(in oklab, var(--lr-night) 40%, transparent);
+}
+
+.lr-hero-console:focus-within {
+  border-color: var(--lr-night-accent);
+  box-shadow:
+    0 0 0 3px color-mix(in oklab, var(--lr-night-accent) 18%, transparent),
+    0 0 48px color-mix(in oklab, var(--lr-night-accent) 14%, transparent);
+}
+
+/* Audition instrument on the field — the same panel, behind glass */
+.lr-hero-audition {
+  background: color-mix(in oklab, var(--lr-night) 55%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 24px 64px color-mix(in oklab, var(--lr-night) 45%, transparent);
+}
+
+.lr-ribbon {
+  color: var(--lr-ink);
+  --lr-ribbon-to: var(--lr-accent);
+}
+
+.lr-dark .lr-ribbon {
+  color: var(--lr-night-ink);
+  --lr-ribbon-to: var(--lr-night-accent);
 }
 
 .lr-eyebrow {
@@ -290,18 +400,6 @@ body:has(.lr-shell) {
   color: var(--lr-muted);
   max-width: 34rem;
   margin: var(--lr-space-lg) 0 0;
-}
-
-.lr-brief-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--lr-space-sm);
-  margin-top: var(--lr-space-xl);
-}
-
-.lr-brief-form .lr-input {
-  flex: 1 1 16rem;
-  min-width: 0;
 }
 
 .lr-examples {
@@ -699,7 +797,65 @@ body:has(.lr-shell) {
 }
 
 .lr-discover-head {
-  padding: var(--lr-space-2xl) 0 var(--lr-space-lg);
+  padding: 0;
+}
+
+.lr-hero-inner--stack {
+  grid-template-columns: minmax(0, 1fr);
+  padding-block: clamp(2.5rem, 6svh, 4.5rem);
+}
+
+.lr-discover-h1 {
+  font-size: clamp(2.2rem, 4vw, 3.4rem);
+  max-width: none;
+}
+
+.lr-dark .lr-discover-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--lr-space-sm);
+  margin-top: var(--lr-space-md);
+  font-size: 0.8125rem;
+}
+
+.lr-dark .lr-discover-status .lr-quiet {
+  margin: 0;
+}
+
+/* match ceremony — the hero names the winner as the terrain acknowledges it */
+.lr-match-live {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--lr-space-xs);
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--lr-night-accent) 45%, transparent);
+  color: var(--lr-night-ink);
+  animation: lr-match-live 0.6s var(--lr-ease);
+}
+
+.lr-match-live strong {
+  font-weight: 700;
+}
+
+.lr-match-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--lr-night-accent);
+  box-shadow: 0 0 12px color-mix(in oklab, var(--lr-night-accent) 70%, transparent);
+}
+
+@keyframes lr-match-live {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .lr-list {
@@ -714,6 +870,24 @@ body:has(.lr-shell) {
   background: var(--lr-surface);
   padding: var(--lr-space-md);
   min-width: 0;
+}
+
+/* the winner keeps an accent edge; the ceremony ring fires once per match */
+.lr-card--match {
+  border-color: color-mix(in oklab, var(--lr-accent) 55%, var(--lr-line));
+}
+
+@keyframes lr-match-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--lr-accent) 40%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 22px transparent;
+  }
+}
+
+.lr-card--ceremony {
+  animation: lr-match-ring 1.2s var(--lr-ease) 2;
 }
 
 .lr-card .lr-vrow {
@@ -1209,8 +1383,13 @@ body:has(.lr-shell) {
 
 @media (max-width: 900px) {
   .lr-home-hero {
+    min-height: 0;
+  }
+
+  .lr-hero-inner {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--lr-space-xl);
+    padding-block: clamp(2rem, 5svh, 3rem);
   }
 
   .lr-entries {

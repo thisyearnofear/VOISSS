@@ -12,10 +12,12 @@ import { DismissibleRuntimeTracks } from "@/components/payment/RuntimePaymentChi
 import { BuyerCreditsStrip } from "@/components/payment/DashboardBalanceChips";
 import { VoiceMarketTrends } from "@/components/marketplace/VoiceMarketTrends";
 import { VoiceAuditionRow, voiceDisplayName } from "@/components/listening/VoiceAuditionRow";
+import VoiceTerrain from "@/components/VoiceTerrain";
 import { Badge, Button, Chip, Disclosure, Notice } from "@/components/ui";
 import { useListeningRoom } from "@/contexts/ListeningRoomContext";
 import { useVoiceCatalog } from "@/hooks/useVoiceCatalog";
 import { useAuth } from "@/contexts/AuthContext";
+import { pulseVoice } from "@/lib/terrain-bus";
 
 interface VoiceMatchResult {
   scores: Record<string, number>;
@@ -245,6 +247,30 @@ function MarketplacePageInner() {
     return best;
   }, [displayedVoices, match]);
 
+  // Match ceremony — when the brief resolves to a winner, the terrain takes
+  // a wavefront, the hero names the voice, and the winning card plays a
+  // one-shot ring. Re-fires only when the winner actually changes.
+  const [ceremonyId, setCeremonyId] = useState<string | null>(null);
+  const lastCeremony = useRef<string | null>(null);
+  useEffect(() => {
+    if (!topMatchId) {
+      lastCeremony.current = null;
+      setCeremonyId(null);
+      return;
+    }
+    if (lastCeremony.current === topMatchId) return;
+    lastCeremony.current = topMatchId;
+    pulseVoice("lift");
+    setCeremonyId(topMatchId);
+    const t = window.setTimeout(() => setCeremonyId(null), 4200);
+    return () => window.clearTimeout(t);
+  }, [topMatchId]);
+
+  const topVoice = useMemo(
+    () => (topMatchId ? voices.find((v) => v.id === topMatchId) ?? null : null),
+    [topMatchId, voices]
+  );
+
   const shortlistedVoices = useMemo(
     () =>
       draft.shortlist
@@ -279,51 +305,63 @@ function MarketplacePageInner() {
   return (
     <main id="listening-main">
       <MascotEvents />
+
+      {/* Voice terrain — the signature field behind the discover headline.
+          Wired to the bus: previewing any voice card below lifts off up here. */}
+      <section className="lr-discover-hero lr-dark voisss-frame voisss-terrain-bg">
+        <VoiceTerrain />
+        <div className="lr-hero-scrim" aria-hidden />
+        <div className="lr-hero-inner lr-hero-inner--stack">
+          <header className="lr-discover-head">
+            <h1 className="lr-h1 lr-discover-h1 voisss-masked-reveal">Find a voice.</h1>
+            <p className="lr-lede voisss-masked-reveal voisss-masked-reveal-delay-1">
+              Listen first. Choose what fits.
+            </p>
+
+            {/* Jev intent matching — one fan-out call scores every voice against
+                the brief; the grid re-ranks live as you type. */}
+            <div className="lr-hero-console voisss-masked-reveal voisss-masked-reveal-delay-2 voisss-specular">
+              <label htmlFor="marketplace-brief" className="lr-label">
+                Describe the voice you need
+              </label>
+              <div className="lr-hero-console-row">
+                <input
+                  id="marketplace-brief"
+                  type="text"
+                  className="lr-input"
+                  value={brief}
+                  onChange={(e) => updateDraft({ brief: e.target.value.slice(0, 500) })}
+                  placeholder='e.g. "warm narrator for a meditation app, unhurried"'
+                  maxLength={500}
+                />
+              </div>
+            </div>
+
+            <div className="lr-discover-status" role="status">
+              {matchLoading && <span className="lr-quiet">matching…</span>}
+              {matchUnavailable && (
+                <span className="lr-quiet">
+                  Matching is unavailable. You can still browse voices.{" "}
+                  <Chip onClick={() => setMatchUnavailable(false)}>
+                    Retry matching
+                  </Chip>
+                </span>
+              )}
+              {match?.archetype && !matchUnavailable && (
+                <Badge>rubric: {match.archetype}</Badge>
+              )}
+              {ceremonyId && topVoice && (
+                <span className="lr-match-live">
+                  <span className="lr-match-live-dot" aria-hidden />
+                  Best match: <strong>{voiceDisplayName(topVoice)}</strong>
+                </span>
+              )}
+            </div>
+          </header>
+        </div>
+      </section>
+
       <div className="lr-wrap">
-        <header className="lr-discover-head">
-          <h1 className="lr-h1" style={{ fontSize: "clamp(2.2rem, 4vw, 3.4rem)" }}>
-            Find a voice.
-          </h1>
-          <p className="lr-lede">Listen first. Choose what fits.</p>
-
-          {/* Jev intent matching — one fan-out call scores every voice against
-              the brief; the grid re-ranks live as you type. */}
-          <div className="lr-brief-form">
-            <label htmlFor="marketplace-brief" className="lr-label" style={{ flexBasis: "100%" }}>
-              Describe the voice you need
-            </label>
-            <input
-              id="marketplace-brief"
-              type="text"
-              className="lr-input"
-              value={brief}
-              onChange={(e) => updateDraft({ brief: e.target.value.slice(0, 500) })}
-              placeholder='e.g. "warm narrator for a meditation app, unhurried"'
-              maxLength={500}
-            />
-          </div>
-
-          {/* Clickable example briefs — instant demo of the re-rank without
-              needing to know what to type. */}
-          <div className="mt-2 flex flex-wrap items-center gap-2" style={{ fontSize: "0.8125rem" }} role="status">
-            {matchLoading && <span className="lr-quiet" style={{ margin: 0 }}>matching…</span>}
-            {matchUnavailable && (
-              <span className="lr-quiet" style={{ margin: 0 }}>
-                Matching is unavailable. You can still browse voices.{" "}
-                <Chip onClick={() => setMatchUnavailable(false)}>
-                  Retry matching
-                </Chip>
-              </span>
-            )}
-            {match?.archetype && !matchUnavailable && (
-              <Badge>rubric: {match.archetype}</Badge>
-            )}
-          </div>
-        </header>
-
-        {/* Voice terrain — sandboxed to this page's hero. Already wired to the
-            bus, so previewing any voice card below lights it up. */}
-        {/* Mobile Filter Toggle */}
         {/* Collapsible Filters */}
         {/* Mobile Filters (animated) */}
         <Disclosure
@@ -425,7 +463,14 @@ function MarketplacePageInner() {
               const isTop = voice.id === topMatchId;
               const reasons = match?.reasons?.[voice.id] ?? [];
               return (
-                <article key={voice.id} className="lr-card">
+                <article
+                  key={voice.id}
+                  className={
+                    "lr-card voisss-specular voisss-specular-light" +
+                    (isTop ? " lr-card--match" : "") +
+                    (voice.id === ceremonyId ? " lr-card--ceremony" : "")
+                  }
+                >
                   <VoiceAuditionRow
                     voice={voice}
                     onPlayed={(v) => trackMatchEvent("voice_preview", v.id)}

@@ -534,6 +534,16 @@ h1, h2, h3, h4, h5, h6 {
 }
 .voisss-specular:hover::after { opacity: 1; }
 
+/* light-surface variant — white gloss vanishes on paper, so the specular
+ * highlight is violet drawn from the accent token (same --mx/--my feed). */
+.voisss-specular-light::after {
+  background: radial-gradient(
+    220px circle at var(--mx, 50%) var(--my, 0%),
+    color-mix(in oklab, var(--lr-accent) 13%, transparent),
+    transparent 62%
+  );
+}
+
 @media (prefers-reduced-motion: reduce) {
   .js [data-reveal] {
     opacity: 1;

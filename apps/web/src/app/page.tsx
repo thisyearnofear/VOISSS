@@ -2,14 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 import { ArrowRight } from "lucide-react";
 import HomeStructuredData from "../components/HomeStructuredData";
 import SplitBar from "../components/SplitBar";
+import VoiceTerrain from "../components/VoiceTerrain";
 import { SignalRibbon } from "../components/listening/SignalRibbon";
 import { VoiceAuditionRow } from "../components/listening/VoiceAuditionRow";
 import { Button, Chip, Disclosure } from "../components/ui";
 import { useListeningPlayback, useListeningRoom } from "../contexts/ListeningRoomContext";
 import { useVoiceCatalog } from "../hooks/useVoiceCatalog";
+import { pulseVoice } from "../lib/terrain-bus";
 import { initTelemetry, flushNow } from "../lib/telemetry";
 
 if (typeof window !== "undefined") {
@@ -55,6 +58,20 @@ export default function Home() {
   // Live catalog size for the wireframe index — honest number, quiet fallback.
   const sampleVoices = voices.filter((v) => Boolean(v.sampleUrl)).slice(0, 3);
 
+  // Brief = ripple: a pause in typing lifts a voice off the terrain, so the
+  // hero answers the words as they arrive.
+  const rippleTimer = useRef<number | null>(null);
+  useEffect(() => {
+    return () => {
+      if (rippleTimer.current) window.clearTimeout(rippleTimer.current);
+    };
+  }, []);
+  const onBriefChange = (value: string) => {
+    updateDraft({ brief: value.slice(0, 500) });
+    if (rippleTimer.current) window.clearTimeout(rippleTimer.current);
+    rippleTimer.current = window.setTimeout(() => pulseVoice("lift"), 550);
+  };
+
   const goDiscover = (value: string) => {
     const q = value.trim();
     updateDraft({ brief: q });
@@ -65,40 +82,48 @@ export default function Home() {
     <main id="listening-main" className="lr-home">
       <HomeStructuredData />
 
-      <div className="lr-wrap">
-        {/* ── Hero — the instrument frame. The page performs the match. ──────── */}
-        <section className="lr-home-hero">
+      {/* ── Hero — the field itself. A living terrain the brief disturbs, an
+           audition console that answers. The page performs the match. ─────── */}
+      <section className="lr-home-hero lr-dark voisss-frame voisss-terrain-bg">
+        <VoiceTerrain />
+        <div className="lr-hero-scrim" aria-hidden />
+        <div className="lr-hero-inner">
           {/* Main grid — copy + instrument */}
           <div className="lr-home-copy">
-            <small className="lr-eyebrow">A voice worth listening to.</small>
-            <h1 className="lr-h1">Find the voice your project needs.</h1>
-            <p className="lr-lede">
+            <small className="lr-eyebrow voisss-masked-reveal">A voice worth listening to.</small>
+            <h1 className="lr-h1 voisss-masked-reveal voisss-masked-reveal-delay-1">
+              Find the voice your project needs.
+            </h1>
+            <p className="lr-lede voisss-masked-reveal voisss-masked-reveal-delay-2">
               Describe the sound. Hear the options. Try your words.
             </p>
 
-            {/* The search — demonstrates the match here, submits into the live marketplace */}
+            {/* The search — floating console; demonstrates the match here,
+                submits into the live marketplace */}
             <form
-              className="lr-brief-form"
+              className="lr-hero-console voisss-masked-reveal voisss-masked-reveal-delay-3 voisss-specular"
               onSubmit={(e) => {
                 e.preventDefault();
                 goDiscover(draft.brief);
               }}
             >
-              <label htmlFor="home-brief" className="lr-label" style={{ flexBasis: "100%", color: "var(--lr-muted)" }}>
+              <label htmlFor="home-brief" className="lr-label">
                 What should it sound like?
               </label>
-              <input
-                id="home-brief"
-                type="text"
-                className="lr-input"
-                value={draft.brief}
-                onChange={(e) => updateDraft({ brief: e.target.value.slice(0, 500) })}
-                placeholder="warm narrator for a sleep app, unhurried"
-                maxLength={500}
-              />
-              <Button type="submit">
-                Find a voice <ArrowRight className="w-4 h-4" aria-hidden />
-              </Button>
+              <div className="lr-hero-console-row">
+                <input
+                  id="home-brief"
+                  type="text"
+                  className="lr-input"
+                  value={draft.brief}
+                  onChange={(e) => onBriefChange(e.target.value)}
+                  placeholder="warm narrator for a sleep app, unhurried"
+                  maxLength={500}
+                />
+                <Button type="submit">
+                  Find a voice <ArrowRight className="w-4 h-4" aria-hidden />
+                </Button>
+              </div>
             </form>
 
             <div className="lr-examples">
@@ -113,7 +138,10 @@ export default function Home() {
           </div>
 
           {/* The instrument — a real rubric match, replayed in-browser */}
-          <section className="lr-audition" aria-label="Listen to voices">
+          <section
+            className="lr-audition lr-hero-audition voisss-masked-reveal voisss-masked-reveal-delay-2 voisss-container-lines"
+            aria-label="Listen to voices"
+          >
             {/* Wireframe index */}
             <header className="lr-audition-head">
               <h2>Start by listening</h2>
@@ -133,19 +161,21 @@ export default function Home() {
             {!query.isLoading && !query.isError && sampleVoices.length === 0 && (
               <p className="lr-quiet">No catalog samples are available right now.</p>
             )}
-            {/* ── Hear it — playback energizes the field ───────────────────────── */}
+            {/* ── Hear it — playback energizes the field behind the glass ────── */}
             {sampleVoices.map((voice) => (
               <VoiceAuditionRow key={voice.id} voice={voice} />
             ))}
           </section>
-        </section>
+        </div>
+      </section>
 
+      <div className="lr-wrap">
         {/* Bottom proof strip */}
         <section className="lr-home-proof">
           <h2>Find the fit. Keep the context.</h2>
           {/* ── Three paths ──────────────────────────────────────────────────── */}
           <div className="lr-entries">
-            <Link className="lr-entry" href="/marketplace">
+            <Link className="lr-entry voisss-specular voisss-specular-light" href="/marketplace">
               <h3>For your next project</h3>
               <p>
                 Describe the voice in plain English, hear ranked matches with
@@ -153,7 +183,7 @@ export default function Home() {
                 words.
               </p>
             </Link>
-            <Link className="lr-entry" href="/developers">
+            <Link className="lr-entry voisss-specular voisss-specular-light" href="/developers">
               <h3>For your application</h3>
               <p>
                 One POST to /api/agents/vocalize. OpenAPI spec, x402

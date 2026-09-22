@@ -25,8 +25,8 @@ export function SignalRibbon({ playing }: { playing: boolean }) {
     >
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="var(--lr-ink)" />
-          <stop offset="100%" stopColor="var(--lr-accent)" />
+          <stop offset="0%" stopColor="currentColor" />
+          <stop offset="100%" stopColor="var(--lr-ribbon-to, var(--lr-accent))" />
         </linearGradient>
       </defs>
       {strokes.map((s, i) => (
