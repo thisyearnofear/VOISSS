@@ -11,13 +11,14 @@ import { VoiceAuditionRow, voiceDisplayName } from "@/components/listening/Voice
 import { LicensePurchaseModal } from "@/components/payment/LicensePurchaseModal";
 import VoiceTerrain from "@/components/VoiceTerrain";
 import { UnwovenGrid } from "@/components/marketplace/UnwovenGrid";
-import { Badge, Button, Chip, Disclosure, Notice } from "@/components/ui";
+import { Badge, Chip, Notice } from "@/components/ui";
 import { useListeningRoom } from "@/contexts/ListeningRoomContext";
 import { useVoiceCatalog } from "@/hooks/useVoiceCatalog";
 import { useAuth } from "@/contexts/AuthContext";
 import { getSettleSplit, pulseVoice, setSettleSplit } from "@/lib/terrain-bus";
 import { DismissibleRuntimeTracks } from "@/components/payment/RuntimePaymentChips";
 import ThinkingState from "@/components/ui/agentic/ThinkingState";
+import rubric from "@/lib/matching/rubric.v1.json";
 
 type VoiceMatchResult = {
   scores: Record<string, number>;
@@ -26,11 +27,12 @@ type VoiceMatchResult = {
   dimensionLevels?: Record<string, Record<string, number>>;
   reasons?: Record<string, string[]>;
   briefInsights: {
-    emotion: { choice: string; confidence: number } | null;
-    useCase: { choice: string; confidence: number } | null;
-    urgency: { score: number; legend?: Record<string, string>; confidence: number } | null;
+    emotion: { choice: string; confidence: number | null } | null;
+    useCase: { choice: string; confidence: number | null } | null;
+    urgency: { score: number; legend?: Record<string, string>; confidence: number | null } | null;
   } | null;
   meta: {
+    rubric?: string;
     latencyMs?: number;
     questionCount?: number;
     model?: string;
@@ -60,6 +62,15 @@ const LICENSE_OPTIONS = [
   { value: "", label: "All License Types" },
   { value: "non-exclusive", label: "Non-exclusive" },
   { value: "exclusive", label: "Exclusive" },
+];
+
+const DIM_ORDER: [keyof typeof rubric.dimensions, string][] = [
+  ["arousal", "energy"],
+  ["pace", "pace"],
+  ["expressiveness", "express"],
+  ["warmth", "warmth"],
+  ["authority", "authority"],
+  ["intimacy", "intimacy"],
 ];
 
 function PillSelect({
@@ -92,33 +103,30 @@ function PillSelect({
   );
 }
 
-function DimensionStrip({ levels }: { levels?: Record<string, number> }) {
-  if (!levels || Object.keys(levels).length === 0) return null;
-  const order: [string, string][] = [
-    ["arousal", "energy"],
-    ["pace", "pace"],
-    ["expressiveness", "express"],
-    ["warmth", "warmth"],
-    ["authority", "authority"],
-    ["intimacy", "intimacy"],
-  ];
+/** Warp HUD — the 6 dims drawn as thread vs target, like MatchConsole but loom-compact. */
+function WarpHUD({ levels, archetypeKey }: { levels: Record<string, number>; archetypeKey: string }) {
+  const def = (rubric.archetypes as Record<string, { label: string; outcome: string; targets: Record<string, number>; weights: Record<string, number> }>)[archetypeKey];
+  if (!def) return null;
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {order.map(([dim, short]) => {
-        const v = levels[dim];
+    <div className="grid gap-[7px] sm:grid-cols-2" role="img" aria-label={`Six warp threads vs ${archetypeKey} target`}>
+      {DIM_ORDER.map(([dim, short]) => {
+        const v = levels[dim as string];
         if (v == null) return null;
+        const target = def.targets[dim as string] ?? 0.5;
+        const weight = def.weights[dim as string] ?? 0;
         const pct = Math.round(v * 100);
         return (
-          <span
-            key={dim}
-            className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 font-mono text-[10px] leading-none"
-          >
-            <span className="tracking-wide text-white/45">{short}</span>
-            <span className="tabular-nums text-white/80">{pct}</span>
-            <span className="ml-0.5 h-1 w-12 overflow-hidden rounded-full bg-white/10">
-              <span className="block h-full bg-[#D6FF2A] transition-[width] duration-500" style={{ width: `${pct}%` }} />
-            </span>
-          </span>
+          <div key={dim} className="flex items-center gap-2">
+            <span className="w-[56px] shrink-0 truncate font-mono text-[10px] uppercase tracking-[0.1em] text-white/45">{short}</span>
+            <div className="relative h-[5px] flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+              <div
+                className="absolute inset-y-0 left-0 w-full origin-left rounded-full bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A]"
+                style={{ transform: `scaleX(${v})`, opacity: 0.32 + weight * 1.9 }}
+              />
+              <span className="absolute inset-y-[-3px] w-px bg-white/55" style={{ left: `${target * 100}%` }} aria-hidden />
+            </div>
+            <span className="w-7 shrink-0 text-right font-mono text-[10px] tabular-nums text-white/60">{pct}</span>
+          </div>
         );
       })}
     </div>
@@ -138,6 +146,8 @@ export default function MarketplaceInstrument() {
   const loading = query.isLoading;
   const [showTrends, setShowTrends] = useState(false);
   const [thinkingKey, setThinkingKey] = useState(0);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<number | null>(null);
   // Settlement is a draggable object — the bar *is* the contract constant made visible
   const [split, setSplit] = useState(() => getSettleSplit());
   const splitRef = useRef<HTMLDivElement | null>(null);
@@ -239,6 +249,12 @@ export default function MarketplaceInstrument() {
       body: JSON.stringify({ event, voiceId, archetype: match?.archetype, brief: brief.trim() }),
       keepalive: true,
     }).catch(() => {});
+    // outcome-learning toast — visible proof that preview → reweights rubric over time
+    if (event === "voice_preview") {
+      if (toastTimer.current) window.clearTimeout(toastTimer.current);
+      setToast(`previewed → tuning loom · ${match?.archetype ?? rubric.fallback_archetype} · rubric v${rubric.version}`);
+      toastTimer.current = window.setTimeout(() => setToast(null), 2800);
+    }
   };
 
   const totalVoices = voices.length;
@@ -289,6 +305,14 @@ export default function MarketplaceInstrument() {
   }, [topMatchId]);
 
   const topVoice = useMemo(() => (topMatchId ? voices.find((v) => v.id === topMatchId) ?? null : null), [topMatchId, voices]);
+  const topReasons = topMatchId ? match?.reasons?.[topMatchId] ?? [] : [];
+  const topLevels = topMatchId ? match?.dimensionLevels?.[topMatchId] : undefined;
+  const topRubric = topMatchId ? match?.scores?.[topMatchId] : undefined;
+  const topHolistic = topMatchId ? match?.holisticScores?.[topMatchId] : undefined;
+  const archetypeDef = match?.archetype
+    ? (rubric.archetypes as Record<string, { label: string; outcome: string; targets: Record<string, number>; weights: Record<string, number> }>)[match.archetype]
+    : null;
+  const tokens = (match?.meta?.usage?.input_tokens ?? 0) + (match?.meta?.usage?.output_tokens ?? 0);
 
   const shortlistedVoices = useMemo(
     () => draft.shortlist.map((id) => voices.find((v) => v.id === id)).filter((v): v is MarketplaceVoice => Boolean(v)),
@@ -329,7 +353,7 @@ export default function MarketplaceInstrument() {
               <span className="hidden sm:inline text-white/40">brief is the filter · drag a card past 60% to inspect</span>
             </span>
             <span className="inline-flex items-center gap-2 text-white/40">
-              <span className="hidden sm:inline">rubric v1.0 · 6 dims · s/01–04</span>
+              <span className="hidden sm:inline">rubric v{rubric.version} · 6 dims · s/01–04</span>
               <span className="voisss-phosphor text-white">{totalVoices} VOICES</span>
             </span>
           </div>
@@ -381,24 +405,83 @@ export default function MarketplaceInstrument() {
               </span>
             </div>
 
-            {/* twin strip — not a second frame, just a rule + inline content */}
+            {/* twin strip — Jev-forward HUD: archetype warp threads + proof */}
             <div className="mt-3 border-t border-white/[0.06] pt-3">
               {matchLoading ? (
                 <div className="flex items-center gap-2">
                   <ThinkingState key={`thinking-${thinkingKey}`} variant="Steps" />
-                  <span className="hidden sm:inline font-mono text-xs text-white/30">scoring 6 dims…</span>
+                  <span className="hidden sm:inline font-mono text-xs text-white/30">scoring 6 dims · Jev fan-out…</span>
                 </div>
-              ) : match?.dimensionLevels && topMatchId && topVoice ? (
-                <div className="flex flex-col gap-2">
-                  <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
-                    <span className="text-white/35 tracking-[0.12em] text-[10px]">AGENT TWIN · 6 DIMS — {voiceDisplayName(topVoice)}</span>
-                    {match.archetype && <Badge className="border-[#D6FF2A]/30 text-[#EAFF6A]">rubric: {match.archetype}</Badge>}
-                    {match.meta?.latencyMs != null && <span className="text-white/25">· {match.meta.latencyMs}ms · {match.meta.questionCount ?? "—"} q</span>}
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[#D6FF2A]/30 bg-[#D6FF2A]/10 px-2 py-0.5 text-[11px] font-bold text-[#0A0E1A]">
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#0A0E1A] animate-pulse" /> {voiceDisplayName(topVoice)}
+              ) : topLevels && topVoice && match?.archetype ? (
+                <div className="flex flex-col gap-3">
+                  {/* row 1: archetype + brief insights + proof */}
+                  <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
+                    <span className="inline-flex items-center gap-1.5 text-white/35 tracking-[0.12em] text-[10px]">JEV · SYSTEM ONE</span>
+                    <Badge className="border-[#D6FF2A]/30 text-[#EAFF6A]">rubric: {match.archetype}</Badge>
+                    {archetypeDef && (
+                      <span className="hidden sm:inline text-white/30">· {archetypeDef.label} · {archetypeDef.outcome}</span>
+                    )}
+                    {match.briefInsights?.emotion && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/60">
+                        {match.briefInsights.emotion.choice}
+                        {match.briefInsights.emotion.confidence != null && (
+                          <span className="text-white/30">{Math.round(match.briefInsights.emotion.confidence * 100)}%</span>
+                        )}
+                      </span>
+                    )}
+                    {match.briefInsights?.useCase && (
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/60">{match.briefInsights.useCase.choice}</span>
+                    )}
+                    {match.briefInsights?.urgency && (
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/45">
+                        urgency {match.briefInsights.urgency.score.toFixed(1)}/2
+                      </span>
+                    )}
+                    <span className="voisss-phosphor ml-auto inline-flex items-center gap-1.5 text-[11px] text-white">
+                      {match.meta?.latencyMs != null ? `${match.meta.latencyMs}ms` : "—"} · {match.meta?.questionCount ?? "—"}q
+                      {tokens > 0 && <> · {tokens.toLocaleString()} tok</>}
+                      {match.meta?.model && <span className="hidden sm:inline text-white/40">· {match.meta.model}</span>}
                     </span>
                   </div>
-                  <DimensionStrip levels={match.dimensionLevels[topMatchId]} />
+                  {/* row 2: warp threads — 6 dims target vs actual */}
+                  <WarpHUD levels={topLevels} archetypeKey={match.archetype} />
+                  {/* row 3: top reason labels + rubric vs holistic */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {topReasons.length > 0 ? (
+                      topReasons.map((r) => (
+                        <span key={r} className="inline-flex items-center rounded-full border border-[#D6FF2A]/20 bg-[#D6FF2A]/10 px-2 py-0.5 font-mono text-[11px] font-medium text-[#0A0E1A]">
+                          {r}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="font-mono text-[11px] text-white/35">partial fit — no strong reason labels</span>
+                    )}
+                    <span className="ml-auto inline-flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
+                      {topRubric != null && (
+                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/70">
+                          rubric <span className="voisss-phosphor text-white">{Math.round(topRubric * 100)}%</span>
+                        </span>
+                      )}
+                      {topHolistic != null && (
+                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/50">
+                          holistic <span className="tabular-nums text-white/70">{Math.round(topHolistic * 100)}%</span>
+                          {topRubric != null && (
+                            <span className={`ml-1 ${Math.abs(topHolistic - topRubric) < 0.08 ? "text-white/30" : "text-amber-200/70"}`}>
+                              Δ {((topHolistic - topRubric) * 100).toFixed(0)}pp
+                            </span>
+                          )}
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1 rounded-full border border-[#D6FF2A]/30 bg-[#D6FF2A]/10 px-2 py-0.5 text-[11px] font-bold text-[#0A0E1A]">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#0A0E1A] animate-pulse" /> {voiceDisplayName(topVoice)}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.04] pt-2 font-mono text-[10px] tracking-wide text-white/25">
+                    <span>rubric v{rubric.version} · {match.meta?.rubric ?? rubric.version} · cites Rodero 2022 · Belin 2017 · Klofstad 2012</span>
+                    <span className="hidden sm:inline">· outcome-learning: preview → vocalize → license reweights</span>
+                    <Link href="/benchmarks" className="ml-auto rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/50 hover:text-white transition-colors">Jev vs GPT →</Link>
+                  </div>
                 </div>
               ) : matchUnavailable ? (
                 <p className="font-mono text-xs text-white/50">
@@ -406,15 +489,23 @@ export default function MarketplaceInstrument() {
                   <button type="button" onClick={() => setMatchUnavailable(false)} className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[11px] text-white/70 hover:text-white">
                     Retry
                   </button>
+                  <span className="ml-2 hidden sm:inline text-white/25">rubric v{rubric.version} · 6 neutral dims · gender/accent never encoded</span>
                 </p>
               ) : (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="font-mono text-xs text-white/30">Type a brief — the agent twin scores here · try</span>
-                  {["Calm narration", "A warm welcome", "An energetic ad"].map((s) => (
-                    <Chip key={s} onClick={() => updateDraft({ brief: s })}>
-                      {s}
-                    </Chip>
-                  ))}
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="font-mono text-xs text-white/30">Type a brief — Jev reads intent, rubric explains fit · try</span>
+                    {["Calm narration", "A warm welcome", "An energetic ad"].map((s) => (
+                      <Chip key={s} onClick={() => updateDraft({ brief: s })}>
+                        {s}
+                      </Chip>
+                    ))}
+                    <Link href="/benchmarks" className="ml-auto hidden sm:inline-flex rounded-full border border-[#D6FF2A]/20 bg-[#D6FF2A]/10 px-2 py-0.5 font-mono text-[11px] font-medium text-[#0A0E1A]">See Jev vs GPT →</Link>
+                  </div>
+                  <div className="hidden sm:flex flex-wrap items-center gap-1.5 font-mono text-[10px] tracking-wide text-white/20">
+                    <span>rubric v{rubric.version} · 6 dims: energy · pace · express · warmth · authority · intimacy</span>
+                    <span>· neutral acoustic priors · excluded: gender / accent hierarchy / vocal fry</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -432,6 +523,12 @@ export default function MarketplaceInstrument() {
         {!ghostSeen && brief.trim().length < 3 && (
           <div id="voisss-ghost-hint" className="pointer-events-none absolute left-1/2 top-[18px] z-10 -translate-x-1/2 whitespace-nowrap rounded-full border border-[#D6FF2A]/20 bg-[#D6FF2A]/10 px-3 py-1 font-mono text-[11px] text-[#0A0E1A] opacity-0 transition-opacity duration-700" style={{ transition: "opacity 700ms ease" }}>
             s/01 — type any brief — pull any thread past 60%
+          </div>
+        )}
+        {/* outcome toast — brief → shown → previewed funnel */}
+        {toast && (
+          <div className="pointer-events-none fixed bottom-5 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-full border border-[#D6FF2A]/30 bg-[#0A0E1A]/90 px-3 py-1.5 font-mono text-[11px] text-[#EAFF6A] shadow-[0_8px_24px_rgba(0,0,0,0.5)] backdrop-blur-md">
+            <span className="voisss-phosphor">{toast}</span>
           </div>
         )}
         <div className="relative py-5 sm:py-6">
@@ -461,7 +558,18 @@ export default function MarketplaceInstrument() {
               ))}
             </div>
           ) : displayedVoices.length > 0 ? (
-            <UnwovenGrid voices={displayedVoices} topMatchId={topMatchId} ceremonyId={ceremonyId} reasonsById={match?.reasons ?? {}} dimensionLevelsById={match?.dimensionLevels ?? {}} shortlistButton={shortlistButton} onPlayed={(v) => trackMatchEvent("voice_preview", v.id)} />
+            <UnwovenGrid
+              voices={displayedVoices}
+              topMatchId={topMatchId}
+              ceremonyId={ceremonyId}
+              reasonsById={match?.reasons ?? {}}
+              dimensionLevelsById={match?.dimensionLevels ?? {}}
+              scoresById={match?.scores ?? {}}
+              holisticScoresById={match?.holisticScores ?? {}}
+              archetype={match?.archetype}
+              onPlayed={(v) => trackMatchEvent("voice_preview", v.id)}
+              shortlistButton={shortlistButton}
+            />
           ) : (
             !error && (
               <Notice>
@@ -549,7 +657,7 @@ export default function MarketplaceInstrument() {
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
               <div className="font-mono text-[10px] tracking-[0.14em] text-white/40">PROVENANCE · ON-CARD</div>
               <p className="mt-2 font-mono text-xs leading-relaxed text-white/60">
-                Every thread exposes <span className="text-white">source</span>, <span className="text-white">trust badge</span>, and <span className="voisss-phosphor">TxHash</span> → Basescan. Pull past 60% or tap ↔.
+                Every thread exposes <span className="text-white">source</span>, <span className="text-white">trust badge</span>, and <span className="voisss-phosphor">TxHash</span> → Basescan. Pull past 60% or tap ↔ · scores explain via rubric, not vibes.
               </p>
               <div className="mt-3 flex flex-wrap gap-1.5 font-mono text-[11px]">
                 <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/50">source: envio / rpc / catalog</span>
