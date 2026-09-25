@@ -73,7 +73,7 @@ export default function RewardDistributionForm({
       <div className="border-b border-[#3A3A3A] pb-4">
         <h3 className="text-lg font-semibold text-white mb-2">Distribute Reward</h3>
         <p className="text-sm text-gray-400">
-          Submission from <span className="font-mono text-[#7C5DFA]">{submission.userId.slice(0, 6)}...{submission.userId.slice(-4)}</span>
+          Submission from <span className="font-mono text-[#D6FF2A]">{submission.userId.slice(0, 6)}...{submission.userId.slice(-4)}</span>
         </p>
       </div>
 
@@ -97,7 +97,7 @@ export default function RewardDistributionForm({
       <div className="p-3 bg-[#1A1A1A] rounded-lg border border-[#2A2A2A] space-y-2">
         <p className="text-xs font-semibold text-white mb-3">Token Allocation</p>
         <div className="flex items-start gap-2 text-xs">
-          <span className="text-[#7C5DFA] font-bold">📊</span>
+          <span className="text-[#D6FF2A] font-bold">📊</span>
           <div>
             <p className="text-gray-300"><span className="font-semibold">$papajams (70%)</span> — Creator reward</p>
             <p className="text-gray-500 text-xs">Paid directly to creator wallet</p>
@@ -125,7 +125,7 @@ export default function RewardDistributionForm({
               onChange={(e) => handleFieldChange("papajamsAmount", parseFloat(e.target.value) || 0)}
               min="0"
               step="0.1"
-              className="flex-1 px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white placeholder-[#71717A] focus:outline-none focus:ring-2 focus:ring-[#7C5DFA] focus:border-transparent"
+              className="flex-1 px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-[#0A0E1A] placeholder-[#71717A] focus:outline-none focus:ring-2 focus:ring-[#D6FF2A] focus:border-transparent"
               placeholder="0"
             />
             <div className="px-4 py-2 bg-[#1A1A1A] border border-[#3A3A3A] rounded-lg text-gray-400 flex items-center min-w-fit">
@@ -145,7 +145,7 @@ export default function RewardDistributionForm({
               onChange={(e) => handleFieldChange("voisssAmount", parseFloat(e.target.value) || 0)}
               min="0"
               step="0.1"
-              className="flex-1 px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white placeholder-[#71717A] focus:outline-none focus:ring-2 focus:ring-[#7C5DFA] focus:border-transparent"
+              className="flex-1 px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-[#0A0E1A] placeholder-[#71717A] focus:outline-none focus:ring-2 focus:ring-[#D6FF2A] focus:border-transparent"
               placeholder="0"
             />
             <div className="px-4 py-2 bg-[#1A1A1A] border border-[#3A3A3A] rounded-lg text-gray-400 flex items-center min-w-fit">
@@ -157,10 +157,10 @@ export default function RewardDistributionForm({
 
       {/* Total Value Display */}
       {totalValue > 0 && (
-        <div className="p-3 bg-gradient-to-r from-[#7C5DFA]/10 to-[#22C55E]/10 border border-[#7C5DFA]/30 rounded-lg">
+        <div className="p-3 bg-gradient-to-r from-[#D6FF2A]/10 to-[#22C55E]/10 border border-[#D6FF2A]/30 rounded-lg">
           <p className="flex justify-between items-center">
             <span className="text-white font-medium">Total value</span>
-            <span className="text-lg font-semibold text-[#7C5DFA]">{totalValue} tokens</span>
+            <span className="text-lg font-semibold text-[#D6FF2A]">{totalValue} tokens</span>
           </p>
         </div>
       )}
@@ -174,7 +174,7 @@ export default function RewardDistributionForm({
           value={formData.notes}
           onChange={(e) => handleFieldChange("notes", e.target.value)}
           rows={3}
-          className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white placeholder-[#71717A] focus:outline-none focus:ring-2 focus:ring-[#7C5DFA] focus:border-transparent resize-none"
+          className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-[#0A0E1A] placeholder-[#71717A] focus:outline-none focus:ring-2 focus:ring-[#D6FF2A] focus:border-transparent resize-none"
           placeholder="e.g., High engagement, quality content, featured in reel, etc."
         />
         <p className="text-xs text-gray-500 mt-1">Optional: Document why this reward was issued</p>
@@ -193,7 +193,7 @@ export default function RewardDistributionForm({
           type="button"
           onClick={() => distributeMutation.mutate()}
           disabled={totalValue === 0 || distributeMutation.isPending}
-          className="flex-1 px-4 py-2 bg-[#7C5DFA] hover:bg-[#6D4AE8] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+          className="flex-1 px-4 py-2 bg-[#D6FF2A] hover:bg-[#C2EB22] disabled:opacity-50 disabled:cursor-not-allowed text-[#0A0E1A] rounded-lg font-medium transition-colors"
         >
           {distributeMutation.isPending ? "Distributing..." : "Record Distribution"}
         </button>

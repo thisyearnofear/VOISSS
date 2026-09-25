@@ -186,7 +186,7 @@ export default function VersionComparison({
             <div className="flex items-center gap-3">
               <button
                 onClick={handlePlayA}
-                className="w-12 h-12 rounded-full bg-gradient-to-br from-[#7C5DFA] to-[#9C88FF] flex items-center justify-center text-white hover:shadow-lg transition-all"
+                className="w-12 h-12 rounded-full bg-gradient-to-br from-[#D6FF2A] to-[#EAFF6A] flex items-center justify-center text-[#0A0E1A] hover:shadow-lg transition-all"
               >
                 {isPlayingA ? (
                   <Pause className="w-5 h-5" />
@@ -207,7 +207,7 @@ export default function VersionComparison({
             <div className="space-y-1">
               <div className="h-2 bg-[#0F0F0F] rounded-full overflow-hidden border border-[#2A2A2A]">
                 <div
-                  className="h-full bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] transition-all"
+                  className="h-full bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A] transition-all"
                   style={{
                     width: `${getProgressPercent(
                       currentTimeA,

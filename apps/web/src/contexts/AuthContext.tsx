@@ -1,18 +1,12 @@
 "use client";
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useEffect,
-} from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { useAccount, useSignMessage, useDisconnect, useConnect } from "wagmi";
+import { base } from "viem/chains";
 import { useBaseAccount } from "../hooks/useBaseAccount";
 import { useBase } from "../app/providers";
-import {
-  PLATFORM_CONFIG,
-  meetsCreatorRequirements,
-} from "@voisss/shared/config/platform";
+import { buildSignInMessage } from "@/lib/auth";
+import { PLATFORM_CONFIG, meetsCreatorRequirements } from "@voisss/shared/config/platform";
 import { convertReferralOnSignIn } from "../utils/referral-handler";
 
 interface AuthContextType {
@@ -25,8 +19,6 @@ interface AuthContextType {
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
   error: string | null;
-
-  // Creator Eligibility
   creatorBalance: bigint | null;
   isCreatorEligible: boolean;
   isCheckingEligibility: boolean;
@@ -36,46 +28,35 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Typed shape for Base Account `wallet_connect` response
 type WalletConnectResponse = {
-  accounts: Array<{
-    address: string;
-    capabilities: {
-      signInWithEthereum?: {
-        message: string;
-        signature: `0x${string}`;
-      };
-    };
-  }>;
+  accounts: Array<{ address: string; capabilities: { signInWithEthereum?: { message: string; signature: `0x${string}` } } }>;
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const baseContext = useBase();
-  const { isConnected, universalAddress, connect, disconnect } =
-    useBaseAccount();
+  const { isConnected: baseIsConnected, universalAddress, connect: baseConnect, disconnect: baseDisconnect } = useBaseAccount();
+  const { address: wagmiAddress, isConnected: wagmiConnected, connector } = useAccount();
+  const { signMessageAsync } = useSignMessage();
+  const { disconnectAsync } = useDisconnect();
+  const { connectAsync, connectors } = useConnect();
 
-  // Global auth state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [sessionAddress, setSessionAddress] = useState<string | null>(null);
 
-  // Creator eligibility state
   const [creatorBalance, setCreatorBalance] = useState<bigint | null>(null);
   const [isCheckingEligibility, setIsCheckingEligibility] = useState(false);
   const [eligibilityError, setEligibilityError] = useState<string | null>(null);
 
-  // Check for existing session on app load
+  const combinedAddress = (wagmiAddress as string | undefined) || universalAddress || sessionAddress || null;
+  const combinedIsConnected = wagmiConnected || baseIsConnected;
+
   useEffect(() => {
     const checkExistingSession = async () => {
       try {
-        // Check if we have a valid session cookie
-        const response = await fetch("/api/auth/verify-session", {
-          method: "GET",
-          credentials: "include",
-        });
-
+        const response = await fetch("/api/auth/verify-session", { method: "GET", credentials: "include" });
         if (response.ok) {
           const data = await response.json();
           if (data.authenticated) {
@@ -83,252 +64,175 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setSessionAddress(data.address || null);
           }
         }
-      } catch {
-        // Silent failure - user will need to sign in
-      } finally {
-        setIsCheckingSession(false);
-      }
+      } catch {}
+      finally { setIsCheckingSession(false); }
     };
-
     checkExistingSession();
-
-    // Safety timeout - don't leave isCheckingSession as true forever
-    const timeout = setTimeout(() => {
-      setIsCheckingSession(false);
-    }, 5000);
-
+    const timeout = setTimeout(() => setIsCheckingSession(false), 5000);
     return () => clearTimeout(timeout);
   }, []);
 
-  // Sync authentication state with Base Account connection
   useEffect(() => {
-    // Only sync if we're not checking session
     if (!isCheckingSession) {
-      if (isConnected && !isAuthenticated) {
-        setIsAuthenticated(true);
-      } else if (
-        !isConnected &&
-        isAuthenticated &&
-        !isAuthenticating &&
-        !sessionAddress
-      ) {
-        // Only clear auth if we're sure there's no Base Account connection,
-        // we're not in the middle of a sign-in process,
-        // AND we don't have a valid session address from a restored session
-        setIsAuthenticated(false);
+      if (combinedIsConnected && !isAuthenticated && combinedAddress && !sessionAddress) {
+        // connected but not authenticated — stay unauthenticated until SIWE
+      } else if (!combinedIsConnected && isAuthenticated && !isAuthenticating && !sessionAddress) {
+        // keep session-authenticated even when wallet disconnected (browse-first)
       }
     }
-  }, [
-    isConnected,
-    isCheckingSession,
-    isAuthenticated,
-    isAuthenticating,
-    sessionAddress,
-  ]);
+  }, [combinedIsConnected, isCheckingSession, isAuthenticated, isAuthenticating, sessionAddress, combinedAddress]);
 
-  // Fetch creator eligibility when address changes
   const refreshCreatorStatus = useCallback(async () => {
-    const addressToCheck = universalAddress || sessionAddress;
-    if (!addressToCheck) {
-      setCreatorBalance(null);
-      return;
-    }
-
+    const addressToCheck = combinedAddress;
+    if (!addressToCheck) { setCreatorBalance(null); return; }
     setIsCheckingEligibility(true);
     setEligibilityError(null);
-
     try {
-      // Add timeout to prevent infinite loading
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
-
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
       const response = await fetch("/api/user/token-balance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address: addressToCheck,
-          tokenAddress: PLATFORM_CONFIG.papajamsToken.address,
-        }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: addressToCheck, tokenAddress: PLATFORM_CONFIG.papajamsToken.address }),
         signal: controller.signal,
       });
-
       clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch token balance");
-      }
-
+      if (!response.ok) throw new Error("Failed to fetch token balance");
       const data = await response.json();
       setCreatorBalance(BigInt(data.balance || 0));
     } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        console.warn("Creator balance check timed out");
-        setEligibilityError("Balance check timed out");
-      } else {
-        console.error("Error fetching creator balance:", err);
-        setEligibilityError(
-          err instanceof Error ? err.message : "Unknown error"
-        );
-      }
+      if (err instanceof Error && err.name === "AbortError") setEligibilityError("Balance check timed out");
+      else setEligibilityError(err instanceof Error ? err.message : "Unknown error");
       setCreatorBalance(BigInt(0));
-    } finally {
-      setIsCheckingEligibility(false);
-    }
-  }, [universalAddress, sessionAddress]);
+    } finally { setIsCheckingEligibility(false); }
+  }, [combinedAddress]);
 
-  // Check eligibility when authenticated address changes
   useEffect(() => {
-    const addressToCheck = universalAddress || sessionAddress;
-    if (addressToCheck && isAuthenticated) {
-      refreshCreatorStatus();
-    }
-  }, [universalAddress, sessionAddress, isAuthenticated, refreshCreatorStatus]);
+    if (combinedAddress && isAuthenticated) refreshCreatorStatus();
+  }, [combinedAddress, isAuthenticated, refreshCreatorStatus]);
 
   const signIn = useCallback(async () => {
     setIsAuthenticating(true);
     setError(null);
-
     try {
-      // Ensure Base SDK provider is available
-      if (!baseContext || !baseContext.provider) {
-        throw new Error(
-          "Base Account SDK not initialized. Please refresh the page."
-        );
+      let addr: string | null = (wagmiAddress as string | null) || universalAddress || sessionAddress || null;
+
+      // If no wallet connected, trigger wagmi connect (prefer CB, fallback injected)
+      if (!addr) {
+        const preferred = connectors.find((c) => c.id.includes("coinbaseWallet")) || connectors.find((c) => c.id === "injected") || connectors[0];
+        if (!preferred) throw new Error("No wallet connector available. Install MetaMask or Coinbase Wallet.");
+        const result = await connectAsync({ connector: preferred });
+        addr = result.accounts[0] as string;
       }
 
-      const provider = baseContext.provider;
+      if (!addr) throw new Error("No wallet address available");
 
-      // Ensure wallet is connected (creates Sub Account if configured)
-      if (!isConnected && connect) {
-        await connect();
-      }
-
-      if (!provider) {
-        throw new Error("Base Account provider not available");
-      }
-
-      // Request server-generated nonce to prevent replay attacks
       const nonceRes = await fetch("/api/auth/nonce", { method: "POST" });
-      if (!nonceRes.ok) {
-        throw new Error(`Failed to fetch nonce: ${nonceRes.status}`);
-      }
+      if (!nonceRes.ok) throw new Error(`Failed to fetch nonce: ${nonceRes.status}`);
       const nonceData = await nonceRes.json();
       const nonce: string = nonceData?.nonce;
-      if (!nonce || typeof nonce !== "string") {
-        throw new Error("Invalid nonce response from server");
+      if (!nonce || typeof nonce !== "string") throw new Error("Invalid nonce response");
+
+      // Prefer Base SDK wallet_connect SIWE when on CB Smart Wallet
+      const isCB = connector?.id?.includes("coinbaseWallet");
+      if (isCB && baseContext?.provider) {
+        try {
+          const result = (await baseContext.provider.request({
+            method: "wallet_connect",
+            params: [{ version: "1", capabilities: { signInWithEthereum: { nonce, chainId: "0x2105" } } }],
+          })) as WalletConnectResponse;
+          if (result?.accounts?.length) {
+            const account = result.accounts[0];
+            const siew = account.capabilities.signInWithEthereum;
+            if (siew) {
+              const verifyRes = await fetch("/api/auth/verify", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ address: account.address, message: siew.message, signature: siew.signature, nonce, subAccount: account.address }),
+              });
+              if (!verifyRes.ok) {
+                const err = await verifyRes.json();
+                throw new Error(err.details || "Authentication failed");
+              }
+              setIsAuthenticated(true);
+              setSessionAddress(account.address);
+              try { await convertReferralOnSignIn(account.address); } catch {}
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn("Base wallet_connect fallback to personal_sign", e);
+        }
       }
 
-      // Connect and authenticate using Base Account's wallet_connect method
-      const result = (await provider.request({
-        method: "wallet_connect",
-        params: [
-          {
-            version: "1",
-            capabilities: {
-              signInWithEthereum: {
-                nonce,
-                chainId: "0x2105", // Base Mainnet (8453)
-              },
-            },
-          },
-        ],
-      })) as WalletConnectResponse;
-
-      if (!result?.accounts?.length) {
-        throw new Error("No account returned from Base provider");
+      // Ensure wallet is connected via Base helper if wagmi not yet
+      if (!wagmiAddress && !baseIsConnected && baseConnect) {
+        try { await baseConnect(); } catch {}
       }
 
-      const account = result.accounts[0];
-      const { address } = account;
-      const siew = account.capabilities.signInWithEthereum;
-      if (!siew) {
-        throw new Error("signInWithEthereum capability missing in response");
-      }
-      const { message, signature } = siew;
-
-      // Send authentication data to backend for session creation
-      const verifyRes = await fetch("/api/auth/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address,
-          message,
-          signature,
-          nonce,
-          subAccount: address, // Use the address directly since we don't have a subAccount object
-        }),
-      });
-
-      if (!verifyRes.ok) {
-        const error = await verifyRes.json();
-        throw new Error(error.details || "Authentication failed");
-      }
-
-      console.log("✅ Signed in with Base Account successfully");
-      setIsAuthenticated(true);
-      
-      // Convert referral if user came from referral link
+      // Generic SIWE via personal_sign / signMessage
+      const domain = typeof window !== "undefined" ? window.location.host : "voisss.netlify.app";
+      const message = buildSignInMessage({ address: addr, nonce, chainId: base.id, domain });
+      let signature: string;
       try {
-        await convertReferralOnSignIn(address);
-      } catch (err) {
-        console.warn("Referral conversion failed:", err);
-        // Don't block signin on referral failure
+        signature = await signMessageAsync({ message });
+      } catch {
+        // fallback to provider personal_sign
+        const provider: any = baseContext?.provider;
+        if (!provider?.request) throw new Error("No signing provider available");
+        signature = await provider.request({ method: "personal_sign", params: [message, addr] });
       }
+
+      const verifyRes = await fetch("/api/auth/verify", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: addr, message, signature, nonce, subAccount: addr }),
+      });
+      if (!verifyRes.ok) {
+        const err = await verifyRes.json();
+        throw new Error(err.details || err.error || "Authentication failed");
+      }
+
+      setIsAuthenticated(true);
+      setSessionAddress(addr);
+      try { await convertReferralOnSignIn(addr); } catch {}
     } catch (err) {
       console.error("Sign in failed:", err);
       setError(err instanceof Error ? err.message : "Sign in failed");
       setIsAuthenticated(false);
       throw err;
-    } finally {
-      setIsAuthenticating(false);
-    }
-  }, [baseContext, isConnected, connect]);
+    } finally { setIsAuthenticating(false); }
+  }, [wagmiAddress, universalAddress, sessionAddress, connectors, connectAsync, connector, baseContext, signMessageAsync, baseIsConnected, baseConnect]);
 
   const signOut = useCallback(async () => {
     try {
-      // Clear session cookie
       await fetch("/api/auth/logout", { method: "POST" });
-
-      // Disconnect wallet
-      if (disconnect) {
-        await disconnect();
-      }
-
+      try { await disconnectAsync(); } catch {}
+      try { if (baseDisconnect) await baseDisconnect(); } catch {}
       setIsAuthenticated(false);
       setSessionAddress(null);
       setError(null);
-    } catch (err) {
-      console.error("Sign out failed:", err);
-    }
-  }, [disconnect]);
+    } catch (err) { console.error("Sign out failed:", err); }
+  }, [disconnectAsync, baseDisconnect]);
 
   const value: AuthContextType = {
     isAuthenticated,
-    isConnected,
+    isConnected: combinedIsConnected,
     isAuthenticating,
     isCheckingSession,
-    address: universalAddress || sessionAddress || null,
-    subAccount: universalAddress || sessionAddress || null,
+    address: combinedAddress,
+    subAccount: combinedAddress,
     signIn,
     signOut,
     error,
     creatorBalance,
-    isCreatorEligible:
-      creatorBalance !== null
-        ? meetsCreatorRequirements(creatorBalance)
-        : false,
+    isCreatorEligible: creatorBalance !== null ? meetsCreatorRequirements(creatorBalance) : false,
     isCheckingEligibility,
     eligibilityError,
     refreshCreatorStatus,
   };
-
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
   return context;
 }

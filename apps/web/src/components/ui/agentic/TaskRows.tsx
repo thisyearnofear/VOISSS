@@ -37,7 +37,7 @@ function SpinnerRing({ active, children }: { active?: boolean; children?: React.
         {active && (
           <circle
             cx={size / 2} cy={size / 2} r={r} fill="none"
-            stroke="rgb(124,93,250)" strokeWidth={stroke} strokeLinecap="round"
+            stroke="rgb(214,255,42)" strokeWidth={stroke} strokeLinecap="round"
             strokeDasharray={`${c * 0.28} ${c * 0.72}`}
           />
         )}

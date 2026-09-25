@@ -59,7 +59,7 @@ export function SplitBar({
         title={v.label}
       >
         <div
-          className="absolute inset-y-0 left-0 voisss-split-fill bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF]"
+          className="absolute inset-y-0 left-0 voisss-split-fill bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A]"
           style={{ width: `${v.contributorPct}%` }}
         />
         <div
@@ -77,7 +77,7 @@ export function SplitBar({
       {showLegend ? (
         <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
           <span className="inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.12em] text-white/50">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#9C88FF]" aria-hidden />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#EAFF6A]" aria-hidden />
             <span className="voisss-number-detail text-white/85">{v.contributorPct}%</span>
             {v.who}
           </span>

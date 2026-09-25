@@ -126,7 +126,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
     return (
       <div className="max-w-6xl mx-auto voisss-section-spacing">
         <div className="voisss-card text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#7C5DFA] to-[#9C88FF] rounded-full mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#D6FF2A] to-[#EAFF6A] rounded-full mb-4">
             <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">
@@ -165,7 +165,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
           <p className="text-gray-400 mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white font-semibold rounded-xl hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-200"
+            className="px-6 py-3 bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A] text-[#0A0E1A] font-semibold rounded-xl hover:from-[#C2EB22] hover:to-[#C2EB22] transition-all duration-200"
           >
             Try Again
           </button>
@@ -219,7 +219,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
 
       {/* Header */}
       <div className="voisss-card text-center mb-8">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#7C5DFA] to-[#9C88FF] rounded-full mb-4">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#D6FF2A] to-[#EAFF6A] rounded-full mb-4">
           <svg
             className="w-8 h-8 text-white"
             fill="none"
@@ -269,7 +269,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
           <div className="text-sm text-gray-400">Active Missions</div>
         </div>
         <div className="voisss-card text-center">
-          <div className="text-2xl font-bold text-[#7C5DFA] mb-1">
+          <div className="text-2xl font-bold text-[#D6FF2A] mb-1">
             {missions.reduce(
               (sum: number, m: Mission) => sum + parseFloat(m.baseReward || '0'),
               0
@@ -461,7 +461,7 @@ export default function MissionBoard({ onMissionSelect }: MissionBoardProps) {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="px-6 py-3 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white font-semibold rounded-xl hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-200"
+            className="px-6 py-3 bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A] text-[#0A0E1A] font-semibold rounded-xl hover:from-[#C2EB22] hover:to-[#C2EB22] transition-all duration-200"
           >
             Browse Missions
           </button>

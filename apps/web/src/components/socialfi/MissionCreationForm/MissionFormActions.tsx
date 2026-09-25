@@ -25,7 +25,7 @@ export default function MissionFormActions({
           type="submit"
           disabled={isLoading || !isValid}
           className={`flex-1 py-3 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${isValid && !isLoading
-              ? "bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white hover:from-[#6B4CE6] hover:to-[#8B7AFF] hover:scale-[1.02]"
+              ? "bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A] text-[#0A0E1A] hover:from-[#C2EB22] hover:to-[#C2EB22] hover:scale-[1.02]"
               : "bg-gray-500/20 text-gray-400 cursor-not-allowed"
             }`}
         >

@@ -180,7 +180,7 @@ export default function MatchConsole({ brief }: { brief: string }) {
         <span className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.12em] text-white/40">
           <span>rubric v{rubric.version}</span>
           <span className="h-3 w-px bg-white/10" aria-hidden />
-          <span className="text-[#9C88FF]">archetype: {result.archetype}</span>
+          <span className="text-[#EAFF6A]">archetype: {result.archetype}</span>
         </span>
       </div>
 
@@ -205,7 +205,7 @@ export default function MatchConsole({ brief }: { brief: string }) {
               </span>
               <div className="relative h-[5px] min-w-0 flex-1 overflow-hidden rounded-full bg-white/[0.05]">
                 <div
-                  className="voisss-dim-fill absolute inset-y-0 left-0 w-full origin-left rounded-full bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF]"
+                  className="voisss-dim-fill absolute inset-y-0 left-0 w-full origin-left rounded-full bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A]"
                   style={{ transform: `scaleX(${level})`, opacity: 0.35 + w * 2.2 }}
                 />
                 <span
@@ -243,7 +243,7 @@ export default function MatchConsole({ brief }: { brief: string }) {
                   {v.title}
                   <span className="ml-1.5 text-[10px] font-normal text-white/40">{v.role}</span>
                 </span>
-                <span className="mt-0.5 block truncate text-[10px] font-mono tracking-wide text-[#9C88FF]">
+                <span className="mt-0.5 block truncate text-[10px] font-mono tracking-wide text-[#EAFF6A]">
                   {v.reasons.length ? v.reasons.join(" · ") : "partial fit"}
                 </span>
               </span>

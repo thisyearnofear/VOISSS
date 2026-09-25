@@ -211,7 +211,7 @@ export default function QuickRecordStudio({
               value={recordingTitle}
               onChange={(e) => setRecordingTitle(e.target.value)}
               placeholder="e.g., My voice sample"
-              className="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#7C5DFA] focus:ring-1 focus:ring-[#7C5DFA]/30 transition-all placeholder:text-gray-600"
+              className="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-[#0A0E1A] rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#D6FF2A] focus:ring-1 focus:ring-[#D6FF2A]/30 transition-all placeholder:text-gray-600"
               maxLength={100}
               aria-required="true"
               aria-describedby="title-help"

@@ -13,6 +13,7 @@ import { BuyerCreditsStrip } from "@/components/payment/DashboardBalanceChips";
 import { VoiceMarketTrends } from "@/components/marketplace/VoiceMarketTrends";
 import { VoiceAuditionRow, voiceDisplayName } from "@/components/listening/VoiceAuditionRow";
 import VoiceTerrain from "@/components/VoiceTerrain";
+import { UnwovenGrid } from "@/components/marketplace/UnwovenGrid";
 import { Badge, Button, Chip, Disclosure, Notice } from "@/components/ui";
 import { useListeningRoom } from "@/contexts/ListeningRoomContext";
 import { useVoiceCatalog } from "@/hooks/useVoiceCatalog";
@@ -458,64 +459,14 @@ function MarketplacePageInner() {
             ))}
           </div>
         ) : displayedVoices.length > 0 ? (
-          <div className="lr-list">
-            {displayedVoices.map((voice) => {
-              const isTop = voice.id === topMatchId;
-              const reasons = match?.reasons?.[voice.id] ?? [];
-              return (
-                <article
-                  key={voice.id}
-                  className={
-                    "lr-card voisss-specular voisss-specular-light" +
-                    (isTop ? " lr-card--match" : "") +
-                    (voice.id === ceremonyId ? " lr-card--ceremony" : "")
-                  }
-                >
-                  <VoiceAuditionRow
-                    voice={voice}
-                    onPlayed={(v) => trackMatchEvent("voice_preview", v.id)}
-                    actions={shortlistButton(voice)}
-                  />
-                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem" }}>
-                    <Badge>
-                      {voice.source === "platform"
-                        ? "Platform catalog · Pay per use"
-                        : `Contributor listing · ${voice.licenseType}`}
-                    </Badge>
-                    {isTop && <Badge style={{ borderColor: "var(--lr-accent)", color: "var(--lr-accent)" }}>Best match</Badge>}
-                    <Link
-                      href={`/marketplace/voices/${encodeURIComponent(voice.id)}`}
-                      className="lr-nav-link"
-                      style={{ minHeight: 44, padding: 0 }}
-                    >
-                      Voice details
-                    </Link>
-                    {voice.source !== "platform" && (
-                      <Chip onClick={() => handlePurchaseClick(voice.id)}>
-                        License
-                      </Chip>
-                    )}
-                  </div>
-                  {/* Explainable fit: the rubric dimensions that drove
-                      this voice's ranking for the detected archetype. */}
-                  {reasons.length > 0 && (
-                    <Disclosure title="Why this match?" variant="inline">
-                      <ul className="lr-reasons">
-                        {reasons.map((reason) => (
-                          <li key={reason}>{reason}</li>
-                        ))}
-                      </ul>
-                    </Disclosure>
-                  )}
-                  <Disclosure title="Provenance & trust" variant="inline">
-                    <p className="lr-quiet" style={{ marginTop: "0.5rem" }}>
-                      {voice.trust?.details || "No additional provenance details."}
-                    </p>
-                  </Disclosure>
-                </article>
-              );
-            })}
-          </div>
+          <UnwovenGrid
+            voices={displayedVoices}
+            topMatchId={topMatchId}
+            ceremonyId={ceremonyId}
+            reasonsById={match?.reasons ?? {}}
+            shortlistButton={shortlistButton}
+            onPlayed={(v) => trackMatchEvent("voice_preview", v.id)}
+          />
         ) : (
           !error && (
             <Notice>

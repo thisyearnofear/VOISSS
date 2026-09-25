@@ -82,7 +82,7 @@ export default function VersionSelection({
         <div>
           <h4 className="text-white font-semibold mb-1 flex items-center gap-2">
             <svg
-              className="w-4 h-4 text-[#7C5DFA]"
+              className="w-4 h-4 text-[#D6FF2A]"
               fill="currentColor"
               viewBox="0 0 24 24"
             >
@@ -133,7 +133,7 @@ export default function VersionSelection({
               onClick={() => onSetActive(version.id)}
               className={`p-3 rounded-lg border transition-all cursor-pointer relative ${
                 isActive
-                  ? "bg-[#1F1F1F] border-[#7C5DFA] ring-1 ring-[#7C5DFA]/50"
+                  ? "bg-[#1F1F1F] border-[#D6FF2A] ring-1 ring-[#D6FF2A]/50"
                   : isSelected
                   ? "bg-[#2A2A2A] border-[#3A3A3A]"
                   : "bg-[#0F0F0F] border-[#1A1A1A] hover:border-[#333]"
@@ -146,7 +146,7 @@ export default function VersionSelection({
                   checked={isSelected}
                   onClick={(e) => e.stopPropagation()}
                   onChange={() => toggleVersionSelection(version.id)}
-                  className="w-5 h-5 rounded border-gray-600 text-[#7C5DFA] focus:ring-[#7C5DFA] focus:ring-offset-gray-900"
+                  className="w-5 h-5 rounded border-gray-600 text-[#D6FF2A] focus:ring-[#D6FF2A] focus:ring-offset-gray-900"
                 />
 
                 {/* Version Info - Mobile responsive */}
@@ -311,7 +311,7 @@ export default function VersionSelection({
       {versions.length >= 2 && (
         <button
           onClick={() => setShowComparison(true)}
-          className="w-full mt-2 px-4 py-2 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-lg text-white text-sm font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
+          className="w-full mt-2 px-4 py-2 bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A] rounded-lg text-[#0A0E1A] text-sm font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
         >
           <Zap className="w-4 h-4" />
           Compare Versions (A/B)

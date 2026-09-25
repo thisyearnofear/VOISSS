@@ -6,7 +6,7 @@
  *
  * Design:
  *  - Feels like Stripe / Linear — muted VOISSS palette (#0A0A0A / #1A1A1A / #2A2A2A),
- *    Syne headings, purple #7C5DFA only on the primary CTA.
+ *    Syne headings, purple #D6FF2A only on the primary CTA.
  *  - Wallet USDC is the *on-chain* balance (wagmi useBalance on Base).
  *  - VOISSS credits is the *internal* balance (useAgentCredits → /api/agents/credits).
  *  - Tier + per-char cost from the same quote — explains why credits matter.
@@ -35,7 +35,7 @@ function TierPill({ tier, discount }: { tier?: string | null; discount?: number 
   const normalized = (tier ?? "none").toLowerCase();
   const colors: Record<string, string> = {
     premium: "bg-amber-500/15 border-amber-500/25 text-amber-200",
-    pro: "bg-[#7C5DFA]/15 border-[#7C5DFA]/25 text-[#C4B5FD]",
+    pro: "bg-[#D6FF2A]/15 border-[#D6FF2A]/25 text-[#EAFF6A]",
     basic: "bg-cyan-500/15 border-cyan-500/25 text-cyan-200",
     none: "bg-[#1A1A1A] border-[#2A2A2A] text-gray-500",
   };
@@ -120,7 +120,7 @@ export function DashboardBalanceStrip({
         {/* header */}
         <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2.5 border-b border-[#2A2A2A] bg-[#0A0A0A]/60">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#7C5DFA]/15 border border-[#7C5DFA]/20 text-[#9C88FF]">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#D6FF2A]/15 border border-[#D6FF2A]/20 text-[#EAFF6A]">
               <Wallet className="h-4 w-4" />
             </span>
             <span className="text-xs font-bold tracking-widest uppercase text-white">Your funds</span>
@@ -149,7 +149,7 @@ export function DashboardBalanceStrip({
             <SkeletonRow />
           ) : (
             <div className="rounded-xl border border-[#2A2A2A] bg-[#0A0A0A] px-3 py-3 flex items-center gap-3">
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#7C5DFA]/15 border border-[#7C5DFA]/20 text-[#9C88FF]">
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#D6FF2A]/15 border border-[#D6FF2A]/20 text-[#EAFF6A]">
                 <Coins className="h-4 w-4" />
               </span>
               <div className="min-w-0 flex-1">
@@ -332,7 +332,7 @@ export function BuyerCreditsStrip({ agentRegistryAddress }: { agentRegistryAddre
     <>
       <div className="rounded-xl border border-[#2A2A2A] bg-[#0F0F0F]/70 backdrop-blur-sm px-3 py-2.5 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <span className={`grid h-7 w-7 place-items-center rounded-lg border ${low ? "bg-amber-500/15 border-amber-500/20 text-amber-300" : "bg-[#7C5DFA]/15 border-[#7C5DFA]/20 text-[#9C88FF]"}`}>
+          <span className={`grid h-7 w-7 place-items-center rounded-lg border ${low ? "bg-amber-500/15 border-amber-500/20 text-amber-300" : "bg-[#D6FF2A]/15 border-[#D6FF2A]/20 text-[#EAFF6A]"}`}>
             <Coins className="h-4 w-4" />
           </span>
           <div className="min-w-0">

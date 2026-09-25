@@ -135,7 +135,7 @@ export default function ScrollLife() {
     >
       <div
         ref={railRef}
-        className="h-full origin-left bg-gradient-to-r from-[#7C5DFA] via-[#9C88FF] to-[#22D3EE]"
+        className="h-full origin-left bg-gradient-to-r from-[#D6FF2A] via-[#EAFF6A] to-[#22D3EE]"
         style={{ transform: "scaleX(0)" }}
       />
     </div>

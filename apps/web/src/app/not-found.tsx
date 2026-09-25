@@ -20,7 +20,7 @@ export default function NotFound() {
             <VoissMascotMark
               priority
               size={220}
-              className="w-40 h-40 sm:w-52 sm:h-52 drop-shadow-[0_16px_40px_rgba(124,93,250,0.35)]"
+              className="w-40 h-40 sm:w-52 sm:h-52 drop-shadow-[0_16px_40px_rgba(214,255,42,0.35)]"
             />
           </div>
         </div>
@@ -39,7 +39,7 @@ export default function NotFound() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <Link
             href="/"
-            className="px-8 py-4 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-xl text-white text-lg font-semibold hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
+            className="px-8 py-4 bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A] rounded-xl text-[#0A0E1A] text-lg font-semibold hover:from-[#C2EB22] hover:to-[#C2EB22] transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
           >
             Back home
           </Link>

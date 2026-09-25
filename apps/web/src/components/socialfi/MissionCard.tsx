@@ -170,7 +170,7 @@ const MissionCard = React.memo<MissionCardProps>(({
       text: isAccepting ? "Accepting..." : isOnboarding ? "Start Tutorial" : "Accept Mission",
       className: isOnboarding 
         ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500 hover:scale-[1.02] shadow-[0_0_15px_rgba(37,99,235,0.3)]"
-        : "bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white hover:from-[#6B4CE6] hover:to-[#8B7AFF] hover:scale-[1.02]",
+        : "bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A] text-[#0A0E1A] hover:from-[#C2EB22] hover:to-[#C2EB22] hover:scale-[1.02]",
       icon: isOnboarding ? (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -188,12 +188,12 @@ const MissionCard = React.memo<MissionCardProps>(({
         ? 'border-indigo-500/40 bg-indigo-500/5'
         : isChannel
           ? 'hover:border-cyan-500/50 hover:bg-cyan-500/5 border-gray-800'
-          : 'hover:border-[#7C5DFA]/30'
+          : 'hover:border-[#D6FF2A]/30'
       }`}>
       {/* Header - CLEAN layout structure */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-white group-hover:text-[#7C5DFA] transition-colors mb-2">
+          <h3 className="text-lg font-semibold text-[#0A0E1A] group-hover:text-[#D6FF2A] transition-colors mb-2">
             {mission.title}
           </h3>
           <p className="text-sm text-gray-400 line-clamp-2 mb-3">
@@ -234,7 +234,7 @@ const MissionCard = React.memo<MissionCardProps>(({
 
         {/* PERFORMANT: Memoized reward display */}
         <div className="text-right ml-4 flex-shrink-0">
-          <div className={`text-lg font-bold ${isChannel ? 'text-cyan-400' : 'text-[#7C5DFA]'}`}>
+          <div className={`text-lg font-bold ${isChannel ? 'text-cyan-400' : 'text-[#D6FF2A]'}`}>
             {rewardDisplay}
           </div>
           <div className="text-xs text-gray-400">
@@ -279,7 +279,7 @@ const MissionCard = React.memo<MissionCardProps>(({
                 href={getTokenBuyUrl('voisss')}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#7C5DFA] hover:underline font-semibold"
+                className="text-[#D6FF2A] hover:underline font-semibold"
               >
                 Get Tokens →
               </a>

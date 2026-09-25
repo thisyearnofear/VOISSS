@@ -36,7 +36,7 @@ export default function MobileBottomNav() {
                 href={link.href}
                 className="relative -top-3 flex flex-col items-center gap-0.5"
               >
-                <div className="w-14 h-14 rounded-full bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] flex items-center justify-center shadow-lg shadow-[#7C5DFA]/25 active:scale-95 transition-transform">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A] flex items-center justify-center shadow-lg shadow-[#D6FF2A]/25 active:scale-95 transition-transform">
                   <Icon className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-[10px] font-bold text-white tracking-tight">
@@ -51,7 +51,7 @@ export default function MobileBottomNav() {
               key={link.href}
               href={link.href}
               className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg transition-colors ${
-                isActive ? "text-[#9C88FF]" : "text-gray-500 hover:text-gray-300"
+                isActive ? "text-[#EAFF6A]" : "text-gray-500 hover:text-gray-300"
               }`}
             >
               <Icon className="w-5 h-5" />

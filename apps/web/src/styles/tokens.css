@@ -1,43 +1,56 @@
+/* ── VOISSS Night Signal ───────────────────────────────────────────────────
+ * Ink: deep navy, not warm gray. Paper is now Faint Linen. Accent is Acid
+ * Lime (#D6FF2A) — single accent, no gradient soup. Lime only lands on
+ * CTA, match edge, and terrain glint; everything else is white/08 hairlines.
+ * Display = Instrument Serif (soft authority), Mono = IBM Plex Mono.
+ * ────────────────────────────────────────────────────────────────────────── */
 :root {
-  --lr-paper: oklch(97% .012 85);
-  --lr-surface: oklch(99% .006 85);
-  --lr-ink: oklch(23% .012 65);
-  --lr-muted: oklch(45% .015 65);
-  --lr-line: oklch(84% .014 85);
-  --lr-accent: oklch(49% .20 290);
-  --lr-accent-soft: oklch(93% .028 290);
-  --lr-focus: oklch(49% .20 290);
-  --lr-night: oklch(20% .012 280);
-  --lr-night-raised: oklch(25% .012 280);
-  --lr-night-ink: oklch(96% .009 85);
-  --lr-night-muted: oklch(76% .012 280);
-  --lr-night-line: oklch(39% .012 280);
-  --lr-night-accent: oklch(79% .12 290);
-  --lr-error: oklch(45% .16 25);
-  --lr-error-dark: oklch(80% .10 25);
-  /* Benchmark identity accents — Jev vs GPT-4o-mini comparison colors. */
-  --lr-bench-jev: #7c5dfa;
-  --lr-bench-jev-soft: #9c88ff;
-  --lr-bench-gpt: #10b981;
-  /* Agentic-primes neutrals + chart accents — SVG fills and shimmer stops in
-     components/ui/agentic (InsightCards, ThinkingState, LoadingState). */
+  /* Day (catalog cards) — linen paper, ink navy */
+  --lr-paper: oklch(96.5% 0.008 85);
+  --lr-surface: oklch(99% 0.004 85);
+  --lr-ink: oklch(18% 0.02 260);
+  --lr-muted: oklch(48% 0.015 260);
+  --lr-line: oklch(88% 0.01 85);
+  /* Acid Lime */
+  --lr-accent: oklch(88% 0.22 124);
+  --lr-accent-soft: oklch(93% 0.12 124);
+  --lr-focus: oklch(88% 0.22 124);
+
+  /* Night hero — deep navy, not violet-gray */
+  --lr-night: oklch(14% 0.03 270);
+  --lr-night-raised: oklch(18% 0.03 270);
+  --lr-night-ink: oklch(96% 0.006 85);
+  --lr-night-muted: oklch(70% 0.02 265);
+  --lr-night-line: oklch(26% 0.02 270);
+  --lr-night-accent: oklch(88% 0.22 124);
+  --lr-error: oklch(55% 0.22 25);
+  --lr-error-dark: oklch(78% 0.12 25);
+
+  /* Benchmark identity — lime vs cyan */
+  --lr-bench-jev: #d6ff2a;
+  --lr-bench-jev-soft: #eaff6a;
+  --lr-bench-gpt: #22d3ee;
+
+  /* Agentic-primes — lime accents */
   --lr-agentic-gray: #6b7280;
   --lr-agentic-gray-deep: #4b5563;
   --lr-agentic-white: #ffffff;
   --lr-agentic-danger: #ef4444;
-  --lr-agentic-accent: #7c5dfa;
-  --lr-agentic-success: #10b981;
-  --lr-font-display: var(--font-syne), sans-serif;
+  --lr-agentic-accent: #d6ff2a;
+  --lr-agentic-success: #22d3ee;
+
+  --lr-font-display: var(--font-display), Georgia, serif;
   --lr-font-body: var(--font-inter), sans-serif;
-  --lr-font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
-  --lr-space-xs: .5rem;
-  --lr-space-sm: .75rem;
+  --lr-font-mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
+  --lr-space-xs: 0.5rem;
+  --lr-space-sm: 0.75rem;
   --lr-space-md: 1rem;
   --lr-space-lg: 1.5rem;
   --lr-space-xl: 2.5rem;
   --lr-space-2xl: 4rem;
   --lr-space-3xl: 6rem;
-  --lr-radius: .875rem;
-  --lr-ease: cubic-bezier(.16, 1, .3, 1);
+  --lr-radius: 0.875rem;
+  --lr-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --lr-duration: 180ms;
 }

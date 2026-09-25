@@ -120,7 +120,7 @@ export default function VoiceTerrain({ className = "" }: { className?: string })
         height * 0.45,
         Math.max(width, height) * 0.85
       );
-      glow.addColorStop(0, "rgba(124,93,250,0.10)");
+      glow.addColorStop(0, "rgba(214,255,42,0.10)");
       glow.addColorStop(0.45, "rgba(34,211,238,0.05)");
       glow.addColorStop(1, "rgba(10,10,10,0)");
       g.fillStyle = glow;
@@ -129,7 +129,7 @@ export default function VoiceTerrain({ className = "" }: { className?: string })
       for (let i = 0; i < RIBBON_COUNT; i++) {
         const rb = ribbons[i];
         const baseY = height * rb.y;
-        g.strokeStyle = `rgba(124,93,250,${Math.max(0.05, rb.opacity * 0.7)})`;
+        g.strokeStyle = `rgba(214,255,42,${Math.max(0.05, rb.opacity * 0.7)})`;
         g.lineWidth = 1;
         g.beginPath();
         for (let x = 0; x <= width; x += 2) {
@@ -276,8 +276,8 @@ export default function VoiceTerrain({ className = "" }: { className?: string })
         height * pointer.y,
         Math.max(width, height) * 0.9
       );
-      glow.addColorStop(0, `rgba(124,93,250,${0.10 + energy * 0.07})`);
-      glow.addColorStop(0.35, `rgba(124,93,250,${0.04 + energy * 0.03})`);
+      glow.addColorStop(0, `rgba(214,255,42,${0.10 + energy * 0.07})`);
+      glow.addColorStop(0.35, `rgba(214,255,42,${0.04 + energy * 0.03})`);
       glow.addColorStop(0.7, `rgba(34,211,238,${0.03 + energy * 0.05})`);
       glow.addColorStop(1, "rgba(10,10,10,0)");
       g.fillStyle = glow;
@@ -294,7 +294,7 @@ export default function VoiceTerrain({ className = "" }: { className?: string })
           g.fillStyle = grad;
           g.fillRect(width * x0, 0, width * (x1 - x0), height);
         };
-        band(0, 0.7, "124,93,250");
+        band(0, 0.7, "214,255,42");
         band(0.7, 1, "34,211,238");
         // the split line itself
         g.strokeStyle = `rgba(255,255,255,${a * 0.5})`;
@@ -328,11 +328,11 @@ export default function VoiceTerrain({ className = "" }: { className?: string })
           alpha *= 0.25 + 0.75 * (dist / R);
         }
 
-        // energy biases the field from violet toward cyan — the voice is present
+        // energy biases the field from lime toward cyan — the voice is present
         const cyanWeight = gr.cyan ? 0.42 + energy * 0.3 : 0.38 - energy * 0.06;
         g.fillStyle = gr.cyan
           ? `rgba(103,232,249,${Math.max(0.04, alpha * cyanWeight)})`
-          : `rgba(156,136,255,${Math.max(0.04, alpha * cyanWeight)})`;
+          : `rgba(214,255,42,${Math.max(0.04, alpha * cyanWeight)})`;
         g.beginPath();
         g.arc(gx * width, gy * height, (gr.r + energy * 0.35) * dpr * 0.9, 0, Math.PI * 2);
         g.fill();
@@ -343,7 +343,7 @@ export default function VoiceTerrain({ className = "" }: { className?: string })
         const rb = ribbons[r];
         const baseY = height * rb.y;
         const near = pointer.active ? 1 - Math.min(1, Math.abs(pointer.y - rb.y) / 0.18) : 0;
-        g.strokeStyle = `rgba(124,93,250,${Math.max(0.04, rb.opacity + near * 0.08 + energy * 0.16)})`;
+        g.strokeStyle = `rgba(214,255,42,${Math.max(0.04, rb.opacity + near * 0.08 + energy * 0.16)})`;
         g.lineWidth = rb.thickness + near * 0.9 + energy * 0.5;
         g.lineCap = "round";
         g.lineJoin = "round";
@@ -380,7 +380,7 @@ export default function VoiceTerrain({ className = "" }: { className?: string })
         // specular rim — one extra soft stroke when the pointer row is close
         if (near > 0.45 || energy > 0.25) {
           g.globalAlpha = Math.max(near * 0.16, energy * 0.14);
-          g.strokeStyle = energy > 0.25 ? "rgba(103,232,249,0.9)" : "rgba(196,181,253,0.9)";
+          g.strokeStyle = energy > 0.25 ? "rgba(103,232,249,0.9)" : "rgba(234,255,106,0.9)";
           g.lineWidth = rb.thickness * 2.4;
           g.stroke();
           g.globalAlpha = 1;
@@ -405,7 +405,7 @@ export default function VoiceTerrain({ className = "" }: { className?: string })
 
       // pollen
       if (pollen.length) {
-        g.shadowColor = "rgba(124,93,250,0.55)";
+        g.shadowColor = "rgba(214,255,42,0.55)";
         g.shadowBlur = 6;
         for (let i = pollen.length - 1; i >= 0; i--) {
           const p = pollen[i];

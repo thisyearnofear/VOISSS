@@ -7,6 +7,7 @@ import { ArrowRight } from "lucide-react";
 import HomeStructuredData from "../components/HomeStructuredData";
 import SplitBar from "../components/SplitBar";
 import VoiceTerrain from "../components/VoiceTerrain";
+import AsciiField from "../components/hero/AsciiField";
 import { SignalRibbon } from "../components/listening/SignalRibbon";
 import { VoiceAuditionRow } from "../components/listening/VoiceAuditionRow";
 import { Button, Chip, Disclosure } from "../components/ui";
@@ -85,6 +86,7 @@ export default function Home() {
       {/* ── Hero — the field itself. A living terrain the brief disturbs, an
            audition console that answers. The page performs the match. ─────── */}
       <section className="lr-home-hero lr-dark voisss-frame voisss-terrain-bg">
+        <AsciiField word="VOISSS" density={0.44} />
         <VoiceTerrain />
         <div className="lr-hero-scrim" aria-hidden />
         <div className="lr-hero-inner">
@@ -147,7 +149,7 @@ export default function Home() {
               <h2>Start by listening</h2>
               <span>Catalog samples</span>
             </header>
-            {/* Licensed Signal — procedural field, pointer-reactive, one rAF */}
+            {/* Night Signal — lime/cyan field + ascii paper; pointer-reactive, one rAF */}
             <SignalRibbon playing={playback.status === "playing"} />
             {query.isLoading && (
               <p className="lr-quiet" role="status">Loading voices…</p>

@@ -73,7 +73,7 @@ export default function MissionFilters({
           >
             <span>💰</span>
             {userTier && userTier !== 'none' ? (
-              <span className="text-[#7C5DFA] text-xs uppercase font-semibold">{userTier}</span>
+              <span className="text-[#D6FF2A] text-xs uppercase font-semibold">{userTier}</span>
             ) : (
               <span className="text-gray-400 text-xs">Info</span>
             )}
@@ -117,7 +117,7 @@ export default function MissionFilters({
           {userTier && userTier !== 'none' && (
             <div className="pt-3 border-t border-[#3A3A3A]">
               <p className="text-xs text-gray-400">
-                Your tier: <span className="text-[#7C5DFA] font-semibold uppercase">{userTier}</span>
+                Your tier: <span className="text-[#D6FF2A] font-semibold uppercase">{userTier}</span>
               </p>
               {userBalance && (
                 <p className="text-xs text-gray-500 mt-1">
@@ -142,7 +142,7 @@ export default function MissionFilters({
                 onClick={() => onTopicChange(topic.value)}
                 className={`p-3 rounded-xl border transition-all duration-200 text-left ${
                   selectedTopic === topic.value
-                    ? "bg-[#7C5DFA]/20 border-[#7C5DFA]/40 text-[#7C5DFA]"
+                    ? "bg-[#D6FF2A]/20 border-[#D6FF2A]/40 text-[#D6FF2A]"
                     : "bg-[#2A2A2A] border-[#3A3A3A] text-gray-300 hover:bg-[#3A3A3A] hover:border-[#4A4A4A]"
                 }`}
               >
@@ -171,13 +171,13 @@ export default function MissionFilters({
                   onClick={() => onDifficultyChange(difficulty.value)}
                   className={`w-full p-3 rounded-xl border transition-all duration-200 text-left ${
                     selectedDifficulty === difficulty.value
-                      ? "bg-[#7C5DFA]/20 border-[#7C5DFA]/40"
+                      ? "bg-[#D6FF2A]/20 border-[#D6FF2A]/40"
                       : "bg-[#2A2A2A] border-[#3A3A3A] hover:bg-[#3A3A3A] hover:border-[#4A4A4A]"
                   }`}
                 >
                   <div className={`text-sm font-medium ${
                     selectedDifficulty === difficulty.value 
-                      ? "text-[#7C5DFA]" 
+                      ? "text-[#D6FF2A]" 
                       : difficulty.color || "text-gray-300"
                   }`}>
                     {difficulty.label}
@@ -199,7 +199,7 @@ export default function MissionFilters({
                   onClick={() => onSortChange(option.value as any)}
                   className={`w-full p-3 rounded-xl border transition-all duration-200 text-left ${
                     sortBy === option.value
-                      ? "bg-[#7C5DFA]/20 border-[#7C5DFA]/40 text-[#7C5DFA]"
+                      ? "bg-[#D6FF2A]/20 border-[#D6FF2A]/40 text-[#D6FF2A]"
                       : "bg-[#2A2A2A] border-[#3A3A3A] text-gray-300 hover:bg-[#3A3A3A] hover:border-[#4A4A4A]"
                   }`}
                 >
@@ -258,7 +258,7 @@ function TokenCard({ tokenKey }: { tokenKey: "voisss" | "papajams" }) {
           href={getTokenBuyUrl(tokenKey)}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs px-2 py-1 bg-[#7C5DFA]/20 hover:bg-[#7C5DFA]/30 text-[#7C5DFA] rounded transition-colors font-semibold"
+          className="text-xs px-2 py-1 bg-[#D6FF2A]/20 hover:bg-[#D6FF2A]/30 text-[#D6FF2A] rounded transition-colors font-semibold"
         >
           Buy
         </a>

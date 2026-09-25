@@ -373,7 +373,7 @@ export default function MissionCreationForm({
       <div className="flex items-center gap-2 text-xs text-gray-400">
         <div className="flex-1 bg-gray-700 rounded-full h-1">
           <div
-            className="bg-[#7C5DFA] h-1 rounded-full transition-all duration-300"
+            className="bg-[#D6FF2A] h-1 rounded-full transition-all duration-300"
             style={{
               width: `${Math.min(100, (
                 (formData.title.trim() ? 25 : 0) +

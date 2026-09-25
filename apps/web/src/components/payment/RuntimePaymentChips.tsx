@@ -8,7 +8,7 @@
  * Design goals (Sep 2026 polish pass):
  *  - Benefit first, config second. The empty state explains *why* before *how*.
  *  - Match VOISSS system: bg [#0A0A0A]/[#1A1A1A], border [#2A2A2A], Syne headings,
- *    purple #7C5DFA accents, rounded-xl, no amber alerts, no raw env dumps.
+ *    purple #D6FF2A accents, rounded-xl, no amber alerts, no raw env dumps.
  *  - Progressive disclosure: compact mode hides the test/sign panel and long copy.
  *  - Human microcopy. Technical strings (X-DYNAMIC-WALLET, env names, x402)
  *    live behind a single "Details" disclosure.
@@ -139,7 +139,7 @@ export function DynamicChip({
     return (
       <div className="rounded-xl border border-dashed border-[#2A2A2A] bg-[#0F0F0F]/70 p-4">
         <div className="flex items-start gap-3">
-          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#7C5DFA]/15 border border-[#7C5DFA]/20 text-[#9C88FF]">
+          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#D6FF2A]/15 border border-[#D6FF2A]/20 text-[#EAFF6A]">
             <Bot className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
@@ -200,7 +200,7 @@ export function DynamicChip({
       {/* header */}
       <div className="flex items-start justify-between gap-3 p-4">
         <div className="flex items-start gap-3 min-w-0">
-          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-[#7C5DFA] to-[#4F46E5] text-white shadow-sm">
+          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-[#D6FF2A] to-[#1A2A0A] text-[#0A0E1A] shadow-sm">
             <Wallet className="h-4 w-4" />
           </div>
           <div className="min-w-0">
@@ -253,7 +253,7 @@ export function DynamicChip({
                     setJustCreated(true);
                     try {
                       const confetti = (await import("canvas-confetti")).default;
-                      confetti({ particleCount: 36, spread: 52, origin: { y: 0.72 }, colors: ["#7C5DFA", "#9C88FF", "#4F46E5", "#22c55e"], ticks: 140, gravity: 1.05, scalar: 0.85 });
+                      confetti({ particleCount: 36, spread: 52, origin: { y: 0.72 }, colors: ["#D6FF2A", "#EAFF6A", "#1A2A0A", "#22c55e"], ticks: 140, gravity: 1.05, scalar: 0.85 });
                     } catch {}
                     window.setTimeout(() => setJustCreated(false), 2800);
                   }
@@ -261,7 +261,7 @@ export function DynamicChip({
                 disabled={isCreating || isLoading || !status?.configured}
                 className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black shadow hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
               >
-                {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-[#7C5DFA]" />}
+                {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-[#D6FF2A]" />}
                 Create agent wallet
               </button>
             ) : (
@@ -289,7 +289,7 @@ export function DynamicChip({
                 onClick={() => setShowTest((v) => !v)}
                 className={`inline-flex items-center gap-1 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
                   showTest
-                    ? "border-[#7C5DFA]/30 bg-[#7C5DFA]/10 text-[#C4B5FD]"
+                    ? "border-[#D6FF2A]/30 bg-[#D6FF2A]/10 text-[#EAFF6A]"
                     : "border-[#2A2A2A] bg-[#0A0A0A] text-gray-400 hover:text-white"
                 }`}
               >
@@ -325,7 +325,7 @@ export function DynamicChip({
                     value={signMsg}
                     onChange={(e) => setSignMsg(e.target.value)}
                     placeholder="Message to sign"
-                    className="min-w-0 flex-1 rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-[#7C5DFA]/40 focus:outline-none focus:ring-1 focus:ring-[#7C5DFA]/20"
+                    className="min-w-0 flex-1 rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-[#0A0E1A] placeholder:text-gray-600 focus:border-[#D6FF2A]/40 focus:outline-none focus:ring-1 focus:ring-[#D6FF2A]/20"
                   />
                   <button
                     type="button"
@@ -337,7 +337,7 @@ export function DynamicChip({
                       }
                     }}
                     disabled={isSigning || !signMsg}
-                    className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-[#7C5DFA] px-4 py-2 text-sm font-semibold text-white hover:bg-[#6D4AE8] disabled:opacity-50 transition-colors"
+                    className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-[#D6FF2A] px-4 py-2 text-sm font-semibold text-[#0A0E1A] hover:bg-[#C2EB22] disabled:opacity-50 transition-colors"
                   >
                     {isSigning ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                     Sign
@@ -492,7 +492,7 @@ export function BankrChip({ compact = false }: { compact?: boolean }) {
                 </span>
               )}
               {status.llmConfigured && (
-                <span className="rounded-full bg-[#7C5DFA]/15 border border-[#7C5DFA]/20 px-2 py-0.5 text-[10px] font-bold tracking-widest uppercase text-[#C4B5FD]">
+                <span className="rounded-full bg-[#D6FF2A]/15 border border-[#D6FF2A]/20 px-2 py-0.5 text-[10px] font-bold tracking-widest uppercase text-[#EAFF6A]">
                   LLM
                 </span>
               )}
@@ -619,7 +619,7 @@ export function DismissibleRuntimeTracks({
           onClick={restore}
           className="inline-flex items-center gap-1.5 rounded-full border border-[#2A2A2A] bg-[#0F0F0F] px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-white hover:border-[#3A3A3A] transition-colors"
         >
-          <Sparkles className="h-3 w-3 text-[#9C88FF]" /> Show Runtime rails
+          <Sparkles className="h-3 w-3 text-[#EAFF6A]" /> Show Runtime rails
         </button>
         <span className="text-xs text-gray-600 hidden sm:inline">Agent Week · two tracks, one product</span>
       </div>
@@ -636,7 +636,7 @@ export function DismissibleRuntimeTracks({
           aria-expanded={!collapsed}
           aria-controls="runtime-rails-body"
         >
-          <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#7C5DFA]/15 border border-[#7C5DFA]/20 text-[#9C88FF] group-hover:bg-[#7C5DFA]/20 transition-colors">
+          <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#D6FF2A]/15 border border-[#D6FF2A]/20 text-[#EAFF6A] group-hover:bg-[#D6FF2A]/20 transition-colors">
             <Sparkles className="h-3.5 w-3.5" />
           </span>
           <span className="text-xs font-bold tracking-widest uppercase text-white">Runtime rails</span>
@@ -695,7 +695,7 @@ export function RuntimeTracksMini({
     <div className="rounded-xl border border-[#2A2A2A] bg-[#0F0F0F] overflow-hidden">
       <div className="flex items-center justify-between gap-2 border-b border-[#2A2A2A] bg-[#0A0A0A]/60 px-4 py-2.5">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#7C5DFA]/15 border border-[#7C5DFA]/20 text-[#9C88FF]">
+          <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#D6FF2A]/15 border border-[#D6FF2A]/20 text-[#EAFF6A]">
             <Sparkles className="h-3.5 w-3.5" />
           </span>
           <span className="text-xs font-bold tracking-widest uppercase text-white">Runtime rails</span>
@@ -733,7 +733,7 @@ export function RuntimeInlineCallout({ agentAddress }: { agentAddress?: string }
         aria-expanded={open}
       >
         <span className="flex items-center gap-2 min-w-0">
-          <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#7C5DFA]/15 border border-[#7C5DFA]/20 text-[#9C88FF]">
+          <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#D6FF2A]/15 border border-[#D6FF2A]/20 text-[#EAFF6A]">
             <Wallet className="h-4 w-4" />
           </span>
           <span className="min-w-0">
@@ -741,7 +741,7 @@ export function RuntimeInlineCallout({ agentAddress }: { agentAddress?: string }
             <span className="block text-xs text-gray-500">Agent wallet + Bankr rails — one header, no human click</span>
           </span>
         </span>
-        <span className={open ? "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors border-[#7C5DFA]/30 bg-[#7C5DFA]/10 text-[#C4B5FD]" : "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors border-[#2A2A2A] bg-[#1A1A1A] text-gray-400"}>
+        <span className={open ? "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors border-[#D6FF2A]/30 bg-[#D6FF2A]/10 text-[#EAFF6A]" : "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors border-[#2A2A2A] bg-[#1A1A1A] text-gray-400"}>
           {open ? "Hide" : "Show"} <ChevronDown className={open ? "h-3 w-3 transition-transform rotate-180" : "h-3 w-3 transition-transform"} />
         </span>
       </button>

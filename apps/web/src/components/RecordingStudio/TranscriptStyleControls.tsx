@@ -157,7 +157,7 @@ export function TranscriptStyleControls({ style, onChange }: TranscriptStyleCont
               key={anim.value}
               onClick={() => onChange({ ...style, animation: anim.value })}
               className={`px-3 py-2 rounded-lg text-xs border transition-all flex items-center justify-center gap-2 ${style.animation === anim.value
-                ? 'bg-[#2A2A2A] text-white border-[#7C5DFA]'
+                ? 'bg-[#2A2A2A] text-white border-[#D6FF2A]'
                 : 'bg-[#1A1A1A] text-gray-400 border-[#333] hover:border-gray-500'
                 }`}
             >

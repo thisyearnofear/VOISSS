@@ -59,7 +59,7 @@ export default function MissionFormFields({
             type="text"
             value={formData.title}
             onChange={(e) => onChange("title", e.target.value)}
-            className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
+            className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-[#0A0E1A] focus:border-[#D6FF2A] focus:outline-none"
             placeholder="e.g., Taxi Conversations, Street Interviews on AI"
           />
           {errors.title && (
@@ -76,7 +76,7 @@ export default function MissionFormFields({
             value={formData.description}
             onChange={(e) => onChange("description", e.target.value)}
             rows={3}
-            className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
+            className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-[#0A0E1A] focus:border-[#D6FF2A] focus:outline-none"
             placeholder="Describe what you want to learn or explore. Include any context (location, audience, conversation starters) here."
           />
           {errors.description && (
@@ -95,7 +95,7 @@ export default function MissionFormFields({
               onChange={(e) =>
                 onChange("difficulty", e.target.value as FormData["difficulty"])
               }
-              className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
+              className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-[#0A0E1A] focus:border-[#D6FF2A] focus:outline-none"
             >
               <option value="easy">Easy (30-60s)</option>
               <option value="medium">Medium (1-3 min)</option>
@@ -115,7 +115,7 @@ export default function MissionFormFields({
               }
               min="30"
               max="600"
-              className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
+              className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-[#0A0E1A] focus:border-[#D6FF2A] focus:outline-none"
             />
             {errors.targetDuration && (
               <p className="text-red-400 text-sm mt-1">
@@ -136,7 +136,7 @@ export default function MissionFormFields({
               }
               min="1"
               max="90"
-              className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
+              className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-[#0A0E1A] focus:border-[#D6FF2A] focus:outline-none"
             />
           </div>
         </div>
@@ -163,7 +163,7 @@ export default function MissionFormFields({
           <div>
             <p className="text-sm text-gray-300">
               Base reward per participant:{" "}
-              <span className="font-semibold text-[#7C5DFA]">
+              <span className="font-semibold text-[#D6FF2A]">
                 {baseReward} {getTokenDisplaySymbol()}
               </span>
             </p>
@@ -179,7 +179,7 @@ export default function MissionFormFields({
               Reward allocation:
             </p>
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-[#7C5DFA]">📊</span>
+              <span className="text-[#D6FF2A]">📊</span>
               <span className="text-gray-300">
                 70% {getTokenDisplaySymbol()} → participants
               </span>
@@ -196,7 +196,7 @@ export default function MissionFormFields({
       <button
         type="button"
         onClick={onToggleAdvanced}
-        className="w-full py-3 text-left flex items-center justify-between text-sm font-medium text-[#7C5DFA] hover:text-[#9C88FF] transition-colors"
+        className="w-full py-3 text-left flex items-center justify-between text-sm font-medium text-[#D6FF2A] hover:text-[#EAFF6A] transition-colors"
       >
         <span>{showAdvanced ? "Hide" : "Show"} Advanced Options</span>
         <span
@@ -218,7 +218,7 @@ export default function MissionFormFields({
             <select
               value={formData.language || "en"}
               onChange={(e) => onChange("language", e.target.value)}
-              className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
+              className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-[#0A0E1A] focus:border-[#D6FF2A] focus:outline-none"
             >
               <option value="en">English</option>
               <option value="es">Spanish (Español)</option>
@@ -243,7 +243,7 @@ export default function MissionFormFields({
                   e.target.value as FormData["rewardModel"]
                 )
               }
-              className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
+              className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-[#0A0E1A] focus:border-[#D6FF2A] focus:outline-none"
             >
               <option value="pool">Pool (split equally)</option>
               <option value="flat_rate">Flat Rate (same per submission)</option>
@@ -269,7 +269,7 @@ export default function MissionFormFields({
                   )
                 }
                 min="0"
-                className="flex-1 px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
+                className="flex-1 px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-[#0A0E1A] focus:border-[#D6FF2A] focus:outline-none"
                 placeholder="Leave empty for unlimited"
               />
               <div className="px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-gray-400 flex items-center">
@@ -298,7 +298,7 @@ export default function MissionFormFields({
                   )
                 }
                 min="0"
-                className="flex-1 px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
+                className="flex-1 px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-[#0A0E1A] focus:border-[#D6FF2A] focus:outline-none"
                 placeholder="0"
               />
               <div className="px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-gray-400 flex items-center">
@@ -357,7 +357,7 @@ export default function MissionFormFields({
                 }
                 min="0"
                 max="100"
-                className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-white focus:border-[#7C5DFA] focus:outline-none"
+                className="w-full px-4 py-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg text-[#0A0E1A] focus:border-[#D6FF2A] focus:outline-none"
                 placeholder="70 (0-100)"
               />
             </div>

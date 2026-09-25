@@ -432,7 +432,7 @@ export default function DubbingPanel({
                     onClick={() => setSelectedTargetLanguage(lang.code)}
                     disabled={disabled || isDubbing}
                     className={`group relative p-4 rounded-xl border transition-all duration-300 ${selectedTargetLanguage === lang.code
-                        ? "shadow-[0_0_20px_rgba(124,93,250,0.2)]"
+                        ? "shadow-[0_0_20px_rgba(214,255,42,0.2)]"
                         : ""
                       } ${disabled || isDubbing
                         ? "opacity-50 cursor-not-allowed"
@@ -573,7 +573,7 @@ export default function DubbingPanel({
                     style={{
                       backgroundColor:
                         dubbingStage === "preparing"
-                          ? "rgba(124, 93, 250, 0.1)"
+                          ? "rgba(214, 255, 42, 0.1)"
                           : "transparent",
                     }}
                   >
@@ -620,7 +620,7 @@ export default function DubbingPanel({
                     style={{
                       backgroundColor:
                         dubbingStage === "translating"
-                          ? "rgba(124, 93, 250, 0.1)"
+                          ? "rgba(214, 255, 42, 0.1)"
                           : "transparent",
                     }}
                   >
@@ -665,7 +665,7 @@ export default function DubbingPanel({
                     style={{
                       backgroundColor:
                         dubbingStage === "generating"
-                          ? "rgba(124, 93, 250, 0.1)"
+                          ? "rgba(214, 255, 42, 0.1)"
                           : "transparent",
                     }}
                   >
@@ -708,7 +708,7 @@ export default function DubbingPanel({
                     style={{
                       backgroundColor:
                         dubbingStage === "finalizing"
-                          ? "rgba(124, 93, 250, 0.1)"
+                          ? "rgba(214, 255, 42, 0.1)"
                           : "transparent",
                     }}
                   >

@@ -186,7 +186,7 @@ export function AgentCreditPanel({ agentRegistryAddress }: AgentCreditPanelProps
               {/* Deposit button */}
               <button
                 onClick={() => setIsDepositModalOpen(true)}
-                className="w-full py-3 bg-[#7C5DFA] hover:bg-[#6D4AE8] text-white font-semibold rounded-xl transition-colors shadow-lg shadow-[#7C5DFA]/20 flex items-center justify-center gap-2"
+                className="w-full py-3 bg-[#D6FF2A] hover:bg-[#C2EB22] text-[#0A0E1A] font-semibold rounded-xl transition-colors shadow-lg shadow-[#D6FF2A]/20 flex items-center justify-center gap-2"
               >
                 <Plus className="w-5 h-5" />
                 Deposit USDC

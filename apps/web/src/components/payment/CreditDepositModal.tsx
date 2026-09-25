@@ -206,7 +206,7 @@ export function CreditDepositModal({
                     onClick={() => setAmount(preset.value)}
                     className={`py-2.5 px-3 rounded-xl text-sm font-semibold transition-colors border ${
                       amount === preset.value
-                        ? 'bg-[#7C5DFA] border-[#7C5DFA] text-white shadow'
+                        ? 'bg-[#D6FF2A] border-[#D6FF2A] text-white shadow'
                         : 'bg-[#1A1A1A] border-[#2A2A2A] text-gray-300 hover:border-[#3A3A3A] hover:text-white'
                     }`}
                   >
@@ -225,14 +225,14 @@ export function CreditDepositModal({
                   placeholder="Enter amount"
                   min="1"
                   step="0.01"
-                  className="w-full pl-8 pr-12 py-3 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#7C5DFA]/40 focus:ring-1 focus:ring-[#7C5DFA]/20"
+                  className="w-full pl-8 pr-12 py-3 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl text-[#0A0E1A] placeholder-gray-500 focus:outline-none focus:border-[#D6FF2A]/40 focus:ring-1 focus:ring-[#D6FF2A]/20"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-xs font-semibold tracking-widest uppercase">USDC</span>
               </div>
 
               {/* Info box */}
               <div className="flex items-start gap-3 p-3 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl">
-                <Wallet className="w-5 h-5 text-[#9C88FF] mt-0.5 shrink-0" />
+                <Wallet className="w-5 h-5 text-[#EAFF6A] mt-0.5 shrink-0" />
                 <div className="text-sm min-w-0">
                   <p className="text-white font-medium">USDC on Base</p>
                   <p className="text-gray-500 leading-relaxed">
@@ -245,7 +245,7 @@ export function CreditDepositModal({
               <button
                 onClick={handleDeposit}
                 disabled={!amount || parseFloat(amount) <= 0}
-                className="w-full py-3.5 bg-[#7C5DFA] hover:bg-[#6D4AE8] disabled:bg-[#2A2A2A] disabled:text-gray-500 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors shadow-lg shadow-[#7C5DFA]/20 disabled:shadow-none"
+                className="w-full py-3.5 bg-[#D6FF2A] hover:bg-[#C2EB22] disabled:bg-[#2A2A2A] disabled:text-gray-500 disabled:cursor-not-allowed text-[#0A0E1A] font-semibold rounded-xl transition-colors shadow-lg shadow-[#D6FF2A]/20 disabled:shadow-none"
               >
                 Deposit {amount ? `$${amount} USDC` : 'USDC'}
               </button>

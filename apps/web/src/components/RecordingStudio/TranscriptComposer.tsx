@@ -1045,7 +1045,7 @@ export default function TranscriptComposer(props: {
                 disabled={isTranscribing || normalizedDurationSeconds <= 0}
                 className={`px-4 py-2 rounded-lg border text-white text-sm hover:bg-[#3A3A3A] flex items-center gap-2 ${
                   autoFocus
-                    ? "bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] border-transparent"
+                    ? "bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A] border-transparent"
                     : "bg-[#2A2A2A] border-[#3A3A3A]"
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
@@ -1059,7 +1059,7 @@ export default function TranscriptComposer(props: {
                 )}
               </button>
               {autoFocus && (
-                <div className="w-full text-xs text-[#C4B5FD] mt-1">
+                <div className="w-full text-xs text-[#EAFF6A] mt-1">
                   Tip: For best karaoke timing, start with accurate
                   transcription before editing.
                 </div>
@@ -1100,7 +1100,7 @@ export default function TranscriptComposer(props: {
               <button
                 onClick={applyImportedJson}
                 disabled={!importJson.trim()}
-                className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] text-white text-sm font-medium hover:from-[#6B4CE6] hover:to-[#8B7AFF] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A] text-[#0A0E1A] text-sm font-medium hover:from-[#C2EB22] hover:to-[#C2EB22] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Import JSON
               </button>
@@ -1269,8 +1269,8 @@ export default function TranscriptComposer(props: {
                 }}
                 className={`px-4 py-2 rounded-lg text-white text-sm font-medium transition-all ${
                   exportingKind === "mp4"
-                    ? "bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] opacity-60 cursor-wait"
-                    : "bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] hover:from-[#6B4CE6] hover:to-[#8B7AFF]"
+                    ? "bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A] opacity-60 cursor-wait"
+                    : "bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A] hover:from-[#C2EB22] hover:to-[#C2EB22]"
                 } disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
               >
                 {exportingKind === "mp4" ? (

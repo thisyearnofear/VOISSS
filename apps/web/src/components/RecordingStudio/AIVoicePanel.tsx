@@ -132,8 +132,8 @@ export default function AIVoicePanel({
     <div className="p-6 bg-[#1A1A1A] rounded-2xl border border-[#2A2A2A] shadow-xl space-y-6">
       <div className="flex justify-between items-center bg-[#0F0F0F] -mx-6 -mt-6 p-6 rounded-t-2xl border-b border-[#2A2A2A]">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#7C5DFA]/10 flex items-center justify-center">
-            <svg className="w-5 h-5 text-[#7C5DFA]" fill="currentColor" viewBox="0 0 24 24">
+          <div className="w-10 h-10 rounded-xl bg-[#D6FF2A]/10 flex items-center justify-center">
+            <svg className="w-5 h-5 text-[#D6FF2A]" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z" />
             </svg>
           </div>
@@ -144,7 +144,7 @@ export default function AIVoicePanel({
         </div>
         <div className="text-right">
           <div className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Weekly Logic</div>
-          <span className="text-sm font-medium text-[#7C5DFA]">
+          <span className="text-sm font-medium text-[#D6FF2A]">
             {userTier === 'premium' ? '∞ unlimited' : `${remainingQuota.aiVoice}/${WEEKLY_AI_VOICE_LIMIT} free`}
           </span>
         </div>
@@ -193,7 +193,7 @@ export default function AIVoicePanel({
 
             <button
               disabled={!selectedVoiceFree || !canUseAIVoice() || isGeneratingFree || versions.some(v => v.parentVersionId === activeVersionId && v.source.startsWith('aiVoice-'))}
-              className="w-full px-4 py-3 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-lg text-white disabled:opacity-50 font-medium transition-all duration-200"
+              className="w-full px-4 py-3 bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A] rounded-lg text-[#0A0E1A] disabled:opacity-50 font-medium transition-all duration-200"
               onClick={handleTransformVoice}
             >
               {isGeneratingFree ? (

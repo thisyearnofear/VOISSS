@@ -57,7 +57,7 @@ export default function SaveOptions({
           <div className="flex items-center justify-between mb-3">
             <div>
               <h4 className="text-white font-semibold flex items-center gap-2">
-                <svg className="w-4 h-4 text-[#7C5DFA]" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-[#D6FF2A]" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z" />
                 </svg>
                 Preview Recording
@@ -78,7 +78,7 @@ export default function SaveOptions({
       <div className="mb-6">
         <label
           htmlFor="title"
-          className="block text-lg font-bold text-[#7C5DFA] mb-2 text-center"
+          className="block text-lg font-bold text-[#D6FF2A] mb-2 text-center"
         >
           Recording Title
         </label>

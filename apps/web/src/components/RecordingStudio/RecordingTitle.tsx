@@ -55,7 +55,7 @@ export default function RecordingTitle({
       <div>
         <label
           htmlFor="title"
-          className="block text-lg font-bold text-[#7C5DFA] mb-2 text-center"
+          className="block text-lg font-bold text-[#D6FF2A] mb-2 text-center"
         >
           Recording Title
         </label>

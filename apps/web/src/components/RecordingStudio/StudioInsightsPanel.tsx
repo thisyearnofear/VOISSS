@@ -324,7 +324,7 @@ export default function StudioInsightsPanel({
   const hasVisibleSteps = activeSteps.length > 0 && (isLoading || insights);
 
   return (
-    <div className="bg-[#111111] rounded-2xl p-6 mb-8 border border-purple-500/20 shadow-[0_0_50px_rgba(124,93,250,0.1)] relative overflow-hidden group">
+    <div className="bg-[#111111] rounded-2xl p-6 mb-8 border border-purple-500/20 shadow-[0_0_50px_rgba(214,255,42,0.1)] relative overflow-hidden group">
       <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-600/10 blur-[100px] pointer-events-none" />
 
       <div className="flex items-center justify-between mb-6">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { ConnectModal } from "@/components/auth/ConnectModal";
 
 const PRIMARY_LINKS = [
   { href: "/marketplace", label: "Discover" },
@@ -17,9 +18,9 @@ const SECONDARY_LINKS = [
 
 export function ListeningNav() {
   const pathname = usePathname();
-  const { isAuthenticated, isAuthenticating, isCheckingSession, signIn, signOut } =
-    useAuth();
+  const { isAuthenticated, isAuthenticating, isCheckingSession, signIn, signOut } = useAuth();
   const [authError, setAuthError] = useState<string | null>(null);
+  const [showConnect, setShowConnect] = useState(false);
 
   const handleAuth = async () => {
     setAuthError(null);
@@ -27,7 +28,7 @@ export function ListeningNav() {
       if (isAuthenticated) {
         await signOut();
       } else {
-        await signIn();
+        setShowConnect(true);
       }
     } catch {
       setAuthError("Sign in failed. Please try again.");
@@ -76,6 +77,7 @@ export function ListeningNav() {
           )}
         </div>
       </nav>
+      <ConnectModal open={showConnect} onClose={() => setShowConnect(false)} onConnected={() => { void signIn().catch(() => setAuthError("Sign in failed. Please try again.")); }} />
     </header>
   );
 }

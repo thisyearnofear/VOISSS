@@ -7,12 +7,14 @@ import { useBasename } from "../hooks/useBasename";
 import { useBaseAccount } from "../hooks/useBaseAccount";
 import { Menu, X } from "lucide-react";
 import VoissMascotMark from "./VoissMascotMark";
+import { ConnectModal } from "./auth/ConnectModal";
 
 const ONBOARDING_STORAGE_KEY = "voisss_onboarding_profile";
 const NEW_USER_HINT_KEY = "voisss_new_user_hint_dismissed";
 
 export default function Nav() {
   const { address, isAuthenticated, isAuthenticating, isCheckingSession, signIn, signOut } = useAuth();
+  const [showConnect, setShowConnect] = useState(false);
 
   const { displayName, hasBasename, isLoading: isResolvingBasename } = useBasename(address as `0x${string}` | null);
   const {
@@ -118,7 +120,7 @@ export default function Nav() {
 
   // One funnel, four surfaces: discover → generate → sell → build.
   const navLinks = [
-    { href: "/marketplace", label: "Discover", className: "text-white hover:text-[#9C88FF] transition-colors text-sm font-bold uppercase tracking-wider" },
+    { href: "/marketplace", label: "Discover", className: "text-white hover:text-[#EAFF6A] transition-colors text-sm font-bold uppercase tracking-wider" },
     { href: "/generate", label: "Generate", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
     { href: "/sell", label: "Sell", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
     { href: "/developers", label: "API", className: "text-gray-400 hover:text-white transition-colors text-sm font-medium" },
@@ -175,12 +177,12 @@ export default function Nav() {
                 <div className="hidden sm:flex items-center gap-3">
                   <Link
                     href="/sell"
-                    className="px-4 py-2 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-lg text-white text-sm font-medium hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all duration-200 shadow-lg hover:shadow-purple-500/25"
+                    className="px-4 py-2 bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A] rounded-lg text-[#0A0E1A] text-sm font-medium hover:from-[#C2EB22] hover:to-[#C2EB22] transition-all duration-200 shadow-lg hover:shadow-purple-500/25"
                   >
                     Start Recording
                   </Link>
                   <button
-                    onClick={signIn}
+                    onClick={() => (isAuthenticated ? void 0 : setShowConnect(true))}
                     disabled={isAuthenticating}
                     className="px-3 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium flex items-center gap-1.5"
                   >
@@ -421,14 +423,14 @@ export default function Nav() {
                   <Link
                     href="/sell"
                     onClick={() => setShowMobileMenu(false)}
-                    className="block w-full text-center px-6 py-3 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-lg text-white font-semibold hover:from-[#6B4CE6] hover:to-[#8B7AFF] transition-all"
+                    className="block w-full text-center px-6 py-3 bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A] rounded-lg text-[#0A0E1A] font-semibold hover:from-[#C2EB22] hover:to-[#C2EB22] transition-all"
                   >
                     Start Recording
                   </Link>
                   <button
                     onClick={() => {
                       setShowMobileMenu(false);
-                      signIn();
+                      setShowConnect(true);
                     }}
                     disabled={isAuthenticating}
                     className="block w-full text-center px-6 py-3 border border-[#3A3A3A] rounded-lg text-gray-400 font-medium hover:border-gray-600 hover:text-white transition-all"
@@ -456,6 +458,7 @@ export default function Nav() {
         </div>
       )}
 
+      <ConnectModal open={showConnect} onClose={() => setShowConnect(false)} onConnected={() => { void signIn().catch(() => {}); }} />
     </nav>
   );
 }

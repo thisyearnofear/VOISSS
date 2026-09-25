@@ -29,6 +29,7 @@
     "@types/jsonwebtoken": "9.0.10",
     "@voisss/shared": "workspace:*",
     "@voisss/ui": "link:../../packages/ui",
+    "@walletconnect/ethereum-provider": "2.25.0",
     "ai": "7.0.107",
     "canvas-confetti": "1.9.4",
     "idb": "8.0.3",

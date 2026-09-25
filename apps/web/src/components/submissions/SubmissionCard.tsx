@@ -21,7 +21,7 @@ export default function SubmissionCard({
   return (
     <div
       onClick={onClick}
-      className={`voisss-card group transition-all hover:border-[#7C5DFA] ${
+      className={`voisss-card group transition-all hover:border-[#D6FF2A] ${
         onClick ? "cursor-pointer" : ""
       }`}
     >
@@ -34,7 +34,7 @@ export default function SubmissionCard({
             </p>
           )}
           {showCreator && (
-            <p className="text-sm font-mono text-[#7C5DFA] truncate">
+            <p className="text-sm font-mono text-[#D6FF2A] truncate">
               {submission.userId.slice(0, 6)}...{submission.userId.slice(-4)}
             </p>
           )}
@@ -125,7 +125,7 @@ export default function SubmissionCard({
 
       {/* CTA */}
       {onClick && (
-        <button className="w-full px-3 py-2 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] hover:from-[#6B4CE6] hover:to-[#8B7AFF] text-white text-sm font-medium rounded-lg transition-all group-hover:shadow-lg">
+        <button className="w-full px-3 py-2 bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A] hover:from-[#C2EB22] hover:to-[#C2EB22] text-[#0A0E1A] text-sm font-medium rounded-lg transition-all group-hover:shadow-lg">
           View Details
         </button>
       )}

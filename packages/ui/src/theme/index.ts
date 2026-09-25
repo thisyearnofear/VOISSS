@@ -20,9 +20,9 @@ export const colors = {
     backgroundTertiary: "#2A2A2A",
 
     // Brand
-    primary: "#7C5DFA", // VOISSS purple — the brand color
-    primaryHover: "#6D4AE8",
-    primaryLight: "#9C88FF",
+    primary: "#D6FF2A", // VOISSS purple — the brand color
+    primaryHover: "#C2EB22",
+    primaryLight: "#EAFF6A",
 
     // Accents
     secondary: "#3B82F6", // Blue accent
@@ -44,7 +44,7 @@ export const colors = {
     // Borders
     border: "#2A2A2A",
     borderLight: "#3A3A3A",
-    borderFocus: "#7C5DFA",
+    borderFocus: "#D6FF2A",
 
     // Surfaces (for RN compatibility — map to actual bg values)
     card: "#1A1A1A",
@@ -54,7 +54,7 @@ export const colors = {
     overlay: "rgba(0, 0, 0, 0.7)",
 
     // Legacy aliases (maintain RN compatibility, point to actual values)
-    waveform: "#7C5DFA",
+    waveform: "#D6FF2A",
     waveformBackground: "#2A2A2A",
     inactive: "#4A4A4A",
     disabled: "#4A4A4A",
@@ -67,7 +67,7 @@ export const colors = {
   light: {
     background: "#FFFFFF",
     text: "#000000",
-    primary: "#7C5DFA",
+    primary: "#D6FF2A",
     secondary: "#4B5563",
     accent: "#10B981",
     error: "#DC2626",
@@ -109,9 +109,9 @@ export const borderRadius = {
 export const typography = {
   fontFamily: {
     sans: "var(--font-inter), system-ui, sans-serif",
-    display: "var(--font-syne), sans-serif",
-    mono: "var(--font-courier-prime), monospace",
-    accent: "var(--font-anton), Impact, sans-serif",
+    display: "var(--font-display), Georgia, serif",
+    mono: "var(--font-mono), ui-monospace, monospace",
+    accent: "var(--font-display), Georgia, serif",
   },
   sizes: {
     xs: 12,

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Anton, Syne, Courier_Prime } from "next/font/google";
+import { Inter, Instrument_Serif, IBM_Plex_Mono } from "next/font/google";
 import { BaseProvider } from "./providers";
 import ScrollLife from "../components/ScrollLife";
 import { ReferralTracker } from "./referral-tracker";
@@ -18,27 +18,21 @@ if (typeof window === 'undefined') {
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
-  display: 'swap',
+  display: "swap",
 });
 
-const anton = Anton({
-  weight: '400',
-  variable: "--font-anton",
+const instrumentSerif = Instrument_Serif({
+  weight: "400",
+  variable: "--font-display",
   subsets: ["latin"],
-  display: 'swap',
+  display: "swap",
 });
 
-const syne = Syne({
-  variable: "--font-syne",
+const plexMono = IBM_Plex_Mono({
+  weight: ["400", "500", "600"],
+  variable: "--font-mono",
   subsets: ["latin"],
-  display: 'swap',
-});
-
-const courierPrime = Courier_Prime({
-  weight: ['400', '700'],
-  variable: "--font-courier-prime",
-  subsets: ["latin"],
-  display: 'swap',
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -110,7 +104,7 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#7C5DFA",
+  themeColor: "#0A0E1A",
 };
 
 export default function RootLayout({
@@ -171,7 +165,7 @@ export default function RootLayout({
         )}
       </head>
       <body
-        className={`${inter.variable} ${anton.variable} ${syne.variable} ${courierPrime.variable} antialiased font-sans`}
+        className={`${inter.variable} ${instrumentSerif.variable} ${plexMono.variable} antialiased font-sans`}
         suppressHydrationWarning={true}
       >
         <BaseProvider>

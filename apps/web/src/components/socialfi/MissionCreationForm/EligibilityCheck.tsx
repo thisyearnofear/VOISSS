@@ -50,7 +50,7 @@ export default function EligibilityCheck({}: EligibilityCheckProps) {
   if (isCheckingEligibility || isLoadingVoisss) {
     return (
       <div className="voisss-card text-center py-8">
-        <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-[#7C5DFA] to-[#9C88FF] rounded-full mb-4">
+        <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-[#D6FF2A] to-[#EAFF6A] rounded-full mb-4">
           <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
         </div>
         <p className="text-gray-400">Checking your eligibility...</p>
@@ -91,7 +91,7 @@ export default function EligibilityCheck({}: EligibilityCheckProps) {
             if (refreshCreatorStatus) refreshCreatorStatus();
             if (refreshBalance) refreshBalance();
           }}
-          className="px-6 py-3 bg-gradient-to-r from-[#7C5DFA] to-[#9C88FF] rounded-lg text-white font-semibold hover:opacity-90 transition-opacity"
+          className="px-6 py-3 bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A] rounded-lg text-[#0A0E1A] font-semibold hover:opacity-90 transition-opacity"
         >
           Retry Balance Check
         </button>

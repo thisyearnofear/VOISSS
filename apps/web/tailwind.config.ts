@@ -39,20 +39,20 @@ const config: Config = {
         },
       },
       colors: {
-        // VOISSS brand colors — aligned with canonical theme
+        // Night Signal — acid lime single accent, navy ink, linen paper
         voisss: {
-          primary: '#7C5DFA',
-          'primary-hover': '#6D4AE8',
-          'primary-light': '#9C88FF',
-          secondary: '#3B82F6',
-          success: '#22C55E',
+          primary: '#D6FF2A',
+          'primary-hover': '#C2EB22',
+          'primary-light': '#EAFF6A',
+          secondary: '#22d3ee',
+          success: '#22d3ee',
           error: '#EF4444',
           warning: '#F59E0B',
         },
         surface: {
-          DEFAULT: '#0A0A0A',
-          secondary: '#1A1A1A',
-          tertiary: '#2A2A2A',
+          DEFAULT: '#0A0E1A',
+          secondary: '#111827',
+          tertiary: '#1E293B',
         },
         cyan: {
           300: '#67e8f9',
@@ -115,10 +115,10 @@ const config: Config = {
         lr: 'var(--lr-duration)',
       },
       fontFamily: {
-        display: ['var(--font-syne)', 'sans-serif'],
+        display: ['var(--font-display)', 'Georgia', 'serif'],
         body: ['var(--font-inter)', 'sans-serif'],
-        mono: ['var(--font-courier-prime)', 'monospace'],
-        accent: ['var(--font-anton)', 'Impact', 'sans-serif'],
+        mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
+        accent: ['var(--font-display)', 'Georgia', 'serif'],
       },
     },
   },
