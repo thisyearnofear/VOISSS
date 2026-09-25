@@ -62,7 +62,7 @@ const LICENSE_OPTIONS = [
   { value: "exclusive", label: "Exclusive" },
 ];
 
-function FilterSelect({
+function PillSelect({
   label,
   value,
   onChange,
@@ -73,20 +73,22 @@ function FilterSelect({
   onChange: (val: string) => void;
   options: { value: string; label: string }[];
 }) {
-  const id = `filter-${label.toLowerCase()}`;
   return (
-    <div>
-      <label htmlFor={id} className="lr-label" style={{ color: "var(--lr-muted)" }}>
-        {label}
-      </label>
-      <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className="lr-select">
+    <label className="inline-flex items-center gap-1.5">
+      <span className="sr-only">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 pr-7 font-mono text-[11px] font-medium text-white/70 focus:border-[#D6FF2A]/40 focus:outline-none focus:ring-1 focus:ring-[#D6FF2A]/20"
+        aria-label={label}
+      >
         {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
+          <option key={opt.value} value={opt.value} className="bg-[#0A0E1A] text-white">
             {opt.label}
           </option>
         ))}
       </select>
-    </div>
+    </label>
   );
 }
 
@@ -101,7 +103,7 @@ function DimensionStrip({ levels }: { levels?: Record<string, number> }) {
     ["intimacy", "intimacy"],
   ];
   return (
-    <div className="mt-2 flex flex-wrap gap-1.5">
+    <div className="flex flex-wrap gap-1.5">
       {order.map(([dim, short]) => {
         const v = levels[dim];
         if (v == null) return null;
@@ -132,7 +134,7 @@ export default function MarketplaceInstrument() {
   const [match, setMatch] = useState<VoiceMatchResult | null>(null);
   const [matchLoading, setMatchLoading] = useState(false);
   const [matchUnavailable, setMatchUnavailable] = useState(false);
-  // agentic HUD: show Thinking while brief is being matched, then Insights
+  const [showTrends, setShowTrends] = useState(false);
   const [thinkingKey, setThinkingKey] = useState(0);
 
   const brief = draft.brief;
@@ -144,8 +146,6 @@ export default function MarketplaceInstrument() {
     initWebMCP().catch(console.error);
   }, []);
 
-  // Deep-link: /marketplace?brief=... from homepage Cmd+K / shared links
-  // ListeningRoom hydrates from sessionStorage async, so gate on ready.
   const hydratedFromParams = useRef(false);
   useEffect(() => {
     if (!ready || hydratedFromParams.current) return;
@@ -160,7 +160,6 @@ export default function MarketplaceInstrument() {
     hydratedFromParams.current = true;
   }, [ready, updateDraft]);
 
-  // Keep URL in sync so share/back preserves the brief
   useEffect(() => {
     if (!hydratedFromParams.current) return;
     const q = brief.trim();
@@ -168,7 +167,6 @@ export default function MarketplaceInstrument() {
     window.history.replaceState(null, "", url);
   }, [brief]);
 
-  // Jev intent matching — Thinking streams while we wait
   useEffect(() => {
     setMatch(null);
     if (brief.trim().length < 3 || matchUnavailable) {
@@ -288,114 +286,106 @@ export default function MarketplaceInstrument() {
   };
 
   return (
-    <main id="listening-main">
-      {/* ── Sticky loom header: the instrument you type into ──────────────── */}
-      <section className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#0A0E1A]/92 backdrop-blur-xl">
+    <main id="listening-main" className="bg-[#0A0E1A] text-white overflow-x-clip">
+      {/* ── Loom — the only header. Single frame, single scanline. ──────── */}
+      <section className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#0A0E1A]/96 backdrop-blur-xl">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D6FF2A]/30 to-transparent" aria-hidden />
         <div className="lr-wrap relative flex flex-col gap-3 py-3 sm:py-4">
-          {/* single lime hairline — was double with hud-frame scan */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D6FF2A]/30 to-transparent" aria-hidden />
-
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#D6FF2A]/20 bg-[#D6FF2A]/10 px-2 py-1 font-mono text-[10px] font-bold tracking-[0.14em] text-[#0A0E1A]">
+          {/* meta row — not a frame, just type */}
+          <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[11px]">
+            <span className="inline-flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#D6FF2A]/20 bg-[#D6FF2A]/10 px-2 py-1 text-[10px] font-bold tracking-[0.14em] text-[#0A0E1A]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#0A0E1A] animate-pulse" /> LOOM · LIVE
               </span>
-              <span className="hidden sm:inline font-mono text-[11px] text-white/45">drag a card to pull the weave</span>
-            </div>
-            <div className="flex items-center gap-2 font-mono text-[11px] text-white/40">
+              <span className="hidden sm:inline text-white/40">brief is the filter · drag a card past 60% to inspect</span>
+            </span>
+            <span className="inline-flex items-center gap-2 text-white/40">
               <span className="hidden sm:inline">rubric v1.0 · 6 dims · s/01–04</span>
-              <span className="voisss-phosphor text-[11px]">{totalVoices} VOICES</span>
-            </div>
+              <span className="voisss-phosphor text-white">{totalVoices} VOICES</span>
+            </span>
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-[1.35fr_0.85fr] items-start">
-            {/* console — single honest frame: the input itself carries the border */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3 sm:px-4 sm:py-3">
-              <label htmlFor="marketplace-brief" className="block font-mono text-[10px] tracking-[0.14em] text-white/40 mb-1.5">
-                DESCRIBE THE VOICE YOU NEED
-              </label>
-              <div className="flex gap-2">
-                <input
-                  id="marketplace-brief"
-                  type="text"
-                  className="lr-input flex-1 min-w-0"
-                  value={brief}
-                  onChange={(e) => updateDraft({ brief: e.target.value.slice(0, 500) })}
-                  placeholder='e.g. "warm narrator for a meditation app, unhurried"'
-                  maxLength={500}
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-                <button
-                  type="button"
-                  onClick={() => setThinkingKey((k) => k + 1)}
-                  className="hidden sm:inline-flex shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] px-3 font-mono text-xs text-white/70 hover:bg-white/10 hover:text-white transition-colors"
-                  aria-label="Re-run match"
-                >
-                  Match
-                </button>
-              </div>
-
-              <div className="mt-2.5 flex flex-wrap items-center gap-1.5 min-h-[22px]" role="status" aria-live="polite">
-                {matchLoading && <span className="font-mono text-xs text-white/50">matching…</span>}
-                {matchUnavailable && (
-                  <span className="font-mono text-xs text-white/50">
-                    Matching unavailable · browsing only · <Chip onClick={() => setMatchUnavailable(false)}>Retry</Chip>
-                  </span>
-                )}
-                {match?.archetype && !matchUnavailable && !matchLoading && (
-                  <Badge>rubric: {match.archetype}</Badge>
-                )}
-                {match?.meta?.latencyMs != null && !matchLoading && (
-                  <span className="font-mono text-[11px] text-white/30">· {match.meta.latencyMs}ms · {match.meta.questionCount ?? "—"} questions</span>
-                )}
-                {ceremonyId && topVoice && !matchLoading && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#D6FF2A]/30 bg-[#D6FF2A]/10 px-2 py-1 text-xs text-[#0A0E1A]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#0A0E1A] animate-pulse" />
-                    Best: <strong>{voiceDisplayName(topVoice)}</strong>
-                  </span>
-                )}
-              </div>
+          {/* single honest instrument — input + filters + twin strip in one frame */}
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3 sm:px-4 sm:py-4">
+            <label htmlFor="marketplace-brief" className="block font-mono text-[10px] tracking-[0.14em] text-white/40 mb-1.5">
+              DESCRIBE THE VOICE YOU NEED
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="marketplace-brief"
+                type="text"
+                className="lr-input flex-1 min-w-0 text-sm"
+                value={brief}
+                onChange={(e) => updateDraft({ brief: e.target.value.slice(0, 500) })}
+                placeholder='e.g. "warm narrator for a meditation app, unhurried"'
+                maxLength={500}
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <button
+                type="button"
+                onClick={() => setThinkingKey((k) => k + 1)}
+                className="hidden sm:inline-flex shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] px-3 font-mono text-xs text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+                aria-label="Re-run match"
+              >
+                Match
+              </button>
             </div>
 
-            {/* Agentic twin — Thinking streams here; idle is dashed/air to reduce hierarchy fight */}
-            <div className={`${matchLoading || (match?.dimensionLevels && topMatchId) ? "voisss-hud-frame" : "voisss-hud-frame voisss-hud-frame--idle"} min-h-[120px] p-3 sm:p-4 flex items-start justify-center overflow-hidden`}>
-              {matchLoading ? (
-                <ThinkingState key={`thinking-${thinkingKey}`} variant="Reasoning" />
-              ) : match?.dimensionLevels && topMatchId ? (
-                <div className="w-full">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="font-mono text-[10px] tracking-[0.14em] text-white/35">AGENT TWIN · INSIGHTS</span>
-                    <span className="font-mono text-[11px] text-white/40">6 dims for {voiceDisplayName(topVoice!)}</span>
-                  </div>
-                  <DimensionStrip levels={match.dimensionLevels?.[topMatchId]} />
-                  {/* mini InsightCards — honest, not flashy */}
-                  <div className="mt-3 hidden sm:block">
-                    <div className="grid grid-cols-3 gap-2 font-mono text-[10px]">
-                      {[
-                        { k: "licenses", v: totalLicenses.toLocaleString() },
-                        { k: "uses", v: totalUsage.toLocaleString() },
-                        { k: "archetype", v: match?.archetype ?? "—" },
-                      ].map((c) => (
-                        <div key={c.k} className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-2">
-                          <div className="text-white/40 tracking-wide">{c.k}</div>
-                          <div className="mt-0.5 text-sm font-bold text-white tabular-nums">{c.v}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+            {/* inline loom controls — filter is the brief, these are refinements */}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <PillSelect label="Language" value={filters.language} onChange={(v) => setFilters({ ...filters, language: v })} options={LANGUAGE_OPTIONS} />
+              <PillSelect label="Tone" value={filters.tone} onChange={(v) => setFilters({ ...filters, tone: v })} options={TONE_OPTIONS} />
+              <PillSelect label="License" value={filters.licenseType} onChange={(v) => setFilters({ ...filters, licenseType: v })} options={LICENSE_OPTIONS} />
+              {activeFilterCount > 0 ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="font-mono text-[11px] text-white/35">{activeFilterCount} refined</span>
+                  <button type="button" onClick={() => setFilters({ language: "", tone: "", licenseType: "" })} className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 font-mono text-[11px] text-white/60 hover:text-white hover:border-white/15 transition-colors">
+                    Clear
+                  </button>
+                </span>
               ) : (
-                <div className="w-full py-2 text-center">
-                  <p className="font-mono text-xs text-white/50">Type a brief — the agent twin scores here.</p>
-                  <p className="mt-1 font-mono text-[11px] text-white/30">Try “calm narration” or “an energetic ad”.</p>
-                  <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-                    {["Calm narration", "A warm welcome", "An energetic ad"].map((s) => (
-                      <Chip key={s} onClick={() => updateDraft({ brief: s })}>
-                        {s}
-                      </Chip>
-                    ))}
+                <span className="font-mono text-[11px] text-white/25">filters refine the loom</span>
+              )}
+              <span className="ml-auto hidden sm:inline-flex items-center gap-1.5 font-mono text-[11px] text-white/30">
+                <span className="h-1 w-1 rounded-full bg-white/20" aria-hidden /> {displayedVoices.length} woven
+              </span>
+            </div>
+
+            {/* twin strip — not a second frame, just a rule + inline content */}
+            <div className="mt-3 border-t border-white/[0.06] pt-3">
+              {matchLoading ? (
+                <div className="flex items-center gap-2">
+                  <ThinkingState key={`thinking-${thinkingKey}`} variant="Steps" />
+                  <span className="hidden sm:inline font-mono text-xs text-white/30">scoring 6 dims…</span>
+                </div>
+              ) : match?.dimensionLevels && topMatchId && topVoice ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
+                    <span className="text-white/35 tracking-[0.12em] text-[10px]">AGENT TWIN · 6 DIMS — {voiceDisplayName(topVoice)}</span>
+                    {match.archetype && <Badge className="border-[#D6FF2A]/30 text-[#EAFF6A]">rubric: {match.archetype}</Badge>}
+                    {match.meta?.latencyMs != null && <span className="text-white/25">· {match.meta.latencyMs}ms · {match.meta.questionCount ?? "—"} q</span>}
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#D6FF2A]/30 bg-[#D6FF2A]/10 px-2 py-0.5 text-[11px] font-bold text-[#0A0E1A]">
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#0A0E1A] animate-pulse" /> {voiceDisplayName(topVoice)}
+                    </span>
                   </div>
+                  <DimensionStrip levels={match.dimensionLevels[topMatchId]} />
+                </div>
+              ) : matchUnavailable ? (
+                <p className="font-mono text-xs text-white/50">
+                  Matching unavailable · browsing only ·{" "}
+                  <button type="button" onClick={() => setMatchUnavailable(false)} className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[11px] text-white/70 hover:text-white">
+                    Retry
+                  </button>
+                </p>
+              ) : (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="font-mono text-xs text-white/30">Type a brief — the agent twin scores here · try</span>
+                  {["Calm narration", "A warm welcome", "An energetic ad"].map((s) => (
+                    <Chip key={s} onClick={() => updateDraft({ brief: s })}>
+                      {s}
+                    </Chip>
+                  ))}
                 </div>
               )}
             </div>
@@ -403,122 +393,117 @@ export default function MarketplaceInstrument() {
         </div>
       </section>
 
-      {/* ── Hero field behind loom (subtle) ────────────────────────────────── */}
-      <section className="lr-discover-hero lr-dark voisss-frame voisss-terrain-bg !m-0 !rounded-none !border-0 overflow-visible">
-        <VoiceTerrain />
-        <div className="lr-hero-scrim" aria-hidden />
-      </section>
+      {/* ── Field — terrain behind the loom's output, not a second hero ───── */}
+      <div className="relative">
+        {/* subtle terrain wash behind grid only — not a hero, just memory */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] overflow-hidden opacity-[0.22]" aria-hidden>
+          <VoiceTerrain />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0A0E1A] via-transparent to-[#0A0E1A]" />
+        </div>
 
-      <div className="lr-wrap py-6">
-        {/* Filters */}
-        <Disclosure title={<span>Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}</span>} style={{ borderTop: "none", paddingTop: 0 }}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <FilterSelect label="Language" value={filters.language} onChange={(v) => setFilters({ ...filters, language: v })} options={LANGUAGE_OPTIONS} />
-            <FilterSelect label="Tone" value={filters.tone} onChange={(v) => setFilters({ ...filters, tone: v })} options={TONE_OPTIONS} />
-            <FilterSelect label="License" value={filters.licenseType} onChange={(v) => setFilters({ ...filters, licenseType: v })} options={LICENSE_OPTIONS} />
-            <div className="flex items-end">
-              <Button variant="ghost" onClick={() => setFilters({ language: "", tone: "", licenseType: "" })}>
-                Clear all
-              </Button>
+        <div className="lr-wrap relative py-5 sm:py-6">
+          {draft.shortlist.length > 0 && (
+            <section className="mb-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3 sm:p-4" aria-label="Compare catalog samples">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="font-display text-sm font-bold">Compare · {draft.shortlist.length}/3</h2>
+                <Chip onClick={() => updateDraft({ shortlist: [] })}>Clear</Chip>
+                <span className="ml-auto font-mono text-[11px] text-white/30">{shortlistFull ? "Remove one to add another" : "Samples may use different scripts"}</span>
+              </div>
+              {unavailableShortlist > 0 && <p className="mt-1 font-mono text-xs text-white/40">{unavailableShortlist} saved selection{unavailableShortlist !== 1 ? "s are" : " is"} no longer in catalog.</p>}
+              <div className="mt-3 grid gap-2">
+                {shortlistedVoices.map((voice) => (
+                  <VoiceAuditionRow key={voice.id} voice={voice} onPlayed={(v) => trackMatchEvent("voice_preview", v.id)} actions={<button type="button" className="lr-shortlist" aria-pressed="true" onClick={() => toggleShortlist(voice.id)}><Check className="w-4 h-4" aria-hidden /></button>} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {error && <Notice tone="error">{error} <Chip onClick={() => void query.refetch()}>Retry</Chip></Notice>}
+
+          {loading ? (
+            <div className="lr-list" role="status">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="lr-card" style={{ minHeight: "7rem", opacity: 0.5 }}>Loading…</div>
+              ))}
             </div>
-          </div>
-        </Disclosure>
+          ) : displayedVoices.length > 0 ? (
+            <UnwovenGrid voices={displayedVoices} topMatchId={topMatchId} ceremonyId={ceremonyId} reasonsById={match?.reasons ?? {}} dimensionLevelsById={match?.dimensionLevels ?? {}} shortlistButton={shortlistButton} onPlayed={(v) => trackMatchEvent("voice_preview", v.id)} />
+          ) : (
+            !error && (
+              <Notice>
+                {activeFilterCount > 0 ? (
+                  <>
+                    <p style={{ margin: 0 }}>No voices matched these refinements — the brief still holds.</p>
+                    <Chip style={{ marginTop: "0.5rem" }} onClick={() => setFilters({ language: "", tone: "", licenseType: "" })}>Clear refinements</Chip>
+                  </>
+                ) : (
+                  <p style={{ margin: 0 }}>
+                    No voices are listed in the catalog yet. <Link href="/sell" style={{ color: "var(--lr-accent)" }}>Contributors can record and publish in the Studio →</Link>
+                  </p>
+                )}
+              </Notice>
+            )
+          )}
 
-        {draft.shortlist.length > 0 && (
-          <section className="lr-compare" aria-label="Compare catalog samples" style={{ marginBottom: "1.5rem", marginTop: "1rem" }}>
-            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.75rem" }}>
-              <h2 style={{ fontFamily: "var(--lr-font-display)", fontWeight: 700, fontSize: "1.125rem", margin: 0 }}>
-                Compare samples · {draft.shortlist.length}/3
-              </h2>
-              <Chip onClick={() => updateDraft({ shortlist: [] })}>Clear comparison</Chip>
+          {/* ── Single mono rule — the only footer. No disclosures. ───────── */}
+          <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-white/[0.06] pt-4 font-mono text-[11px] text-white/30">
+            <span className="inline-flex flex-wrap gap-2">
+              <span className="text-white/50">{totalVoices} voices</span> · {totalLicenses} licenses · {totalUsage.toLocaleString()} uses
+              <span className="hidden sm:inline">· 70% contributor / 30% protocol · <span className="voisss-phosphor text-[11px]">platformFeeBps 3000</span> · VoiceLicenseMarket.sol · Base 8453</span>
+            </span>
+            <span className="ml-auto inline-flex items-center gap-2">
+              <span className="hidden sm:inline text-white/20">inspect on-card: source · trust · TxHash →</span>
+              <button type="button" onClick={() => setShowTrends((v) => !v)} className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] text-white/50 hover:text-white hover:border-white/15 transition-colors">
+                {showTrends ? "Hide" : "Market"} intelligence {showTrends ? "↑" : "→"}
+              </button>
+              <Link href="/developers" className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-white/50 hover:text-white transition-colors">API →</Link>
+            </span>
+          </div>
+
+          {/* inline intelligence — one block, toggle, not a Disclosure */}
+          {showTrends && (
+            <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+              <VoiceMarketTrends />
             </div>
-            <p className="lr-quiet" style={{ marginTop: "0.25rem" }}>
-              {unavailableShortlist > 0
-                ? `${unavailableShortlist} saved selection${unavailableShortlist !== 1 ? "s are" : " is"} no longer in the catalog.`
-                : "Samples may use different scripts. Use the workspace to try your own words."}
-            </p>
-            {shortlistFull && <p className="lr-quiet" style={{ marginTop: "0.25rem" }}>Choose up to three voices. Remove one to add another.</p>}
-            {shortlistedVoices.map((voice) => (
-              <VoiceAuditionRow key={voice.id} voice={voice} onPlayed={(v) => trackMatchEvent("voice_preview", v.id)} actions={<button type="button" className="lr-shortlist" aria-pressed="true" onClick={() => toggleShortlist(voice.id)}><Check className="w-4 h-4" aria-hidden /></button>} />
-            ))}
-          </section>
-        )}
+          )}
 
-        {error && <Notice tone="error">{error} <Chip onClick={() => void query.refetch()}>Retry</Chip></Notice>}
-
-        {loading ? (
-          <div className="lr-list" role="status">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="lr-card" style={{ minHeight: "7rem", opacity: 0.5 }}>Loading…</div>
-            ))}
-          </div>
-        ) : displayedVoices.length > 0 ? (
-          <UnwovenGrid voices={displayedVoices} topMatchId={topMatchId} ceremonyId={ceremonyId} reasonsById={match?.reasons ?? {}} dimensionLevelsById={match?.dimensionLevels ?? {}} shortlistButton={shortlistButton} onPlayed={(v) => trackMatchEvent("voice_preview", v.id)} />
-        ) : (
-          !error && (
-            <Notice>
-              {activeFilterCount > 0 ? (
-                <>
-                  <p style={{ margin: 0 }}>No voices matched these filters.</p>
-                  <Chip style={{ marginTop: "0.5rem" }} onClick={() => setFilters({ language: "", tone: "", licenseType: "" })}>Clear filters</Chip>
-                </>
-              ) : (
-                <p style={{ margin: 0 }}>
-                  No voices are listed in the catalog yet. <Link href="/sell" style={{ color: "var(--lr-accent)" }}>Contributors can record and publish in the Studio →</Link>
-                </p>
-              )}
-            </Notice>
-          )
-        )}
-
-        {/* Catalog stats, payments & trends */}
-        <Disclosure title="Catalog stats, payments & trends" style={{ marginTop: "2rem" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginBottom: "1rem" }}>
-            <Badge>{totalVoices} voices</Badge>
-            <Badge>{totalLicenses} licenses sold</Badge>
-            <Badge>{totalUsage.toLocaleString()} total uses</Badge>
-            {match?.archetype && <Badge className="border-[#D6FF2A]/30 text-[#EAFF6A]">rubric: {match.archetype}</Badge>}
-          </div>
           {isAuthenticated && (
-            <div className="mb-4 max-w-2xl">
+            <div className="mt-4 max-w-2xl">
               <BuyerCreditsStrip agentRegistryAddress={(process.env.NEXT_PUBLIC_AGENT_REGISTRY_CONTRACT as string) || "0xBE857DB4B4bD71a8bf8f50f950eecD7dDe68b85c"} />
             </div>
           )}
-          <div className="lr-legacy-inset">
-            <div className="mb-4 max-w-2xl">
-              <DismissibleRuntimeTracks bankrCompact dynamicCompact={!isAuthenticated} storageKey="voisss_runtime_marketplace" />
-            </div>
-            {/* Inspectable chain peek — every voice's settlement weight */}
-            <div className="mb-6 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                <div className="font-mono text-[10px] tracking-[0.14em] text-white/40">SETTLEMENT OBJECT</div>
-                <p className="mt-2 font-mono text-xs leading-relaxed text-white/60">
-                  <span className="text-white">License purchase</span> → 70% contributor / 30% protocol · <span className="voisss-phosphor">platformFeeBps 3000</span> · VoiceLicenseMarket.sol
-                </p>
-                <p className="mt-1 font-mono text-xs leading-relaxed text-white/60">
-                  <span className="text-white">Per-use vocalize</span> → 95% creator / 5% platform · <span className="voisss-phosphor">platformFeePercent 5</span> · VoiceRecords.sol
-                </p>
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10 flex">
-                  <div className="h-full bg-[#D6FF2A]" style={{ width: "70%" }} />
-                  <div className="h-full bg-[#22D3EE] flex-1" />
-                </div>
-                <p className="mt-1 font-mono text-[10px] text-white/30">drag the proportion — the split is on-chain</p>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                <div className="font-mono text-[10px] tracking-[0.14em] text-white/40">PROVENANCE · ON-CARD</div>
-                <p className="mt-2 font-mono text-xs leading-relaxed text-white/60">
-                  Every card exposes <span className="text-white">source</span>, <span className="text-white">trust badge</span>, and <span className="voisss-phosphor">TxHash</span> → Basescan. Pull the weave to reveal.
-                </p>
-                <div className="mt-3 flex flex-wrap gap-1.5 font-mono text-[11px]">
-                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/50">source: envio / rpc / catalog</span>
-                  <span className="rounded-full border border-[#D6FF2A]/20 bg-[#D6FF2A]/10 px-2 py-0.5 text-[#0A0E1A]">verified</span>
-                  <span className="voisss-phosphor rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[11px]">0xBE85…85c</span>
-                </div>
-              </div>
-            </div>
-            <VoiceMarketTrends />
+          <div className="mt-4 max-w-2xl">
+            <DismissibleRuntimeTracks bankrCompact dynamicCompact={!isAuthenticated} storageKey="voisss_runtime_marketplace" />
           </div>
-        </Disclosure>
+
+          {/* trust · settlement — not a disclosure, just two quiet cards */}
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="font-mono text-[10px] tracking-[0.14em] text-white/40">SETTLEMENT OBJECT</div>
+              <p className="mt-2 font-mono text-xs leading-relaxed text-white/60">
+                <span className="text-white">License purchase</span> → 70% contributor / 30% protocol · <span className="voisss-phosphor">platformFeeBps 3000</span> · VoiceLicenseMarket.sol
+              </p>
+              <p className="mt-1 font-mono text-xs leading-relaxed text-white/60">
+                <span className="text-white">Per-use vocalize</span> → 95% creator / 5% platform · <span className="voisss-phosphor">platformFeePercent 5</span> · VoiceRecords.sol
+              </p>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10 flex">
+                <div className="h-full bg-[#D6FF2A]" style={{ width: "70%" }} />
+                <div className="h-full bg-[#22D3EE] flex-1" />
+              </div>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="font-mono text-[10px] tracking-[0.14em] text-white/40">PROVENANCE · ON-CARD</div>
+              <p className="mt-2 font-mono text-xs leading-relaxed text-white/60">
+                Every card exposes <span className="text-white">source</span>, <span className="text-white">trust badge</span>, and <span className="voisss-phosphor">TxHash</span> → Basescan. Pull the weave to reveal.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-1.5 font-mono text-[11px]">
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/50">source: envio / rpc / catalog</span>
+                <span className="rounded-full border border-[#D6FF2A]/20 bg-[#D6FF2A]/10 px-2 py-0.5 text-[#0A0E1A]">verified</span>
+                <span className="voisss-phosphor rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[11px]">0xBE85…85c</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <LicensePurchaseModal
