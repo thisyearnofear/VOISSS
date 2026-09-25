@@ -349,3 +349,6 @@ output.txt
 
 output/
 .kite-passport/
+
+# Local Netlify folder
+.netlify
