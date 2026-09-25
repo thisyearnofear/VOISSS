@@ -19,6 +19,7 @@ import { getSettleSplit, pulseVoice, setSettleSplit } from "@/lib/terrain-bus";
 import { DismissibleRuntimeTracks } from "@/components/payment/RuntimePaymentChips";
 import ThinkingState from "@/components/ui/agentic/ThinkingState";
 import rubric from "@/lib/matching/rubric.v1.json";
+import { heuristicMatch, getSettlementHint } from "@/lib/matching/heuristic";
 
 type VoiceMatchResult = {
   scores: Record<string, number>;
@@ -38,6 +39,8 @@ type VoiceMatchResult = {
     model?: string;
     provider?: string;
     usage?: { input_tokens?: number; output_tokens?: number } | null;
+    fallback?: boolean;
+    jevError?: string;
   };
 };
 
@@ -133,6 +136,19 @@ function WarpHUD({ levels, archetypeKey }: { levels: Record<string, number>; arc
   );
 }
 
+function toScorable(v: MarketplaceVoice) {
+  return {
+    id: v.id,
+    title: v.metadata?.title,
+    tone: v.voiceProfile?.tone,
+    pitch: v.voiceProfile?.pitch,
+    language: v.voiceProfile?.language,
+    accent: v.voiceProfile?.accent,
+    tags: v.voiceProfile?.tags,
+    licenseType: v.licenseType,
+  };
+}
+
 export default function MarketplaceInstrument() {
   const { isAuthenticated } = useAuth();
   const { draft, ready, updateDraft, toggleShortlist } = useListeningRoom();
@@ -142,6 +158,8 @@ export default function MarketplaceInstrument() {
   const [match, setMatch] = useState<VoiceMatchResult | null>(null);
   const [matchLoading, setMatchLoading] = useState(false);
   const [matchUnavailable, setMatchUnavailable] = useState(false);
+  const [gptMeta, setGptMeta] = useState<{ latencyMs?: number; tokens?: number; provider?: string } | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
   const brief = draft.brief;
   const loading = query.isLoading;
   const [showTrends, setShowTrends] = useState(false);
@@ -208,14 +226,22 @@ export default function MarketplaceInstrument() {
 
   useEffect(() => {
     setMatch(null);
+    setGptMeta(null);
     if (brief.trim().length < 3 || matchUnavailable) {
       setMatchLoading(false);
+      return;
+    }
+    // Don't burn Jev while catalog is still loading — wait for voices so
+    // heuristic fallback has a roster to replay against.
+    if (voices.length === 0 && query.isLoading) {
+      setMatchLoading(true);
       return;
     }
     setThinkingKey((k) => k + 1);
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       setMatchLoading(true);
+      const scorables = voices.slice(0, 40).map(toScorable);
       try {
         const res = await fetch("/api/marketplace/voice-match", {
           method: "POST",
@@ -225,12 +251,52 @@ export default function MarketplaceInstrument() {
         });
         const data = await res.json();
         if (controller.signal.aborted) return;
-        if (data.success) setMatch(data.data);
-        else setMatchUnavailable(true);
+        if (data.success) {
+          setMatch(data.data);
+          setMatchUnavailable(false);
+          // Fire-and-forget GPT compare for the Jev vs GPT × badge — never blocks ranking.
+          if (data.data?.meta?.provider !== "heuristic") {
+            fetch("/api/marketplace/voice-match-gpt", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ brief: brief.trim() }),
+              signal: controller.signal,
+            })
+              .then((r) => r.json())
+              .then((d) => {
+                if (controller.signal.aborted) return;
+                if (d.success) {
+                  const m = d.data?.meta;
+                  setGptMeta({
+                    latencyMs: m?.latencyMs,
+                    tokens: (m?.usage?.input_tokens ?? 0) + (m?.usage?.output_tokens ?? 0),
+                    provider: m?.provider,
+                  });
+                }
+              })
+              .catch(() => {});
+          } else {
+            setGptMeta(null);
+          }
+        } else {
+          // Server returned failure — instant local rubric replay so loom never dead-ends
+          const h = heuristicMatch(brief.trim(), scorables, { jevError: data.error ?? "jev_failed" });
+          setMatch(h as unknown as VoiceMatchResult);
+          setGptMeta(null);
+        }
       } catch (e) {
         if (!controller.signal.aborted) {
-          console.error("Voice match failed:", e);
-          setMatchUnavailable(true);
+          console.warn("Voice match fetch failed, falling back to heuristic:", e);
+          try {
+            const h = heuristicMatch(brief.trim(), scorables, {
+              jevError: e instanceof Error ? e.message.slice(0, 120) : "network",
+            });
+            setMatch(h as unknown as VoiceMatchResult);
+            setGptMeta(null);
+          } catch (he) {
+            console.error("Heuristic fallback also failed:", he);
+            setMatchUnavailable(true);
+          }
         }
       } finally {
         if (!controller.signal.aborted) setMatchLoading(false);
@@ -240,7 +306,14 @@ export default function MarketplaceInstrument() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [brief, matchUnavailable]);
+  }, [brief, matchUnavailable, voices, query.isLoading, retryNonce]);
+
+  const retryJev = () => {
+    setMatchUnavailable(false);
+    setMatch(null);
+    setGptMeta(null);
+    setRetryNonce((n) => n + 1);
+  };
 
   const trackMatchEvent = (event: string, voiceId: string) => {
     fetch("/api/marketplace/match-events", {
@@ -252,7 +325,12 @@ export default function MarketplaceInstrument() {
     // outcome-learning toast — visible proof that preview → reweights rubric over time
     if (event === "voice_preview") {
       if (toastTimer.current) window.clearTimeout(toastTimer.current);
-      setToast(`previewed → tuning loom · ${match?.archetype ?? rubric.fallback_archetype} · rubric v${rubric.version}`);
+      const isHeuristic = match?.meta?.provider === "heuristic";
+      setToast(
+        isHeuristic
+          ? `previewed → tuning loom · ${match?.archetype ?? rubric.fallback_archetype} · heuristic local`
+          : `previewed → tuning loom · ${match?.archetype ?? rubric.fallback_archetype} · rubric v${rubric.version}`
+      );
       toastTimer.current = window.setTimeout(() => setToast(null), 2800);
     }
   };
@@ -312,7 +390,19 @@ export default function MarketplaceInstrument() {
   const archetypeDef = match?.archetype
     ? (rubric.archetypes as Record<string, { label: string; outcome: string; targets: Record<string, number>; weights: Record<string, number> }>)[match.archetype]
     : null;
+  const isHeuristic = match?.meta?.provider === "heuristic";
   const tokens = (match?.meta?.usage?.input_tokens ?? 0) + (match?.meta?.usage?.output_tokens ?? 0);
+  const gptTokens = gptMeta?.tokens ?? 0;
+  const jevMs = match?.meta?.latencyMs;
+  const gptMs = gptMeta?.latencyMs;
+  const jevVsGpt =
+    jevMs != null && gptMs != null && jevMs > 0 && gptMs > 0
+      ? gptMs > jevMs
+        ? `Jev ${(gptMs / Math.max(jevMs, 1)).toFixed(1)}× vs GPT`
+        : `GPT ${(jevMs / Math.max(gptMs, 1)).toFixed(1)}× vs Jev`
+      : null;
+  const settlementHint = getSettlementHint(match?.archetype);
+  const lowConfidence = topRubric != null && topRubric < 0.58;
 
   const shortlistedVoices = useMemo(
     () => draft.shortlist.map((id) => voices.find((v) => v.id === id)).filter((v): v is MarketplaceVoice => Boolean(v)),
@@ -347,8 +437,8 @@ export default function MarketplaceInstrument() {
           {/* meta row — not a frame, just type */}
           <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[11px]">
             <span className="inline-flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#D6FF2A]/20 bg-[#D6FF2A]/10 px-2 py-1 text-[10px] font-bold tracking-[0.14em] text-[#0A0E1A]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#0A0E1A] animate-pulse" /> LOOM · LIVE
+              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-bold tracking-[0.14em] ${isHeuristic ? "border-amber-500/25 bg-amber-500/10 text-amber-200" : "border-[#D6FF2A]/20 bg-[#D6FF2A]/10 text-[#0A0E1A]"}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${isHeuristic ? "bg-amber-300 animate-pulse" : "bg-[#0A0E1A] animate-pulse"}`} /> {isHeuristic ? "LOOM · HEURISTIC" : "LOOM · LIVE"}
               </span>
               <span className="hidden sm:inline text-white/40">brief is the filter · drag a card past 60% to inspect</span>
             </span>
@@ -359,7 +449,7 @@ export default function MarketplaceInstrument() {
           </div>
 
           {/* single honest instrument — input + filters + twin strip in one frame */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3 sm:px-4 sm:py-4">
+          <div className={`rounded-2xl border bg-white/[0.03] px-3 py-3 sm:px-4 sm:py-4 ${isHeuristic ? "border-amber-500/15" : "border-white/10"} ${lowConfidence && match ? "ring-1 ring-amber-500/10" : ""}`}>
             <label htmlFor="marketplace-brief" className="block font-mono text-[10px] tracking-[0.14em] text-white/40 mb-1.5">
               DESCRIBE THE VOICE YOU NEED
             </label>
@@ -416,8 +506,10 @@ export default function MarketplaceInstrument() {
                 <div className="flex flex-col gap-3">
                   {/* row 1: archetype + brief insights + proof */}
                   <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
-                    <span className="inline-flex items-center gap-1.5 text-white/35 tracking-[0.12em] text-[10px]">JEV · SYSTEM ONE</span>
-                    <Badge className="border-[#D6FF2A]/30 text-[#EAFF6A]">rubric: {match.archetype}</Badge>
+                    <span className={`inline-flex items-center gap-1.5 tracking-[0.12em] text-[10px] ${isHeuristic ? "text-amber-200/70" : "text-white/35"}`}>
+                      {isHeuristic ? "HEURISTIC · LOCAL RUBRIC" : "JEV · SYSTEM ONE"}
+                    </span>
+                    <Badge className={isHeuristic ? "border-amber-500/20 text-amber-200 bg-amber-500/10" : "border-[#D6FF2A]/30 text-[#EAFF6A]"}>rubric: {match.archetype}</Badge>
                     {archetypeDef && (
                       <span className="hidden sm:inline text-white/30">· {archetypeDef.label} · {archetypeDef.outcome}</span>
                     )}
@@ -437,19 +529,47 @@ export default function MarketplaceInstrument() {
                         urgency {match.briefInsights.urgency.score.toFixed(1)}/2
                       </span>
                     )}
-                    <span className="voisss-phosphor ml-auto inline-flex items-center gap-1.5 text-[11px] text-white">
-                      {match.meta?.latencyMs != null ? `${match.meta.latencyMs}ms` : "—"} · {match.meta?.questionCount ?? "—"}q
-                      {tokens > 0 && <> · {tokens.toLocaleString()} tok</>}
-                      {match.meta?.model && <span className="hidden sm:inline text-white/40">· {match.meta.model}</span>}
-                    </span>
+                    {isHeuristic ? (
+                      <span className="ml-auto inline-flex items-center gap-1.5">
+                        <span className="voisss-phosphor inline-flex items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-200">
+                          {(match.meta?.latencyMs ?? 0).toFixed(1)}ms heuristic · {match.meta?.questionCount ?? "—"}q · deterministic
+                        </span>
+                        <button
+                          type="button"
+                          onClick={retryJev}
+                          className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] text-white/60 hover:text-white hover:border-white/15 transition-colors"
+                        >
+                          Retry Jev →
+                        </button>
+                      </span>
+                    ) : (
+                      <span className="voisss-phosphor ml-auto inline-flex flex-wrap items-center gap-1.5 text-[11px] text-white">
+                        {match.meta?.latencyMs != null ? `${match.meta.latencyMs}ms` : "—"} · {match.meta?.questionCount ?? "—"}q
+                        {tokens > 0 && <> · {tokens.toLocaleString()} tok</>}
+                        {match.meta?.model && <span className="hidden sm:inline text-white/40">· {match.meta.model}</span>}
+                        {jevVsGpt && (
+                          <span className="hidden sm:inline-flex items-center gap-1 rounded-full border border-[#D6FF2A]/20 bg-[#D6FF2A]/10 px-2 py-0.5 text-[11px] font-bold text-[#0A0E1A]">
+                            {jevVsGpt} · {jevMs?.toFixed(0)}ms vs {gptMs?.toFixed(0)}ms
+                            {gptTokens > 0 && tokens > 0 && ` · ${tokens.toLocaleString()} vs ${gptTokens.toLocaleString()} tok`}
+                          </span>
+                        )}
+                        {jevVsGpt && <Link href="/benchmarks" className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/50 hover:text-white">benchmark →</Link>}
+                      </span>
+                    )}
                   </div>
+                  {/* low-confidence hint */}
+                  {lowConfidence && (
+                    <div className="rounded-xl border border-amber-500/15 bg-amber-500/[0.06] px-3 py-2 font-mono text-[11px] leading-relaxed text-amber-200/80">
+                      Low confidence — top fit {Math.round((topRubric ?? 0) * 100)}% · try a more specific brief (“whispered meditation for sleep, 60wpm”) or loosen tone filters · scores are rubric priors, not model judgment{isHeuristic ? " · Jev offline, local replay active" : ""}.
+                    </div>
+                  )}
                   {/* row 2: warp threads — 6 dims target vs actual */}
                   <WarpHUD levels={topLevels} archetypeKey={match.archetype} />
                   {/* row 3: top reason labels + rubric vs holistic */}
                   <div className="flex flex-wrap items-center gap-1.5">
                     {topReasons.length > 0 ? (
                       topReasons.map((r) => (
-                        <span key={r} className="inline-flex items-center rounded-full border border-[#D6FF2A]/20 bg-[#D6FF2A]/10 px-2 py-0.5 font-mono text-[11px] font-medium text-[#0A0E1A]">
+                        <span key={r} className={`inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-[11px] font-medium ${isHeuristic ? "border-amber-500/20 bg-amber-500/10 text-amber-100" : "border-[#D6FF2A]/20 bg-[#D6FF2A]/10 text-[#0A0E1A]"}`}>
                           {r}
                         </span>
                       ))
@@ -458,11 +578,11 @@ export default function MarketplaceInstrument() {
                     )}
                     <span className="ml-auto inline-flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
                       {topRubric != null && (
-                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/70">
-                          rubric <span className="voisss-phosphor text-white">{Math.round(topRubric * 100)}%</span>
+                        <span className={`rounded-full border px-2 py-0.5 ${isHeuristic ? "border-amber-500/15 bg-amber-500/10 text-amber-100" : "border-white/10 bg-white/[0.04] text-white/70"}`}>
+                          rubric <span className={`voisss-phosphor ${isHeuristic ? "text-amber-100" : "text-white"}`}>{Math.round(topRubric * 100)}%</span>
                         </span>
                       )}
-                      {topHolistic != null && (
+                      {topHolistic != null && !isHeuristic && (
                         <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/50">
                           holistic <span className="tabular-nums text-white/70">{Math.round(topHolistic * 100)}%</span>
                           {topRubric != null && (
@@ -472,21 +592,22 @@ export default function MarketplaceInstrument() {
                           )}
                         </span>
                       )}
-                      <span className="inline-flex items-center gap-1 rounded-full border border-[#D6FF2A]/30 bg-[#D6FF2A]/10 px-2 py-0.5 text-[11px] font-bold text-[#0A0E1A]">
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#0A0E1A] animate-pulse" /> {voiceDisplayName(topVoice)}
+                      <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold ${isHeuristic ? "border-amber-500/20 bg-amber-500/10 text-amber-100" : "border-[#D6FF2A]/30 bg-[#D6FF2A]/10 text-[#0A0E1A]"}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full animate-pulse ${isHeuristic ? "bg-amber-200" : "bg-[#0A0E1A]"}`} /> {voiceDisplayName(topVoice)}
                       </span>
                     </span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.04] pt-2 font-mono text-[10px] tracking-wide text-white/25">
                     <span>rubric v{rubric.version} · {match.meta?.rubric ?? rubric.version} · cites Rodero 2022 · Belin 2017 · Klofstad 2012</span>
                     <span className="hidden sm:inline">· outcome-learning: preview → vocalize → license reweights</span>
-                    <Link href="/benchmarks" className="ml-auto rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/50 hover:text-white transition-colors">Jev vs GPT →</Link>
+                    {!isHeuristic && <Link href="/benchmarks" className="ml-auto rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/50 hover:text-white transition-colors">Jev vs GPT →</Link>}
+                    {isHeuristic && match.meta?.jevError && <span className="ml-auto text-amber-200/50">jev: {match.meta.jevError.slice(0, 80)}</span>}
                   </div>
                 </div>
               ) : matchUnavailable ? (
                 <p className="font-mono text-xs text-white/50">
                   Matching unavailable · browsing only ·{" "}
-                  <button type="button" onClick={() => setMatchUnavailable(false)} className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[11px] text-white/70 hover:text-white">
+                  <button type="button" onClick={retryJev} className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[11px] text-white/70 hover:text-white">
                     Retry
                   </button>
                   <span className="ml-2 hidden sm:inline text-white/25">rubric v{rubric.version} · 6 neutral dims · gender/accent never encoded</span>
@@ -504,7 +625,7 @@ export default function MarketplaceInstrument() {
                   </div>
                   <div className="hidden sm:flex flex-wrap items-center gap-1.5 font-mono text-[10px] tracking-wide text-white/20">
                     <span>rubric v{rubric.version} · 6 dims: energy · pace · express · warmth · authority · intimacy</span>
-                    <span>· neutral acoustic priors · excluded: gender / accent hierarchy / vocal fry</span>
+                    <span>· neutral acoustic priors · excluded: gender / accent hierarchy / vocal fry · heuristic fallback ready</span>
                   </div>
                 </div>
               )}
@@ -567,6 +688,7 @@ export default function MarketplaceInstrument() {
               scoresById={match?.scores ?? {}}
               holisticScoresById={match?.holisticScores ?? {}}
               archetype={match?.archetype}
+              isHeuristic={isHeuristic}
               onPlayed={(v) => trackMatchEvent("voice_preview", v.id)}
               shortlistButton={shortlistButton}
             />
@@ -628,6 +750,11 @@ export default function MarketplaceInstrument() {
               <p className="mt-1 font-mono text-xs leading-relaxed text-white/60">
                 <span className="text-white">Per-use vocalize</span> → 95% creator / 5% platform · <span className="voisss-phosphor">platformFeePercent 5</span> · VoiceRecords.sol
               </p>
+              {settlementHint && (
+                <p className="mt-2 rounded-lg border border-white/[0.06] bg-white/[0.03] px-2 py-1.5 font-mono text-[11px] leading-relaxed text-white/50">
+                  <span className="text-white/70">{match?.archetype}:</span> {settlementHint} · on-chain 70/30 holds, this is a lens.
+                </p>
+              )}
               <div
                 ref={splitRef}
                 role="slider"
@@ -652,12 +779,12 @@ export default function MarketplaceInstrument() {
                   <span className="h-2 w-[1px] bg-white/50" /><span className="ml-[2px] h-2 w-[1px] bg-white/50" />
                 </div>
               </div>
-              <p className="mt-1 font-mono text-[10px] text-white/30">on-chain constant is 70/30 — drag to inspect, field sweep follows</p>
+              <p className="mt-1 font-mono text-[10px] text-white/30">on-chain constant is 70/30 — drag to inspect, field sweep follows{settlementHint ? ` · ${match?.archetype} hint above` : ""}</p>
             </div>
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
               <div className="font-mono text-[10px] tracking-[0.14em] text-white/40">PROVENANCE · ON-CARD</div>
               <p className="mt-2 font-mono text-xs leading-relaxed text-white/60">
-                Every thread exposes <span className="text-white">source</span>, <span className="text-white">trust badge</span>, and <span className="voisss-phosphor">TxHash</span> → Basescan. Pull past 60% or tap ↔ · scores explain via rubric, not vibes.
+                Every thread exposes <span className="text-white">source</span>, <span className="text-white">trust badge</span>, and <span className="voisss-phosphor">TxHash</span> → Basescan. Pull past 60% or tap ↔ · scores explain via rubric, not vibes.{isHeuristic ? " Heuristic is same rubric, keyword-seeded — Jev is judgment." : ""}
               </p>
               <div className="mt-3 flex flex-wrap gap-1.5 font-mono text-[11px]">
                 <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/50">source: envio / rpc / catalog</span>

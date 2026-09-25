@@ -20,6 +20,10 @@ import rubric from "@/lib/matching/rubric.v1.json";
  * Jev-forward: reasons are inline (no Disclosure), and the 60% committed
  * state reveals the full 6-dim warp vs target with holistic delta — the card
  * *is* the inspection, not a hidden panel.
+ *
+ * Intelligent fallback: when Jev is offline, isHeuristic tints the loom
+ * amber and confidence-driven opacity fades weak fits so the ranking stays
+ * readable even from keyword-seeded local replay.
  */
 
 const RIBBON_COUNT = 18;
@@ -130,7 +134,7 @@ function ProvenancePeek({ voice, open }: { voice: MarketplaceVoice; open: boolea
   );
 }
 
-function LoomHandle({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) {
+function LoomHandle({ isOpen, isHeuristic, onToggle }: { isOpen: boolean; isHeuristic?: boolean; onToggle: () => void }) {
   return (
     <div className="mb-2 flex items-center gap-2">
       <button
@@ -138,7 +142,7 @@ function LoomHandle({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => voi
         onClick={onToggle}
         aria-expanded={isOpen}
         aria-label={isOpen ? "Hide warp inspection" : "Inspect warp · 6 dims vs target"}
-        className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 font-mono text-[10px] font-bold tracking-[0.08em] leading-none transition-colors ${isOpen ? "border-[#D6FF2A]/30 bg-[#D6FF2A]/10 text-[#EAFF6A]" : "border-white/10 bg-white/[0.06] text-white/60 hover:border-white/15 hover:text-white/80"}`}
+        className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 font-mono text-[10px] font-bold tracking-[0.08em] leading-none transition-colors ${isOpen ? (isHeuristic ? "border-amber-500/30 bg-amber-500/10 text-amber-200" : "border-[#D6FF2A]/30 bg-[#D6FF2A]/10 text-[#EAFF6A]") : "border-white/10 bg-white/[0.06] text-white/60 hover:border-white/15 hover:text-white/80"}`}
       >
         <span aria-hidden className="inline-flex items-center gap-1">
           <span className="inline-block h-2 w-2 rounded-sm border border-current opacity-60" style={{ background: "repeating-linear-gradient(to bottom, currentColor 0 1px, transparent 1px 3px)" }} />
@@ -149,20 +153,24 @@ function LoomHandle({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => voi
       <span className="hidden sm:inline font-mono text-[10px] tracking-wide text-white/25" aria-hidden>
         or pull past 60% ·
       </span>
-      <span className={`font-mono text-[10px] tracking-wide ${isOpen ? "text-[#EAFF6A]/80" : "text-white/30"}`} aria-hidden>
+      <span className={`font-mono text-[10px] tracking-wide ${isOpen ? (isHeuristic ? "text-amber-200/70" : "text-[#EAFF6A]/80") : "text-white/30"}`} aria-hidden>
         {isOpen ? "6 dims open" : "60% threshold"}
       </span>
+      {isHeuristic && !isOpen && (
+        <span className="hidden sm:inline rounded-full border border-amber-500/15 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[9px] tracking-wide text-amber-200/70">heuristic</span>
+      )}
     </div>
   );
 }
 
-function WarpMini({ levels, archetype }: { levels: Record<string, number>; archetype: string }) {
+function WarpMini({ levels, archetype, isHeuristic }: { levels: Record<string, number>; archetype: string; isHeuristic?: boolean }) {
   const def = (rubric.archetypes as Record<string, { label: string; outcome: string; targets: Record<string, number>; weights: Record<string, number> }>)[archetype];
   if (!def) return null;
   return (
-    <div className="mt-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5" role="img" aria-label={`Six warp threads vs ${archetype} target`}>
+    <div className={`mt-3 rounded-xl border px-3 py-2.5 ${isHeuristic ? "border-amber-500/15 bg-amber-500/[0.03]" : "border-white/[0.06] bg-white/[0.02]"}`} role="img" aria-label={`Six warp threads vs ${archetype} target`}>
       <div className="mb-2 flex items-center gap-2 font-mono text-[10px] tracking-[0.12em] text-white/40">
         <span>WARP · {archetype}</span>
+        {isHeuristic && <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[9px] tracking-normal text-amber-200">heuristic · keyword-seeded</span>}
         <span className="text-white/20">·</span>
         <span className="font-normal tracking-normal text-white/30 normal-case">{def.label} · {def.outcome}</span>
       </div>
@@ -177,7 +185,7 @@ function WarpMini({ levels, archetype }: { levels: Record<string, number>; arche
               <span className="w-[58px] shrink-0 truncate font-mono text-[10px] uppercase tracking-[0.08em] text-white/45">{short}</span>
               <div className="relative h-[5px] flex-1 overflow-hidden rounded-full bg-white/[0.06]">
                 <div
-                  className="absolute inset-y-0 left-0 w-full origin-left rounded-full bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A]"
+                  className={`absolute inset-y-0 left-0 w-full origin-left rounded-full ${isHeuristic ? "bg-gradient-to-r from-amber-300 to-amber-100" : "bg-gradient-to-r from-[#D6FF2A] to-[#EAFF6A]"}`}
                   style={{ transform: `scaleX(${v})`, opacity: 0.32 + weight * 1.9 }}
                 />
                 <span className="absolute inset-y-[-3px] w-px bg-white/55" style={{ left: `${target * 100}%` }} aria-hidden />
@@ -202,6 +210,7 @@ function RibbonCard({
   rubricScore,
   holisticScore,
   archetype,
+  isHeuristic,
   committed,
   onCommit,
   prefersReducedMotion,
@@ -217,6 +226,7 @@ function RibbonCard({
   rubricScore?: number;
   holisticScore?: number;
   archetype?: string;
+  isHeuristic?: boolean;
   committed: string | null;
   onCommit: (id: string | null) => void;
   prefersReducedMotion: boolean;
@@ -240,6 +250,9 @@ function RibbonCard({
 
   const isCommitted = committed === voice.id;
   const hasJev = rubricScore != null || (dimensionLevels && Object.keys(dimensionLevels).length > 0);
+  const score = rubricScore ?? holisticScore;
+  const confidenceTier = score == null ? "medium" : score >= 0.72 ? "high" : score >= 0.55 ? "medium" : "low";
+  const faded = confidenceTier === "low" && !top;
 
   return (
     <article
@@ -248,7 +261,9 @@ function RibbonCard({
         "lr-card voisss-specular voisss-specular-light relative overflow-hidden" +
         (top ? " lr-card--match" : "") +
         (ceremony ? " lr-card--ceremony" : "") +
-        (isCommitted ? " ring-1 ring-[#D6FF2A]/20" : "")
+        (isCommitted ? (isHeuristic ? " ring-1 ring-amber-500/20" : " ring-1 ring-[#D6FF2A]/20") : "") +
+        (isHeuristic ? " lr-card--heuristic" : "") +
+        (faded ? " opacity-[0.72]" : "")
       }
       style={{ touchAction: "pan-y" }}
     >
@@ -256,7 +271,7 @@ function RibbonCard({
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
-          opacity: prefersReducedMotion ? 0.1 : flutter ? 0.9 : 0.18,
+          opacity: prefersReducedMotion ? 0.08 : flutter ? 0.9 : faded ? 0.1 : 0.18,
           transition: prefersReducedMotion ? "none" : flutter ? "opacity 120ms ease" : "opacity 220ms ease",
         }}
       >
@@ -278,7 +293,7 @@ function RibbonCard({
                 top: `${y}%`,
                 height: `${h}%`,
                 transform: `translateX(${dx}px)`,
-                background: `linear-gradient(to right, transparent, rgba(214,255,42,${0.035 + bleach}) 32%, rgba(255,255,255,${0.04 + bleach * 0.5}) 52%, transparent)`,
+                background: `linear-gradient(to right, transparent, ${isHeuristic ? `rgba(251,191,36,${0.03 + bleach * 0.7})` : `rgba(214,255,42,${0.035 + bleach})`} 32%, rgba(255,255,255,${0.04 + bleach * 0.5}) 52%, transparent)`,
                 borderTop: "1px solid rgba(255,255,255,0.04)",
                 willChange: prefersReducedMotion ? "auto" : "transform",
                 transition: prefersReducedMotion ? "none" : flutter ? "transform 80ms linear" : "transform 420ms cubic-bezier(0.22,1,0.36,1)",
@@ -289,7 +304,7 @@ function RibbonCard({
       </div>
 
       <div className="relative">
-        <LoomHandle isOpen={isCommitted} onToggle={() => onCommit(isCommitted ? null : voice.id)} />
+        <LoomHandle isOpen={isCommitted} isHeuristic={isHeuristic} onToggle={() => onCommit(isCommitted ? null : voice.id)} />
         <CurveRibbon voice={voice} playing={playing} tear={prefersReducedMotion ? 0 : tear} />
         <VoiceAuditionRow voice={voice} onPlayed={onPlayed} actions={shortlistButton} />
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem" }}>
@@ -297,15 +312,15 @@ function RibbonCard({
             {voice.source === "platform" ? "Platform · Pay per use" : `Listing · ${voice.licenseType}`}
           </Badge>
           {top && (
-            <Badge style={{ borderColor: "var(--lr-accent)", color: "var(--lr-accent)" }}>Best match</Badge>
+            <Badge style={{ borderColor: isHeuristic ? "rgba(251,191,36,0.35)" : "var(--lr-accent)", color: isHeuristic ? "rgb(253,230,138)" : "var(--lr-accent)" }}>Best match</Badge>
           )}
           {hasJev && rubricScore != null && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-[#D6FF2A]/20 bg-[#D6FF2A]/10 px-2 py-0.5 font-mono text-[11px] font-bold text-[#0A0E1A]">
+            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[11px] font-bold ${isHeuristic ? "border-amber-500/20 bg-amber-500/10 text-amber-100" : "border-[#D6FF2A]/20 bg-[#D6FF2A]/10 text-[#0A0E1A]"} ${faded ? "opacity-70" : ""}`}>
               rubric {Math.round(rubricScore * 100)}%
             </span>
           )}
-          {hasJev && holisticScore != null && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 font-mono text-[11px] text-white/50">
+          {hasJev && holisticScore != null && !isHeuristic && (
+            <span className={`inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 font-mono text-[11px] text-white/50 ${faded ? "opacity-60" : ""}`}>
               holistic <span className="tabular-nums text-white/70">{Math.round(holisticScore * 100)}%</span>
               {rubricScore != null && (
                 <span className={`ml-0.5 tabular-nums ${Math.abs(holisticScore - rubricScore) < 0.08 ? "text-white/30" : "text-amber-200/80"}`}>
@@ -313,6 +328,12 @@ function RibbonCard({
                 </span>
               )}
             </span>
+          )}
+          {faded && !isHeuristic && (
+            <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 font-mono text-[10px] text-white/30">weak fit</span>
+          )}
+          {isHeuristic && confidenceTier === "low" && (
+            <span className="rounded-full border border-amber-500/15 bg-amber-500/10 px-2 py-0.5 font-mono text-[10px] text-amber-200/70">heuristic · refine brief</span>
           )}
           <Link
             href={`/marketplace/voices/${encodeURIComponent(voice.id)}`}
@@ -326,9 +347,9 @@ function RibbonCard({
 
         {/* Inline reasons — always visible when matched, not a Disclosure */}
         {reasons.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Why this match">
+          <div className={`mt-2 flex flex-wrap gap-1.5 ${faded ? "opacity-70" : ""}`} aria-label="Why this match">
             {reasons.map((r) => (
-              <span key={r} className="inline-flex items-center rounded-full border border-[#D6FF2A]/15 bg-[#D6FF2A]/10 px-2 py-0.5 font-mono text-[11px] font-medium leading-none text-[#0A0E1A]">
+              <span key={r} className={`inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-[11px] font-medium leading-none ${isHeuristic ? "border-amber-500/15 bg-amber-500/10 text-amber-100" : "border-[#D6FF2A]/15 bg-[#D6FF2A]/10 text-[#0A0E1A]"}`}>
                 {r}
               </span>
             ))}
@@ -337,7 +358,7 @@ function RibbonCard({
 
         {/* Committed warp — 6 bars with target ticks + holistic delta (replaces Disclosures) */}
         {isCommitted && dimensionLevels && archetype && Object.keys(dimensionLevels).length > 0 && (
-          <WarpMini levels={dimensionLevels} archetype={archetype} />
+          <WarpMini levels={dimensionLevels} archetype={archetype} isHeuristic={isHeuristic} />
         )}
 
         {/* When committed without dims (no brief yet) — show trust inline instead of Disclosure */}
@@ -367,6 +388,7 @@ export function UnwovenGrid({
   scoresById,
   holisticScoresById,
   archetype,
+  isHeuristic,
   shortlistButton,
   onPlayed,
 }: {
@@ -378,6 +400,7 @@ export function UnwovenGrid({
   scoresById?: Record<string, number>;
   holisticScoresById?: Record<string, number>;
   archetype?: string;
+  isHeuristic?: boolean;
   shortlistButton: (v: MarketplaceVoice) => React.ReactNode;
   onPlayed: (v: MarketplaceVoice) => void;
 }) {
@@ -466,6 +489,7 @@ export function UnwovenGrid({
           rubricScore={scoresById?.[voice.id]}
           holisticScore={holisticScoresById?.[voice.id]}
           archetype={archetype}
+          isHeuristic={isHeuristic}
           committed={committedId}
           onCommit={handleCommit}
           prefersReducedMotion={prefersReducedMotion}

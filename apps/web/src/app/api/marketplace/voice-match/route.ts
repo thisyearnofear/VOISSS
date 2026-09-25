@@ -9,6 +9,7 @@ import {
   rateLimiters,
 } from "@/lib/rate-limit";
 import rubric from "@/lib/matching/rubric.v1.json";
+import { heuristicMatch } from "@/lib/matching/heuristic";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -314,12 +315,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const gatewayKey = process.env.AI_GATEWAY_API_KEY;
   const typeSafeKey = process.env.TYPESAFE_API_KEY;
-  if (!gatewayKey && !typeSafeKey) {
-    return NextResponse.json(
-      { success: false, error: "jev_not_configured" },
-      { status: 503 }
-    );
-  }
+  // Intelligent fallback: when Jev is not configured, return a local rubreplay
+  // heuristic so the loom never dead-ends. Provider is explicitly "heuristic".
+  const jevConfigured = !!(gatewayKey || typeSafeKey);
 
   let brief: string;
   let catalog: ScorableVoice[] | null = null;
@@ -344,19 +342,34 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
+  // Resolve catalog once — used by both Jev and heuristic paths.
+  let voices: ScorableVoice[] = [];
   try {
-    const voices = (
+    voices = (
       catalog ??
       (await getCatalogVoices(new URL(req.url).origin))
     ).slice(0, MAX_VOICES_PER_CALL);
+  } catch (e) {
+    console.warn("[voice-match] catalog fetch failed, falling back to provided catalog only", e);
+    voices = (catalog ?? []).slice(0, MAX_VOICES_PER_CALL);
+  }
 
-    if (voices.length === 0) {
-      return NextResponse.json({
-        success: true,
-        data: { scores: {}, briefInsights: null, meta: { questionCount: 0 } },
-      });
-    }
+  if (voices.length === 0) {
+    return NextResponse.json({
+      success: true,
+      data: { scores: {}, briefInsights: null, meta: { questionCount: 0, rubric: rubric.version } },
+    });
+  }
 
+  // If Jev is not configured, serve the heuristic immediately — never 503.
+  if (!jevConfigured) {
+    const h = heuristicMatch(brief, voices, { jevError: "jev_not_configured" });
+    console.log(JSON.stringify({ event: "voice_match", mode: "heuristic", reason: "jev_not_configured", archetype: h.archetype, rubric: h.meta.rubric, voiceCount: voices.length, at: new Date().toISOString() }));
+    return NextResponse.json({ success: true, data: h });
+  }
+
+  // Jev path — with heuristic catch so a gateway/TypeSafe outage still ranks.
+  try {
     const result = gatewayKey
       ? await evaluateViaGateway(brief, voices)
       : await evaluateViaTypeSafe(brief, voices, typeSafeKey!);
@@ -476,10 +489,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       },
     });
   } catch (error) {
-    console.error("[voice-match] Error:", error);
-    return NextResponse.json(
-      { success: false, error: "Voice matching failed" },
-      { status: 500 }
-    );
+    console.error("[voice-match] Jev error, falling back to heuristic:", error);
+    try {
+      const h = heuristicMatch(brief, voices, {
+        jevError: error instanceof Error ? error.message.slice(0, 200) : "jev_failed",
+      });
+      console.log(JSON.stringify({ event: "voice_match", mode: "heuristic", reason: "jev_error", archetype: h.archetype, rubric: h.meta.rubric, voiceCount: voices.length, at: new Date().toISOString() }));
+      return NextResponse.json({ success: true, data: h });
+    } catch (heuristicError) {
+      console.error("[voice-match] Heuristic fallback also failed:", heuristicError);
+      return NextResponse.json(
+        { success: false, error: "Voice matching failed" },
+        { status: 500 }
+      );
+    }
   }
 }
