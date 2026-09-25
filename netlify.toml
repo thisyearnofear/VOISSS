@@ -1,7 +1,7 @@
 [build]
-  base = "apps/web"
-  command = "pnpm --filter @voisss/web build"
-  publish = ".next"
+  base = ""
+  command = "pnpm build:web"
+  publish = "apps/web/.next"
 
 [build.environment]
   NODE_VERSION = "18"
