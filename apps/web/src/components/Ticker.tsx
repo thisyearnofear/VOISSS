@@ -83,6 +83,7 @@ export default function Ticker() {
       className="voisss-ticker relative z-[61] hidden sm:flex h-7 items-center overflow-hidden border-b border-white/[0.06] bg-[#0A0E1A] text-white"
       aria-label="Live activity"
       aria-live="off"
+      tabIndex={-1}
     >
       {/* LIVE dot + mono label — fixed left, not scrolling */}
       <div className="shrink-0 flex items-center gap-2 pl-3 pr-3 border-r border-white/10 bg-[#0A0E1A]">
@@ -93,19 +94,20 @@ export default function Ticker() {
         <span className="hidden lg:inline font-mono text-[10px] tracking-wide text-white/60">licensed signal · Base 8453</span>
       </div>
 
-      {/* scrolling strip — hover to pause so inspectability matches promise */}
+      {/* scrolling strip — hover/focus to pause so inspectability matches promise */}
       <div className="relative flex-1 overflow-hidden">
         <div className="voisss-ticker-track flex w-max items-center gap-8 pr-8">
           {loop.map((t, i) => (
             <Link
               key={`${t.id}-${i}`}
               href={t.href ?? "/marketplace"}
-              className="inline-flex items-center gap-2 font-mono text-[11px] leading-none whitespace-nowrap hover:text-[#EAFF6A] transition-colors"
+              aria-label={`${t.mono}: ${t.text}`}
+              className="inline-flex items-center gap-2 font-mono text-[11px] leading-none whitespace-nowrap text-white/85 hover:text-[#EAFF6A] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6FF2A] focus-visible:ring-offset-0 rounded-sm"
             >
               <span className="rounded-sm border border-white/10 bg-white/[0.06] px-1.5 py-0.5 text-[9px] font-bold tracking-[0.14em] text-white/80">
                 {t.mono}
               </span>
-              <span className="text-white/85">{t.text}</span>
+              <span>{t.text}</span>
               <span className="text-white/30">· {formatAge(Date.now() - now + i * 9000)}</span>
             </Link>
           ))}

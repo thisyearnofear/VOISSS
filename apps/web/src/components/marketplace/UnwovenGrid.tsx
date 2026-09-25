@@ -36,6 +36,8 @@ function useTear(onThreshold?: () => void) {
   });
   const committedRef = useRef<string | null>(null);
 
+  // Keep dwell long enough to read the TxHash; reduced-motion users never see ribbons
+  const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -76,11 +78,10 @@ function useTear(onThreshold?: () => void) {
       drag.current.active = false;
       drag.current.locked = null;
       setTear(0);
-      // keep committed for a beat so user sees the disclose open
       window.setTimeout(() => {
         committedRef.current = null;
         setCommitted(null);
-      }, 1800);
+      }, 3200);
     };
     el.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("pointermove", onPointerMove, { passive: false } as any);
@@ -94,7 +95,7 @@ function useTear(onThreshold?: () => void) {
     };
   }, [onThreshold]);
 
-  return { tear, committed, ref };
+  return { tear, committed, ref, prefersReducedMotion };
 }
 
 function ProvenancePeek({ voice, open }: { voice: MarketplaceVoice; open: boolean }) {
@@ -102,7 +103,7 @@ function ProvenancePeek({ voice, open }: { voice: MarketplaceVoice; open: boolea
   const hash = voice.provenance?.listingTxHash;
   const href = hash ? `https://basescan.org/tx/${hash}` : voice.provenance?.contractAddress ? `https://basescan.org/address/${voice.provenance.contractAddress}` : null;
   return (
-    <div className="mt-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-3 py-2.5">
+    <div className="mt-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-3 py-2.5" role="region" aria-label="Provenance for this voice">
       <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
         <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/50">source: {voice.provenance?.source ?? "catalog"}</span>
         {voice.trust?.badge && <span className="rounded-full border border-[#D6FF2A]/20 bg-[#D6FF2A]/10 px-2 py-0.5 text-[#0A0E1A] font-bold">{voice.trust.badge}</span>}
@@ -116,7 +117,33 @@ function ProvenancePeek({ voice, open }: { voice: MarketplaceVoice; open: boolea
           </a>
         ) : null}
       </div>
-      <p className="mt-1.5 font-mono text-[11px] leading-relaxed text-white/50 line-clamp-2">{voice.trust?.details || "No additional provenance details. — drag less to close"}</p>
+      <p className="mt-1.5 font-mono text-[11px] leading-relaxed text-white/50 line-clamp-2">{voice.trust?.details || "No additional provenance details."}</p>
+    </div>
+  );
+}
+
+function LoomHandle({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) {
+  return (
+    <div className="mb-2 flex items-center gap-2">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-label={isOpen ? "Hide chain provenance" : "Inspect chain provenance"}
+        className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 font-mono text-[10px] font-bold tracking-[0.08em] leading-none transition-colors ${isOpen ? "border-amber-500/30 bg-amber-500/10 text-amber-200" : "border-white/10 bg-white/[0.06] text-white/60 hover:border-white/15 hover:text-white/80"}`}
+      >
+        <span aria-hidden className="inline-flex items-center gap-1">
+          <span className="inline-block h-2 w-2 rounded-sm border border-current opacity-60" style={{ background: "repeating-linear-gradient(to bottom, currentColor 0 1px, transparent 1px 3px)" }} />
+          ↔
+        </span>
+        {isOpen ? "Hide chain" : "Drag to inspect"}
+      </button>
+      <span className="hidden sm:inline font-mono text-[10px] tracking-wide text-white/25" aria-hidden>
+        or pull past 60% ·
+      </span>
+      <span className={`font-mono text-[10px] tracking-wide ${isOpen ? "text-amber-300/80" : "text-white/30"}`} aria-hidden>
+        {isOpen ? "provenance open" : "60% threshold"}
+      </span>
     </div>
   );
 }
@@ -129,6 +156,8 @@ function RibbonCard({
   reasons,
   dimensionLevels,
   committed,
+  onCommit,
+  prefersReducedMotion,
   shortlistButton,
   onPlayed,
 }: {
@@ -139,6 +168,8 @@ function RibbonCard({
   reasons: string[];
   dimensionLevels?: Record<string, number>;
   committed: string | null;
+  onCommit: (id: string | null) => void;
+  prefersReducedMotion: boolean;
   shortlistButton: React.ReactNode;
   onPlayed: (v: MarketplaceVoice) => void;
 }) {
@@ -154,7 +185,7 @@ function RibbonCard({
   }, [voice.id]);
 
   const abs = Math.abs(tear);
-  const flutter = abs > 0.02;
+  const flutter = !prefersReducedMotion && abs > 0.02;
   const playback = useListeningPlayback();
   const playing = playback.track?.id === `sample:${voice.id}` && playback.status === "playing";
 
@@ -170,13 +201,13 @@ function RibbonCard({
       }
       style={{ touchAction: "pan-y" }}
     >
-      {/* Loom ribbons — behind the content, clipped */}
+      {/* Loom ribbons — behind the content, clipped; disabled under reduced-motion */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
-          opacity: flutter ? 0.9 : 0.18,
-          transition: flutter ? "opacity 120ms ease" : "opacity 220ms ease",
+          opacity: prefersReducedMotion ? 0.1 : flutter ? 0.9 : 0.18,
+          transition: prefersReducedMotion ? "none" : flutter ? "opacity 120ms ease" : "opacity 220ms ease",
         }}
       >
         {speeds.map((s, i) => {
@@ -184,10 +215,10 @@ function RibbonCard({
           // SDF-ish: center holds, edge frays — tearZoneRatio 0.26
           const edge = Math.abs(nx) * 2; // 0 center .. 1 edge
           const hold = Math.max(0, 1 - edge / 0.26);
-          const dx = tear * s * 44 * (0.3 + edge * 1.2) * (1 - hold * 0.55);
+          const dx = prefersReducedMotion ? 0 : tear * s * 44 * (0.3 + edge * 1.2) * (1 - hold * 0.55);
           const y = (i / RIBBON_COUNT) * 100;
           const h = 100 / RIBBON_COUNT;
-          const bleach = hold < 0.35 ? abs * 0.18 * (1 - hold) : 0;
+          const bleach = prefersReducedMotion ? 0 : hold < 0.35 ? abs * 0.18 * (1 - hold) : 0;
           return (
             <div
               key={i}
@@ -200,8 +231,8 @@ function RibbonCard({
                 transform: `translateX(${dx}px)`,
                 background: `linear-gradient(to right, transparent, rgba(214,255,42,${0.035 + bleach}) 32%, rgba(255,255,255,${0.04 + bleach * 0.5}) 52%, transparent)`,
                 borderTop: "1px solid rgba(255,255,255,0.04)",
-                willChange: "transform",
-                transition: flutter ? "transform 80ms linear" : "transform 420ms cubic-bezier(0.22,1,0.36,1)",
+                willChange: prefersReducedMotion ? "auto" : "transform",
+                transition: prefersReducedMotion ? "none" : flutter ? "transform 80ms linear" : "transform 420ms cubic-bezier(0.22,1,0.36,1)",
               }}
             />
           );
@@ -209,7 +240,8 @@ function RibbonCard({
       </div>
 
       <div className="relative">
-        <CurveRibbon voice={voice} playing={playing} tear={tear} />
+        <LoomHandle isOpen={isCommitted} onToggle={() => onCommit(isCommitted ? null : voice.id)} />
+        <CurveRibbon voice={voice} playing={playing} tear={prefersReducedMotion ? 0 : tear} />
         <VoiceAuditionRow voice={voice} onPlayed={onPlayed} actions={shortlistButton} />
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem" }}>
           <Badge>
@@ -256,10 +288,6 @@ function RibbonCard({
             {voice.trust?.details || "No additional provenance details."}
           </p>
         </Disclosure>
-        {/* Drag hint — honest about threshold */}
-        <p className="lr-quiet" style={{ fontSize: "0.7rem", opacity: 0.55, marginTop: "0.5rem" }}>
-          Pull past 60% to inspect chain ↦ drag sideways
-        </p>
       </div>
     </article>
   );
@@ -282,7 +310,20 @@ export function UnwovenGrid({
   shortlistButton: (v: MarketplaceVoice) => React.ReactNode;
   onPlayed: (v: MarketplaceVoice) => void;
 }) {
-  const { tear, committed, ref } = useTear();
+  const { tear, committed, ref, prefersReducedMotion } = useTear();
+  const [manual, setManual] = useState<string | null>(null);
+  const committedId = committed ?? manual;
+  const handleCommit = (id: string | null) => {
+    // keyboard path keeps dwell visible until user toggles closed
+    setManual(id);
+    if (id) {
+      window.setTimeout(() => setManual((cur) => (cur === id ? null : cur)), 6000);
+    }
+  };
+  // when loom commits, clear manual so they don't stack
+  useEffect(() => {
+    if (committed) setManual(null);
+  }, [committed]);
 
   return (
     <div ref={ref} className="lr-list" style={{ touchAction: "pan-y" }}>
@@ -295,7 +336,9 @@ export function UnwovenGrid({
           ceremony={voice.id === ceremonyId}
           reasons={reasonsById[voice.id] ?? []}
           dimensionLevels={dimensionLevelsById?.[voice.id]}
-          committed={committed}
+          committed={committedId}
+          onCommit={handleCommit}
+          prefersReducedMotion={prefersReducedMotion}
           shortlistButton={shortlistButton(voice)}
           onPlayed={onPlayed}
         />

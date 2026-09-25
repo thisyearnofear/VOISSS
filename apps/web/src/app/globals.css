@@ -689,7 +689,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ── Ticker — phosphor HUD strip ──────────────────────────────────────── */
 .voisss-ticker {
-  /* retro HUD: lime LIVE + phosphor amber mono + CRT scan */
+  /* retro HUD: lime LIVE + calm mono ticks + faint CRT scan */
   background: #0A0E1A;
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
@@ -697,7 +697,8 @@ h1, h2, h3, h4, h5, h6 {
   animation: voisss-ticker-scroll 72s linear infinite;
   will-change: transform;
 }
-.voisss-ticker:hover .voisss-ticker-track {
+.voisss-ticker:hover .voisss-ticker-track,
+.voisss-ticker:focus-within .voisss-ticker-track {
   animation-play-state: paused;
 }
 @keyframes voisss-ticker-scroll {
@@ -716,9 +717,9 @@ h1, h2, h3, h4, h5, h6 {
     rgba(255,255,255,0.035) 3px
   );
   pointer-events: none;
-  opacity: 0.55;
+  opacity: 0.18;
 }
-/* phosphor amber mono — for TxHash, counts, chain data */
+/* phosphor amber mono — reserved for TxHash / chain data, never on moving text */
 .voisss-phosphor {
   color: #FFB000;
   text-shadow: 0 0 8px rgba(255,176,0,0.45), 0 0 18px rgba(255,176,0,0.18);
@@ -741,7 +742,20 @@ h1, h2, h3, h4, h5, h6 {
   inset: 0;
   background: repeating-linear-gradient(to bottom, transparent 0 2px, rgba(255,255,255,0.025) 2px 3px);
   pointer-events: none;
-  opacity: 0.6;
+  opacity: 0.25;
+}
+/* loom twin idle — dashed, airy, not another HUD */
+.voisss-hud-frame--idle {
+  background: rgba(255,255,255,0.02);
+  border-style: dashed;
+  border-color: rgba(255,255,255,0.12);
+  box-shadow: none;
+}
+.voisss-hud-frame--idle::before { opacity: 0.12; }
+@media (prefers-reduced-motion: reduce) {
+  .voisss-ticker-track { animation: none !important; transform: none !important; }
+  .voisss-ticker-scan::before { opacity: 0.08; }
+  .voisss-hud-frame::before { opacity: 0.12; }
 }
 /* view-timeline polish — progressive enhancement for scroll scrub */
 @supports (animation-timeline: view()) {

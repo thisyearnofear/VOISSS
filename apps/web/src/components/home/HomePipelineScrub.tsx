@@ -100,16 +100,15 @@ export default function HomePipelineScrub() {
   return (
     <section
       ref={wrapRef}
-      className="relative"
-      style={{ height: "300vh" }}
+      className="voisss-scrub-wrap relative overflow-x-clip h-[180vh] sm:h-[300vh] sm:max-h-[2200px]"
       aria-label="How a match is made — scrub through"
     >
-      <div className="sticky top-0 h-screen overflow-hidden flex flex-col">
-        {/* HUD chrome */}
+      <div className="sticky top-0 h-screen overflow-x-clip overflow-y-hidden flex flex-col">
+        {/* HUD chrome — desktop only so mobile stays clean */}
         <div className="pointer-events-none absolute inset-0 border border-white/[0.06] rounded-[24px] mx-[clamp(20px,4vw,64px)] my-4 hidden sm:block" aria-hidden />
         <div className="pointer-events-none absolute inset-x-[clamp(20px,4vw,64px)] top-4 h-px bg-gradient-to-r from-transparent via-[#D6FF2A]/40 to-transparent hidden sm:block" aria-hidden />
-        {/* scanline */}
-        <div className="pointer-events-none absolute inset-0 opacity-[0.035] hidden sm:block" style={{ background: "repeating-linear-gradient(to bottom, transparent 0 2px, rgba(255,255,255,0.5) 2px 3px)" }} aria-hidden />
+        {/* scanline — lowered, desktop only */}
+        <div className="pointer-events-none absolute inset-0 opacity-[0.02] hidden sm:block" style={{ background: "repeating-linear-gradient(to bottom, transparent 0 2px, rgba(255,255,255,0.5) 2px 3px)" }} aria-hidden />
 
         <div className="lr-wrap w-full flex-1 flex flex-col justify-center py-8 sm:py-0">
           {/* header */}

@@ -290,11 +290,10 @@ export default function MarketplaceInstrument() {
   return (
     <main id="listening-main">
       {/* ── Sticky loom header: the instrument you type into ──────────────── */}
-      <section className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#0A0E1A]/85 backdrop-blur-xl">
-        <div className="absolute inset-0 pointer-events-none opacity-[0.035]" style={{ background: "repeating-linear-gradient(to bottom, transparent 0 2px, rgba(255,255,255,0.8) 2px 3px)" }} aria-hidden />
+      <section className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#0A0E1A]/92 backdrop-blur-xl">
         <div className="lr-wrap relative flex flex-col gap-3 py-3 sm:py-4">
-          {/* view() scrub line — progress of the page */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D6FF2A]/40 to-transparent" aria-hidden />
+          {/* single lime hairline — was double with hud-frame scan */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D6FF2A]/30 to-transparent" aria-hidden />
 
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -310,8 +309,8 @@ export default function MarketplaceInstrument() {
           </div>
 
           <div className="grid gap-3 lg:grid-cols-[1.35fr_0.85fr] items-start">
-            {/* console */}
-            <div className="voisss-hud-frame px-3 py-3 sm:px-4 sm:py-3">
+            {/* console — single honest frame: the input itself carries the border */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3 sm:px-4 sm:py-3">
               <label htmlFor="marketplace-brief" className="block font-mono text-[10px] tracking-[0.14em] text-white/40 mb-1.5">
                 DESCRIBE THE VOICE YOU NEED
               </label>
@@ -359,8 +358,8 @@ export default function MarketplaceInstrument() {
               </div>
             </div>
 
-            {/* Agentic twin — Thinking streams here */}
-            <div className="voisss-hud-frame min-h-[120px] p-3 sm:p-4 flex items-start justify-center overflow-hidden">
+            {/* Agentic twin — Thinking streams here; idle is dashed/air to reduce hierarchy fight */}
+            <div className={`${matchLoading || (match?.dimensionLevels && topMatchId) ? "voisss-hud-frame" : "voisss-hud-frame voisss-hud-frame--idle"} min-h-[120px] p-3 sm:p-4 flex items-start justify-center overflow-hidden`}>
               {matchLoading ? (
                 <ThinkingState key={`thinking-${thinkingKey}`} variant="Reasoning" />
               ) : match?.dimensionLevels && topMatchId ? (
