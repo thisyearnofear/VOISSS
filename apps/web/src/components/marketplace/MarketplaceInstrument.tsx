@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Check, Loader2, Plus } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { initWebMCP } from "@/lib/webmcp";
 import type { MarketplaceVoice } from "@/lib/marketplace-indexer";
 import { BuyerCreditsStrip } from "@/components/payment/DashboardBalanceChips";
@@ -18,7 +18,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { pulseVoice } from "@/lib/terrain-bus";
 import { DismissibleRuntimeTracks } from "@/components/payment/RuntimePaymentChips";
 import ThinkingState from "@/components/ui/agentic/ThinkingState";
-import InsightCards from "@/components/ui/agentic/InsightCards";
 
 type VoiceMatchResult = {
   scores: Record<string, number>;
@@ -126,7 +125,7 @@ function DimensionStrip({ levels }: { levels?: Record<string, number> }) {
 
 export default function MarketplaceInstrument() {
   const { isAuthenticated } = useAuth();
-  const { draft, updateDraft, toggleShortlist, player } = useListeningRoom();
+  const { draft, ready, updateDraft, toggleShortlist } = useListeningRoom();
   const { query, voices } = useVoiceCatalog();
   const [filters, setFilters] = useState({ language: "", tone: "", licenseType: "" });
   const [modalVoice, setModalVoice] = useState<MarketplaceVoice | null>(null);
@@ -141,18 +140,31 @@ export default function MarketplaceInstrument() {
   const error = query.isError ? "Voices could not be loaded. Please try again." : null;
   const activeFilterCount = [filters.language, filters.tone, filters.licenseType].filter(Boolean).length;
 
-  // Scroll reveal: attach data-reveal to cards progressively — cheap, no state
-
   useEffect(() => {
     initWebMCP().catch(console.error);
   }, []);
 
-  // Persist brief to URL so Cmd+K / share / back works — but marketplace
-  // itself doesn't need searchParams; ListeningRoom owns the draft.
+  // Deep-link: /marketplace?brief=... from homepage Cmd+K / shared links
+  // ListeningRoom hydrates from sessionStorage async, so gate on ready.
+  const hydratedFromParams = useRef(false);
   useEffect(() => {
+    if (!ready || hydratedFromParams.current) return;
+    try {
+      const paramBrief = new URLSearchParams(window.location.search).get("brief");
+      if (paramBrief !== null) {
+        hydratedFromParams.current = true;
+        updateDraft({ brief: paramBrief.slice(0, 500) });
+        return;
+      }
+    } catch {}
+    hydratedFromParams.current = true;
+  }, [ready, updateDraft]);
+
+  // Keep URL in sync so share/back preserves the brief
+  useEffect(() => {
+    if (!hydratedFromParams.current) return;
     const q = brief.trim();
     const url = q ? `/marketplace?brief=${encodeURIComponent(q)}` : "/marketplace";
-    // replace without scroll — keep draft as source of truth
     window.history.replaceState(null, "", url);
   }, [brief]);
 

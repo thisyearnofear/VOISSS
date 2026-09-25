@@ -82,7 +82,6 @@ export default function Ticker() {
     <div
       className="voisss-ticker relative z-[61] hidden sm:flex h-7 items-center overflow-hidden border-b border-white/[0.06] bg-[#0A0E1A] text-white"
       aria-label="Live activity"
-      role="marquee"
       aria-live="off"
     >
       {/* LIVE dot + mono label — fixed left, not scrolling */}
