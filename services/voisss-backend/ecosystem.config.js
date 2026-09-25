@@ -55,6 +55,13 @@ module.exports = {
       restart_delay: 4000,
       kill_timeout: 10000
     },
+    // voisss-acp-listener — DISABLED (VPS cleanup Phase 2, harmonized architecture).
+    // The ACP autonomous bidder is now single-homed on Netlify at
+    // apps/web/src/app/api/acp/listener (controlled via ADMIN_API_KEY).
+    // Keeping this entry disabled prevents double-bidding (two listeners polling
+    // the Virtuals marketplace with the same ACP_AGENT_ID / keys). The shim file
+    // is kept on disk for rollback; set enabled: false is intentionally explicit.
+    // To re-enable (emergency fallback), flip enabled: true and run pm2 restart.
     {
       name: 'voisss-acp-listener',
       script: './src/workers/acp-listener-shim.js',
@@ -64,6 +71,7 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: '1G',
+      enabled: false,
       env: {
         NODE_ENV: 'production',
         ACP_AGENT_ID: process.env.ACP_AGENT_ID,

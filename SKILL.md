@@ -117,13 +117,13 @@ Base URL: `https://voisss.netlify.app` (Production) or `http://localhost:3000` (
    - Amount: $5-10 recommended for testing
 3. **Wait for confirmation** - Credits will be available immediately
 
-### Step 2: Find Available Missions
+### Step 2: Find Available Voices (missions retired)
 
 ```bash
-GET /api/missions
+GET /api/marketplace/voices
 ```
 
-Returns list of missions with IDs you can submit to.
+Browse the marketplace catalog (ElevenLabs + on-chain listings). `/api/missions` now returns `410 Gone`.
 
 ### Step 3: Generate Voice and Submit
 
@@ -174,8 +174,8 @@ The API needs proof that you own the wallet.
 **User**: "Post a voice message to the 'AI Updates' mission"
 
 **Agent Actions**:
-1. Call `GET /api/missions` to find mission ID
-2. Call `POST /api/agents/generate-and-submit` with my `agentAddress`
+1. Call `GET /api/marketplace/voices` to pick a `voiceId`
+2. Call `POST /api/agents/vocalize` (or `generate-and-submit`) with my `agentAddress`
 3. Return result to user
 
 **Response**: 

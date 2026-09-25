@@ -10,6 +10,9 @@
 # ─── Proxy to Hetzner backend (voisss.famile.xyz:5577) ───
 # Auth handled by Hetzner allowing Netlify's IP / origin header
 # Netlify matches top-down, first match wins
+# Harmonization: canonical backend env is VOISSS_BACKEND_URL /
+# NEXT_PUBLIC_VOISSS_BACKEND_URL (see apps/web/.env.example). Legacy
+# VOISSS_API / *_PROCESSING_URL honored during migration.
 
 # ElevenLabs voice processing
 # Note: /api/agents/vocalize is handled directly by Next.js (self-contained API route)
@@ -33,19 +36,6 @@
 [[redirects]]
   from = "/api/dubbing/*"
   to = "https://voisss.famile.xyz/api/dubbing/:splat"
-  status = 200
-  force = true
-
-# Missions (Hetzner has Postgres)
-[[redirects]]
-  from = "/api/missions/*"
-  to = "https://voisss.famile.xyz/api/missions/:splat"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/missions"
-  to = "https://voisss.famile.xyz/api/missions"
   status = 200
   force = true
 

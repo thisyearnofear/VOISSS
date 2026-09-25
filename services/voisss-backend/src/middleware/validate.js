@@ -89,31 +89,9 @@ const schemas = {
     }).optional(),
     style: z.record(z.unknown()).optional()
   }),
-
-  missionCreate: z.object({
-    title: z.string().min(1).max(200),
-    description: z.string().max(2000).optional(),
-    reward: z.number().min(0).optional(),
-    expiresAt: z.string().datetime().optional()
-  }),
-
-  missionAccept: z.object({
-    missionId: z.string().min(1),
-    userId: z.string().min(1)
-  }),
-
-  missionSubmit: z.object({
-    missionId: z.string().min(1),
-    userId: z.string().min(1)
-  }).passthrough(),
-
-  userAddress: z.object({
-    address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid wallet address')
-  }),
-
-  missionId: z.object({
-    id: z.string().min(1).max(200)
-  })
+  // missions retired — schemas removed (VPS cleanup Phase 2). If reintroducing,
+  // restore missionCreate / missionAccept / missionSubmit / userAddress / missionId.
+  _missionsRetired: z.object({}).optional()
 };
 
 module.exports = { validateBody, validateParams, validateQuery, schemas };

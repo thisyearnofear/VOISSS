@@ -33,7 +33,12 @@ export const ANIMATION_DURATIONS = {
 // API Configuration
 export const API_CONFIG = {
   BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
-  VOISSS_BACKEND: process.env.NEXT_PUBLIC_VOISSS_API || 'https://voisss.famile.xyz',
+  // Harmonized: VOISSS_BACKEND_URL canonical. Legacy NEXT_PUBLIC_VOISSS_API honored.
+  VOISSS_BACKEND:
+    process.env.NEXT_PUBLIC_VOISSS_BACKEND_URL ||
+    process.env.NEXT_PUBLIC_VOISSS_PROCESSING_URL ||
+    process.env.NEXT_PUBLIC_VOISSS_API ||
+    'https://voisss.famile.xyz',
   ENDPOINTS: {
     RECORDINGS: '/recordings',
     USERS: '/users',

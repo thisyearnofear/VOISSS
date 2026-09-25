@@ -1,3 +1,8 @@
+/* MISSIONS RETIRED — VPS cleanup Phase 2
+ * All fetch targets below now return 410 Gone (see apps/web/src/app/api/missions/*).
+ * Hooks are kept for incremental UI migration but will surface the 410 as an error.
+ * Next step: RecordingStudio / MissionBoard / MissionCreationForm should stop importing them.
+ */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useBaseAccount } from "../useBaseAccount";
 import { Mission, MissionResponse } from "@voisss/shared/types/socialfi";

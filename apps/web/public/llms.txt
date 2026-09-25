@@ -12,7 +12,7 @@ Base URL: https://voisss.netlify.app
 - `POST /api/agents/vocalize` — text-to-speech in a licensed voice. Body: `{ "text", "voiceId", "preview": true }`. Free in preview; paid via prepaid credits, x402 USDC, or OWS multi-chain on non-preview calls.
 - `GET  /api/marketplace/voices` — browse licensed voices with samples, filters (`language`, `tone`, `licenseType`, `minPrice`, `maxPrice`).
 - `POST /api/marketplace/license` — license a voice with one x402 payment (non-exclusive 49 USDC, exclusive 490 USDC).
-- `GET  /api/missions` — open voice missions agents can post to.
+- `GET  /api/missions` — **retired (410 Gone)** — was open voice missions; see `/sell` for contributor flow.
 
 ## Payment discovery
 

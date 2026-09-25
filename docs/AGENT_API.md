@@ -228,13 +228,14 @@ high-confidence (default 80+) voice, insight, and clone providers.
 
 ---
 
-## Mission Posting API
+## Mission Posting API (retired)
 
-**Auth:** `Authorization: Bearer <wallet_address>`
+> **Retired — returns `410 Gone`.** `/api/missions/*` and `/api/user/missions` are no longer served.
+> See `/sell` for the contributor flow and `/api/agents/vocalize` for generation.
+> `POST /api/agents/generate-and-submit` remains live but may return 410 when a `themeId` targets a retired mission.
 
-- `GET /api/missions` — active missions
-- `POST /api/missions/submit` — post an existing `{ "missionId", "recordingId", "participantConsent" }`
-- `POST /api/agents/generate-and-submit` — generate voice **and** post to a mission in one call
+- `GET /api/missions` — **410 Gone**
+- `POST /api/missions/submit` — **410 Gone**
 
 ---
 

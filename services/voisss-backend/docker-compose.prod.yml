@@ -1,3 +1,10 @@
+# ────────────────────────────────────────────────────────────────
+# DEPRECATED FOR PRODUCTION — see DEPLOYMENT.md
+# Production runs via deploy.sh (rsync + symlink → PM2 on host).
+# Do NOT `docker compose up` on the Hetzner host; it would start a
+# duplicate Postgres and an unused Redis. This file is kept only
+# for local reference / non-prod docker trials.
+# ────────────────────────────────────────────────────────────────
 version: '3.8'
 
 services:
@@ -29,7 +36,7 @@ services:
     restart: always
     environment:
       - NODE_ENV=production
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://redis:6379  # LEGACY — queue is DB-driven, host redis is unused
       - DATABASE_URL=postgresql://voisss_user:${DB_PASSWORD:-voisss_secure_password_change_me}@postgres:5432/voisss
       - EXPORT_PUBLIC_URL=https://voisss.famile.xyz
     env_file: .env
@@ -54,7 +61,7 @@ services:
     restart: always
     environment:
       - NODE_ENV=production
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://redis:6379  # LEGACY — queue is DB-driven, host redis is unused
       - DATABASE_URL=postgresql://voisss_user:${DB_PASSWORD:-voisss_secure_password_change_me}@postgres:5432/voisss
       - WORKER_CONCURRENCY=2
       - WORKER_ID=docker-worker

@@ -34,8 +34,15 @@ export async function POST(req: NextRequest) {
 
         console.log('File size:', file.size, 'File type:', file.type);
         
-        // Use backend service with polling approach to avoid Netlify timeouts
-        const backendUrl = process.env.NEXT_PUBLIC_VOISSS_API || process.env.VOISSS_API;
+        // Backend service — harmonized env (canonical: VOISSS_BACKEND_URL)
+        // Legacy names honored; VOISSS_PROCESSING_URL aliases kept for migration.
+        const backendUrl =
+          process.env.VOISSS_BACKEND_URL ||
+          process.env.VOISSS_PROCESSING_URL ||
+          process.env.NEXT_PUBLIC_VOISSS_BACKEND_URL ||
+          process.env.NEXT_PUBLIC_VOISSS_PROCESSING_URL ||
+          process.env.NEXT_PUBLIC_VOISSS_API ||
+          process.env.VOISSS_API;
         if (!backendUrl) {
             return new Response(JSON.stringify({ error: 'Backend service not configured' }), { status: 500 });
         }

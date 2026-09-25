@@ -109,10 +109,12 @@ pm2 save
 
 ## Services
 
-This deployment runs 2 PM2 processes:
+This deployment runs via PM2 (see `ecosystem.config.js`):
 
-1. **voisss-processing** - API service (ElevenLabs, dubbing, export endpoints)
-2. **voisss-export-worker** - Job processor (x2 instances for async exports)
+1. **voisss-server** - Hetzner Express API (`:5577`): `GET /health`, `/api/voices`, `/api/transform`, `/api/dubbing/*`, `/api/export/*` (missions retired on VPS — `src/routes/mission-routes.js` deleted; restore via `git checkout HEAD~1 -- services/voisss-backend/src/routes/mission-routes.js` if rollback needed)
+2. **voisss-export-worker** - FFmpeg export worker (DB-driven, no Redis)
+3. **voisss-acp-listener** - Virtuals ACP listener (proactive bid discovery; also present as Next.js `/api/acp/listener` — keep one bidder)
+> Docker Compose (`docker-compose.yml`) is **deprecated** for production. See deprecation note below.
 
 ## Monitoring
 
@@ -145,6 +147,13 @@ pm2 restart ecosystem.config.js
 - **Status**: `GET /api/export/:jobId/status` for polling
 
 See `DEPLOYMENT.md` for detailed setup instructions.
+
+### Deprecation — Docker Compose
+> `docker-compose.yml` / `docker-compose.prod.yml` describe a self-contained
+> Postgres + Redis + API stack that is **not** how production runs today.
+> Real prod is host-level Postgres (apt, `5432`) + `deploy.sh` rsync+symlink to
+> PM2. `voisss-redis:6380` is legacy — queue is DB-driven. Do not
+> `docker compose up` on the Hetzner host; it would start a duplicate Postgres.
 
 ## Security
 

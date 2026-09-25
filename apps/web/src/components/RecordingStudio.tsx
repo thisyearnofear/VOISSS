@@ -6,6 +6,8 @@ import { useBase } from "@/app/providers";
 import { useBaseAccount } from "@/hooks/useBaseAccount";
 import { useWebAudioRecording } from "@/hooks/useWebAudioRecording";
 import { useFreemiumStore, useSyncUserTier } from "@/store/freemiumStore";
+// MISSIONS RETIRED — useMission / useCompleteMission now hit 410 stubs.
+// Keep import for incremental removal; next step is to cut missionId flow from this component.
 import { useMission, useCompleteMission } from "@/hooks/queries/useMissions";
 import { Mission } from "@voisss/shared/types/socialfi";
 import type { AudioVersion, AudioVersionSource, AudioVersionMetadata } from "@voisss/shared/types/audio-version";

@@ -1,40 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getMissionService } from "@voisss/shared/server";
-
-// Initialize mission service
-const missionService = getMissionService();
+import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-/**
- * GET /api/missions/[id]
- *
- * Fetch a single mission details by ID.
- */
-export async function GET(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
-  try {
-    const missionId = params.id;
-
-    if (!missionId) {
-      return NextResponse.json(
-        { error: "Mission ID is required" },
-        { status: 400 }
-      );
-    }
-
-    const mission = await missionService.getMissionById(missionId);
-
-    if (!mission) {
-      return NextResponse.json({ error: "Mission not found" }, { status: 404 });
-    }
-
-    return NextResponse.json(mission, { status: 200 });
-  } catch (error) {
-    console.error(`Error fetching mission ${params.id}:`, error);
-    return NextResponse.json(
-      { error: "Failed to fetch mission details" },
-      { status: 500 }
-    );
-  }
+function gone() {
+  return NextResponse.json(
+    {
+      error: "Gone",
+      code: "MISSIONS_RETIRED",
+      message: "Missions have been retired. See /sell for contributor flow and /api/agents/vocalize for generation. The on-chain and Hetzner mission store is no longer served.",
+      docs: "/sell",
+    },
+    { status: 410, headers: { "Cache-Control": "no-store" } }
+  );
 }
+
+export async function GET() { return gone(); }

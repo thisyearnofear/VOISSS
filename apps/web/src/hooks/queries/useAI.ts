@@ -421,9 +421,13 @@ export function useAudioDubbing() {
             targetLanguage,
           });
 
-          // Get backend URL
+          // Get backend URL — harmonized client env (canonical:
+          // NEXT_PUBLIC_VOISSS_BACKEND_URL, legacy aliases honored)
           const backendUrl =
-            process.env.NEXT_PUBLIC_VOISSS_API || "https://voisss.famile.xyz";
+            process.env.NEXT_PUBLIC_VOISSS_BACKEND_URL ||
+            process.env.NEXT_PUBLIC_VOISSS_PROCESSING_URL ||
+            process.env.NEXT_PUBLIC_VOISSS_API ||
+            "https://voisss.famile.xyz";
 
           // Poll for completion (client-side)
           const maxAttempts = 30; // 30 attempts * 2s = 60s max

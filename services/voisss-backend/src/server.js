@@ -12,7 +12,8 @@ const {
 } = require("./middleware");
 
 const exportRoutes = require("./routes/export-routes");
-const missionRoutes = require("./routes/mission-routes");
+// missionRoutes retired — VPS no longer serves /api/missions (see DEPLOYMENT.md, VPS cleanup Phase 2).
+// src/routes/mission-routes.js deleted in follow-up PR; restore via `git checkout HEAD~1 -- services/voisss-backend/src/routes/mission-routes.js` if rollback needed.
 const { createElevenLabsRoutes } = require("./routes/elevenlabs-routes");
 const { createDubbingRoutes } = require("./routes/dubbing-routes");
 const { runMigrations, closePool } = require("./services/db-service");
@@ -41,7 +42,7 @@ const DEV_ORIGINS = [
   "http://localhost:4445",
   "http://localhost:3000",
 ];
-const prodOrigins = (process.env.CORS_ORIGINS || "https://voisss.netlify.app,https://voisss.app")
+const prodOrigins = (process.env.CORS_ORIGINS || "https://voisss.netlify.app")
   .split(",")
   .map(o => o.trim())
   .filter(Boolean);
@@ -108,7 +109,6 @@ const transformLimiter = rateLimit({
 app.use("/api", apiLimiter, authMiddleware);
 
 app.use("/api/export", exportRoutes);
-app.use("/api/missions", missionRoutes);
 app.use("/api", createElevenLabsRoutes({ transformLimiter }));
 app.use("/api/dubbing", createDubbingRoutes());
 

@@ -138,10 +138,15 @@ export async function POST(req: NextRequest) {
     manifest = renderMp4StoryboardManifest({ transcript, template });
   }
 
-  // Call the actual backend export worker service
-  // In production: https://voisss.famile.xyz
-  // In development: http://localhost:5577
-  const backendUrl = process.env.VOISSS_PROCESSING_URL ||
+  // Backend export worker — harmonized env (VOISSS_BACKEND_URL canonical).
+  // Legacy names honored for migration; remove fallbacks after env rotation.
+  const backendUrl =
+    process.env.VOISSS_BACKEND_URL ||
+    process.env.VOISSS_PROCESSING_URL ||
+    process.env.NEXT_PUBLIC_VOISSS_BACKEND_URL ||
+    process.env.NEXT_PUBLIC_VOISSS_PROCESSING_URL ||
+    process.env.VOISSS_API ||
+    process.env.NEXT_PUBLIC_VOISSS_API ||
     (process.env.NODE_ENV === 'production'
       ? 'https://voisss.famile.xyz'
       : 'http://localhost:5577');

@@ -345,10 +345,13 @@ export default function TranscriptComposer(props: {
       localStorage.setItem("voisss:user_id", uid);
     }
 
-    // Fetch existing jobs for this user
+    // Fetch existing jobs for this user — harmonized client env (canonical:
+    // NEXT_PUBLIC_VOISSS_BACKEND_URL, legacy aliases honored)
     const fetchUserJobs = async () => {
       const backendUrl =
+        process.env.NEXT_PUBLIC_VOISSS_BACKEND_URL ||
         process.env.NEXT_PUBLIC_VOISSS_PROCESSING_URL ||
+        process.env.NEXT_PUBLIC_VOISSS_API ||
         "https://voisss.famile.xyz";
       try {
         const res = await fetch(`${backendUrl}/api/export/user/${uid}`);
@@ -615,10 +618,12 @@ export default function TranscriptComposer(props: {
     }
   };
 
-  // Poll export job status (Top-level within component)
+  // Poll export job status (Top-level within component) — harmonized client env
   const pollExportStatus = async (jobId: string) => {
     const backendUrl =
+      process.env.NEXT_PUBLIC_VOISSS_BACKEND_URL ||
       process.env.NEXT_PUBLIC_VOISSS_PROCESSING_URL ||
+      process.env.NEXT_PUBLIC_VOISSS_API ||
       "https://voisss.famile.xyz";
     const maxAttempts = 120; // 6 minutes (120 * 3s)
     let attempts = 0;

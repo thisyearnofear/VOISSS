@@ -91,8 +91,16 @@ const rpcUrl =
 const ipfsGateway =
   process.env.NEXT_PUBLIC_IPFS_GATEWAY_URL || "https://gateway.pinata.cloud/ipfs/";
 const envioIndexerUrl = process.env.ENVIO_INDEXER_URL;
+// Canonical: VOISSS_BACKEND_URL (harmonized). Legacy aliases kept for zero-downtime
+// migration — VOISSS_API / NEXT_PUBLIC_VOISSS_API / VOISSS_PROCESSING_URL are
+// all honored. Remove aliases once Netlify + Hetzner envs are rotated.
 const backendApiUrl =
-  process.env.VOISSS_API || process.env.NEXT_PUBLIC_VOISSS_API;
+  process.env.VOISSS_BACKEND_URL ||
+  process.env.VOISSS_PROCESSING_URL ||
+  process.env.NEXT_PUBLIC_VOISSS_BACKEND_URL ||
+  process.env.NEXT_PUBLIC_VOISSS_PROCESSING_URL ||
+  process.env.VOISSS_API ||
+  process.env.NEXT_PUBLIC_VOISSS_API;
 
 const client = createPublicClient({
   chain: base,
@@ -588,11 +596,12 @@ async function fetchPlatformVoices(origin?: string): Promise<MarketplaceVoice[]>
   }
 
   // Prefer the same-origin /api/voices path — on Netlify it proxies to the
-  // voice backend (allowlisted origin); fall back to the backend URL directly.
+  // voice backend (allowlisted origin); fall back to the backend URL directly
+  // when explicitly configured. Hardcoded voisss.famile.xyz is not a default —
+  // it only participates when backendApiUrl is set.
   const candidates = [
     origin ? `${origin}/api/voices` : null,
     backendApiUrl ? `${backendApiUrl}/api/voices` : null,
-    "https://voisss.famile.xyz/api/voices",
   ].filter((u): u is string => !!u);
 
   for (const url of candidates) {

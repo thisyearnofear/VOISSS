@@ -1,5 +1,9 @@
 "use client";
 
+// MISSIONS RETIRED — VPS cleanup Phase 2: /api/missions returns 410, useMissions hits stubs.
+// This board is no longer reachable via navigation (next.config redirects /missions → /sell).
+// Keep file for rollback; next step is to remove the socialfi/* directory.
+
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mission } from "@voisss/shared/types/socialfi";

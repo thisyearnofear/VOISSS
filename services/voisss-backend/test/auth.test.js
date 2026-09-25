@@ -87,13 +87,14 @@ describe('auth middleware — public paths', () => {
     expect(err2).toBeUndefined();
   });
 
-  it('allows public mission board reads without a key', () => {
+  it('retired missions now require auth (no longer public)', () => {
+    // VPS cleanup Phase 2: /missions removed from PUBLIC_PATHS — now 401 without a key
     const { err1 } = runAuth(auth, 'GET', '/missions', {});
     const { err2 } = runAuth(auth, 'GET', '/missions/mission_123', {});
     const { err3 } = runAuth(auth, 'GET', '/missions/user/0x' + 'a'.repeat(40), {});
-    expect(err1).toBeUndefined();
-    expect(err2).toBeUndefined();
-    expect(err3).toBeUndefined();
+    expect(err1?.statusCode).toBe(401);
+    expect(err2?.statusCode).toBe(401);
+    expect(err3?.statusCode).toBe(401);
   });
 });
 
@@ -148,51 +149,50 @@ describe('auth middleware — wallet identity (mission writes)', () => {
     process.env = { ...baseEnv };
   });
 
-  it('requires a wallet address bearer for mission writes', () => {
+  it('retired mission writes now require API key, not wallet bearer', () => {
+    // VPS cleanup Phase 2: WALLET_BEARER_PATHS is empty — /missions/* now falls through to API-key auth
     const { err } = runAuth(auth, 'POST', '/missions/create', {});
     expect(err.statusCode).toBe(401);
-    expect(err.message).toContain('Wallet address');
+    expect(err.message).toContain('API key');
   });
 
-  it('rejects a malformed wallet address', () => {
+  it('even a wallet bearer no longer authenticates retired mission writes', () => {
     const { err } = runAuth(auth, 'POST', '/missions/create', {
-      headers: { authorization: 'Bearer not-a-wallet' },
+      headers: { authorization: `Bearer not-a-wallet` },
     });
+    expect(err.statusCode).toBe(401);
+    expect(err.message).toContain('API key');
+  });
+
+  it('wallet bearer is ignored for retired missions (requires API key)', () => {
+    const { err } = runAuth(auth, 'POST', '/missions/accept', {
+      headers: { authorization: `Bearer ${ADDR}` },
+    });
+    // No longer a wallet path — falls through to API-key check, so wallet token is treated as invalid API key
     expect(err.statusCode).toBe(401);
   });
 
-  it('accepts a valid wallet bearer and sets req.user', () => {
-    const { err, req } = runAuth(auth, 'POST', '/missions/accept', {
-      headers: { authorization: `Bearer ${ADDR}` },
-    });
-    expect(err).toBeUndefined();
-    expect(req.user.kind).toBe('wallet');
-    expect(req.user.address).toBe(ADDR);
-  });
-
-  it('bindWalletIdentity rejects body.userId mismatch', () => {
+  it('bindWalletIdentity is inert when not a wallet request (missions retired)', () => {
     const req = mockReq('POST', '/missions/accept', {
       headers: { authorization: `Bearer ${ADDR}` },
       body: { userId: ADDR2 },
     });
+    // No longer a wallet path, so auth sets no wallet user — bindWalletIdentity no-ops
     let authErr;
     auth.authMiddleware(req, {}, (e) => { authErr = e; });
-    expect(authErr).toBeUndefined();
+    expect(authErr?.statusCode).toBe(401);
     let bindErr;
     auth.bindWalletIdentity(req, {}, (e) => { bindErr = e; });
-    expect(bindErr).toBeTruthy();
-    expect(bindErr.statusCode).toBe(403);
-    expect(bindErr.message).toContain('userId does not match');
+    expect(bindErr).toBeUndefined(); // inert when req.user.kind !== 'wallet'
   });
 
-  it('bindWalletIdentity passes when userId matches bearer', () => {
+  it('bindWalletIdentity still enforces userId match for any remaining wallet path (if reintroduced)', () => {
+    // Directly inject a wallet user to test the helper in isolation
     const req = mockReq('POST', '/missions/accept', {
-      headers: { authorization: `Bearer ${ADDR}` },
+      headers: {},
       body: { userId: ADDR },
     });
-    let authErr;
-    auth.authMiddleware(req, {}, (e) => { authErr = e; });
-    expect(authErr).toBeUndefined();
+    req.user = { kind: 'wallet', address: ADDR };
     let bindErr;
     auth.bindWalletIdentity(req, {}, (e) => { bindErr = e; });
     expect(bindErr).toBeUndefined();

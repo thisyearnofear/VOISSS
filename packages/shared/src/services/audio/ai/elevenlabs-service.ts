@@ -1,12 +1,19 @@
 import { IAudioTransformProvider, TransformOptions, VoiceInfo, VoiceVariantPreview, DubbingOptions, DubbingResult, DubbingLanguage } from '../../../types/audio';
 import { SUPPORTED_DUBBING_LANGUAGES, LanguageInfo } from '../../../constants/languages';
 
-// Use dedicated backend if configured, otherwise direct ElevenLabs API
-// Check both NEXT_PUBLIC_VOISSS_API (client-side) and VOISSS_API (server-side)
-const USE_BACKEND = typeof process !== 'undefined' && (process.env.NEXT_PUBLIC_VOISSS_API || process.env.VOISSS_API);
-const API_BASE = USE_BACKEND
-  ? (process.env.NEXT_PUBLIC_VOISSS_API || process.env.VOISSS_API)
-  : 'https://api.elevenlabs.io/v1';
+// Use dedicated backend if configured, otherwise direct ElevenLabs API.
+// Canonical env is VOISSS_BACKEND_URL / NEXT_PUBLIC_VOISSS_BACKEND_URL
+// (harmonized). Legacy names kept for migration: VOISSS_API aliases + the
+// client-side *_PROCESSING_URL. Remove aliases after env rotation.
+const VOISSS_BACKEND_CANDIDATE =
+  process.env.NEXT_PUBLIC_VOISSS_BACKEND_URL ||
+  process.env.NEXT_PUBLIC_VOISSS_PROCESSING_URL ||
+  process.env.VOISSS_BACKEND_URL ||
+  process.env.VOISSS_PROCESSING_URL ||
+  process.env.NEXT_PUBLIC_VOISSS_API ||
+  process.env.VOISSS_API;
+const USE_BACKEND = typeof process !== 'undefined' && !!VOISSS_BACKEND_CANDIDATE;
+const API_BASE = USE_BACKEND ? VOISSS_BACKEND_CANDIDATE! : 'https://api.elevenlabs.io/v1';
 
 function getEnv(name: string, fallback?: string): string {
   const v = process.env[name] ?? fallback;

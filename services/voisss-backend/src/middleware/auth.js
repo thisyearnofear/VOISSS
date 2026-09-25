@@ -55,19 +55,14 @@ const PUBLIC_PATHS = [
   // the client that started the job, so status/audio reads are safe to serve.
   ['GET', /^\/dubbing\/[\w-]+\/status$/],
   ['GET', /^\/dubbing\/[\w-]+\/audio\/[a-zA-Z-]+$/],
-  // Mission board is public marketplace data (Netlify force-proxies browser
-  // reads straight here, and agent discovery relies on unauthenticated GET).
-  ['GET', /^\/missions$/],
-  ['GET', /^\/missions\/[\w.-]+$/],
-  ['GET', /^\/missions\/user\/0x[a-fA-F0-9]{40}$/],
 ];
 
 const PUBLIC_ROOT_PATHS = new Set(['/health']);
 
 // Mission write routes accept Bearer wallet identity instead of an API key.
-const WALLET_BEARER_PATHS = [
-  ['POST', /^\/missions\/(create|accept|submit)$/],
-];
+const WALLET_BEARER_PATHS = [];
+// Mission writes retired on VPS — see server.js. If reintroducing, restore
+// ['POST', /^\/missions\/(create|accept|submit)$/] and bindWalletIdentity wiring.
 
 const WALLET_REGEX = /^0x[a-fA-F0-9]{40}$/;
 

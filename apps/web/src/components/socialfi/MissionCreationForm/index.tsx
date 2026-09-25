@@ -1,5 +1,9 @@
 "use client";
 
+// MISSIONS RETIRED — VPS cleanup Phase 2: /api/missions returns 410, useMissions hits stubs.
+// This board is no longer reachable via navigation (next.config redirects /missions → /sell).
+// Keep file for rollback; next step is to remove the socialfi/* directory.
+
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../../contexts/AuthContext";

@@ -50,10 +50,10 @@ ssh-keygen -t ed25519 -C "deploy-voisss" -f deploy_key
 
 | Service | How | Port | Notes |
 |---------|-----|------|-------|
-| Node.js API | pm2 `voisss-server` | 5577 | Express, ElevenLabs proxy, blockchain routes |
-| Export Worker | pm2 `voisss-export-worker` | — | FFmpeg processing queue |
-| PostgreSQL | Host-level (apt) | 5432 | `voisss` database, `voisss_user` role |
-| Redis | Docker `voisss-redis` | 6380 | Export job queue, 64MB max |
+| Node.js API | pm2 `voisss-server` | 5577 | Express, ElevenLabs proxy, dubbing, export |
+| Export Worker | pm2 `voisss-export-worker` | — | DB-driven queue (no Redis/Bull) |
+| PostgreSQL | Host-level (apt) | 5432 | `voisss` DB, `voisss_user` role, export_jobs table |
+| Redis | — | — | **Removed** — export is DB-driven; legacy `voisss-redis` (6380) is legacy-only, safe to stop |
 | Nginx | SSL termination | 443 | `voisss.famile.xyz` → localhost:5577 |
 
 ### Public URL
@@ -77,11 +77,14 @@ sudo -u postgres psql -c "CREATE DATABASE voisss OWNER voisss_user;"
 ```
 
 ### 3. Redis
+> **Removed / legacy** — the export queue is DB-driven (see `src/services/export-service.js`:
+> "Database-driven, no Bull/Redis"). If `voisss-redis:6380` is still on the host it is
+> inert and safe to `docker stop voisss-redis && docker rm voisss-redis`. Do not start it
+> for new deploys.
+
 ```bash
-sudo docker run -d --name voisss-redis --restart unless-stopped \
-  -p 127.0.0.1:6380:6379 \
-  -v voisss-redis-data:/data \
-  redis:7-alpine redis-server --appendonly yes --maxmemory 64mb --maxmemory-policy allkeys-lru
+# Legacy — only if cleaning up an old host:
+sudo docker stop voisss-redis 2>/dev/null; sudo docker rm voisss-redis 2>/dev/null
 ```
 
 ### 4. Environment
@@ -136,15 +139,15 @@ ssh snel-bot "pm2 monit"
 ## Export Service
 
 ```bash
-# Check Redis connectivity
-ssh snel-bot "redis-cli -p 6380 ping"
-
-# Check queue depth
-ssh snel-bot "redis-cli -p 6380 LLEN bull:voisss-export:"
+# Queue is DB-driven — no Redis/Bull
 
 # Check job counts
 ssh snel-bot "psql -h localhost -U voisss_user -d voisss \
   -c \"SELECT status, COUNT(*) FROM export_jobs GROUP BY status;\""
+
+# Legacy Redis (if host still has it) — safe to ignore/remove:
+# ssh snel-bot "redis-cli -p 6380 ping"
+# ssh snel-bot "redis-cli -p 6380 LLEN bull:voisss-export:"
 ```
 
 ## Troubleshooting
@@ -166,11 +169,14 @@ psql -h localhost -U voisss_user -d voisss -c "SELECT 1"
 
 ### Worker not processing
 ```bash
-# Check Redis
-redis-cli -p 6380 ping
+# Queue is DB-driven — check DB, not Redis
+ssh snel-bot "psql -h localhost -U voisss_user -d voisss -c \"SELECT id,status,attempts,lease_until FROM export_jobs WHERE status IN ('pending','processing') ORDER BY created_at DESC LIMIT 20;\""
 
 # Check worker process
 pm2 status | grep export
+
+# Legacy Redis check (only if host still runs voisss-redis):
+# redis-cli -p 6380 ping
 ```
 
 ## Cleanup & Maintenance
