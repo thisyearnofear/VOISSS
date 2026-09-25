@@ -1,6 +1,6 @@
 [build]
   base = "apps/web"
-  command = "cd ../.. && pnpm install && pnpm build:web"
+  command = "pnpm --filter @voisss/web build"
   publish = ".next"
 
 [build.environment]
