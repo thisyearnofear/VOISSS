@@ -8,6 +8,7 @@ import { useBaseAccount } from "../hooks/useBaseAccount";
 import { Menu, X } from "lucide-react";
 import VoissMascotMark from "./VoissMascotMark";
 import { ConnectModal } from "./auth/ConnectModal";
+import CommandPalette from "./CommandPalette";
 
 const ONBOARDING_STORAGE_KEY = "voisss_onboarding_profile";
 const NEW_USER_HINT_KEY = "voisss_new_user_hint_dismissed";
@@ -157,6 +158,10 @@ export default function Nav() {
               ))}
             </div>
 
+            {/* Command palette — human+agent twin */}
+            <div className="hidden lg:flex items-center">
+              <CommandPalette />
+            </div>
             {/* Authentication / Profile Area */}
             <div className="flex items-center gap-3 justify-end">
               {/* Mobile Hamburger */}

@@ -11,6 +11,7 @@ import {
   readPreviewResponse,
   type PreviewVoiceRef,
 } from "@/lib/listening-preview";
+import { pulseVoice } from "@/lib/terrain-bus";
 
 export interface UseVoicePreviewOptions {
   archetype?: string;
@@ -165,6 +166,8 @@ export function useVoicePreview(
         setAudioUrl(result.url);
         setAudioIsBlob(result.isBlob);
         setGenerationsLeft((prev) => Math.max(0, prev - 1));
+        // Preview settle — a voice was paid (even free) and now speaks
+        pulseVoice("settle");
         onVocalizedRef.current?.();
       } catch (err) {
         if (generationToken.current !== myToken) return;

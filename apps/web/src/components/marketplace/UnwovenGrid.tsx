@@ -22,9 +22,11 @@ import { useListeningPlayback } from "@/contexts/ListeningRoomContext";
  */
 
 const RIBBON_COUNT = 18;
+const UNWOVEN_THRESHOLD = 0.6; // tear must cross 60% to commit disclose — functional loom
 
-function useTear() {
+function useTear(onThreshold?: () => void) {
   const [tear, setTear] = useState(0);
+  const [committed, setCommitted] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement | null>(null);
   const drag = useRef<{ active: boolean; startX: number; startY: number; locked: "x" | "y" | null }>({
     active: false,
@@ -32,6 +34,7 @@ function useTear() {
     startY: 0,
     locked: null,
   });
+  const committedRef = useRef<string | null>(null);
 
   useEffect(() => {
     const el = ref.current;
@@ -57,12 +60,27 @@ function useTear() {
         const w = el.clientWidth || 1;
         const t = Math.max(-1, Math.min(1, dx / (w * 0.38)));
         setTear(t);
+        // Functional threshold: when tear crosses 60%, the card under cursor commits provenance
+        if (Math.abs(t) >= UNWOVEN_THRESHOLD) {
+          const target = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>("[data-voice-id]");
+          const voiceId = target?.getAttribute("data-voice-id");
+          if (voiceId && committedRef.current !== voiceId) {
+            committedRef.current = voiceId;
+            setCommitted(voiceId);
+            onThreshold?.();
+          }
+        }
       }
     };
     const onPointerUp = () => {
       drag.current.active = false;
       drag.current.locked = null;
       setTear(0);
+      // keep committed for a beat so user sees the disclose open
+      window.setTimeout(() => {
+        committedRef.current = null;
+        setCommitted(null);
+      }, 1800);
     };
     el.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("pointermove", onPointerMove, { passive: false } as any);
@@ -74,9 +92,33 @@ function useTear() {
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointercancel", onPointerUp);
     };
-  }, []);
+  }, [onThreshold]);
 
-  return { tear, ref };
+  return { tear, committed, ref };
+}
+
+function ProvenancePeek({ voice, open }: { voice: MarketplaceVoice; open: boolean }) {
+  if (!open) return null;
+  const hash = voice.provenance?.listingTxHash;
+  const href = hash ? `https://basescan.org/tx/${hash}` : voice.provenance?.contractAddress ? `https://basescan.org/address/${voice.provenance.contractAddress}` : null;
+  return (
+    <div className="mt-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-3 py-2.5">
+      <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
+        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/50">source: {voice.provenance?.source ?? "catalog"}</span>
+        {voice.trust?.badge && <span className="rounded-full border border-[#D6FF2A]/20 bg-[#D6FF2A]/10 px-2 py-0.5 text-[#0A0E1A] font-bold">{voice.trust.badge}</span>}
+        {hash ? (
+          <a href={href!} target="_blank" rel="noopener noreferrer" className="voisss-phosphor rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 hover:bg-amber-500/15 transition-colors">
+            Tx {hash.slice(0, 8)}…{hash.slice(-4)} ↗
+          </a>
+        ) : href ? (
+          <a href={href} target="_blank" rel="noopener noreferrer" className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/60 hover:text-white transition-colors">
+            Contract ↗
+          </a>
+        ) : null}
+      </div>
+      <p className="mt-1.5 font-mono text-[11px] leading-relaxed text-white/50 line-clamp-2">{voice.trust?.details || "No additional provenance details. — drag less to close"}</p>
+    </div>
+  );
 }
 
 function RibbonCard({
@@ -85,6 +127,8 @@ function RibbonCard({
   top,
   ceremony,
   reasons,
+  dimensionLevels,
+  committed,
   shortlistButton,
   onPlayed,
 }: {
@@ -93,6 +137,8 @@ function RibbonCard({
   top: boolean;
   ceremony: boolean;
   reasons: string[];
+  dimensionLevels?: Record<string, number>;
+  committed: string | null;
   shortlistButton: React.ReactNode;
   onPlayed: (v: MarketplaceVoice) => void;
 }) {
@@ -112,12 +158,15 @@ function RibbonCard({
   const playback = useListeningPlayback();
   const playing = playback.track?.id === `sample:${voice.id}` && playback.status === "playing";
 
+  const isCommitted = committed === voice.id;
   return (
     <article
+      data-voice-id={voice.id}
       className={
         "lr-card voisss-specular voisss-specular-light relative overflow-hidden" +
         (top ? " lr-card--match" : "") +
-        (ceremony ? " lr-card--ceremony" : "")
+        (ceremony ? " lr-card--ceremony" : "") +
+        (isCommitted ? " ring-1 ring-amber-500/30" : "")
       }
       style={{ touchAction: "pan-y" }}
     >
@@ -187,14 +236,29 @@ function RibbonCard({
             </ul>
           </Disclosure>
         )}
+        {dimensionLevels && Object.keys(dimensionLevels).length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {([["arousal", "energy"], ["pace", "pace"], ["expressiveness", "express"], ["warmth", "warmth"], ["authority", "authority"], ["intimacy", "intimacy"]] as const).map(([dim, short]) => {
+              const v = dimensionLevels[dim];
+              if (v == null) return null;
+              return (
+                <span key={dim} className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 font-mono text-[10px]">
+                  <span className="text-white/40">{short}</span>
+                  <span className="tabular-nums text-white/75">{Math.round(v * 100)}</span>
+                </span>
+              );
+            })}
+          </div>
+        )}
+        <ProvenancePeek voice={voice} open={isCommitted} />
         <Disclosure title="Provenance & trust" variant="inline">
           <p className="lr-quiet" style={{ marginTop: "0.5rem" }}>
             {voice.trust?.details || "No additional provenance details."}
           </p>
         </Disclosure>
-        {/* Drag hint */}
+        {/* Drag hint — honest about threshold */}
         <p className="lr-quiet" style={{ fontSize: "0.7rem", opacity: 0.55, marginTop: "0.5rem" }}>
-          Drag sideways to pull the weave →
+          Pull past 60% to inspect chain ↦ drag sideways
         </p>
       </div>
     </article>
@@ -206,6 +270,7 @@ export function UnwovenGrid({
   topMatchId,
   ceremonyId,
   reasonsById,
+  dimensionLevelsById,
   shortlistButton,
   onPlayed,
 }: {
@@ -213,10 +278,11 @@ export function UnwovenGrid({
   topMatchId: string | null;
   ceremonyId: string | null;
   reasonsById: Record<string, string[]>;
+  dimensionLevelsById?: Record<string, Record<string, number>>;
   shortlistButton: (v: MarketplaceVoice) => React.ReactNode;
   onPlayed: (v: MarketplaceVoice) => void;
 }) {
-  const { tear, ref } = useTear();
+  const { tear, committed, ref } = useTear();
 
   return (
     <div ref={ref} className="lr-list" style={{ touchAction: "pan-y" }}>
@@ -228,6 +294,8 @@ export function UnwovenGrid({
           top={voice.id === topMatchId}
           ceremony={voice.id === ceremonyId}
           reasons={reasonsById[voice.id] ?? []}
+          dimensionLevels={dimensionLevelsById?.[voice.id]}
+          committed={committed}
           shortlistButton={shortlistButton(voice)}
           onPlayed={onPlayed}
         />

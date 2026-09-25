@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConnectModal } from "@/components/auth/ConnectModal";
+import CommandPalette from "@/components/CommandPalette";
 
 const PRIMARY_LINKS = [
   { href: "/marketplace", label: "Discover" },
@@ -54,6 +55,7 @@ export function ListeningNav() {
         </Link>
         <div className="lr-nav-links">{PRIMARY_LINKS.map(renderLink)}</div>
         <div className="lr-nav-secondary">
+          <CommandPalette />
           {SECONDARY_LINKS.map(renderLink)}
           <button
             type="button"

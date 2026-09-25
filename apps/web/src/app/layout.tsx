@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Instrument_Serif, IBM_Plex_Mono } from "next/font/google";
 import { BaseProvider } from "./providers";
 import ScrollLife from "../components/ScrollLife";
+import Ticker from "../components/Ticker";
 import { ReferralTracker } from "./referral-tracker";
 import "./globals.css";
 import "../styles/listening-room.css";
@@ -170,6 +171,8 @@ export default function RootLayout({
       >
         <BaseProvider>
           <ReferralTracker />
+          {/* Licensed Signal HUD: global Ticker (phosphor strip) above scroll rail */}
+          <Ticker />
           {/* One observer for every route: staged reveals for [data-reveal] plus
               the scroll progress rail. Mounted here so any page can opt in. */}
           <ScrollLife />

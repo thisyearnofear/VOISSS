@@ -687,6 +687,69 @@ h1, h2, h3, h4, h5, h6 {
   100% { transform: translateY(0); }
 }
 
+/* ── Ticker — phosphor HUD strip ──────────────────────────────────────── */
+.voisss-ticker {
+  /* retro HUD: lime LIVE + phosphor amber mono + CRT scan */
+  background: #0A0E1A;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.voisss-ticker-track {
+  animation: voisss-ticker-scroll 72s linear infinite;
+  will-change: transform;
+}
+.voisss-ticker:hover .voisss-ticker-track {
+  animation-play-state: paused;
+}
+@keyframes voisss-ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.voisss-ticker-scan::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 2px,
+    rgba(255,255,255,0.035) 2px,
+    rgba(255,255,255,0.035) 3px
+  );
+  pointer-events: none;
+  opacity: 0.55;
+}
+/* phosphor amber mono — for TxHash, counts, chain data */
+.voisss-phosphor {
+  color: #FFB000;
+  text-shadow: 0 0 8px rgba(255,176,0,0.45), 0 0 18px rgba(255,176,0,0.18);
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+.voisss-hud-frame {
+  position: relative;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(18,22,31,0.9), rgba(10,14,26,0.98));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    0 8px 32px rgba(0,0,0,0.45),
+    0 0 0 1px rgba(214,255,42,0.08);
+}
+.voisss-hud-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(to bottom, transparent 0 2px, rgba(255,255,255,0.025) 2px 3px);
+  pointer-events: none;
+  opacity: 0.6;
+}
+/* view-timeline polish — progressive enhancement for scroll scrub */
+@supports (animation-timeline: view()) {
+  .voisss-view-pipeline { view-timeline-name: --pipeline; view-timeline-axis: block; }
+  .voisss-view-progress { animation: voisss-view-grow linear both; animation-timeline: --pipeline; animation-range: entry 0% exit 100%; }
+}
+@keyframes voisss-view-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
 body {
   background: var(--background);
   color: var(--foreground);

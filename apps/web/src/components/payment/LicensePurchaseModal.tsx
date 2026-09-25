@@ -28,6 +28,7 @@ import {
   CreditCard,
   Loader2,
 } from "lucide-react";
+import { pulseVoice } from "@/lib/terrain-bus";
 
 type LicenseTier = "non-exclusive" | "exclusive";
 
@@ -100,6 +101,8 @@ export function LicensePurchaseModal({
         throw new Error(data.error || "License purchase failed");
       }
 
+      // Settlement cue — the terrain sweeps 70/30 as checkout opens
+      pulseVoice("settle");
       // Stripe Checkout is the authoritative payment step. The webhook creates
       // the entitlement, and Stripe returns the buyer to the success URL.
       window.location.assign(data.data.url);

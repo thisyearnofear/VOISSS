@@ -28,6 +28,7 @@ import {
 } from "@/contexts/ListeningRoomContext";
 import { Badge, Button, Chip, Disclosure, Notice } from "@/components/ui";
 import { voiceMetaLine } from "./VoiceAuditionRow";
+import { pulseVoice } from "@/lib/terrain-bus";
 
 /**
  * Single-voice listening room — the detail surface buyers land on from a
@@ -127,7 +128,10 @@ export function VoiceListeningRoom({ voice }: { voice: MarketplaceVoice }) {
   const handlePlaySample = () => {
     if (!sampleTrack) return;
     void player.toggle(sampleTrack).then((started) => {
-      if (started && !sampleCurrent) trackMatchEvent("voice_preview");
+      if (started && !sampleCurrent) {
+        pulseVoice("lift");
+        trackMatchEvent("voice_preview");
+      }
     });
   };
 
@@ -430,30 +434,47 @@ export function VoiceListeningRoom({ voice }: { voice: MarketplaceVoice }) {
           </Disclosure>
 
           <Disclosure
-            title="Provenance & trust"
+            title="Provenance & trust — inspectable chain"
             variant="section"
             name="voice-detail"
             id="provenance"
           >
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "0.5rem",
-                marginBottom: "0.75rem",
-              }}
-            >
-              {voice.trust?.badge && <Badge>{voice.trust.badge}</Badge>}
-              <Badge>source: {voice.provenance?.source ?? "catalog"}</Badge>
-              {voice.reputation && (
-                <Badge>threat: {voice.reputation.threatLevel}</Badge>
-              )}
+            {/* HUD provenance rail — TxHash → chain → settle */}
+            <div className="voisss-hud-frame p-4 mb-4">
+              <div className="absolute inset-0 rounded-[16px] opacity-[0.035]" style={{ background: "repeating-linear-gradient(to bottom, transparent 0 2px, rgba(255,255,255,0.9) 2px 3px)" }} aria-hidden />
+              <div className="relative">
+                <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px] mb-3">
+                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/50">source: {voice.provenance?.source ?? "catalog"}</span>
+                  {voice.trust?.badge && <span className="rounded-full border border-[#D6FF2A]/20 bg-[#D6FF2A]/10 px-2 py-0.5 text-[#0A0E1A] font-bold">{voice.trust.badge}</span>}
+                  {voice.reputation && <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/50">threat: {voice.reputation.threatLevel}</span>}
+                  {voice.provenance?.listingTxHash && (
+                    <a href={`https://basescan.org/tx/${voice.provenance.listingTxHash}`} target="_blank" rel="noopener noreferrer" className="voisss-phosphor rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 hover:bg-amber-500/15 transition-colors">
+                      Tx {voice.provenance.listingTxHash.slice(0, 10)}…{voice.provenance.listingTxHash.slice(-4)} ↗
+                    </a>
+                  )}
+                  {voice.provenance?.contractAddress && !voice.provenance?.listingTxHash && (
+                    <a href={`https://basescan.org/address/${voice.provenance.contractAddress}`} target="_blank" rel="noopener noreferrer" className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/60 hover:text-white transition-colors">
+                      Contract ↗
+                    </a>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 font-mono text-[11px] text-white/40">
+                  <span className="h-px flex-1 bg-gradient-to-r from-[#D6FF2A]/50 via-[#D6FF2A]/20 to-transparent" aria-hidden />
+                  <span className="voisss-phosphor text-[10px]">70%</span>
+                  <span className="h-2 w-px bg-white/20" aria-hidden />
+                  <span className="text-cyan-400/70">30%</span>
+                  <span className="h-px flex-1 bg-gradient-to-l from-cyan-500/30 via-cyan-500/10 to-transparent" aria-hidden />
+                </div>
+                <p className="mt-2 font-mono text-[11px] leading-relaxed text-white/45">
+                  contributor → <span className="text-white/70">70%</span> · protocol → 30% · <span className="voisss-phosphor">platformFeeBps 3000</span> · VoiceLicenseMarket.sol · Base 8453
+                </p>
+              </div>
             </div>
-            <p style={{ margin: 0 }}>
+            <p style={{ margin: 0, fontSize: "0.9375rem" }}>
               {voice.trust?.details || "No additional provenance details."}
             </p>
-            <p style={{ margin: "0.75rem 0 0", overflowWrap: "anywhere" }}>
-              Contributor <code>{voice.contributorAddress}</code>
+            <p style={{ margin: "0.75rem 0 0", overflowWrap: "anywhere", fontFamily: "var(--lr-font-mono)", fontSize: "0.8125rem", color: "var(--lr-muted)" }}>
+              Contributor <code className="voisss-phosphor text-xs">{voice.contributorAddress}</code>
             </p>
             {isEvmAddress(voice.contributorAddress) && (
               <p style={{ margin: 0 }}>
@@ -467,6 +488,8 @@ export function VoiceListeningRoom({ voice }: { voice: MarketplaceVoice }) {
                     alignItems: "center",
                     gap: "0.25rem",
                     minHeight: "44px",
+                    fontFamily: "var(--lr-font-mono)",
+                    fontSize: "0.8125rem",
                   }}
                 >
                   View on Basescan <ExternalLink className="w-3 h-3" aria-hidden />
