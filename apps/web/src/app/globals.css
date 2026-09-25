@@ -770,6 +770,25 @@ body {
   font-family: var(--font-inter), system-ui, sans-serif;
 }
 
+/* ── Warp — the marketplace as a loom ────────────────────────────────
+ * Cards are warp threads, not grid cells. Edge-bleed on desktop,
+ * single column on mobile, one field wash. Ribbons *are* the card.
+ * Prefers-reduced-motion kills shred + FLIP translation, keeps settle.
+ * ─────────────────────────────────────────────────────────────────── */
+.voisss-warp {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--lr-space-md);
+}
+@media (max-width: 760px) {
+  .voisss-warp { grid-template-columns: minmax(0, 1fr); }
+}
+/* loom field affordance — the warp sits on the wash, not in a card */
+.voisss-warp > article {
+  background: color-mix(in oklab, var(--lr-night) 92%, transparent);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
 /* Mobile bottom nav safe area - prevents content from hiding behind fixed nav */
 @media (max-width: 639px) {
   body {

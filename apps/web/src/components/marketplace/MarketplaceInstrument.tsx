@@ -15,7 +15,7 @@ import { Badge, Button, Chip, Disclosure, Notice } from "@/components/ui";
 import { useListeningRoom } from "@/contexts/ListeningRoomContext";
 import { useVoiceCatalog } from "@/hooks/useVoiceCatalog";
 import { useAuth } from "@/contexts/AuthContext";
-import { pulseVoice } from "@/lib/terrain-bus";
+import { getSettleSplit, pulseVoice, setSettleSplit } from "@/lib/terrain-bus";
 import { DismissibleRuntimeTracks } from "@/components/payment/RuntimePaymentChips";
 import ThinkingState from "@/components/ui/agentic/ThinkingState";
 
@@ -134,11 +134,40 @@ export default function MarketplaceInstrument() {
   const [match, setMatch] = useState<VoiceMatchResult | null>(null);
   const [matchLoading, setMatchLoading] = useState(false);
   const [matchUnavailable, setMatchUnavailable] = useState(false);
-  const [showTrends, setShowTrends] = useState(false);
-  const [thinkingKey, setThinkingKey] = useState(0);
-
   const brief = draft.brief;
   const loading = query.isLoading;
+  const [showTrends, setShowTrends] = useState(false);
+  const [thinkingKey, setThinkingKey] = useState(0);
+  // Settlement is a draggable object — the bar *is* the contract constant made visible
+  const [split, setSplit] = useState(() => getSettleSplit());
+  const splitRef = useRef<HTMLDivElement | null>(null);
+  const draggingSplit = useRef(false);
+  const ghostHint = useRef<number | null>(null);
+  const [ghostSeen, setGhostSeen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    try { return localStorage.getItem("voisss_ghost_seen") === "1"; } catch { return true; }
+  });
+  useEffect(() => {
+    if (brief.trim().length >= 3) return;
+    if (ghostSeen) return;
+    ghostHint.current = window.setTimeout(() => {
+      const el = document.getElementById("voisss-ghost-hint");
+      if (el) { el.style.opacity = "1"; window.setTimeout(() => { el.style.opacity = "0"; }, 4200); }
+      try { localStorage.setItem("voisss_ghost_seen", "1"); } catch {}
+      setGhostSeen(true);
+    }, 900);
+    return () => { if (ghostHint.current) window.clearTimeout(ghostHint.current); };
+  }, [brief, ghostSeen]);
+  const commitSplit = (clientX: number) => {
+    const el = splitRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const t = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+    const clamped = t <= 0.15 ? 0.15 : t >= 0.85 ? 0.85 : t;
+    setSplit(clamped);
+    setSettleSplit(clamped);
+    if (Math.abs(clamped - split) > 0.04) pulseVoice("settle");
+  };
   const error = query.isError ? "Voices could not be loaded. Please try again." : null;
   const activeFilterCount = [filters.language, filters.tone, filters.licenseType].filter(Boolean).length;
 
@@ -393,15 +422,20 @@ export default function MarketplaceInstrument() {
         </div>
       </section>
 
-      {/* ── Field — terrain behind the loom's output, not a second hero ───── */}
+      {/* ── Field — edge-to-edge warp, loom was the filter ─────────────── */}
       <div className="relative">
-        {/* subtle terrain wash behind grid only — not a hero, just memory */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] overflow-hidden opacity-[0.22]" aria-hidden>
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[780px] overflow-hidden opacity-[0.28]" aria-hidden>
           <VoiceTerrain />
           <div className="absolute inset-0 bg-gradient-to-b from-[#0A0E1A] via-transparent to-[#0A0E1A]" />
         </div>
-
-        <div className="lr-wrap relative py-5 sm:py-6">
+        {/* ghost hint — 4s, s/01, then gone */}
+        {!ghostSeen && brief.trim().length < 3 && (
+          <div id="voisss-ghost-hint" className="pointer-events-none absolute left-1/2 top-[18px] z-10 -translate-x-1/2 whitespace-nowrap rounded-full border border-[#D6FF2A]/20 bg-[#D6FF2A]/10 px-3 py-1 font-mono text-[11px] text-[#0A0E1A] opacity-0 transition-opacity duration-700" style={{ transition: "opacity 700ms ease" }}>
+            s/01 — type any brief — pull any thread past 60%
+          </div>
+        )}
+        <div className="relative py-5 sm:py-6">
+          <div className="mx-auto max-w-[1200px] px-[clamp(12px,2.5vw,24px)] sm:px-[clamp(20px,4vw,64px)]">
           {draft.shortlist.length > 0 && (
             <section className="mb-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3 sm:p-4" aria-label="Compare catalog samples">
               <div className="flex flex-wrap items-center gap-2">
@@ -476,25 +510,46 @@ export default function MarketplaceInstrument() {
             <DismissibleRuntimeTracks bankrCompact dynamicCompact={!isAuthenticated} storageKey="voisss_runtime_marketplace" />
           </div>
 
-          {/* trust · settlement — not a disclosure, just two quiet cards */}
+          {/* settlement — draggable object, field follows */}
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-              <div className="font-mono text-[10px] tracking-[0.14em] text-white/40">SETTLEMENT OBJECT</div>
+              <div className="font-mono text-[10px] tracking-[0.14em] text-white/40">SETTLEMENT OBJECT — drag the split</div>
               <p className="mt-2 font-mono text-xs leading-relaxed text-white/60">
-                <span className="text-white">License purchase</span> → 70% contributor / 30% protocol · <span className="voisss-phosphor">platformFeeBps 3000</span> · VoiceLicenseMarket.sol
+                <span className="text-white">License purchase</span> → {Math.round(split * 100)}% contributor / {Math.round((1 - split) * 100)}% protocol · <span className="voisss-phosphor">platformFeeBps {Math.round(split * 10000)}</span> · VoiceLicenseMarket.sol
               </p>
               <p className="mt-1 font-mono text-xs leading-relaxed text-white/60">
                 <span className="text-white">Per-use vocalize</span> → 95% creator / 5% platform · <span className="voisss-phosphor">platformFeePercent 5</span> · VoiceRecords.sol
               </p>
-              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10 flex">
-                <div className="h-full bg-[#D6FF2A]" style={{ width: "70%" }} />
-                <div className="h-full bg-[#22D3EE] flex-1" />
+              <div
+                ref={splitRef}
+                role="slider"
+                aria-label="Settlement split"
+                aria-valuemin={15}
+                aria-valuemax={85}
+                aria-valuenow={Math.round(split * 100)}
+                tabIndex={0}
+                onKeyDown={(e) => { const s = e.key === "ArrowRight" ? 0.02 : e.key === "ArrowLeft" ? -0.02 : 0; if (s) { e.preventDefault(); const n = Math.max(0.15, Math.min(0.85, split + s)); setSplit(n); setSettleSplit(n); pulseVoice("settle"); }}}
+                onPointerDown={(e) => { draggingSplit.current = true; (e.target as Element).setPointerCapture?.(e.pointerId); commitSplit(e.clientX); }}
+                onPointerMove={(e) => { if (draggingSplit.current) commitSplit(e.clientX); }}
+                onPointerUp={() => { draggingSplit.current = false; }}
+                onPointerCancel={() => { draggingSplit.current = false; }}
+                className="mt-3 relative h-6 flex items-center cursor-ew-resize select-none touch-none outline-none focus-visible:ring-2 focus-visible:ring-[#D6FF2A]/40 rounded-full"
+              >
+                <div className="absolute inset-y-[7px] inset-x-0 overflow-hidden rounded-full bg-white/10 flex" aria-hidden>
+                  <div className="h-full bg-[#D6FF2A]" style={{ width: `${split * 100}%` }} />
+                  <div className="h-full bg-[#22D3EE] flex-1" />
+                </div>
+                <div className="absolute top-1/2 -translate-y-1/2 h-5 w-[2px] -translate-x-1/2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.7)]" style={{ left: `${split * 100}%` }} aria-hidden />
+                <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 grid h-6 w-6 place-items-center rounded-full border border-white/20 bg-[#0A0E1A] shadow-lg" style={{ left: `${split * 100}%` }} aria-hidden>
+                  <span className="h-2 w-[1px] bg-white/50" /><span className="ml-[2px] h-2 w-[1px] bg-white/50" />
+                </div>
               </div>
+              <p className="mt-1 font-mono text-[10px] text-white/30">on-chain constant is 70/30 — drag to inspect, field sweep follows</p>
             </div>
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
               <div className="font-mono text-[10px] tracking-[0.14em] text-white/40">PROVENANCE · ON-CARD</div>
               <p className="mt-2 font-mono text-xs leading-relaxed text-white/60">
-                Every card exposes <span className="text-white">source</span>, <span className="text-white">trust badge</span>, and <span className="voisss-phosphor">TxHash</span> → Basescan. Pull the weave to reveal.
+                Every thread exposes <span className="text-white">source</span>, <span className="text-white">trust badge</span>, and <span className="voisss-phosphor">TxHash</span> → Basescan. Pull past 60% or tap ↔.
               </p>
               <div className="mt-3 flex flex-wrap gap-1.5 font-mono text-[11px]">
                 <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-white/50">source: envio / rpc / catalog</span>
@@ -502,6 +557,7 @@ export default function MarketplaceInstrument() {
                 <span className="voisss-phosphor rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[11px]">0xBE85…85c</span>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>

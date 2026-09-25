@@ -25,6 +25,7 @@ type PulseListener = (pulse: VoicePulse) => void;
 let energy = 0;
 let lastAt = 0;
 const listeners = new Set<PulseListener>();
+let settleSplit = 0.7; // 0..1 — the draggable 70/30, read by VoiceTerrain every frame
 
 /** Publishes 0..1 voice energy. Values decay if the caller stops reporting. */
 export function setVoiceEnergy(level: number) {
@@ -48,6 +49,15 @@ export function getVoiceEnergy(): number {
     return energy * Math.max(0, 1 - (stale - 260) / 940);
   }
   return energy;
+}
+
+/** Current inspectable split (0..1). VoiceTerrain reads this every rAF. */
+export function getSettleSplit(): number {
+  return settleSplit;
+}
+/** Move the split — settlement is an object you can drag. Clamped 0.15..0.85 so neither side vanishes. */
+export function setSettleSplit(ratio: number) {
+  settleSplit = ratio <= 0.15 ? 0.15 : ratio >= 0.85 ? 0.85 : ratio;
 }
 
 /** Fire a discrete moment the field should acknowledge. */

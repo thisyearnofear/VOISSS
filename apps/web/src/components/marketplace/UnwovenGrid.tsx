@@ -314,19 +314,79 @@ export function UnwovenGrid({
   const [manual, setManual] = useState<string | null>(null);
   const committedId = committed ?? manual;
   const handleCommit = (id: string | null) => {
-    // keyboard path keeps dwell visible until user toggles closed
     setManual(id);
-    if (id) {
-      window.setTimeout(() => setManual((cur) => (cur === id ? null : cur)), 6000);
-    }
+    if (id) window.setTimeout(() => setManual((cur) => (cur === id ? null : cur)), 6000);
   };
-  // when loom commits, clear manual so they don't stack
+  useEffect(() => { if (committed) setManual(null); }, [committed]);
+
+  // FLIP spring-reorder — the brief re-weaves the fabric. Stagger per index,
+  // translate-only, will-change, reduced-motion skips the translation.
+  const positions = useRef<Map<string, DOMRect>>(new Map());
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const mergedRef = (el: HTMLDivElement | null) => {
+    (ref as any).current = el;
+    listRef.current = el;
+  };
+  const prevOrder = useRef<string[]>([]);
+  const orderKey = voices.map((v) => v.id).join("|");
   useEffect(() => {
-    if (committed) setManual(null);
-  }, [committed]);
+    const reduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) { prevOrder.current = voices.map((v) => v.id); return; }
+    const prev = prevOrder.current;
+    const next = voices.map((v) => v.id);
+    const moved = prev.length && prev.join("|") !== next.join("|");
+    if (!moved) { prevOrder.current = next; return; }
+    const root = listRef.current;
+    if (!root) { prevOrder.current = next; return; }
+    const els = new Map<string, HTMLElement>();
+    root.querySelectorAll<HTMLElement>("[data-voice-id]").forEach((n) => {
+      const id = n.getAttribute("data-voice-id");
+      if (id) els.set(id, n);
+    });
+    const first = new Map<string, DOMRect>();
+    for (const id of prev) {
+      const el = els.get(id);
+      if (el && positions.current.has(id)) first.set(id, positions.current.get(id)!);
+      else if (el) first.set(id, el.getBoundingClientRect());
+    }
+    // next frame: measure last, invert
+    requestAnimationFrame(() => {
+      const anims: Animation[] = [];
+      for (let i = 0; i < next.length; i++) {
+        const id = next[i];
+        const el = els.get(id);
+        const f = first.get(id);
+        if (!el || !f) continue;
+        const last = el.getBoundingClientRect();
+        const dy = f.top - last.top;
+        if (Math.abs(dy) < 1) continue;
+        el.style.willChange = "transform";
+        const anim = el.animate(
+          [{ transform: `translateY(${dy}px)` }, { transform: "translateY(0)" }],
+          { duration: 420, delay: Math.min(i * 28, 180), easing: "cubic-bezier(0.22,1,0.36,1)", fill: "both" }
+        );
+        anim.onfinish = () => { el.style.willChange = ""; };
+        anims.push(anim);
+      }
+      // update positions for next reorder
+      for (const [id, el] of els) positions.current.set(id, el.getBoundingClientRect());
+      void anims;
+    });
+    prevOrder.current = next;
+  }, [orderKey, voices]);
+  useEffect(() => {
+    const root = listRef.current;
+    if (!root) return;
+    const m = new Map<string, DOMRect>();
+    root.querySelectorAll<HTMLElement>("[data-voice-id]").forEach((n) => {
+      const id = n.getAttribute("data-voice-id");
+      if (id) m.set(id, n.getBoundingClientRect());
+    });
+    positions.current = m;
+  }, [voices.length]);
 
   return (
-    <div ref={ref} className="lr-list" style={{ touchAction: "pan-y" }}>
+    <div ref={mergedRef} className="voisss-warp" style={{ touchAction: "pan-y" }}>
       {voices.map((voice) => (
         <RibbonCard
           key={voice.id}

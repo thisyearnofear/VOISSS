@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { getVoiceEnergy, onVoicePulse } from "@/lib/terrain-bus";
+import { getSettleSplit, getVoiceEnergy, onVoicePulse } from "@/lib/terrain-bus";
 
 /**
  * VoiceTerrain — VOISSS signature field ("Licensed Signal")
@@ -283,7 +283,9 @@ export default function VoiceTerrain({ className = "" }: { className?: string })
       g.fillStyle = glow;
       g.fillRect(0, 0, width, height);
 
-      // ── settle: the agent paid — sweep the 70/30 split across the field ──
+      // ── settle: the agent paid — sweep the split across the field at the live ratio ──
+      // getSettleSplit is live (drag the bar below and the sweep follows) — default 0.7
+      const split = getSettleSplit();
       if (settle > 0) {
         const a = Math.sin(settle * Math.PI) * 0.5;
         const band = (x0: number, x1: number, color: string) => {
@@ -294,14 +296,13 @@ export default function VoiceTerrain({ className = "" }: { className?: string })
           g.fillStyle = grad;
           g.fillRect(width * x0, 0, width * (x1 - x0), height);
         };
-        band(0, 0.7, "214,255,42");
-        band(0.7, 1, "34,211,238");
-        // the split line itself
+        band(0, split, "214,255,42");
+        band(split, 1, "34,211,238");
         g.strokeStyle = `rgba(255,255,255,${a * 0.5})`;
         g.lineWidth = 1;
         g.beginPath();
-        g.moveTo(width * 0.7, height * 0.12);
-        g.lineTo(width * 0.7, height * 0.88);
+        g.moveTo(width * split, height * 0.12);
+        g.lineTo(width * split, height * 0.88);
         g.stroke();
       }
 

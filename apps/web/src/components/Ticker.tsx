@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 /**
  * Ticker — the market breathing.
@@ -43,6 +44,8 @@ function formatAge(ms: number) {
 export default function Ticker() {
   const [ticks, setTicks] = useState<Tick[]>(STATIC_SEED);
   const [now] = useState(() => Date.now());
+  const pathname = usePathname();
+  const isMarketplace = pathname?.startsWith("/marketplace");
   // Poll catalog stats to keep ticker honest — if voices grow, we whisper it
   useEffect(() => {
     let cancelled = false;
@@ -77,6 +80,8 @@ export default function Ticker() {
 
   // Duplicate for seamless marquee loop — 2× array
   const loop = [...ticks, ...ticks];
+
+  if (isMarketplace) return null;
 
   return (
     <div
