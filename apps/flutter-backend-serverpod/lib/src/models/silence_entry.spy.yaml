@@ -8,8 +8,10 @@ fields:
   displayName: String
   ### Raw audio bytes (bytea). Sprint-scale storage; move to cloud storage later.
   audio: ByteData
-  ### Container/codec hint for playback, e.g. "m4a", "wav".
+  ### Container/codec hint for playback, e.g. "m4a", "wav", "mp3".
   audioFormat: String
+  ### True when this take was synthesized (ElevenLabs), not a human mic take.
+  isAiGenerated: bool, default=false
   ### Denormalised vote aggregates, updated on each vote.
   voteCount: int
   voteScoreTotal: int

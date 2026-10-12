@@ -28,7 +28,8 @@ ThemeData buildVoisssTheme() {
     colorScheme: scheme,
     useMaterial3: true,
     scaffoldBackgroundColor: const Color(0xFF0B0A12),
-    textTheme: GoogleFonts.interTextTheme(base.textTheme).copyWith(
+    textTheme: _withEmojiFallback(
+      GoogleFonts.interTextTheme(base.textTheme).copyWith(
       displayMedium: GoogleFonts.spaceGrotesk(
         fontSize: 40,
         fontWeight: FontWeight.w700,
@@ -45,6 +46,7 @@ ThemeData buildVoisssTheme() {
         fontSize: 18,
         fontWeight: FontWeight.w600,
         color: Colors.white,
+      ),
       ),
     ),
     appBarTheme: const AppBarTheme(
@@ -79,6 +81,30 @@ ThemeData buildVoisssTheme() {
         borderSide: BorderSide.none,
       ),
     ),
+  );
+}
+
+/// Ensures emoji (😂🔥💀, 🤖) resolve to the bundled Noto Color Emoji when
+/// canvaskit can't fetch its own Noto set — e.g. blocked fonts CDN.
+TextTheme _withEmojiFallback(TextTheme theme) {
+  TextStyle? f(TextStyle? s) =>
+      s?.copyWith(fontFamilyFallback: const ['NotoColorEmoji']);
+  return theme.copyWith(
+    displayLarge: f(theme.displayLarge),
+    displayMedium: f(theme.displayMedium),
+    displaySmall: f(theme.displaySmall),
+    headlineLarge: f(theme.headlineLarge),
+    headlineMedium: f(theme.headlineMedium),
+    headlineSmall: f(theme.headlineSmall),
+    titleLarge: f(theme.titleLarge),
+    titleMedium: f(theme.titleMedium),
+    titleSmall: f(theme.titleSmall),
+    bodyLarge: f(theme.bodyLarge),
+    bodyMedium: f(theme.bodyMedium),
+    bodySmall: f(theme.bodySmall),
+    labelLarge: f(theme.labelLarge),
+    labelMedium: f(theme.labelMedium),
+    labelSmall: f(theme.labelSmall),
   );
 }
 

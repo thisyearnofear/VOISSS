@@ -76,6 +76,38 @@ class SilenceProvider extends ChangeNotifier {
     }
   }
 
+  /// AI voice menu (name → display label) served by the backend.
+  Future<Map<String, String>> aiVoices() => _service.aiVoices();
+
+  /// Synthesize an AI take — script + chosen voice → ElevenLabs on the
+  /// backend → lands in the gallery flagged `isAiGenerated`.
+  Future<bool> generateEntry({
+    required String displayName,
+    required String script,
+    required String voice,
+  }) async {
+    if (clip == null) return false;
+    submitting = true;
+    error = null;
+    notifyListeners();
+    try {
+      final entry = await _service.generate(
+        clipId: clip!.id!,
+        displayName: displayName,
+        script: script,
+        voice: voice,
+      );
+      entries = [entry, ...entries];
+      return true;
+    } catch (e) {
+      error = 'AI voice generation failed — try again.';
+      return false;
+    } finally {
+      submitting = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> vote(int entryId, int score) async {
     try {
       leaderboard = await _service.castVote(entryId, score);

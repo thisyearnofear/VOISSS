@@ -22,6 +22,7 @@ abstract class SilenceEntryView
     required this.displayName,
     required this.audio,
     required this.audioFormat,
+    required this.isAiGenerated,
     required this.voteCount,
     required this.avgScore,
     required this.createdAt,
@@ -33,6 +34,7 @@ abstract class SilenceEntryView
     required String displayName,
     required _i2.ByteData audio,
     required String audioFormat,
+    required bool isAiGenerated,
     required int voteCount,
     required double avgScore,
     required DateTime createdAt,
@@ -45,6 +47,7 @@ abstract class SilenceEntryView
       displayName: jsonSerialization['displayName'] as String,
       audio: _i1.ByteDataJsonExtension.fromJson(jsonSerialization['audio']),
       audioFormat: jsonSerialization['audioFormat'] as String,
+      isAiGenerated: jsonSerialization['isAiGenerated'] as bool,
       voteCount: jsonSerialization['voteCount'] as int,
       avgScore: (jsonSerialization['avgScore'] as num).toDouble(),
       createdAt:
@@ -62,6 +65,8 @@ abstract class SilenceEntryView
 
   String audioFormat;
 
+  bool isAiGenerated;
+
   int voteCount;
 
   double avgScore;
@@ -77,6 +82,7 @@ abstract class SilenceEntryView
     String? displayName,
     _i2.ByteData? audio,
     String? audioFormat,
+    bool? isAiGenerated,
     int? voteCount,
     double? avgScore,
     DateTime? createdAt,
@@ -89,6 +95,7 @@ abstract class SilenceEntryView
       'displayName': displayName,
       'audio': audio.toJson(),
       'audioFormat': audioFormat,
+      'isAiGenerated': isAiGenerated,
       'voteCount': voteCount,
       'avgScore': avgScore,
       'createdAt': createdAt.toJson(),
@@ -103,6 +110,7 @@ abstract class SilenceEntryView
       'displayName': displayName,
       'audio': audio.toJson(),
       'audioFormat': audioFormat,
+      'isAiGenerated': isAiGenerated,
       'voteCount': voteCount,
       'avgScore': avgScore,
       'createdAt': createdAt.toJson(),
@@ -122,6 +130,7 @@ class _SilenceEntryViewImpl extends SilenceEntryView {
     required String displayName,
     required _i2.ByteData audio,
     required String audioFormat,
+    required bool isAiGenerated,
     required int voteCount,
     required double avgScore,
     required DateTime createdAt,
@@ -131,6 +140,7 @@ class _SilenceEntryViewImpl extends SilenceEntryView {
           displayName: displayName,
           audio: audio,
           audioFormat: audioFormat,
+          isAiGenerated: isAiGenerated,
           voteCount: voteCount,
           avgScore: avgScore,
           createdAt: createdAt,
@@ -146,6 +156,7 @@ class _SilenceEntryViewImpl extends SilenceEntryView {
     String? displayName,
     _i2.ByteData? audio,
     String? audioFormat,
+    bool? isAiGenerated,
     int? voteCount,
     double? avgScore,
     DateTime? createdAt,
@@ -156,6 +167,7 @@ class _SilenceEntryViewImpl extends SilenceEntryView {
       displayName: displayName ?? this.displayName,
       audio: audio ?? this.audio.clone(),
       audioFormat: audioFormat ?? this.audioFormat,
+      isAiGenerated: isAiGenerated ?? this.isAiGenerated,
       voteCount: voteCount ?? this.voteCount,
       avgScore: avgScore ?? this.avgScore,
       createdAt: createdAt ?? this.createdAt,

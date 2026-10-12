@@ -235,8 +235,33 @@ Rule of thumb: **one layer owns CORS** — proxy or app, never both.
 - Runtime-verified in browser (headless Chrome): clip loads, video plays,
   take tile → reaction vote → name reveal → machine-plant reveal →
   "you just judged an audition" card → leaderboard all fire correctly.
-- Untested at runtime: mic permission flow, audio upload, theater audio
-  playback — needs a real browser session with mic access.
+- **Studio pass (2026-10-12):** the recorder is now a two-path studio.
+  Optional collapsible "Write your lines" script draft, then either
+  *Voice it myself* (records over the footage with **live captions** via
+  `speech_to_text` — your words appear as you speak, proving the mic is
+  capturing, and the script shows as a teleprompter) or *AI voice*
+  (bottom sheet: script + voice picker + display name →
+  `silenceEntry.generate`). Post-capture shows an explicit "Take captured
+  · 0:42 · We heard: '…'" card — the unclear-save feedback is gone.
+- **AI voices (ElevenLabs):** new `silenceEntry.generate(clipId,
+  displayName, script, voice)` endpoint calls ElevenLabs
+  `text-to-speech` (`eleven_flash_v2_5`, mp3) server-side and stores the
+  take flagged `isAiGenerated` — server-side voice allowlist
+  (`silenceEntry.aiVoices` returns the menu). Reads `ELEVENLABS_API_KEY`
+  from env (compose wires `${ELEVENLABS_API_KEY:-}`); returns "not
+  configured" gracefully until set. Migration `20261012144608845` adds
+  `silence_entry.isAiGenerated` (applied live; entry id=2 backfilled
+  true — the plant is now flag-driven, `kAgentEntryIds` is just a
+  fallback). Reveal logic checks `entry.isAiGenerated` everywhere
+  (tile, theater, reveal card).
+- **Web polish fixes:** `web/icons/` generated from the mascot (192/512 +
+  maskable), manifest rebranded (name/theme/description), index.html
+  title/meta; bundled `NotoColorEmoji.ttf` + `fontFamilyFallback` in the
+  theme so 😂🔥💀 render even when canvaskit can't reach the fonts CDN;
+  stale `assets/images|icons|animations/` pubspec dirs removed.
+- Untested at runtime: mic permission flow, audio upload, live captions
+  in a real mic session, ElevenLabs roundtrip (needs `ELEVENLABS_API_KEY`
+  on snel-bot, then `docker compose up -d` to pick up the env).
 
 ## Submission package (draft)
 

@@ -102,6 +102,10 @@ class Protocol extends _i1.SerializationManager {
       return (data as List).map((e) => deserialize<_i8.SilenceClip>(e)).toList()
           as T;
     }
+    if (t == Map<String, String>) {
+      return (data as Map).map((k, v) =>
+          MapEntry(deserialize<String>(k), deserialize<String>(v))) as T;
+    }
     if (t == List<_i9.SilenceEntryView>) {
       return (data as List)
           .map((e) => deserialize<_i9.SilenceEntryView>(e))

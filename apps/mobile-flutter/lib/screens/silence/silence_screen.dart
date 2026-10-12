@@ -105,7 +105,10 @@ class _SilenceScreenState extends State<SilenceScreen> {
                               clipTitle: provider.clip!.title,
                             ),
                             const SizedBox(height: 24),
-                            _RevealCard(votes: provider.myVotes),
+                            _RevealCard(
+                              votes: provider.myVotes,
+                              entries: provider.entries,
+                            ),
                             _Leaderboard(rows: provider.leaderboard),
                             const SizedBox(height: 8),
                             const _ServerpodExpander(),
@@ -467,7 +470,8 @@ class _EntryTile extends StatelessWidget {
     final provider = context.watch<SilenceProvider>();
     final scheme = Theme.of(context).colorScheme;
     final revealed = provider.myVotes.containsKey(entry.id);
-    final isAgent = kAgentEntryIds.contains(entry.id);
+    final isAgent =
+        entry.isAiGenerated || kAgentEntryIds.contains(entry.id);
     final name = revealed ? entry.displayName : personaFor(entry.id);
 
     return Container(
@@ -552,13 +556,18 @@ class _EntryTile extends StatelessWidget {
 /// judge has voted on the planted agent take.
 class _RevealCard extends StatelessWidget {
   final Map<int, int> votes;
-  const _RevealCard({required this.votes});
+  final List<SilenceEntryView> entries;
+  const _RevealCard({required this.votes, required this.entries});
 
   @override
   Widget build(BuildContext context) {
     if (votes.isEmpty) return const SizedBox.shrink();
     final scheme = Theme.of(context).colorScheme;
-    final caughtAgent = votes.keys.any(kAgentEntryIds.contains);
+    final caughtAgent = entries.any(
+      (e) =>
+          votes.containsKey(e.id) &&
+          (e.isAiGenerated || kAgentEntryIds.contains(e.id)),
+    );
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Container(

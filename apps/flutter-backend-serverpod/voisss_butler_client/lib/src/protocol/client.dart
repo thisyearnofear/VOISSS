@@ -162,6 +162,34 @@ class EndpointSilenceEntry extends _i1.EndpointRef {
   @override
   String get name => 'silenceEntry';
 
+  /// The voice menu the client renders its picker from (name → display label).
+  _i2.Future<Map<String, String>> aiVoices() =>
+      caller.callServerEndpoint<Map<String, String>>(
+        'silenceEntry',
+        'aiVoices',
+        {},
+      );
+
+  /// Synthesize a take with ElevenLabs and submit it flagged
+  /// `isAiGenerated` — the crowd votes blind, the flag powers the
+  /// post-vote "this one was a machine" reveal.
+  _i2.Future<_i5.SilenceEntryView> generate(
+    int clipId,
+    String displayName,
+    String script,
+    String voice,
+  ) =>
+      caller.callServerEndpoint<_i5.SilenceEntryView>(
+        'silenceEntry',
+        'generate',
+        {
+          'clipId': clipId,
+          'displayName': displayName,
+          'script': script,
+          'voice': voice,
+        },
+      );
+
   /// Submit a voiceover for the active clip.
   /// [audio] is the raw encoded file (e.g. m4a from the `record` package).
   _i2.Future<_i5.SilenceEntryView> submit(

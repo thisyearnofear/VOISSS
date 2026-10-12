@@ -12,6 +12,8 @@ silenceClip:
   - listArchive:
   - createClip:
 silenceEntry:
+  - aiVoices:
+  - generate:
   - submit:
   - list:
 silenceVote:

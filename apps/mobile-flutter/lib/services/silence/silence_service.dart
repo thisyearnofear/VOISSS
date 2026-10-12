@@ -47,6 +47,19 @@ class SilenceService {
     );
   }
 
+  /// AI voice menu (name → display label) for the picker.
+  Future<Map<String, String>> aiVoices() => _client.silenceEntry.aiVoices();
+
+  /// Synthesize a take server-side via ElevenLabs; lands flagged
+  /// `isAiGenerated` so post-vote reveals can call it out.
+  Future<SilenceEntryView> generate({
+    required int clipId,
+    required String displayName,
+    required String script,
+    required String voice,
+  }) =>
+      _client.silenceEntry.generate(clipId, displayName, script, voice);
+
   /// Returns the updated leaderboard after the vote is recorded.
   Future<List<SilenceLeaderboardRow>> castVote(int entryId, int score) async {
     final token = await _getVoterToken();

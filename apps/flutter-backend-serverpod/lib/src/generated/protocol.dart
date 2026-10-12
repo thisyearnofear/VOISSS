@@ -150,6 +150,13 @@ class Protocol extends _i1.SerializationManagerServer {
           dartType: 'String',
         ),
         _i2.ColumnDefinition(
+          name: 'isAiGenerated',
+          columnType: _i2.ColumnType.boolean,
+          isNullable: false,
+          dartType: 'bool',
+          columnDefault: 'false',
+        ),
+        _i2.ColumnDefinition(
           name: 'voteCount',
           columnType: _i2.ColumnType.bigint,
           isNullable: false,
@@ -348,6 +355,10 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == List<_i9.SilenceClip>) {
       return (data as List).map((e) => deserialize<_i9.SilenceClip>(e)).toList()
           as T;
+    }
+    if (t == Map<String, String>) {
+      return (data as Map).map((k, v) =>
+          MapEntry(deserialize<String>(k), deserialize<String>(v))) as T;
     }
     if (t == List<_i10.SilenceEntryView>) {
       return (data as List)

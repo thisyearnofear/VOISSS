@@ -267,6 +267,52 @@ class Endpoints extends _i1.EndpointDispatch {
       name: 'silenceEntry',
       endpoint: endpoints['silenceEntry']!,
       methodConnectors: {
+        'aiVoices': _i1.MethodConnector(
+          name: 'aiVoices',
+          params: {},
+          call: (
+            _i1.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['silenceEntry'] as _i5.SilenceEntryEndpoint)
+                  .aiVoices(session),
+        ),
+        'generate': _i1.MethodConnector(
+          name: 'generate',
+          params: {
+            'clipId': _i1.ParameterDescription(
+              name: 'clipId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'displayName': _i1.ParameterDescription(
+              name: 'displayName',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'script': _i1.ParameterDescription(
+              name: 'script',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'voice': _i1.ParameterDescription(
+              name: 'voice',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call: (
+            _i1.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['silenceEntry'] as _i5.SilenceEntryEndpoint).generate(
+            session,
+            params['clipId'],
+            params['displayName'],
+            params['script'],
+            params['voice'],
+          ),
+        ),
         'submit': _i1.MethodConnector(
           name: 'submit',
           params: {

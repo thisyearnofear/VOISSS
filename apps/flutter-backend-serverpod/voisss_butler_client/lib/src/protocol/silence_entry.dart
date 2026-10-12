@@ -23,10 +23,11 @@ abstract class SilenceEntry implements _i1.SerializableModel {
     required this.displayName,
     required this.audio,
     required this.audioFormat,
+    bool? isAiGenerated,
     required this.voteCount,
     required this.voteScoreTotal,
     required this.createdAt,
-  });
+  }) : isAiGenerated = isAiGenerated ?? false;
 
   factory SilenceEntry({
     int? id,
@@ -35,6 +36,7 @@ abstract class SilenceEntry implements _i1.SerializableModel {
     required String displayName,
     required _i3.ByteData audio,
     required String audioFormat,
+    bool? isAiGenerated,
     required int voteCount,
     required int voteScoreTotal,
     required DateTime createdAt,
@@ -51,6 +53,7 @@ abstract class SilenceEntry implements _i1.SerializableModel {
       displayName: jsonSerialization['displayName'] as String,
       audio: _i1.ByteDataJsonExtension.fromJson(jsonSerialization['audio']),
       audioFormat: jsonSerialization['audioFormat'] as String,
+      isAiGenerated: jsonSerialization['isAiGenerated'] as bool,
       voteCount: jsonSerialization['voteCount'] as int,
       voteScoreTotal: jsonSerialization['voteScoreTotal'] as int,
       createdAt:
@@ -74,8 +77,11 @@ abstract class SilenceEntry implements _i1.SerializableModel {
   /// Raw audio bytes (bytea). Sprint-scale storage; move to cloud storage later.
   _i3.ByteData audio;
 
-  /// Container/codec hint for playback, e.g. "m4a", "wav".
+  /// Container/codec hint for playback, e.g. "m4a", "wav", "mp3".
   String audioFormat;
+
+  /// True when this take was synthesized (ElevenLabs), not a human mic take.
+  bool isAiGenerated;
 
   /// Denormalised vote aggregates, updated on each vote.
   int voteCount;
@@ -94,6 +100,7 @@ abstract class SilenceEntry implements _i1.SerializableModel {
     String? displayName,
     _i3.ByteData? audio,
     String? audioFormat,
+    bool? isAiGenerated,
     int? voteCount,
     int? voteScoreTotal,
     DateTime? createdAt,
@@ -107,6 +114,7 @@ abstract class SilenceEntry implements _i1.SerializableModel {
       'displayName': displayName,
       'audio': audio.toJson(),
       'audioFormat': audioFormat,
+      'isAiGenerated': isAiGenerated,
       'voteCount': voteCount,
       'voteScoreTotal': voteScoreTotal,
       'createdAt': createdAt.toJson(),
@@ -129,6 +137,7 @@ class _SilenceEntryImpl extends SilenceEntry {
     required String displayName,
     required _i3.ByteData audio,
     required String audioFormat,
+    bool? isAiGenerated,
     required int voteCount,
     required int voteScoreTotal,
     required DateTime createdAt,
@@ -139,6 +148,7 @@ class _SilenceEntryImpl extends SilenceEntry {
           displayName: displayName,
           audio: audio,
           audioFormat: audioFormat,
+          isAiGenerated: isAiGenerated,
           voteCount: voteCount,
           voteScoreTotal: voteScoreTotal,
           createdAt: createdAt,
@@ -155,6 +165,7 @@ class _SilenceEntryImpl extends SilenceEntry {
     String? displayName,
     _i3.ByteData? audio,
     String? audioFormat,
+    bool? isAiGenerated,
     int? voteCount,
     int? voteScoreTotal,
     DateTime? createdAt,
@@ -166,6 +177,7 @@ class _SilenceEntryImpl extends SilenceEntry {
       displayName: displayName ?? this.displayName,
       audio: audio ?? this.audio.clone(),
       audioFormat: audioFormat ?? this.audioFormat,
+      isAiGenerated: isAiGenerated ?? this.isAiGenerated,
       voteCount: voteCount ?? this.voteCount,
       voteScoreTotal: voteScoreTotal ?? this.voteScoreTotal,
       createdAt: createdAt ?? this.createdAt,

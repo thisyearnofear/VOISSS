@@ -6,6 +6,7 @@ fields:
   displayName: String
   audio: ByteData
   audioFormat: String
+  isAiGenerated: bool
   voteCount: int
   avgScore: double
   createdAt: DateTime

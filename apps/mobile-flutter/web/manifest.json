@@ -1,11 +1,11 @@
 {
-    "name": "voisss_flutter",
-    "short_name": "voisss_flutter",
+    "name": "VOISSS — Voice the Silence",
+    "short_name": "VOISSS",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0B0A12",
+    "theme_color": "#7C5DFA",
+    "description": "A silent classic needs a voice — record yours, or cast an AI, and let the crowd pick the funniest.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
