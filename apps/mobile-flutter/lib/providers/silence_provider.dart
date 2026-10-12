@@ -79,7 +79,7 @@ class SilenceProvider extends ChangeNotifier {
   /// AI voice menu (name → display label) served by the backend.
   Future<Map<String, String>> aiVoices() => _service.aiVoices();
 
-  /// Synthesize an AI take — script + chosen voice → ElevenLabs on the
+  /// Synthesize an AI take — script + chosen voice → Featherless (Kokoro) on the
   /// backend → lands in the gallery flagged `isAiGenerated`.
   Future<bool> generateEntry({
     required String displayName,

@@ -50,7 +50,7 @@ class SilenceService {
   /// AI voice menu (name → display label) for the picker.
   Future<Map<String, String>> aiVoices() => _client.silenceEntry.aiVoices();
 
-  /// Synthesize a take server-side via ElevenLabs; lands flagged
+  /// Synthesize a take server-side via Featherless (Kokoro); lands flagged
   /// `isAiGenerated` so post-vote reveals can call it out.
   Future<SilenceEntryView> generate({
     required int clipId,

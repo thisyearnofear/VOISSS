@@ -170,7 +170,7 @@ class EndpointSilenceEntry extends _i1.EndpointRef {
         {},
       );
 
-  /// Synthesize a take with ElevenLabs and submit it flagged
+  /// Synthesize a take via Featherless (Kokoro-82M) and submit it flagged
   /// `isAiGenerated` — the crowd votes blind, the flag powers the
   /// post-vote "this one was a machine" reveal.
   _i2.Future<_i5.SilenceEntryView> generate(

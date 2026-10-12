@@ -84,7 +84,7 @@ abstract class SilenceEntry
   /// Container/codec hint for playback, e.g. "m4a", "wav", "mp3".
   String audioFormat;
 
-  /// True when this take was synthesized (ElevenLabs), not a human mic take.
+  /// True when this take was synthesized (Featherless (Kokoro)), not a human mic take.
   bool isAiGenerated;
 
   /// Denormalised vote aggregates, updated on each vote.
@@ -283,7 +283,7 @@ class SilenceEntryTable extends _i1.Table<int?> {
   /// Container/codec hint for playback, e.g. "m4a", "wav", "mp3".
   late final _i1.ColumnString audioFormat;
 
-  /// True when this take was synthesized (ElevenLabs), not a human mic take.
+  /// True when this take was synthesized (Featherless (Kokoro)), not a human mic take.
   late final _i1.ColumnBool isAiGenerated;
 
   /// Denormalised vote aggregates, updated on each vote.

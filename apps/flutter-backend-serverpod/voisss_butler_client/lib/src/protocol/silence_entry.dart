@@ -80,7 +80,7 @@ abstract class SilenceEntry implements _i1.SerializableModel {
   /// Container/codec hint for playback, e.g. "m4a", "wav", "mp3".
   String audioFormat;
 
-  /// True when this take was synthesized (ElevenLabs), not a human mic take.
+  /// True when this take was synthesized (Featherless (Kokoro)), not a human mic take.
   bool isAiGenerated;
 
   /// Denormalised vote aggregates, updated on each vote.

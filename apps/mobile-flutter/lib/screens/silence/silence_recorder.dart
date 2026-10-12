@@ -14,7 +14,7 @@ import 'silence_recording_stub.dart'
 
 /// The studio panel: optionally draft lines, then either record yourself
 /// (with live captions so you can see the mic capturing) or have an AI
-/// voice perform your script via ElevenLabs.
+/// voice perform your script via Featherless (Kokoro).
 class SilenceRecorder extends StatefulWidget {
   /// Called when recording starts — the screen restarts the muted clip so
   /// the performer records in sync with the footage.

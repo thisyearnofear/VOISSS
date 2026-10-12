@@ -11,21 +11,29 @@ class SilenceEntryEndpoint extends Endpoint {
   static const int _maxDisplayNameLength = 40;
   static const int _maxScriptChars = 1200; // ~60s of speech
 
-  /// ElevenLabs voices offered in the app's AI-voice picker. Server-side
-  /// allowlist so `voice` can't be used as an arbitrary probe.
+  /// Kokoro-82M voices (via Featherless) offered in the app's AI-voice
+  /// picker. Server-side allowlist so `voice` can't probe arbitrary voices.
   static const Map<String, String> _aiVoices = {
-    'rachel': '21m00Tcm4TlvDq8ikWAM',
-    'adam': 'pNInz6obpgDQGcFmaJgB',
-    'domi': 'AZnzlk1XvdvUeBnXmlld',
-    'antoni': 'ErXwobaYiN019PkySvjV',
-    'sarah': 'EXAVITQu4vr4xnSDxMaL',
+    'heart': 'af_heart',
+    'bella': 'af_bella',
+    'sarah': 'af_sarah',
+    'adam': 'am_adam',
+    'michael': 'am_michael',
+    'george': 'bm_george',
   };
 
   /// The voice menu the client renders its picker from (name → display label).
   Future<Map<String, String>> aiVoices(Session session) async =>
-      const {'rachel': 'Rachel', 'adam': 'Adam', 'domi': 'Domi', 'antoni': 'Antoni', 'sarah': 'Sarah'};
+      const {
+        'heart': 'Heart',
+        'bella': 'Bella',
+        'sarah': 'Sarah',
+        'adam': 'Adam',
+        'michael': 'Michael',
+        'george': 'George',
+      };
 
-  /// Synthesize a take with ElevenLabs and submit it flagged
+  /// Synthesize a take via Featherless (Kokoro-82M) and submit it flagged
   /// `isAiGenerated` — the crowd votes blind, the flag powers the
   /// post-vote "this one was a machine" reveal.
   Future<SilenceEntryView> generate(
@@ -51,7 +59,7 @@ class SilenceEntryEndpoint extends Endpoint {
     if (voiceId == null) {
       throw ArgumentError.value(voice, 'voice', 'Unknown AI voice');
     }
-    final apiKey = Platform.environment['ELEVENLABS_API_KEY'] ?? '';
+    final apiKey = Platform.environment['FEATHERLESS_API_KEY'] ?? '';
     if (apiKey.isEmpty) {
       throw StateError('AI voice generation is not configured on this server');
     }
@@ -65,24 +73,24 @@ class SilenceEntryEndpoint extends Endpoint {
     client.connectionTimeout = const Duration(seconds: 20);
     try {
       final request = await client.postUrl(
-        Uri.parse(
-          'https://api.elevenlabs.io/v1/text-to-speech/$voiceId'
-          '?output_format=mp3_44100_128',
-        ),
+        Uri.parse('https://api.featherless.ai/v1/audio/speech'),
       );
-      request.headers.set('xi-api-key', apiKey);
+      request.headers.set('Authorization', 'Bearer $apiKey');
       request.headers.set('Content-Type', 'application/json');
+      request.headers.set('User-Agent', 'voisss-butler/1.0');
       request.write(jsonEncode({
-        'text': text,
-        'model_id': 'eleven_flash_v2_5',
+        'model': 'hexgrad/Kokoro-82M',
+        'input': text,
+        'voice': voiceId,
+        'response_format': 'mp3',
       }));
       final response = await request.close().timeout(
-            const Duration(seconds: 30),
+            const Duration(seconds: 60),
           );
       if (response.statusCode != 200) {
         final body = await response.transform(utf8.decoder).join();
         session.log(
-          'ElevenLabs TTS failed (${response.statusCode}): $body',
+          'Featherless TTS failed (${response.statusCode}): $body',
           level: LogLevel.error,
         );
         throw StateError('AI voice generation failed');
