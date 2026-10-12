@@ -12,6 +12,9 @@ services:
       - RUNMODE=production
       - VENICE_API_KEY=${VENICE_API_KEY:-}
       - FEATHERLESS_API_KEY=${FEATHERLESS_API_KEY:-}
+      - BUTLER_LLM_KEY=${BUTLER_LLM_KEY:-}
+      - BUTLER_LLM_URL=${BUTLER_LLM_URL:-}
+      - BUTLER_LLM_MODEL=${BUTLER_LLM_MODEL:-}
     volumes:
       - ./config:/app/config:ro
     depends_on:

@@ -263,6 +263,51 @@ Rule of thumb: **one layer owns CORS** — proxy or app, never both.
   in a real mic session, Featherless (Kokoro) roundtrip (needs `FEATHERLESS_API_KEY`
   on snel-bot, then `docker compose up -d` to pick up the env).
 
+## Deployment posture & process (2026-10-12)
+
+**Surfaces — three separate things, don't conflate:**
+- **Backend** `apps/flutter-backend-serverpod` → snel-bot (Hetzner
+  `157.180.36.156`, ssh alias `snel-bot`, user `deploy`, port 49152).
+  Runs via `docker compose` at `/home/deploy/flutter-backend-serverpod` —
+  an **rsync target, not a git checkout**.
+- **Edge:** nginx vhost `butler.voisss.famile.xyz` → `:8090` (certbot TLS;
+  Serverpod owns CORS — one layer only).
+- **Flutter web** `apps/mobile-flutter` → `flutter build web --release` →
+  `build/web`; local preview only so far — not publicly deployed.
+- `apps/web` (Next.js marketing site → `voisss.famile.xyz`, Netlify) is a
+  **separate app and pipeline** — unrelated to the contest backend.
+
+**Backend deploy process (manual, no CI):**
+```bash
+rsync -az apps/flutter-backend-serverpod/lib snel-bot:/home/deploy/flutter-backend-serverpod/
+rsync -az apps/flutter-backend-serverpod/{docker-compose.yaml,migrations,config} snel-bot:/home/deploy/flutter-backend-serverpod/
+ssh snel-bot 'cd /home/deploy/flutter-backend-serverpod \
+  && docker compose build voisss_butler_server \
+  && docker compose up -d voisss_butler_server'
+# Migrations do NOT auto-apply (the --apply-migrations arg in the compose
+# command doesn't take); run manually:
+ssh snel-bot 'cd /home/deploy/flutter-backend-serverpod \
+  && docker compose run --rm --entrypoint ./server voisss_butler_server \
+  --mode=production --server-id=default --logging=normal \
+  --role=monolith --apply-migrations'
+```
+
+**Secrets:** `/home/deploy/flutter-backend-serverpod/.env` (chmod 600,
+gitignored) — `FEATHERLESS_API_KEY`, `BUTLER_LLM_KEY/URL/MODEL`. Compose
+references `${VAR}` names only; keys never enter the repo.
+
+**AI provider alignment:** one provider — **Featherless** — serves both
+surfaces: Kokoro-82M → Silence AI voices (`silenceEntry.generate`),
+Qwen3-32B → Butler chat (`butler.chat`, OpenAI-compatible, configured via
+`BUTLER_LLM_*`; `VENICE_API_KEY` remains a fallback path in code but is
+unset). Verified live: `butler.health` → `Provider: llm`, real chat
+roundtrip OK; `silenceEntry.generate` → real mp3 (entry id=4).
+
+**Drift caveat:** because the server is an rsync target, deploy only from
+a committed state — everything synced so far is committed. No CI; if
+this becomes a team habit, promote the server dir to a real git checkout
+or add a deploy workflow.
+
 ## Submission package (draft)
 
 **Tagline:** Voice the Silence — a game that secretly builds the world's

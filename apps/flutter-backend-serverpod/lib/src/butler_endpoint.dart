@@ -49,36 +49,44 @@ class AcpComputeClient {
   }
 }
 
-/// Venice AI Client (Fallback - Direct API)
+/// LLM chat client (Venice by default; any OpenAI-compatible endpoint via
+/// BUTLER_LLM_URL — e.g. Featherless — aligns Butler with the same provider
+/// the Silence AI voices use).
 class VeniceAIClient {
   final String apiKey;
-  final String baseUrl = 'https://api.venice.ai/api/v1';
-  
-  VeniceAIClient({required this.apiKey});
-  
-  Future<String> chatCompletion(List<Map<String, String>> messages, {String model = 'llama-3.3-70b'}) async {
+  final String baseUrl;
+  final String model;
+
+  VeniceAIClient({
+    required this.apiKey,
+    this.baseUrl = 'https://api.venice.ai/api/v1',
+    this.model = 'llama-3.3-70b',
+  });
+
+  Future<String> chatCompletion(List<Map<String, String>> messages, {String? model}) async {
     final client = HttpClient();
     try {
       final request = await client.postUrl(Uri.parse('$baseUrl/chat/completions'));
       request.headers.set('Content-Type', 'application/json');
       request.headers.set('Authorization', 'Bearer $apiKey');
-      
+      request.headers.set('User-Agent', 'voisss-butler/1.0');
+
       final body = jsonEncode({
-        'model': model,
+        'model': model ?? this.model,
         'messages': messages,
         'temperature': 0.7,
         'max_tokens': 1000,
       });
-      
+
       request.write(body);
       final response = await request.close();
-      
+
       if (response.statusCode == 200) {
         final responseBody = await response.transform(utf8.decoder).join();
         final data = jsonDecode(responseBody);
         return data['choices'][0]['message']['content'] ?? 'No response';
       } else {
-        throw Exception('Venice AI Error: ${response.statusCode}');
+        throw Exception('LLM provider error: ${response.statusCode}');
       }
     } finally {
       client.close();
@@ -115,16 +123,25 @@ class ButlerEndpoint extends Endpoint {
       print('ACP Compute initialized successfully (primary provider)');
     }
     
-    // Initialize Venice AI as fallback
-    final veniceKey = Platform.environment['VENICE_API_KEY'] ?? '';
-    if (veniceKey.isNotEmpty) {
-      _veniceClient = VeniceAIClient(apiKey: veniceKey);
+    // Initialize the fallback LLM provider. BUTLER_LLM_* vars point it at
+    // any OpenAI-compatible host (Featherless in prod); VENICE_API_KEY is
+    // kept as the key env for backward compat.
+    final llmKey = Platform.environment['BUTLER_LLM_KEY'] ??
+        Platform.environment['VENICE_API_KEY'] ??
+        '';
+    if (llmKey.isNotEmpty) {
+      _veniceClient = VeniceAIClient(
+        apiKey: llmKey,
+        baseUrl: Platform.environment['BUTLER_LLM_URL'] ??
+            'https://api.venice.ai/api/v1',
+        model: Platform.environment['BUTLER_LLM_MODEL'] ?? 'llama-3.3-70b',
+      );
       if (!_aiEnabled) {
         _aiEnabled = true;
-        _activeProvider = 'venice';
-        print('Venice AI initialized (fallback provider)');
+        _activeProvider = 'llm';
+        print('LLM provider initialized (fallback)');
       } else {
-        print('Venice AI initialized as fallback');
+        print('LLM provider initialized as fallback');
       }
     }
     
