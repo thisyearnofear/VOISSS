@@ -65,24 +65,6 @@ class _SilenceScreenState extends State<SilenceScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<SilenceProvider>();
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Voice the Silence'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share),
-            tooltip: 'Share the challenge',
-            onPressed: () => Share.share(
-              'A silent classic needs a voice — record yours and let the crowd '
-              'pick the funniest. Voice the Silence on VOISSS: '
-              'https://voisss.famile.xyz',
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => provider.load(),
-          ),
-        ],
-      ),
       body: provider.loading && provider.clip == null
           ? const Center(child: CircularProgressIndicator())
           : provider.clip == null
@@ -90,39 +72,47 @@ class _SilenceScreenState extends State<SilenceScreen> {
               : RefreshIndicator(
                   onRefresh: provider.load,
                   child: ListView(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.zero,
                     children: [
-                      _ClipCard(
+                      _HeroClip(
                         clip: provider.clip!,
                         video: _video,
                         videoFailed: _videoFailed,
                         entryCount: provider.entries.length,
                       ),
-                      const SizedBox(height: 16),
-                      SilenceRecorder(
-                        durationSec: provider.clip!.durationSec,
-                        onRecordStart: _restartClip,
-                      ),
-                      if (provider.error != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(
-                            provider.error!,
-                            style: const TextStyle(color: Colors.redAccent),
-                          ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            SilenceRecorder(
+                              durationSec: provider.clip!.durationSec,
+                              onRecordStart: _restartClip,
+                            ),
+                            if (provider.error != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Text(
+                                  provider.error!,
+                                  style:
+                                      const TextStyle(color: Colors.redAccent),
+                                ),
+                              ),
+                            const SizedBox(height: 28),
+                            _EntriesList(
+                              entries: provider.entries,
+                              video: _video,
+                              clipTitle: provider.clip!.title,
+                            ),
+                            const SizedBox(height: 24),
+                            _RevealCard(votes: provider.myVotes),
+                            _Leaderboard(rows: provider.leaderboard),
+                            const SizedBox(height: 8),
+                            const _ServerpodExpander(),
+                            const _VoissFooter(),
+                          ],
                         ),
-                      const SizedBox(height: 24),
-                      _EntriesList(
-                        entries: provider.entries,
-                        video: _video,
-                        clipTitle: provider.clip!.title,
                       ),
-                      const SizedBox(height: 24),
-                      _RevealCard(votes: provider.myVotes),
-                      _Leaderboard(rows: provider.leaderboard),
-                      const SizedBox(height: 16),
-                      const _ServerpodExpander(),
-                      const _VoissFooter(),
                     ],
                   ),
                 ),
@@ -152,12 +142,14 @@ class _NoClip extends StatelessWidget {
   }
 }
 
-class _ClipCard extends StatefulWidget {
+/// Full-bleed hero — the footage IS the screen. Gradient scrim carries the
+/// title, the hook, and the Watch→Record→Vote steps over the picture.
+class _HeroClip extends StatefulWidget {
   final SilenceClip clip;
   final VideoPlayerController? video;
   final bool videoFailed;
   final int entryCount;
-  const _ClipCard({
+  const _HeroClip({
     required this.clip,
     required this.video,
     required this.videoFailed,
@@ -165,10 +157,10 @@ class _ClipCard extends StatefulWidget {
   });
 
   @override
-  State<_ClipCard> createState() => _ClipCardState();
+  State<_HeroClip> createState() => _HeroClipState();
 }
 
-class _ClipCardState extends State<_ClipCard> {
+class _HeroClipState extends State<_HeroClip> {
   bool _hookVisible = false;
 
   @override
@@ -176,83 +168,147 @@ class _ClipCardState extends State<_ClipCard> {
     super.initState();
     // Let the silent footage sit for a beat — mystery before instruction —
     // then fade the hook in.
-    Future.delayed(const Duration(milliseconds: 1400), () {
+    Future.delayed(const Duration(milliseconds: 1600), () {
       if (mounted) setState(() => _hookVisible = true);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final scheme = Theme.of(context).colorScheme;
+    // Hero height tracks the viewport so the overlay stays above the fold
+    // on both phones and desktop — roughly 60% of the screen.
+    final heroHeight =
+        (MediaQuery.of(context).size.height * 0.6).clamp(360.0, 640.0);
+    return SizedBox(
+      height: heroHeight,
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          AspectRatio(
-            aspectRatio: 4 / 3,
-            child: widget.video != null
-                ? VideoPlayer(widget.video!)
-                : Container(
-                    color: Colors.black,
-                    child: Center(
-                      child: widget.videoFailed
-                          ? const Text('Clip could not be loaded')
-                          : const CircularProgressIndicator(),
+          // Footage
+          widget.video != null
+              ? ClipRect(
+                  child: FittedBox(
+                    fit: BoxFit.cover,
+                    child: SizedBox(
+                      width: widget.video!.value.size.width,
+                      height: widget.video!.value.size.height,
+                      child: VideoPlayer(widget.video!),
                     ),
                   ),
+                )
+              : Container(
+                  color: const Color(0xFF16131F),
+                  child: Center(
+                    child: widget.videoFailed
+                        ? const Text('Clip could not be loaded')
+                        : const CircularProgressIndicator(),
+                  ),
+                ),
+
+          // Scrim — transparent up top, deep at the base
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black54,
+                  Colors.transparent,
+                  Colors.transparent,
+                  Color(0xF20B0A12),
+                ],
+                stops: [0.0, 0.2, 0.45, 1.0],
+              ),
+            ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(12),
+
+          // Floating actions
+          Positioned(
+            top: 12,
+            right: 12,
+            child: SafeArea(
+              child: Row(
+                children: [
+                  _GlassIcon(
+                    icon: Icons.share_outlined,
+                    tooltip: 'Share the challenge',
+                    onTap: () => Share.share(
+                      'A silent classic needs a voice — record yours and let '
+                      'the crowd pick the funniest. Voice the Silence on '
+                      'VOISSS: https://voisss.famile.xyz',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _GlassIcon(
+                    icon: Icons.refresh,
+                    tooltip: 'Refresh',
+                    onTap: () =>
+                        context.read<SilenceProvider>().load(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Title + hook + steps, over the scrim
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: 20,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.clip.title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                  'VOICE THE SILENCE',
+                  style: TextStyle(
+                    color: scheme.primary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 2.5,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
+                Text(
+                  widget.clip.title,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
                 AnimatedOpacity(
                   opacity: _hookVisible ? 1 : 0,
                   duration: const Duration(milliseconds: 900),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const SizedBox(height: 6),
                       Text(
                         'A century of silence ends today — give it a voice.',
-                        style: TextStyle(color: Colors.grey[400], fontSize: 13),
+                        style: TextStyle(
+                          color: Colors.grey[300],
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 14),
                       const Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _Step(
-                            icon: Icons.play_circle_outline,
-                            label: 'Watch',
-                          ),
-                          _Step(icon: Icons.mic_none, label: 'Record'),
-                          _Step(
-                            icon: Icons.emoji_events_outlined,
-                            label: 'Vote',
-                          ),
+                          _StepChip(
+                              icon: Icons.play_circle_outline, label: 'Watch'),
+                          _StepArrow(),
+                          _StepChip(icon: Icons.mic_none, label: 'Record'),
+                          _StepArrow(),
+                          _StepChip(
+                              icon: Icons.emoji_events_outlined, label: 'Vote'),
                         ],
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(
                   widget.entryCount == 0
-                      ? 'No voices yet — be the first.'
-                      : '${widget.entryCount} ${widget.entryCount == 1 ? 'voice' : 'voices'} so far — yours could top the board.',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 11),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  widget.clip.rightsNote,
-                  style: TextStyle(color: Colors.grey[700], fontSize: 10),
+                      ? 'No voices yet — be the first'
+                      : '${widget.entryCount} ${widget.entryCount == 1 ? 'voice' : 'voices'} so far · yours could top the board',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 11),
                 ),
               ],
             ),
@@ -263,19 +319,75 @@ class _ClipCardState extends State<_ClipCard> {
   }
 }
 
-class _Step extends StatelessWidget {
+class _GlassIcon extends StatelessWidget {
   final IconData icon;
-  final String label;
-  const _Step({required this.icon, required this.label});
+  final String tooltip;
+  final VoidCallback onTap;
+  const _GlassIcon({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Icon(icon, size: 20, color: const Color(0xFF7C5DFA)),
-        const SizedBox(height: 2),
-        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[400])),
-      ],
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.45),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+          ),
+          child: Icon(icon, size: 18, color: Colors.white),
+        ),
+      ),
+    );
+  }
+}
+
+class _StepChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _StepChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: scheme.primary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepArrow extends StatelessWidget {
+  const _StepArrow();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Icon(Icons.arrow_forward, size: 12, color: Colors.grey[600]),
     );
   }
 }
@@ -296,14 +408,33 @@ class _EntriesList extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'The takes (${entries.length})',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          'The takes',
+          style: Theme.of(context).textTheme.titleLarge,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
+        Text(
+          entries.isEmpty
+              ? 'Nothing yet — Chaplin is waiting for a voice.'
+              : 'Watch each dub over the footage, then vote your favourite.',
+          style: TextStyle(color: Colors.grey[500], fontSize: 12),
+        ),
+        const SizedBox(height: 12),
         if (entries.isEmpty)
-          Text(
-            'Nothing yet — Chaplin is waiting for a voice. Be first.',
-            style: TextStyle(color: Colors.grey[500]),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFF16131F),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.06),
+              ),
+            ),
+            child: Center(
+              child: Text(
+                'Be first.',
+                style: TextStyle(color: Colors.grey[500], fontSize: 14),
+              ),
+            ),
           ),
         ...List.generate(
           entries.length,
@@ -334,57 +465,83 @@ class _EntryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<SilenceProvider>();
+    final scheme = Theme.of(context).colorScheme;
     final revealed = provider.myVotes.containsKey(entry.id);
+    final isAgent = kAgentEntryIds.contains(entry.id);
     final name = revealed ? entry.displayName : personaFor(entry.id);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.play_circle),
-              iconSize: 36,
-              color: const Color(0xFF7C5DFA),
-              tooltip: 'Watch this take',
-              onPressed: video == null
-                  ? null
-                  : () => SilenceTheater.open(
-                        context,
-                        entries: provider.entries,
-                        initialIndex: index,
-                        video: video!,
-                        clipTitle: clipTitle,
-                      ),
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  Text(
-                    revealed
-                        ? kAgentEntryIds.contains(entry.id)
-                            ? 'This one was a machine 🤖 · ${entry.avgScore.toStringAsFixed(1)} ★'
-                            : '${entry.avgScore.toStringAsFixed(1)} ★ · ${entry.voteCount} votes'
-                        : 'Vote to reveal the voice',
-                    style: TextStyle(
-                      color: revealed && kAgentEntryIds.contains(entry.id)
-                          ? const Color(0xFFFFC107)
-                          : Colors.grey[500],
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF16131F),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Row(
+        children: [
+          // Persona avatar — first glyph of the stage name
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: revealed && isAgent
+                ? const Color(0xFFFFC107).withValues(alpha: 0.15)
+                : scheme.primary.withValues(alpha: 0.15),
+            child: Text(
+              name.characters.first,
+              style: TextStyle(
+                color: revealed && isAgent
+                    ? const Color(0xFFFFC107)
+                    : scheme.primary,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            SilenceReactionRow(entryId: entry.id, size: 22),
-          ],
-        ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  revealed
+                      ? isAgent
+                          ? 'This one was a machine 🤖 · ${entry.avgScore.toStringAsFixed(1)} ★'
+                          : '${entry.avgScore.toStringAsFixed(1)} ★ · ${entry.voteCount} votes'
+                      : 'Vote to reveal the voice',
+                  style: TextStyle(
+                    color: revealed && isAgent
+                        ? const Color(0xFFFFC107)
+                        : Colors.grey[500],
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.play_circle_fill),
+            iconSize: 34,
+            color: scheme.primary,
+            tooltip: 'Watch this take',
+            onPressed: video == null
+                ? null
+                : () => SilenceTheater.open(
+                      context,
+                      entries: provider.entries,
+                      initialIndex: index,
+                      video: video!,
+                      clipTitle: clipTitle,
+                    ),
+          ),
+          SilenceReactionRow(entryId: entry.id, size: 20),
+        ],
       ),
     );
   }
@@ -400,17 +557,16 @@ class _RevealCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (votes.isEmpty) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
     final caughtAgent = votes.keys.any(kAgentEntryIds.contains);
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF7C5DFA).withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: const Color(0xFF7C5DFA).withValues(alpha: 0.3),
-          ),
+          color: scheme.primary.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: scheme.primary.withValues(alpha: 0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -429,7 +585,7 @@ class _RevealCard extends StatelessWidget {
               const SizedBox(height: 8),
               const Text(
                 'Plot twist: at least one take you judged was generated by a '
-                'machine — The Projectionist\u2019s Apprentice. Could you tell?',
+                'machine — The Projectionist’s Apprentice. Could you tell?',
                 style: TextStyle(
                   color: Color(0xFFFFC107),
                   fontSize: 12,
@@ -454,27 +610,31 @@ class _Leaderboard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Leaderboard',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleLarge,
         ),
         const SizedBox(height: 8),
         ...rows.take(5).map((r) {
           final winner = r.rank == 1;
           return Container(
-            margin: const EdgeInsets.only(bottom: 4),
+            margin: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: winner
                 ? BoxDecoration(
                     color: const Color(0xFFFFC107).withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: const Color(0xFFFFC107).withValues(alpha: 0.3),
                     ),
                   )
-                : null,
+                : BoxDecoration(
+                    color: const Color(0xFF16131F),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
             child: ListTile(
               dense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+              contentPadding: EdgeInsets.zero,
               leading: winner
                   ? const Icon(Icons.emoji_events, color: Color(0xFFFFC107))
                   : CircleAvatar(radius: 14, child: Text('${r.rank}')),

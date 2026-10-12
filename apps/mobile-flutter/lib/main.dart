@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'screens/splash_screen.dart';
-import 'screens/onboarding_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/butler/butler_screen.dart';
 import 'screens/silence/silence_screen.dart';
@@ -17,6 +17,71 @@ Future<void> main() async {
   runApp(const VoisssButlerApp());
 }
 
+/// Shared app theme — dark, cinematic, Space Grotesk display + Inter body.
+ThemeData buildVoisssTheme() {
+  final scheme = ColorScheme.fromSeed(
+    seedColor: const Color(0xFF7C5DFA),
+    brightness: Brightness.dark,
+  );
+  final base = ThemeData(brightness: Brightness.dark);
+  return ThemeData(
+    colorScheme: scheme,
+    useMaterial3: true,
+    scaffoldBackgroundColor: const Color(0xFF0B0A12),
+    textTheme: GoogleFonts.interTextTheme(base.textTheme).copyWith(
+      displayMedium: GoogleFonts.spaceGrotesk(
+        fontSize: 40,
+        fontWeight: FontWeight.w700,
+        color: Colors.white,
+        letterSpacing: -1,
+      ),
+      headlineSmall: GoogleFonts.spaceGrotesk(
+        fontSize: 24,
+        fontWeight: FontWeight.w700,
+        color: Colors.white,
+        letterSpacing: -0.5,
+      ),
+      titleLarge: GoogleFonts.spaceGrotesk(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: Colors.white,
+      ),
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.transparent,
+      foregroundColor: Colors.white,
+      elevation: 0,
+      centerTitle: true,
+    ),
+    cardTheme: CardThemeData(
+      color: const Color(0xFF16131F),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: const Color(0xFF16131F),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+    ),
+  );
+}
+
 /// Root app with splash screen
 class VoisssButlerApp extends StatelessWidget {
   const VoisssButlerApp({super.key});
@@ -24,18 +89,9 @@ class VoisssButlerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'VOISSS Butler',
+      title: 'VOISSS',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF0A0A0A),
-        primaryColor: const Color(0xFF7C5DFA),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF7C5DFA),
-          secondary: Color(0xFF9B7BFF),
-          surface: Color(0xFF1A1A1A),
-          background: Color(0xFF0A0A0A),
-        ),
-      ),
+      theme: buildVoisssTheme(),
       home: const SplashScreen(),
     );
   }
@@ -71,31 +127,8 @@ class VoisssApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'VOISSS Butler',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF7C5DFA),
-            brightness: Brightness.dark,
-          ),
-          useMaterial3: true,
-          scaffoldBackgroundColor: const Color(0xFF0A0A0A),
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFF1A1A1A),
-            foregroundColor: Colors.white,
-            elevation: 0,
-          ),
-          bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-            backgroundColor: Color(0xFF1A1A1A),
-            selectedItemColor: Color(0xFF7C5DFA),
-            unselectedItemColor: Colors.grey,
-          ),
-          cardTheme: CardThemeData(
-            color: const Color(0xFF1A1A1A),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        ),
+        title: 'VOISSS — Voice the Silence',
+        theme: buildVoisssTheme(),
         home: const MainNavigationScreen(),
         debugShowCheckedModeBanner: false,
       ),
@@ -115,9 +148,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
 
   final List<Widget> _screens = [
+    const SilenceScreen(),
     const HomeScreen(),
     const ButlerScreen(),
-    const SilenceScreen(),
   ];
 
   @override
@@ -127,59 +160,26 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         index: _currentIndex,
         children: _screens,
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: BottomNavigationBar(
-            currentIndex: _currentIndex,
-            onTap: (index) => setState(() => _currentIndex = index),
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            type: BottomNavigationBarType.fixed,
-            items: [
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.mic_none),
-                activeIcon: Icon(Icons.mic),
-                label: 'Recordings',
-              ),
-              BottomNavigationBarItem(
-                icon: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: _currentIndex == 1
-                        ? const Color(0xFF7C5DFA).withOpacity(0.2)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.assistant),
-                ),
-                activeIcon: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF7C5DFA).withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.assistant),
-                ),
-                label: 'Butler',
-              ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.videocam_outlined),
-                activeIcon: Icon(Icons.videocam),
-                label: 'Silence',
-              ),
-            ],
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: (index) => setState(() => _currentIndex = index),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.videocam_outlined),
+            selectedIcon: Icon(Icons.videocam),
+            label: 'Silence',
           ),
-        ),
+          NavigationDestination(
+            icon: Icon(Icons.mic_none),
+            selectedIcon: Icon(Icons.mic),
+            label: 'Studio',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.assistant_outlined),
+            selectedIcon: Icon(Icons.assistant),
+            label: 'Butler',
+          ),
+        ],
       ),
     );
   }

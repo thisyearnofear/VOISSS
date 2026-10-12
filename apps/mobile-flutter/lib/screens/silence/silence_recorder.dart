@@ -143,25 +143,11 @@ class _SilenceRecorderState extends State<SilenceRecorder>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ElevatedButton.icon(
-          onPressed: submitting ? null : _toggleRecord,
-          icon: _recording
-              ? ScaleTransition(
-                  scale: Tween(begin: 1.0, end: 1.4).animate(
-                    CurvedAnimation(parent: _pulse, curve: Curves.easeInOut),
-                  ),
-                  child: const Icon(Icons.fiber_manual_record, size: 18),
-                )
-              : const Icon(Icons.mic),
-          label: Text(
-            _recording ? 'Recording… tap to stop' : 'Record your voiceover',
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor:
-                _recording ? Colors.redAccent : const Color(0xFF7C5DFA),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-          ),
+        _RecordPill(
+          recording: _recording,
+          enabled: !submitting,
+          pulse: _pulse,
+          onTap: _toggleRecord,
         ),
         if (_recording)
           Padding(
@@ -220,6 +206,80 @@ class _SilenceRecorderState extends State<SilenceRecorder>
           ),
         ],
       ],
+    );
+  }
+}
+
+/// The hero CTA — a full-width gradient pill that turns red and pulses while
+/// recording.
+class _RecordPill extends StatelessWidget {
+  final bool recording;
+  final bool enabled;
+  final AnimationController pulse;
+  final VoidCallback onTap;
+  const _RecordPill({
+    required this.recording,
+    required this.enabled,
+    required this.pulse,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Opacity(
+      opacity: enabled ? 1 : 0.5,
+      child: Material(
+        borderRadius: BorderRadius.circular(999),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          child: Ink(
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              gradient: LinearGradient(
+                colors: recording
+                    ? const [Color(0xFFE5484D), Color(0xFFB3261E)]
+                    : [scheme.primary, const Color(0xFF5B3DE0)],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: (recording ? Colors.redAccent : scheme.primary)
+                      .withValues(alpha: 0.35),
+                  blurRadius: 20,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (recording)
+                  ScaleTransition(
+                    scale: Tween(begin: 1.0, end: 1.4).animate(
+                      CurvedAnimation(parent: pulse, curve: Curves.easeInOut),
+                    ),
+                    child:
+                        const Icon(Icons.stop_circle, color: Colors.white),
+                  )
+                else
+                  const Icon(Icons.mic, color: Colors.white),
+                const SizedBox(width: 10),
+                Text(
+                  recording ? 'Recording… tap to stop' : 'Record your voiceover',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

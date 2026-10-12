@@ -30,13 +30,12 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'VOISSS Flutter',
+          'Studio',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 24,
           ),
         ),
-        centerTitle: true,
         elevation: 0,
         actions: [
           Consumer<StarknetProvider>(
@@ -61,19 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    // Starknet Connection Section
-                    Consumer<StarknetProvider>(
-                      builder: (context, starknet, child) {
-                        if (!starknet.isConnected) {
-                          return const WalletSelector();
-                        }
-                        return const AccountAddress();
-                      },
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Recording Section
+                    // Recording Section — the primary action
                     const RecordingButton(),
 
                     const SizedBox(height: 16),
@@ -86,6 +73,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     // Recordings List
                     const Expanded(
                       child: RecordingsList(),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Wallet — optional, secondary (marketplace payouts later)
+                    Consumer<StarknetProvider>(
+                      builder: (context, starknet, child) {
+                        if (!starknet.isConnected) {
+                          return const WalletSelector();
+                        }
+                        return const AccountAddress();
+                      },
                     ),
                   ],
                 ),

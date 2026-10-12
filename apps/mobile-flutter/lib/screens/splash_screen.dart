@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../main.dart';
 
-/// Splash screen for VOISSS Butler - Hackathon Demo Edition
+/// Splash — the product IS the contest now, so the splash sells it.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -19,7 +19,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    
+
     _controller = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,
@@ -61,8 +61,8 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
       body: Center(
         child: AnimatedBuilder(
           animation: _controller,
@@ -74,33 +74,33 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Logo
+                    // Logo — clapperboard + mic: film meets voice
                     Container(
                       width: 120,
                       height: 120,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF7C5DFA), Color(0xFF9B7BFF)],
+                        gradient: LinearGradient(
+                          colors: [scheme.primary, scheme.tertiary],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(30),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF7C5DFA).withOpacity(0.5),
+                            color: scheme.primary.withValues(alpha: 0.5),
                             blurRadius: 30,
                             spreadRadius: 5,
                           ),
                         ],
                       ),
                       child: const Icon(
-                        Icons.mic,
+                        Icons.theater_comedy,
                         size: 60,
                         color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // App name
                     const Text(
                       'VOISSS',
@@ -112,21 +112,21 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                     ),
                     const SizedBox(height: 8),
-                    
-                    // Butler subtitle
+
+                    // Contest subtitle
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF7C5DFA), Color(0xFF9B7BFF)],
+                        gradient: LinearGradient(
+                          colors: [scheme.primary, scheme.tertiary],
                         ),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
-                        'FLUTTER BUTLER',
+                        'VOICE THE SILENCE',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -135,52 +135,25 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 48),
-                    
-                    // Hackathon badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: const Color(0xFF7C5DFA),
-                          width: 2,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Column(
-                        children: [
-                          Text(
-                            'Serverpod Hackathon 2026',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            'Powered by Venice AI',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF7C5DFA),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                    const SizedBox(height: 16),
+
+                    Text(
+                      'a century of silence ends today',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[500],
+                        fontStyle: FontStyle.italic,
                       ),
                     ),
                     const SizedBox(height: 48),
-                    
+
                     // Loading indicator
-                    const SizedBox(
+                    SizedBox(
                       width: 40,
                       height: 40,
                       child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Color(0xFF7C5DFA),
-                        ),
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(scheme.primary),
                         strokeWidth: 3,
                       ),
                     ),

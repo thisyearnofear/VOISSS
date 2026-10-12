@@ -10,40 +10,41 @@ class WalletSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<StarknetProvider>(
       builder: (context, starknet, child) {
+        final scheme = Theme.of(context).colorScheme;
         return Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1A1A),
-            borderRadius: BorderRadius.circular(16),
+            color: scheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: const Color(0xFF7C5DFA).withOpacity(0.3),
+              color: scheme.primary.withValues(alpha: 0.2),
               width: 1,
             ),
           ),
           child: Column(
             children: [
-              const Icon(
+              Icon(
                 Icons.account_balance_wallet_outlined,
-                size: 48,
-                color: Color(0xFF7C5DFA),
+                size: 40,
+                color: scheme.primary,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
               const Text(
-                'Connect Your Starknet Wallet',
+                'Optional: get paid',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
 
               Text(
-                'Connect your wallet to store recordings on Starknet blockchain',
+                'Connect a wallet to receive payouts when your voice is licensed',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 13,
                   color: Colors.grey[400],
                 ),
                 textAlign: TextAlign.center,
@@ -54,7 +55,7 @@ class WalletSelector extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red[900]?.withOpacity(0.3),
+                    color: Colors.red[900]?.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: Colors.red[600]!,
@@ -87,19 +88,10 @@ class WalletSelector extends StatelessWidget {
 
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
+                child: FilledButton.tonal(
                   onPressed: starknet.isConnecting
                     ? null
                     : () => _openWalletConnectionScreen(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7C5DFA),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
                   child: starknet.isConnecting
                     ? const SizedBox(
                         height: 20,

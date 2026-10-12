@@ -42,6 +42,7 @@ dependencies:
   # Silent-clip playback for Voice the Silence
   video_player: ^2.9.2
   share_plus: ^10.1.4
+  google_fonts: ^6.2.1
 
   # File handling
   path_provider: ^2.1.1

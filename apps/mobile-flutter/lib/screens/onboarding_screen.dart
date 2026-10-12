@@ -15,24 +15,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   final List<Map<String, dynamic>> _pages = [
     {
-      'icon': Icons.mic,
-      'title': 'Voice Recording',
-      'description': 'Record high-quality voice memos with one tap. Your personal audio journal.',
+      'icon': Icons.videocam_outlined,
+      'title': 'A silent classic',
+      'description':
+          'Every week, one public-domain clip. No soundtrack, no voices — just the footage.',
     },
     {
-      'icon': Icons.assistant,
-      'title': 'AI Butler',
-      'description': 'Your intelligent assistant powered by Venice AI. Transcribe, summarize, and analyze your recordings.',
+      'icon': Icons.mic_none,
+      'title': 'You bring the voice',
+      'description':
+          'Record your own voiceover while the clip plays. Funny, dramatic, absurd — your call.',
     },
     {
-      'icon': Icons.cloud_done,
-      'title': 'Serverpod Backend',
-      'description': 'Built with Flutter + Serverpod. Fast, scalable, and secure Dart-native backend.',
+      'icon': Icons.how_to_vote_outlined,
+      'title': 'The crowd votes blind',
+      'description':
+          'Entries are anonymous until you vote. Humans and machines compete on the same board.',
     },
     {
-      'icon': Icons.security,
-      'title': 'Blockchain Ready',
-      'description': 'Optional Starknet integration for decentralized storage of your voice memories.',
+      'icon': Icons.handshake_outlined,
+      'title': 'Winners get licensed',
+      'description':
+          'Top voices can be licensed through VOISSS — the game is the audition.',
     },
   ];
 
@@ -44,8 +48,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
       body: SafeArea(
         child: Column(
           children: [
@@ -86,7 +90,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   height: 8,
                   decoration: BoxDecoration(
                     color: _currentPage == index
-                        ? const Color(0xFF7C5DFA)
+                        ? scheme.primary
                         : Colors.grey[800],
                     borderRadius: BorderRadius.circular(4),
                   ),
@@ -102,7 +106,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: SizedBox(
                 width: double.infinity,
                 height: 56,
-                child: ElevatedButton(
+                child: FilledButton(
                   onPressed: () {
                     if (_currentPage < _pages.length - 1) {
                       _pageController.nextPage(
@@ -113,13 +117,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       _finishOnboarding();
                     }
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7C5DFA),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
                   child: Text(
                     _currentPage < _pages.length - 1 ? 'Next' : 'Get Started',
                     style: const TextStyle(
@@ -139,6 +136,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildPage(Map<String, dynamic> page) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.all(32),
       child: Column(
@@ -149,8 +147,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             width: 120,
             height: 120,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF7C5DFA), Color(0xFF9B7BFF)],
+              gradient: LinearGradient(
+                colors: [scheme.primary, scheme.tertiary],
               ),
               borderRadius: BorderRadius.circular(30),
             ),

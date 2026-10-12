@@ -182,6 +182,14 @@ HTTPS: `getActive`, `list`, `leaderboard`, `submit`, `cast` all pass.
 **body** (`POST /endpoint/method {"arg": value}`), not query strings — query
 params arrive as raw strings and fail typed params (`String → int`).
 
+**~~KNOWN ISSUE — browser CORS~~ RESOLVED (2026-10-12):** browser `fetch`
+failed with `TypeError: Failed to fetch` while curl/navigation worked — the
+POST response carried `access-control-allow-origin: *` **twice** (nginx
+`add_header` + Serverpod's own CORS headers; Chrome rejects duplicate values).
+Fix: removed the server-level `add_header`s from the butler vhost — Serverpod
+now owns CORS on proxied responses, nginx only answers OPTIONS directly.
+Rule of thumb: **one layer owns CORS** — proxy or app, never both.
+
 **Backlog:**
 - `createClip` is publicly callable — add an admin-key check before public
   exposure beyond the hackathon.
@@ -210,9 +218,25 @@ params arrive as raw strings and fail typed params (`String → int`).
   `ThemeData.cardTheme` needed `CardThemeData` for Flutter 3.47. Wasm still
   blocked by `speech_to_text`/`audioplayers_web`/`flutter_tts` JS-interop —
   build uses dart2js, fine for the demo.
-- Untested at runtime: mic permission flow, upload, entry playback, vote
-  dedupe, leaderboard live-refresh — needs a real device or `flutter run -d
-  chrome` with HTTPS host.
+- **Design pass (2026-10-12):** Silence is now the first nav destination — the
+  contest IS the app. Full-bleed cinematic hero (footage covers ~60% of the
+  viewport under a gradient scrim; eyebrow + title + hook + Watch→Record→Vote
+  chips overlaid; glass share/refresh buttons, no AppBar). Gradient pill
+  record CTA (pulses red while recording). Take tiles use persona-initial
+  avatars; leaderboard and reveal cards use tonal surfaces. Theater mode is
+  full-bleed with scrimmed overlay controls. Typography: Space Grotesk
+  display + Inter body via `google_fonts`; shared `buildVoisssTheme()` in
+  `main.dart` (deep `0xFF0B0A12` scaffold, 20px card radii, M3
+  `NavigationBar`). Splash/onboarding/home copy rewritten — the stale
+  "Flutter Butler / Powered by Venice AI / connect Starknet wallet"
+  positioning is gone from the first-run path; the wallet card lives on the
+  Studio tab reframed as an optional payout path. No hackathon language
+  anywhere in the UI.
+- Runtime-verified in browser (headless Chrome): clip loads, video plays,
+  take tile → reaction vote → name reveal → machine-plant reveal →
+  "you just judged an audition" card → leaderboard all fire correctly.
+- Untested at runtime: mic permission flow, audio upload, theater audio
+  playback — needs a real browser session with mic access.
 
 ## Submission package (draft)
 
