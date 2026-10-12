@@ -14,8 +14,14 @@ class SilenceProvider extends ChangeNotifier {
   final SilenceService _service = SilenceService();
 
   SilenceClip? clip;
+  /// All selectable clips — the shelf. [clip] is the one being viewed.
+  List<SilenceClip> clips = [];
   List<SilenceEntryView> entries = [];
   List<SilenceLeaderboardRow> leaderboard = [];
+
+  /// Prefetched cold-start directions, per clip — populated in [load]/[selectClip]
+  /// so the co-writer sheet opens instantly.
+  final Map<int, List<String>> _openersCache = {};
 
   bool loading = false;
   bool submitting = false;
@@ -32,16 +38,14 @@ class SilenceProvider extends ChangeNotifier {
     error = null;
     notifyListeners();
     try {
+      clips = await _service.listSelectableClips();
       clip = await _service.getActiveClip();
+      clip ??= clips.isEmpty ? null : clips.first;
+      if (clip != null && !clips.any((c) => c.id == clip!.id)) {
+        clips = [clip!, ...clips];
+      }
       if (clip != null) {
-        entries = await _service.listEntries(clip!.id!);
-        leaderboard = await _service.leaderboard(clip!.id!);
-        _leaderboardSub?.cancel();
-        _leaderboardSub =
-            _service.watchLeaderboard(clip!.id!).listen((rows) {
-          leaderboard = rows;
-          notifyListeners();
-        }, onError: (_) {});
+        await _loadClipData(clip!.id!);
       }
     } catch (e) {
       error = 'Could not reach the contest server. Check your connection.';
@@ -49,6 +53,37 @@ class SilenceProvider extends ChangeNotifier {
       loading = false;
       notifyListeners();
     }
+  }
+
+  /// Switch which clip is being voiced/watched from the shelf.
+  Future<void> selectClip(SilenceClip next) async {
+    if (clip?.id == next.id) return;
+    clip = next;
+    entries = [];
+    leaderboard = [];
+    notifyListeners();
+    await _loadClipData(next.id!);
+  }
+
+  Future<void> _loadClipData(int clipId) async {
+    entries = await _service.listEntries(clipId);
+    leaderboard = await _service.leaderboard(clipId);
+    _leaderboardSub?.cancel();
+    _leaderboardSub = _service.watchLeaderboard(clipId).listen((rows) {
+      leaderboard = rows;
+      notifyListeners();
+    }, onError: (_) {});
+    notifyListeners();
+    _prefetchOpeners(clipId);
+  }
+
+  /// Warm the co-writer's opener cards in the background so the sheet
+  /// opens instantly.
+  void _prefetchOpeners(int clipId) {
+    if (_openersCache.containsKey(clipId)) return;
+    _service.coWriterOpeners(clipId).then((o) {
+      _openersCache[clipId] = o;
+    }).catchError((_) {});
   }
 
   Future<void> submitEntry({
@@ -79,10 +114,17 @@ class SilenceProvider extends ChangeNotifier {
   /// AI voice menu (name → display label) served by the backend.
   Future<Map<String, String>> aiVoices() => _service.aiVoices();
 
-  /// Cold-start riff directions from the co-writer (vision-aware — it's
-  /// seen the clip's scene guide).
-  Future<List<String>> coWriterOpeners() =>
-      _service.coWriterOpeners(clip!.id!);
+  /// Cold-start riff directions from the co-writer — prefetched on load,
+  /// so this resolves instantly when cached.
+  Future<List<String>> coWriterOpeners() {
+    final id = clip!.id!;
+    final cached = _openersCache[id];
+    if (cached != null) return Future.value(cached);
+    return _service.coWriterOpeners(id).then((o) {
+      _openersCache[id] = o;
+      return o;
+    });
+  }
 
   /// One riff turn; [history] must end with the user's latest message.
   Future<CoWriterMessage> coWriterChat(
@@ -90,6 +132,10 @@ class SilenceProvider extends ChangeNotifier {
     String draft,
   ) =>
       _service.coWriterChat(clip!.id!, history, draft);
+
+  /// Streaming riff — deltas land as they're generated.
+  Stream<String> coWriterRiff(List<CoWriterMessage> history, String draft) =>
+      _service.coWriterRiff(clip!.id!, history, draft);
 
   /// Synthesize an AI take — script + chosen voice → Featherless (Kokoro) on the
   /// backend → lands in the gallery flagged `isAiGenerated`.

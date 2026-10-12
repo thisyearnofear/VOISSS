@@ -212,6 +212,47 @@ class Endpoints extends _i1.EndpointDispatch {
               (endpoints['silenceClip'] as _i4.SilenceClipEndpoint)
                   .getActive(session),
         ),
+        'listSelectable': _i1.MethodConnector(
+          name: 'listSelectable',
+          params: {},
+          call: (
+            _i1.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['silenceClip'] as _i4.SilenceClipEndpoint)
+                  .listSelectable(session),
+        ),
+        'updateClipMedia': _i1.MethodConnector(
+          name: 'updateClipMedia',
+          params: {
+            'clipId': _i1.ParameterDescription(
+              name: 'clipId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'videoUrl': _i1.ParameterDescription(
+              name: 'videoUrl',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'storageUri': _i1.ParameterDescription(
+              name: 'storageUri',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call: (
+            _i1.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['silenceClip'] as _i4.SilenceClipEndpoint)
+                  .updateClipMedia(
+            session,
+            params['clipId'],
+            params['videoUrl'],
+            params['storageUri'],
+          ),
+        ),
         'listArchive': _i1.MethodConnector(
           name: 'listArchive',
           params: {},
@@ -345,6 +386,40 @@ class Endpoints extends _i1.EndpointDispatch {
           ) async =>
               (endpoints['silenceCoWriter'] as _i5.SilenceCoWriterEndpoint)
                   .chat(
+            session,
+            params['clipId'],
+            params['history'],
+            params['draft'],
+          ),
+        ),
+        'riff': _i1.MethodStreamConnector(
+          name: 'riff',
+          params: {
+            'clipId': _i1.ParameterDescription(
+              name: 'clipId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'history': _i1.ParameterDescription(
+              name: 'history',
+              type: _i1.getType<List<_i8.CoWriterMessage>>(),
+              nullable: false,
+            ),
+            'draft': _i1.ParameterDescription(
+              name: 'draft',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          streamParams: {},
+          returnType: _i1.MethodStreamReturnType.streamType,
+          call: (
+            _i1.Session session,
+            Map<String, dynamic> params,
+            Map<String, Stream> streamParams,
+          ) =>
+              (endpoints['silenceCoWriter'] as _i5.SilenceCoWriterEndpoint)
+                  .riff(
             session,
             params['clipId'],
             params['history'],

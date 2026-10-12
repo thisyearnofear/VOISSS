@@ -879,24 +879,40 @@ class _CoWriterSheetState extends State<_CoWriterSheet> {
     _input.clear();
     setState(() {
       _history.add(CoWriterMessage(role: 'user', content: trimmed));
+      // Placeholder the stream grows into — text lands live.
+      _history.add(CoWriterMessage(role: 'assistant', content: ''));
       _sending = true;
     });
     _scrollToBottom();
+    final slot = _history.length - 1;
     try {
-      final reply = await _provider.coWriterChat(
-        _history,
+      await for (final delta in _provider.coWriterRiff(
+        _history.sublist(0, slot),
         widget.scriptController.text,
-      );
-      if (!mounted) return;
-      setState(() => _history.add(reply));
+      )) {
+        if (!mounted) return;
+        setState(() {
+          _history[slot] = CoWriterMessage(
+            role: 'assistant',
+            content: _history[slot].content + delta,
+          );
+        });
+        _scrollToBottom();
+      }
+      if (mounted && _history[slot].content.isEmpty) {
+        setState(() {
+          _history[slot] = CoWriterMessage(
+            role: 'assistant',
+            content: 'Nothing came back — try rephrasing?',
+          );
+        });
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _history.add(
-          CoWriterMessage(
-            role: 'assistant',
-            content: 'Lost my train of thought — try that again.',
-          ),
+        _history[slot] = CoWriterMessage(
+          role: 'assistant',
+          content: 'Lost my train of thought — try that again.',
         );
       });
     } finally {
@@ -907,21 +923,26 @@ class _CoWriterSheetState extends State<_CoWriterSheet> {
     }
   }
 
+  /// Speakable lines from a reply — the model marks them `LINE:`.
+  static List<String> speakableLines(String content) => content
+      .split('\n')
+      .where((l) => l.trimLeft().startsWith('LINE:'))
+      .map((l) => l.trimLeft().substring(5).trim())
+      .where((l) => l.isNotEmpty)
+      .toList();
+
   void _insertIntoDraft(String content) {
-    final controller = widget.scriptController;
-    // Prefer `LINE:`-marked speakable lines; otherwise strip markdown
-    // noise and take the whole reply.
-    final lines = content
-        .split('\n')
-        .where((l) => l.trimLeft().startsWith('LINE:'))
-        .map((l) => l.trimLeft().substring(5).trim())
-        .where((l) => l.isNotEmpty)
-        .toList();
+    final lines = speakableLines(content);
     final clean = lines.isNotEmpty
         ? lines.join('\n')
         : content.replaceAll(RegExp(r'[*_`#]'), '').trim();
+    _appendToDraft(clean);
+  }
+
+  void _appendToDraft(String text) {
+    final controller = widget.scriptController;
     final current = controller.text.trimRight();
-    final next = current.isEmpty ? clean : '$current\n$clean';
+    final next = current.isEmpty ? text : '$current\n$text';
     controller.text =
         next.length > 1200 ? next.substring(0, 1200) : next;
     ScaffoldMessenger.of(widget.parentContext).showSnackBar(
@@ -1014,7 +1035,10 @@ class _CoWriterSheetState extends State<_CoWriterSheet> {
                   for (final m in _history)
                     _CoWriterBubble(
                       message: m,
-                      onInsert: m.role == 'assistant'
+                      onInsertLine: m.role == 'assistant'
+                          ? (line) => _appendToDraft(line)
+                          : null,
+                      onInsertAll: m.role == 'assistant'
                           ? () => _insertIntoDraft(m.content)
                           : null,
                     ),
@@ -1104,13 +1128,24 @@ class _OpenerCard extends StatelessWidget {
 
 class _CoWriterBubble extends StatelessWidget {
   final CoWriterMessage message;
-  final VoidCallback? onInsert;
-  const _CoWriterBubble({required this.message, this.onInsert});
+  final void Function(String line)? onInsertLine;
+  final VoidCallback? onInsertAll;
+  const _CoWriterBubble({
+    required this.message,
+    this.onInsertLine,
+    this.onInsertAll,
+  });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final isUser = message.role == 'user';
+    final lines = _CoWriterSheetState.speakableLines(message.content);
+    final prose = message.content
+        .split('\n')
+        .where((l) => !l.trimLeft().startsWith('LINE:'))
+        .join('\n')
+        .trim();
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -1131,18 +1166,58 @@ class _CoWriterBubble extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SelectableText(
-              // `LINE:` prefixes exist for draft extraction — hide them.
-              message.content.replaceAll(
-                RegExp(r'^\s*LINE:\s*', multiLine: true),
-                '',
+            if (prose.isNotEmpty)
+              SelectableText(
+                prose,
+                style: const TextStyle(fontSize: 13, height: 1.45),
               ),
-              style: const TextStyle(fontSize: 13, height: 1.45),
-            ),
-            if (onInsert != null) ...[
+            // Each speakable line is a tap-to-insert row.
+            for (final line in lines)
+              InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap:
+                    onInsertLine == null ? null : () => onInsertLine!(line),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 3),
+                        child: Icon(
+                          Icons.add_circle_outline,
+                          size: 14,
+                          color: scheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          line,
+                          style: const TextStyle(fontSize: 13, height: 1.45),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            if (onInsertAll != null && lines.length > 1) ...[
+              const SizedBox(height: 4),
+              GestureDetector(
+                onTap: onInsertAll,
+                child: Text(
+                  'Insert all ${lines.length} lines',
+                  style: TextStyle(
+                    color: scheme.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ] else if (onInsertAll != null && lines.isEmpty) ...[
               const SizedBox(height: 6),
               GestureDetector(
-                onTap: onInsert,
+                onTap: onInsertAll,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [

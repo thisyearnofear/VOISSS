@@ -30,6 +30,10 @@ class SilenceService {
 
   Future<SilenceClip?> getActiveClip() => _client.silenceClip.getActive();
 
+  /// The full shelf of selectable clips, featured first.
+  Future<List<SilenceClip>> listSelectableClips() =>
+      _client.silenceClip.listSelectable();
+
   Future<List<SilenceEntryView>> listEntries(int clipId) =>
       _client.silenceEntry.list(clipId);
 
@@ -72,6 +76,14 @@ class SilenceService {
     String draft,
   ) =>
       _client.silenceCoWriter.chat(clipId, history, draft);
+
+  /// Streaming co-writer turn — yields reply deltas as they land.
+  Stream<String> coWriterRiff(
+    int clipId,
+    List<CoWriterMessage> history,
+    String draft,
+  ) =>
+      _client.silenceCoWriter.riff(clipId, history, draft);
 
   /// Returns the updated leaderboard after the vote is recorded.
   Future<List<SilenceLeaderboardRow>> castVote(int entryId, int score) async {

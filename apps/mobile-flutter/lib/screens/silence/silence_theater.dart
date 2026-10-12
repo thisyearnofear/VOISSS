@@ -69,13 +69,20 @@ class _SilenceTheaterState extends State<SilenceTheater> {
   }
 
   Future<void> _playCurrent() async {
-    final audio = _entry.audio;
     await widget.video.seekTo(Duration.zero);
     await widget.video.play();
     await _player.stop();
-    await _player.play(
-      BytesSource(audio.buffer.asUint8List(audio.offsetInBytes, audio.lengthInBytes)),
-    );
+    // Prefer the Grove gateway URL (CDN-fast) over the DB blob.
+    if (_entry.audioUrl.isNotEmpty) {
+      await _player.play(UrlSource(_entry.audioUrl));
+    } else {
+      final audio = _entry.audio;
+      await _player.play(
+        BytesSource(
+          audio.buffer.asUint8List(audio.offsetInBytes, audio.lengthInBytes),
+        ),
+      );
+    }
     if (mounted) setState(() => _playing = true);
   }
 

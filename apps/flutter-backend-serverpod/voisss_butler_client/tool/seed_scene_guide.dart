@@ -24,10 +24,12 @@ Future<void> main(List<String> args) async {
   try {
     SilenceClip? clip;
     if (args.isNotEmpty) {
-      clip = await client.silenceClip.listArchive().then(
-            (all) => all.where((c) => c.id == int.parse(args[0])).firstOrNull,
-          );
-      clip ??= await client.silenceClip.getActive();
+      final id = int.parse(args[0]);
+      final selectable = await client.silenceClip.listSelectable();
+      final archive = await client.silenceClip.listArchive();
+      clip = [...selectable, ...archive]
+          .where((c) => c.id == id)
+          .firstOrNull;
     } else {
       clip = await client.silenceClip.getActive();
     }

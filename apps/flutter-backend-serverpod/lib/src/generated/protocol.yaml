@@ -9,12 +9,15 @@ greeting:
   - hello:
 silenceClip:
   - getActive:
+  - listSelectable:
+  - updateClipMedia:
   - listArchive:
   - updateSceneGuide:
   - createClip:
 silenceCoWriter:
   - openers:
   - chat:
+  - riff:
 silenceEntry:
   - aiVoices:
   - generate:

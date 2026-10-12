@@ -25,11 +25,15 @@ abstract class SilenceEntry
     required this.displayName,
     required this.audio,
     required this.audioFormat,
+    String? storageUri,
+    String? audioUrl,
     bool? isAiGenerated,
     required this.voteCount,
     required this.voteScoreTotal,
     required this.createdAt,
-  }) : isAiGenerated = isAiGenerated ?? false;
+  })  : storageUri = storageUri ?? '',
+        audioUrl = audioUrl ?? '',
+        isAiGenerated = isAiGenerated ?? false;
 
   factory SilenceEntry({
     int? id,
@@ -38,6 +42,8 @@ abstract class SilenceEntry
     required String displayName,
     required _i3.ByteData audio,
     required String audioFormat,
+    String? storageUri,
+    String? audioUrl,
     bool? isAiGenerated,
     required int voteCount,
     required int voteScoreTotal,
@@ -55,6 +61,8 @@ abstract class SilenceEntry
       displayName: jsonSerialization['displayName'] as String,
       audio: _i1.ByteDataJsonExtension.fromJson(jsonSerialization['audio']),
       audioFormat: jsonSerialization['audioFormat'] as String,
+      storageUri: jsonSerialization['storageUri'] as String,
+      audioUrl: jsonSerialization['audioUrl'] as String,
       isAiGenerated: jsonSerialization['isAiGenerated'] as bool,
       voteCount: jsonSerialization['voteCount'] as int,
       voteScoreTotal: jsonSerialization['voteScoreTotal'] as int,
@@ -78,11 +86,18 @@ abstract class SilenceEntry
   /// Display name the entrant chose (free-form; lightweight identity).
   String displayName;
 
-  /// Raw audio bytes (bytea). Sprint-scale storage; move to cloud storage later.
+  /// Raw audio bytes (bytea) — origin of truth.
   _i3.ByteData audio;
 
   /// Container/codec hint for playback, e.g. "m4a", "wav", "mp3".
   String audioFormat;
+
+  /// Content-addressed Grove (Lens storage) URI, e.g. lens://abc… —
+  /// provenance for the "rights-cleared voice asset" story.
+  String storageUri;
+
+  /// Grove HTTPS gateway URL — fast playback path, no DB blob fetch.
+  String audioUrl;
 
   /// True when this take was synthesized (Featherless (Kokoro)), not a human mic take.
   bool isAiGenerated;
@@ -107,6 +122,8 @@ abstract class SilenceEntry
     String? displayName,
     _i3.ByteData? audio,
     String? audioFormat,
+    String? storageUri,
+    String? audioUrl,
     bool? isAiGenerated,
     int? voteCount,
     int? voteScoreTotal,
@@ -121,6 +138,8 @@ abstract class SilenceEntry
       'displayName': displayName,
       'audio': audio.toJson(),
       'audioFormat': audioFormat,
+      'storageUri': storageUri,
+      'audioUrl': audioUrl,
       'isAiGenerated': isAiGenerated,
       'voteCount': voteCount,
       'voteScoreTotal': voteScoreTotal,
@@ -137,6 +156,8 @@ abstract class SilenceEntry
       'displayName': displayName,
       'audio': audio.toJson(),
       'audioFormat': audioFormat,
+      'storageUri': storageUri,
+      'audioUrl': audioUrl,
       'isAiGenerated': isAiGenerated,
       'voteCount': voteCount,
       'voteScoreTotal': voteScoreTotal,
@@ -184,6 +205,8 @@ class _SilenceEntryImpl extends SilenceEntry {
     required String displayName,
     required _i3.ByteData audio,
     required String audioFormat,
+    String? storageUri,
+    String? audioUrl,
     bool? isAiGenerated,
     required int voteCount,
     required int voteScoreTotal,
@@ -195,6 +218,8 @@ class _SilenceEntryImpl extends SilenceEntry {
           displayName: displayName,
           audio: audio,
           audioFormat: audioFormat,
+          storageUri: storageUri,
+          audioUrl: audioUrl,
           isAiGenerated: isAiGenerated,
           voteCount: voteCount,
           voteScoreTotal: voteScoreTotal,
@@ -212,6 +237,8 @@ class _SilenceEntryImpl extends SilenceEntry {
     String? displayName,
     _i3.ByteData? audio,
     String? audioFormat,
+    String? storageUri,
+    String? audioUrl,
     bool? isAiGenerated,
     int? voteCount,
     int? voteScoreTotal,
@@ -224,6 +251,8 @@ class _SilenceEntryImpl extends SilenceEntry {
       displayName: displayName ?? this.displayName,
       audio: audio ?? this.audio.clone(),
       audioFormat: audioFormat ?? this.audioFormat,
+      storageUri: storageUri ?? this.storageUri,
+      audioUrl: audioUrl ?? this.audioUrl,
       isAiGenerated: isAiGenerated ?? this.isAiGenerated,
       voteCount: voteCount ?? this.voteCount,
       voteScoreTotal: voteScoreTotal ?? this.voteScoreTotal,
@@ -249,6 +278,16 @@ class SilenceEntryTable extends _i1.Table<int?> {
     audioFormat = _i1.ColumnString(
       'audioFormat',
       this,
+    );
+    storageUri = _i1.ColumnString(
+      'storageUri',
+      this,
+      hasDefault: true,
+    );
+    audioUrl = _i1.ColumnString(
+      'audioUrl',
+      this,
+      hasDefault: true,
     );
     isAiGenerated = _i1.ColumnBool(
       'isAiGenerated',
@@ -277,11 +316,18 @@ class SilenceEntryTable extends _i1.Table<int?> {
   /// Display name the entrant chose (free-form; lightweight identity).
   late final _i1.ColumnString displayName;
 
-  /// Raw audio bytes (bytea). Sprint-scale storage; move to cloud storage later.
+  /// Raw audio bytes (bytea) — origin of truth.
   late final _i1.ColumnByteData audio;
 
   /// Container/codec hint for playback, e.g. "m4a", "wav", "mp3".
   late final _i1.ColumnString audioFormat;
+
+  /// Content-addressed Grove (Lens storage) URI, e.g. lens://abc… —
+  /// provenance for the "rights-cleared voice asset" story.
+  late final _i1.ColumnString storageUri;
+
+  /// Grove HTTPS gateway URL — fast playback path, no DB blob fetch.
+  late final _i1.ColumnString audioUrl;
 
   /// True when this take was synthesized (Featherless (Kokoro)), not a human mic take.
   late final _i1.ColumnBool isAiGenerated;
@@ -313,6 +359,8 @@ class SilenceEntryTable extends _i1.Table<int?> {
         displayName,
         audio,
         audioFormat,
+        storageUri,
+        audioUrl,
         isAiGenerated,
         voteCount,
         voteScoreTotal,

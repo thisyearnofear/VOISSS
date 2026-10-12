@@ -6,10 +6,15 @@ fields:
   clip: SilenceClip?, relation
   ### Display name the entrant chose (free-form; lightweight identity).
   displayName: String
-  ### Raw audio bytes (bytea). Sprint-scale storage; move to cloud storage later.
+  ### Raw audio bytes (bytea) — origin of truth.
   audio: ByteData
   ### Container/codec hint for playback, e.g. "m4a", "wav", "mp3".
   audioFormat: String
+  ### Content-addressed Grove (Lens storage) URI, e.g. lens://abc… —
+  ### provenance for the "rights-cleared voice asset" story.
+  storageUri: String, default=''
+  ### Grove HTTPS gateway URL — fast playback path, no DB blob fetch.
+  audioUrl: String, default=''
   ### True when this take was synthesized (Featherless (Kokoro)), not a human mic take.
   isAiGenerated: bool, default=false
   ### Denormalised vote aggregates, updated on each vote.

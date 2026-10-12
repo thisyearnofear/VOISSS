@@ -10,7 +10,6 @@ import 'package:serverpod/serverpod.dart';
 class SilenceCoWriterEndpoint extends Endpoint {
   static const int _maxHistoryMessages = 20;
   static const int _maxMessageChars = 2000;
-  static const int _maxDraftChars = 1500;
 
   /// Three cold-start directions a user could take the voiceover.
   Future<List<String>> openers(Session session, int clipId) async {
@@ -57,10 +56,92 @@ class SilenceCoWriterEndpoint extends Endpoint {
     String draft,
   ) async {
     final clip = await _clip(session, clipId);
+    final messages = _buildMessages(clip, history, draft);
+    final reply = await _chatCompletion(session, messages, maxTokens: 420);
+    return CoWriterMessage(role: 'assistant', content: reply.trim());
+  }
+
+  /// Streaming riff — same prompt as [chat] but yields reply deltas so
+  /// the client can render the answer as it lands instead of staring at
+  /// a spinner for ~15s. Client calls `client.silenceCoWriter.riff(...)`.
+  Stream<String> riff(
+    Session session,
+    int clipId,
+    List<CoWriterMessage> history,
+    String draft,
+  ) async* {
+    final clip = await _clip(session, clipId);
+    final messages = _buildMessages(clip, history, draft);
+
+    final apiKey = Platform.environment['BUTLER_LLM_KEY'] ?? '';
+    final baseUrl = Platform.environment['BUTLER_LLM_URL'] ??
+        'https://api.featherless.ai/v1';
+    final model =
+        Platform.environment['BUTLER_LLM_MODEL'] ?? 'Qwen/Qwen3-32B';
+    if (apiKey.isEmpty) {
+      throw StateError('Co-writer LLM is not configured on this server');
+    }
+
+    final client = HttpClient();
+    client.connectionTimeout = const Duration(seconds: 15);
+    try {
+      final request =
+          await client.postUrl(Uri.parse('$baseUrl/chat/completions'));
+      request.headers.set('Authorization', 'Bearer $apiKey');
+      request.headers.set('Content-Type', 'application/json');
+      request.add(utf8.encode(jsonEncode({
+        'model': model,
+        'messages': messages,
+        'max_tokens': 420,
+        'temperature': 0.9,
+        'stream': true,
+        'chat_template_kwargs': {'enable_thinking': false},
+      })));
+      final response =
+          await request.close().timeout(const Duration(seconds: 45));
+      if (response.statusCode != 200) {
+        session.log(
+          'CoWriter stream failed (${response.statusCode})',
+          level: LogLevel.error,
+        );
+        throw StateError('Co-writer request failed');
+      }
+
+      await for (final line in response
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())) {
+        if (!line.startsWith('data:')) continue;
+        final payload = line.substring(5).trim();
+        if (payload == '[DONE]') break;
+        try {
+          final delta = (jsonDecode(payload)['choices'] as List)
+              .first['delta']['content'] as String?;
+          if (delta != null && delta.isNotEmpty) yield delta;
+        } catch (_) {
+          // Heartbeat/partial lines — skip.
+        }
+      }
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<SilenceClip> _clip(Session session, int clipId) async {
+    final clip = await SilenceClip.db.findById(session, clipId);
+    if (clip == null || !clip.active) {
+      throw StateError('Clip is not active');
+    }
+    return clip;
+  }
+
+  List<Map<String, String>> _buildMessages(
+    SilenceClip clip,
+    List<CoWriterMessage> history,
+    String draft,
+  ) {
     if (history.isEmpty || history.last.role != 'user') {
       throw ArgumentError('history must end with a user message');
     }
-
     final turns = history
         .where((m) =>
             (m.role == 'user' || m.role == 'assistant') &&
@@ -69,7 +150,7 @@ class SilenceCoWriterEndpoint extends Endpoint {
     final recent = turns.length > _maxHistoryMessages
         ? turns.sublist(turns.length - _maxHistoryMessages)
         : turns;
-    final messages = <Map<String, String>>[
+    return [
       {'role': 'system', 'content': _systemPrompt(clip, draft)},
       for (final m in recent)
         {
@@ -79,17 +160,6 @@ class SilenceCoWriterEndpoint extends Endpoint {
               : m.content,
         },
     ];
-
-    final reply = await _chatCompletion(session, messages, maxTokens: 420);
-    return CoWriterMessage(role: 'assistant', content: reply.trim());
-  }
-
-  Future<SilenceClip> _clip(Session session, int clipId) async {
-    final clip = await SilenceClip.db.findById(session, clipId);
-    if (clip == null || !clip.active) {
-      throw StateError('Clip is not active');
-    }
-    return clip;
   }
 
   String _systemPrompt(SilenceClip clip, String draft) {

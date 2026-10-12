@@ -23,8 +23,10 @@ abstract class SilenceClip implements _i1.SerializableModel {
     required this.weekStart,
     required this.active,
     String? sceneGuide,
+    String? storageUri,
     required this.createdAt,
-  }) : sceneGuide = sceneGuide ?? '';
+  })  : sceneGuide = sceneGuide ?? '',
+        storageUri = storageUri ?? '';
 
   factory SilenceClip({
     int? id,
@@ -35,6 +37,7 @@ abstract class SilenceClip implements _i1.SerializableModel {
     required DateTime weekStart,
     required bool active,
     String? sceneGuide,
+    String? storageUri,
     required DateTime createdAt,
   }) = _SilenceClipImpl;
 
@@ -49,6 +52,7 @@ abstract class SilenceClip implements _i1.SerializableModel {
           _i1.DateTimeJsonExtension.fromJson(jsonSerialization['weekStart']),
       active: jsonSerialization['active'] as bool,
       sceneGuide: jsonSerialization['sceneGuide'] as String,
+      storageUri: jsonSerialization['storageUri'] as String,
       createdAt:
           _i1.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
     );
@@ -81,6 +85,10 @@ abstract class SilenceClip implements _i1.SerializableModel {
   /// vision model (seeded per clip). Powers the co-writer's on-screen context.
   String sceneGuide;
 
+  /// Content-addressed Grove (Lens storage) URI when the source footage
+  /// is hosted decentrally ('' when served from videoUrl elsewhere).
+  String storageUri;
+
   DateTime createdAt;
 
   /// Returns a shallow copy of this [SilenceClip]
@@ -95,6 +103,7 @@ abstract class SilenceClip implements _i1.SerializableModel {
     DateTime? weekStart,
     bool? active,
     String? sceneGuide,
+    String? storageUri,
     DateTime? createdAt,
   });
   @override
@@ -108,6 +117,7 @@ abstract class SilenceClip implements _i1.SerializableModel {
       'weekStart': weekStart.toJson(),
       'active': active,
       'sceneGuide': sceneGuide,
+      'storageUri': storageUri,
       'createdAt': createdAt.toJson(),
     };
   }
@@ -130,6 +140,7 @@ class _SilenceClipImpl extends SilenceClip {
     required DateTime weekStart,
     required bool active,
     String? sceneGuide,
+    String? storageUri,
     required DateTime createdAt,
   }) : super._(
           id: id,
@@ -140,6 +151,7 @@ class _SilenceClipImpl extends SilenceClip {
           weekStart: weekStart,
           active: active,
           sceneGuide: sceneGuide,
+          storageUri: storageUri,
           createdAt: createdAt,
         );
 
@@ -156,6 +168,7 @@ class _SilenceClipImpl extends SilenceClip {
     DateTime? weekStart,
     bool? active,
     String? sceneGuide,
+    String? storageUri,
     DateTime? createdAt,
   }) {
     return SilenceClip(
@@ -167,6 +180,7 @@ class _SilenceClipImpl extends SilenceClip {
       weekStart: weekStart ?? this.weekStart,
       active: active ?? this.active,
       sceneGuide: sceneGuide ?? this.sceneGuide,
+      storageUri: storageUri ?? this.storageUri,
       createdAt: createdAt ?? this.createdAt,
     );
   }

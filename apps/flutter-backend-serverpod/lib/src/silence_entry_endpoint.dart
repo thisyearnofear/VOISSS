@@ -17,20 +17,36 @@ class SilenceEntryEndpoint extends Endpoint {
     'heart': 'af_heart',
     'bella': 'af_bella',
     'sarah': 'af_sarah',
+    'nicole': 'af_nicole',
+    'river': 'af_river',
+    'sky': 'af_sky',
+    'nova': 'af_nova',
     'adam': 'am_adam',
     'michael': 'am_michael',
+    'onyx': 'am_onyx',
+    'echo': 'am_echo',
+    'emma': 'bf_emma',
     'george': 'bm_george',
+    'fable': 'bm_fable',
   };
 
   /// The voice menu the client renders its picker from (name → display label).
   Future<Map<String, String>> aiVoices(Session session) async =>
       const {
-        'heart': 'Heart',
-        'bella': 'Bella',
-        'sarah': 'Sarah',
-        'adam': 'Adam',
-        'michael': 'Michael',
-        'george': 'George',
+        'heart': 'Heart · warm',
+        'bella': 'Bella · bright',
+        'sarah': 'Sarah · soft',
+        'nicole': 'Nicole · calm',
+        'river': 'River · neutral',
+        'sky': 'Sky · airy',
+        'nova': 'Nova · lively',
+        'adam': 'Adam · clear',
+        'michael': 'Michael · steady',
+        'onyx': 'Onyx · deep',
+        'echo': 'Echo · gravelly',
+        'emma': 'Emma · British F',
+        'george': 'George · British M',
+        'fable': 'Fable · storyteller',
       };
 
   /// Synthesize a take via Featherless (Kokoro-82M) and submit it flagged
@@ -104,6 +120,7 @@ class SilenceEntryEndpoint extends Endpoint {
         throw StateError('Generated audio was empty or too large');
       }
 
+      final grove = await _uploadToGrove(session, bytes, 'audio/mpeg');
       final entry = await SilenceEntry.db.insertRow(
         session,
         SilenceEntry(
@@ -111,6 +128,8 @@ class SilenceEntryEndpoint extends Endpoint {
           displayName: name,
           audio: bytes.buffer.asByteData(),
           audioFormat: 'mp3',
+          storageUri: grove?.uri ?? '',
+          audioUrl: grove?.gatewayUrl ?? '',
           isAiGenerated: true,
           voteCount: 0,
           voteScoreTotal: 0,
@@ -149,6 +168,12 @@ class SilenceEntryEndpoint extends Endpoint {
       throw StateError('Clip is not active');
     }
 
+    final mime = audioFormat == 'mp3' ? 'audio/mpeg' : 'audio/$audioFormat';
+    final grove = await _uploadToGrove(
+      session,
+      audio.buffer.asUint8List(audio.offsetInBytes, audio.lengthInBytes),
+      mime,
+    );
     final entry = await SilenceEntry.db.insertRow(
       session,
       SilenceEntry(
@@ -156,6 +181,8 @@ class SilenceEntryEndpoint extends Endpoint {
         displayName: name,
         audio: audio,
         audioFormat: audioFormat,
+        storageUri: grove?.uri ?? '',
+        audioUrl: grove?.gatewayUrl ?? '',
         isAiGenerated: false,
         voteCount: 0,
         voteScoreTotal: 0,
@@ -176,6 +203,50 @@ class SilenceEntryEndpoint extends Endpoint {
     return entries.map(_toView).toList();
   }
 
+  /// Uploads bytes to Grove (Lens storage) — one-step immutable upload
+  /// against Lens Chain mainnet (chain_id 232). Returns null on failure:
+  /// storage is provenance/faster playback, never a reason to drop a take.
+  Future<({String uri, String gatewayUrl})?> _uploadToGrove(
+    Session session,
+    Uint8List data,
+    String contentType,
+  ) async {
+    final client = HttpClient();
+    client.connectionTimeout = const Duration(seconds: 15);
+    try {
+      final request = await client.postUrl(
+        Uri.parse('https://api.grove.storage/?chain_id=232'),
+      );
+      request.headers.set('Content-Type', contentType);
+      request.add(data);
+      final response =
+          await request.close().timeout(const Duration(seconds: 60));
+      final body = await response.transform(utf8.decoder).join();
+      if (response.statusCode != 200 && response.statusCode != 201 &&
+          response.statusCode != 202) {
+        session.log(
+          'Grove upload failed (${response.statusCode}): $body',
+          level: LogLevel.warning,
+        );
+        return null;
+      }
+      // Grove replies with a JSON array of uploaded resources.
+      final decoded = jsonDecode(body);
+      final first = decoded is List && decoded.isNotEmpty
+          ? decoded.first as Map<String, dynamic>
+          : decoded as Map<String, dynamic>;
+      return (
+        uri: first['uri'] as String? ?? '',
+        gatewayUrl: first['gateway_url'] as String? ?? '',
+      );
+    } catch (e) {
+      session.log('Grove upload error: $e', level: LogLevel.warning);
+      return null;
+    } finally {
+      client.close();
+    }
+  }
+
   SilenceEntryView _toView(SilenceEntry e) {
     return SilenceEntryView(
       id: e.id!,
@@ -183,6 +254,8 @@ class SilenceEntryEndpoint extends Endpoint {
       displayName: e.displayName,
       audio: e.audio,
       audioFormat: e.audioFormat,
+      audioUrl: e.audioUrl,
+      storageUri: e.storageUri,
       isAiGenerated: e.isAiGenerated,
       voteCount: e.voteCount,
       avgScore: e.voteCount == 0 ? 0 : e.voteScoreTotal / e.voteCount,

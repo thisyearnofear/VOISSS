@@ -33,9 +33,18 @@ class _SilenceScreenState extends State<SilenceScreen> {
     });
   }
 
+  int? _activeClipId;
+
   Future<void> _initVideo() async {
     final clip = context.read<SilenceProvider>().clip;
-    if (clip == null || !mounted) return;
+    if (clip == null || !mounted || clip.id == _activeClipId) return;
+    _activeClipId = clip.id;
+    final old = _video;
+    setState(() {
+      _video = null;
+      _videoFailed = false;
+    });
+    await old?.dispose();
     final controller = VideoPlayerController.networkUrl(
       Uri.parse(clip.videoUrl),
     );
@@ -64,6 +73,10 @@ class _SilenceScreenState extends State<SilenceScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<SilenceProvider>();
+    // Clip switched via the shelf → rebuild the player for the new video.
+    if (provider.clip != null && provider.clip!.id != _activeClipId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _initVideo());
+    }
     return Scaffold(
       body: provider.loading && provider.clip == null
           ? const Center(child: CircularProgressIndicator())
@@ -80,6 +93,12 @@ class _SilenceScreenState extends State<SilenceScreen> {
                         videoFailed: _videoFailed,
                         entryCount: provider.entries.length,
                       ),
+                      if (provider.clips.length > 1)
+                        _ClipShelf(
+                          clips: provider.clips,
+                          selected: provider.clip!,
+                          onSelect: provider.selectClip,
+                        ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
                         child: Column(
@@ -710,6 +729,89 @@ class _VoissFooter extends StatelessWidget {
           'Winning voices can be licensed on VOISSS',
           style: TextStyle(fontSize: 12),
         ),
+      ),
+    );
+  }
+}
+
+/// Horizontal shelf of selectable clips — more silences to voice.
+class _ClipShelf extends StatelessWidget {
+  final List<SilenceClip> clips;
+  final SilenceClip selected;
+  final Future<void> Function(SilenceClip) onSelect;
+  const _ClipShelf({
+    required this.clips,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      height: 74,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        itemCount: clips.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          final c = clips[i];
+          final isSelected = c.id == selected.id;
+          return InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: isSelected ? null : () => onSelect(c),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? scheme.primary.withValues(alpha: 0.14)
+                    : const Color(0xFF16131F),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isSelected
+                      ? scheme.primary.withValues(alpha: 0.6)
+                      : Colors.white.withValues(alpha: 0.06),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.videocam_outlined,
+                    size: 16,
+                    color: isSelected ? scheme.primary : Colors.grey[600],
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 160),
+                        child: Text(
+                          c.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected ? Colors.white : Colors.grey[300],
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '${c.durationSec}s of silence',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 10),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

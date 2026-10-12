@@ -6,6 +6,11 @@ fields:
   displayName: String
   audio: ByteData
   audioFormat: String
+  ### Grove gateway URL when the take was uploaded to Lens storage
+  ### ('' otherwise — fall back to the `audio` bytes).
+  audioUrl: String
+  ### Content-addressed `lens://` URI — provenance for the asset ('' if none).
+  storageUri: String
   isAiGenerated: bool
   voteCount: int
   avgScore: double

@@ -116,12 +116,38 @@ class EndpointSilenceClip extends _i1.EndpointRef {
   @override
   String get name => 'silenceClip';
 
-  /// The currently active contest clip, or null if none is active.
+  /// The featured contest clip (newest active), or null if none is active.
   _i2.Future<_i4.SilenceClip?> getActive() =>
       caller.callServerEndpoint<_i4.SilenceClip?>(
         'silenceClip',
         'getActive',
         {},
+      );
+
+  /// Every selectable clip — the shelf users pick what to voice from.
+  /// Featured first (newest weekStart), then the rest.
+  _i2.Future<List<_i4.SilenceClip>> listSelectable() =>
+      caller.callServerEndpoint<List<_i4.SilenceClip>>(
+        'silenceClip',
+        'listSelectable',
+        {},
+      );
+
+  /// Points a clip's media at a new URL + records its Grove storage URI.
+  /// Sprint admin path — same exposure caveat as [createClip].
+  _i2.Future<_i4.SilenceClip> updateClipMedia(
+    int clipId,
+    String videoUrl,
+    String storageUri,
+  ) =>
+      caller.callServerEndpoint<_i4.SilenceClip>(
+        'silenceClip',
+        'updateClipMedia',
+        {
+          'clipId': clipId,
+          'videoUrl': videoUrl,
+          'storageUri': storageUri,
+        },
       );
 
   /// Past (inactive) clips, newest first.
@@ -204,6 +230,25 @@ class EndpointSilenceCoWriter extends _i1.EndpointRef {
           'history': history,
           'draft': draft,
         },
+      );
+
+  /// Streaming riff — same prompt as [chat] but yields reply deltas so
+  /// the client can render the answer as it lands instead of staring at
+  /// a spinner for ~15s. Client calls `client.silenceCoWriter.riff(...)`.
+  _i2.Stream<String> riff(
+    int clipId,
+    List<_i5.CoWriterMessage> history,
+    String draft,
+  ) =>
+      caller.callStreamingServerEndpoint<_i2.Stream<String>, String>(
+        'silenceCoWriter',
+        'riff',
+        {
+          'clipId': clipId,
+          'history': history,
+          'draft': draft,
+        },
+        {},
       );
 }
 

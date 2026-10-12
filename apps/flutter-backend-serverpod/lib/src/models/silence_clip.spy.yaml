@@ -17,4 +17,7 @@ fields:
   ### Timestamped scene descriptions distilled from sampled frames by a
   ### vision model (seeded per clip). Powers the co-writer's on-screen context.
   sceneGuide: String, default=''
+  ### Content-addressed Grove (Lens storage) URI when the source footage
+  ### is hosted decentrally ('' when served from videoUrl elsewhere).
+  storageUri: String, default=''
   createdAt: DateTime
