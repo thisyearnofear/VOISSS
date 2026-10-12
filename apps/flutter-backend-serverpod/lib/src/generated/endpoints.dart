@@ -9,9 +9,14 @@
 // ignore_for_file: use_super_parameters
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+
 import 'package:serverpod/serverpod.dart' as _i1;
 import '../butler_endpoint.dart' as _i2;
 import '../greeting_endpoint.dart' as _i3;
+import '../silence_clip_endpoint.dart' as _i4;
+import '../silence_entry_endpoint.dart' as _i5;
+import '../silence_vote_endpoint.dart' as _i6;
+import 'dart:typed_data' as _i7;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -27,6 +32,24 @@ class Endpoints extends _i1.EndpointDispatch {
         ..initialize(
           server,
           'greeting',
+          null,
+        ),
+      'silenceClip': _i4.SilenceClipEndpoint()
+        ..initialize(
+          server,
+          'silenceClip',
+          null,
+        ),
+      'silenceEntry': _i5.SilenceEntryEndpoint()
+        ..initialize(
+          server,
+          'silenceEntry',
+          null,
+        ),
+      'silenceVote': _i6.SilenceVoteEndpoint()
+        ..initialize(
+          server,
+          'silenceVote',
           null,
         ),
     };
@@ -164,6 +187,216 @@ class Endpoints extends _i1.EndpointDispatch {
             params['name'],
           ),
         )
+      },
+    );
+    connectors['silenceClip'] = _i1.EndpointConnector(
+      name: 'silenceClip',
+      endpoint: endpoints['silenceClip']!,
+      methodConnectors: {
+        'getActive': _i1.MethodConnector(
+          name: 'getActive',
+          params: {},
+          call: (
+            _i1.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['silenceClip'] as _i4.SilenceClipEndpoint)
+                  .getActive(session),
+        ),
+        'listArchive': _i1.MethodConnector(
+          name: 'listArchive',
+          params: {},
+          call: (
+            _i1.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['silenceClip'] as _i4.SilenceClipEndpoint)
+                  .listArchive(session),
+        ),
+        'createClip': _i1.MethodConnector(
+          name: 'createClip',
+          params: {
+            'title': _i1.ParameterDescription(
+              name: 'title',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'videoUrl': _i1.ParameterDescription(
+              name: 'videoUrl',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'durationSec': _i1.ParameterDescription(
+              name: 'durationSec',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'rightsNote': _i1.ParameterDescription(
+              name: 'rightsNote',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'weekStart': _i1.ParameterDescription(
+              name: 'weekStart',
+              type: _i1.getType<DateTime>(),
+              nullable: false,
+            ),
+            'activate': _i1.ParameterDescription(
+              name: 'activate',
+              type: _i1.getType<bool>(),
+              nullable: false,
+            ),
+          },
+          call: (
+            _i1.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['silenceClip'] as _i4.SilenceClipEndpoint).createClip(
+            session,
+            params['title'],
+            params['videoUrl'],
+            params['durationSec'],
+            params['rightsNote'],
+            params['weekStart'],
+            activate: params['activate'],
+          ),
+        ),
+      },
+    );
+    connectors['silenceEntry'] = _i1.EndpointConnector(
+      name: 'silenceEntry',
+      endpoint: endpoints['silenceEntry']!,
+      methodConnectors: {
+        'submit': _i1.MethodConnector(
+          name: 'submit',
+          params: {
+            'clipId': _i1.ParameterDescription(
+              name: 'clipId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'displayName': _i1.ParameterDescription(
+              name: 'displayName',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'audio': _i1.ParameterDescription(
+              name: 'audio',
+              type: _i1.getType<_i7.ByteData>(),
+              nullable: false,
+            ),
+            'audioFormat': _i1.ParameterDescription(
+              name: 'audioFormat',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call: (
+            _i1.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['silenceEntry'] as _i5.SilenceEntryEndpoint).submit(
+            session,
+            params['clipId'],
+            params['displayName'],
+            params['audio'],
+            params['audioFormat'],
+          ),
+        ),
+        'list': _i1.MethodConnector(
+          name: 'list',
+          params: {
+            'clipId': _i1.ParameterDescription(
+              name: 'clipId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            )
+          },
+          call: (
+            _i1.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['silenceEntry'] as _i5.SilenceEntryEndpoint).list(
+            session,
+            params['clipId'],
+          ),
+        ),
+      },
+    );
+    connectors['silenceVote'] = _i1.EndpointConnector(
+      name: 'silenceVote',
+      endpoint: endpoints['silenceVote']!,
+      methodConnectors: {
+        'cast': _i1.MethodConnector(
+          name: 'cast',
+          params: {
+            'entryId': _i1.ParameterDescription(
+              name: 'entryId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'voterToken': _i1.ParameterDescription(
+              name: 'voterToken',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'score': _i1.ParameterDescription(
+              name: 'score',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call: (
+            _i1.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['silenceVote'] as _i6.SilenceVoteEndpoint).cast(
+            session,
+            params['entryId'],
+            params['voterToken'],
+            params['score'],
+          ),
+        ),
+        'leaderboard': _i1.MethodConnector(
+          name: 'leaderboard',
+          params: {
+            'clipId': _i1.ParameterDescription(
+              name: 'clipId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            )
+          },
+          call: (
+            _i1.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['silenceVote'] as _i6.SilenceVoteEndpoint).leaderboard(
+            session,
+            params['clipId'],
+          ),
+        ),
+        'watchLeaderboard': _i1.MethodStreamConnector(
+          name: 'watchLeaderboard',
+          params: {
+            'clipId': _i1.ParameterDescription(
+              name: 'clipId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            )
+          },
+          streamParams: {},
+          returnType: _i1.MethodStreamReturnType.streamType,
+          call: (
+            _i1.Session session,
+            Map<String, dynamic> params,
+            Map<String, Stream> streamParams,
+          ) =>
+              (endpoints['silenceVote'] as _i6.SilenceVoteEndpoint)
+                  .watchLeaderboard(
+            session,
+            params['clipId'],
+          ),
+        ),
       },
     );
   }

@@ -9,10 +9,17 @@
 // ignore_for_file: use_super_parameters
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+
 import 'package:serverpod_client/serverpod_client.dart' as _i1;
 import 'dart:async' as _i2;
 import 'package:voisss_butler_client/src/protocol/greeting.dart' as _i3;
-import 'protocol.dart' as _i4;
+import 'package:voisss_butler_client/src/protocol/silence_clip.dart' as _i4;
+import 'package:voisss_butler_client/src/protocol/silence_entry_view.dart'
+    as _i5;
+import 'dart:typed_data' as _i6;
+import 'package:voisss_butler_client/src/protocol/silence_leaderboard_row.dart'
+    as _i7;
+import 'protocol.dart' as _i8;
 
 /// {@category Endpoint}
 class EndpointButler extends _i1.EndpointRef {
@@ -98,6 +105,137 @@ class EndpointGreeting extends _i1.EndpointRef {
       );
 }
 
+/// Endpoints for the "Voice the Silence" weekly clip contest.
+/// Accessed on the client as `client.silenceClip`.
+/// {@category Endpoint}
+class EndpointSilenceClip extends _i1.EndpointRef {
+  EndpointSilenceClip(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'silenceClip';
+
+  /// The currently active contest clip, or null if none is active.
+  _i2.Future<_i4.SilenceClip?> getActive() =>
+      caller.callServerEndpoint<_i4.SilenceClip?>(
+        'silenceClip',
+        'getActive',
+        {},
+      );
+
+  /// Past (inactive) clips, newest first.
+  _i2.Future<List<_i4.SilenceClip>> listArchive() =>
+      caller.callServerEndpoint<List<_i4.SilenceClip>>(
+        'silenceClip',
+        'listArchive',
+        {},
+      );
+
+  /// Creates a clip. Sprint admin path — no auth for now; do not expose
+  /// publicly without adding an admin check.
+  _i2.Future<_i4.SilenceClip> createClip(
+    String title,
+    String videoUrl,
+    int durationSec,
+    String rightsNote,
+    DateTime weekStart, {
+    required bool activate,
+  }) =>
+      caller.callServerEndpoint<_i4.SilenceClip>(
+        'silenceClip',
+        'createClip',
+        {
+          'title': title,
+          'videoUrl': videoUrl,
+          'durationSec': durationSec,
+          'rightsNote': rightsNote,
+          'weekStart': weekStart,
+          'activate': activate,
+        },
+      );
+}
+
+/// Voiceover entry submission and listing. Accessed as `client.silenceEntry`.
+/// {@category Endpoint}
+class EndpointSilenceEntry extends _i1.EndpointRef {
+  EndpointSilenceEntry(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'silenceEntry';
+
+  /// Submit a voiceover for the active clip.
+  /// [audio] is the raw encoded file (e.g. m4a from the `record` package).
+  _i2.Future<_i5.SilenceEntryView> submit(
+    int clipId,
+    String displayName,
+    _i6.ByteData audio,
+    String audioFormat,
+  ) =>
+      caller.callServerEndpoint<_i5.SilenceEntryView>(
+        'silenceEntry',
+        'submit',
+        {
+          'clipId': clipId,
+          'displayName': displayName,
+          'audio': audio,
+          'audioFormat': audioFormat,
+        },
+      );
+
+  /// All entries for a clip, newest first.
+  _i2.Future<List<_i5.SilenceEntryView>> list(int clipId) =>
+      caller.callServerEndpoint<List<_i5.SilenceEntryView>>(
+        'silenceEntry',
+        'list',
+        {'clipId': clipId},
+      );
+}
+
+/// Voting and the live leaderboard. Accessed as `client.silenceVote`.
+/// {@category Endpoint}
+class EndpointSilenceVote extends _i1.EndpointRef {
+  EndpointSilenceVote(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'silenceVote';
+
+  /// Cast (or change) a vote. One vote per voter token per entry;
+  /// repeat calls update the score. Returns the updated leaderboard.
+  _i2.Future<List<_i7.SilenceLeaderboardRow>> cast(
+    int entryId,
+    String voterToken,
+    int score,
+  ) =>
+      caller.callServerEndpoint<List<_i7.SilenceLeaderboardRow>>(
+        'silenceVote',
+        'cast',
+        {
+          'entryId': entryId,
+          'voterToken': voterToken,
+          'score': score,
+        },
+      );
+
+  /// Current leaderboard for a clip, ordered by average score.
+  _i2.Future<List<_i7.SilenceLeaderboardRow>> leaderboard(int clipId) =>
+      caller.callServerEndpoint<List<_i7.SilenceLeaderboardRow>>(
+        'silenceVote',
+        'leaderboard',
+        {'clipId': clipId},
+      );
+
+  /// Streams leaderboard updates for a clip. The client calls
+  /// `client.silenceVote.watchLeaderboard(clipId)` and listens.
+  _i2.Stream<List<_i7.SilenceLeaderboardRow>> watchLeaderboard(int clipId) =>
+      caller.callStreamingServerEndpoint<
+          _i2.Stream<List<_i7.SilenceLeaderboardRow>>,
+          List<_i7.SilenceLeaderboardRow>>(
+        'silenceVote',
+        'watchLeaderboard',
+        {'clipId': clipId},
+        {},
+      );
+}
+
 class Client extends _i1.ServerpodClientShared {
   Client(
     String host, {
@@ -114,7 +252,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
           host,
-          _i4.Protocol(),
+          _i8.Protocol(),
           securityContext: securityContext,
           authenticationKeyManager: authenticationKeyManager,
           streamingConnectionTimeout: streamingConnectionTimeout,
@@ -126,16 +264,28 @@ class Client extends _i1.ServerpodClientShared {
         ) {
     butler = EndpointButler(this);
     greeting = EndpointGreeting(this);
+    silenceClip = EndpointSilenceClip(this);
+    silenceEntry = EndpointSilenceEntry(this);
+    silenceVote = EndpointSilenceVote(this);
   }
 
   late final EndpointButler butler;
 
   late final EndpointGreeting greeting;
 
+  late final EndpointSilenceClip silenceClip;
+
+  late final EndpointSilenceEntry silenceEntry;
+
+  late final EndpointSilenceVote silenceVote;
+
   @override
   Map<String, _i1.EndpointRef> get endpointRefLookup => {
         'butler': butler,
         'greeting': greeting,
+        'silenceClip': silenceClip,
+        'silenceEntry': silenceEntry,
+        'silenceVote': silenceVote,
       };
 
   @override

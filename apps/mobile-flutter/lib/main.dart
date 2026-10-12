@@ -4,9 +4,11 @@ import 'screens/splash_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/butler/butler_screen.dart';
+import 'screens/silence/silence_screen.dart';
 import 'providers/starknet_provider.dart';
 import 'providers/recordings_provider.dart';
 import 'providers/butler_provider.dart';
+import 'providers/silence_provider.dart';
 import 'services/ipfs_service.dart';
 
 Future<void> main() async {
@@ -49,6 +51,7 @@ class VoisssApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => StarknetProvider()),
         ChangeNotifierProvider(create: (_) => ButlerProvider()),
+        ChangeNotifierProvider(create: (_) => SilenceProvider()),
         ChangeNotifierProvider(
           create: (_) {
             final recordingsProvider = RecordingsProvider();
@@ -86,7 +89,7 @@ class VoisssApp extends StatelessWidget {
             selectedItemColor: Color(0xFF7C5DFA),
             unselectedItemColor: Colors.grey,
           ),
-          cardTheme: CardTheme(
+          cardTheme: CardThemeData(
             color: const Color(0xFF1A1A1A),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -114,6 +117,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const ButlerScreen(),
+    const SilenceScreen(),
   ];
 
   @override
@@ -167,6 +171,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   child: const Icon(Icons.assistant),
                 ),
                 label: 'Butler',
+              ),
+              const BottomNavigationBarItem(
+                icon: Icon(Icons.videocam_outlined),
+                activeIcon: Icon(Icons.videocam),
+                label: 'Silence',
               ),
             ],
           ),

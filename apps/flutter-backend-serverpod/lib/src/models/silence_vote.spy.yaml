@@ -1,0 +1,16 @@
+### One vote per voter session per entry.
+class: SilenceVote
+table: silence_vote
+fields:
+  ### The entry being voted on.
+  entry: SilenceEntry?, relation
+  ### Client-generated voter token (UUID stored on device), used to dedupe
+  ### votes without requiring accounts.
+  voterToken: String
+  ### Score 1-5.
+  score: int
+  createdAt: DateTime
+indexes:
+  silence_vote_entry_voter_idx:
+    fields: entryId, voterToken
+    unique: true

@@ -1,0 +1,8 @@
+### One row of the live leaderboard, ordered by average score.
+class: SilenceLeaderboardRow
+fields:
+  entryId: int
+  displayName: String
+  voteCount: int
+  avgScore: double
+  rank: int

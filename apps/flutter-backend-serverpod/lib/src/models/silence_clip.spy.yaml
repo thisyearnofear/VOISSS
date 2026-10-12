@@ -1,0 +1,17 @@
+### A silent video clip posted for a "Voice the Silence" contest week.
+class: SilenceClip
+table: silence_clip
+fields:
+  ### Title shown in the app.
+  title: String
+  ### Public URL of the (muted) video, e.g. hosted on Netlify/static.
+  videoUrl: String
+  ### Clip length in seconds.
+  durationSec: int
+  ### Provenance/rights note, e.g. "Public domain (1923)".
+  rightsNote: String
+  ### Start of the contest week this clip belongs to.
+  weekStart: DateTime
+  ### Whether this clip is the currently active contest clip.
+  active: bool
+  createdAt: DateTime

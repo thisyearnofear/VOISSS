@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'main.dart';
+import '../main.dart';
 
 /// Splash screen for VOISSS Butler - Hackathon Demo Edition
 class SplashScreen extends StatefulWidget {

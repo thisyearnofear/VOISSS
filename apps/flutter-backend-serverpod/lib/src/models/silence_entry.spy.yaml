@@ -1,0 +1,16 @@
+### A voiceover entry submitted for a SilenceClip.
+class: SilenceEntry
+table: silence_entry
+fields:
+  ### The clip this entry voices.
+  clip: SilenceClip?, relation
+  ### Display name the entrant chose (free-form; lightweight identity).
+  displayName: String
+  ### Raw audio bytes (bytea). Sprint-scale storage; move to cloud storage later.
+  audio: ByteData
+  ### Container/codec hint for playback, e.g. "m4a", "wav".
+  audioFormat: String
+  ### Denormalised vote aggregates, updated on each vote.
+  voteCount: int
+  voteScoreTotal: int
+  createdAt: DateTime

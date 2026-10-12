@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'main.dart';
+import '../main.dart';
 
 /// Onboarding screen for first-time users - Demo Edition
 class OnboardingScreen extends StatefulWidget {

@@ -1,0 +1,11 @@
+### Public view of an entry returned to clients (no internal fields).
+class: SilenceEntryView
+fields:
+  id: int
+  clipId: int
+  displayName: String
+  audio: ByteData
+  audioFormat: String
+  voteCount: int
+  avgScore: double
+  createdAt: DateTime
