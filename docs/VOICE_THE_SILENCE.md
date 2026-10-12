@@ -67,9 +67,10 @@ Vote:   table: silence_vote
 
 | Endpoint | Methods | Notes |
 |---|---|---|
-| `silence_clip` | `getActive()`, `listArchive()`, `createClip(...)` | `createClip` has **no auth** — gate before public exposure |
-| `silence_entry` | `submit(clipId, displayName, audioBytes, audioFormat)`, `list(clipId)` | `list` returns `SilenceEntryView` — audio as `ByteData`, `displayName` visible (blindness is client-side personas for now) |
+| `silence_clip` | `getActive()`, `listArchive()`, `createClip(...)`, `updateSceneGuide(clipId, guide)` | `createClip`/`updateSceneGuide` have **no auth** — gate before public exposure |
+| `silence_entry` | `submit(clipId, displayName, audioBytes, audioFormat)`, `list(clipId)`, `aiVoices()`, `generate(...)` | `list` returns `SilenceEntryView` — audio as `ByteData`, `displayName` visible (blindness is client-side personas for now) |
 | `silence_vote` | `cast(entryId, voterToken, score)`, `leaderboard(clipId)`, `watchLeaderboard(clipId)` | dedupe on (entryId, voterToken); `watchLeaderboard` is a 2s polling stream w/ change-signature dedupe — not true pub/sub |
+| `silence_co_writer` | `openers(clipId)`, `chat(clipId, history, draft)` | AI riffing partner; system prompt carries the clip's vision-seeded `sceneGuide` + user's live draft. Uses `BUTLER_LLM_*` env (Featherless, Qwen3-32B, thinking disabled) |
 
 ### Screens (`mobile-flutter`) — ✅ implemented
 
@@ -254,6 +255,18 @@ Rule of thumb: **one layer owns CORS** — proxy or app, never both.
   true — the plant is now flag-driven, `kAgentEntryIds` is just a
   fallback). Reveal logic checks `entry.isAiGenerated` everywhere
   (tile, theater, reveal card).
+- **Co-writer (vision-aware ideation, 2026-10-12):** "Riff with AI" on the
+  draft card opens a chat sheet. Cold start = 3 LLM-generated direction
+  cards tied to on-screen moments; each assistant reply has "Insert into
+  draft" which extracts `LINE:`-marked speakable lines. On-screen context
+  comes from `silence_clip.sceneGuide` — timestamped scene descriptions
+  distilled once per clip by `Qwen/Qwen3-VL-32B-Instruct` from
+  ffmpeg-sampled frames (`voisss_butler_client/tool/seed_scene_guide.dart`,
+  run with `FEATHERLESS_API_KEY` + ffmpeg; writes via
+  `updateSceneGuide`). Chat itself uses the text LLM — vision cost is
+  paid once per clip, not per message. Qwen3 is a thinking model —
+  `chat_template_kwargs.enable_thinking=false` is required or it burns
+  `max_tokens` on reasoning and returns empty content.
 - **Web polish fixes:** `web/icons/` generated from the mascot (192/512 +
   maskable), manifest rebranded (name/theme/description), index.html
   title/meta; bundled `NotoColorEmoji.ttf` + `fontFamilyFallback` in the

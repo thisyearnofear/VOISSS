@@ -14,4 +14,7 @@ fields:
   weekStart: DateTime
   ### Whether this clip is the currently active contest clip.
   active: bool
+  ### Timestamped scene descriptions distilled from sampled frames by a
+  ### vision model (seeded per clip). Powers the co-writer's on-screen context.
+  sceneGuide: String, default=''
   createdAt: DateTime

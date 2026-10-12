@@ -1,0 +1,5 @@
+### One turn in a co-writer riff session. `role` is "user" or "assistant".
+class: CoWriterMessage
+fields:
+  role: String
+  content: String

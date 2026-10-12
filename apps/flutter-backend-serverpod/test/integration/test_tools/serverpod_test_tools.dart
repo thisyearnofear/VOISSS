@@ -16,11 +16,13 @@ import 'package:serverpod/serverpod.dart' as _i2;
 import 'dart:async' as _i3;
 import 'package:voisss_butler_server/src/generated/greeting.dart' as _i4;
 import 'package:voisss_butler_server/src/generated/silence_clip.dart' as _i5;
-import 'package:voisss_butler_server/src/generated/silence_entry_view.dart'
+import 'package:voisss_butler_server/src/generated/co_writer_message.dart'
     as _i6;
-import 'dart:typed_data' as _i7;
+import 'package:voisss_butler_server/src/generated/silence_entry_view.dart'
+    as _i7;
+import 'dart:typed_data' as _i8;
 import 'package:voisss_butler_server/src/generated/silence_leaderboard_row.dart'
-    as _i8;
+    as _i9;
 import 'package:voisss_butler_server/src/generated/protocol.dart';
 import 'package:voisss_butler_server/src/generated/endpoints.dart';
 export 'package:serverpod_test/serverpod_test_public_exports.dart';
@@ -113,6 +115,8 @@ class TestEndpoints {
 
   late final _SilenceClipEndpoint silenceClip;
 
+  late final _SilenceCoWriterEndpoint silenceCoWriter;
+
   late final _SilenceEntryEndpoint silenceEntry;
 
   late final _SilenceVoteEndpoint silenceVote;
@@ -134,6 +138,10 @@ class _InternalTestEndpoints extends TestEndpoints
       serializationManager,
     );
     silenceClip = _SilenceClipEndpoint(
+      endpoints,
+      serializationManager,
+    );
+    silenceCoWriter = _SilenceCoWriterEndpoint(
       endpoints,
       serializationManager,
     );
@@ -442,6 +450,39 @@ class _SilenceClipEndpoint {
     });
   }
 
+  _i3.Future<_i5.SilenceClip> updateSceneGuide(
+    _i1.TestSessionBuilder sessionBuilder,
+    int clipId,
+    String sceneGuide,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+        endpoint: 'silenceClip',
+        method: 'updateSceneGuide',
+      );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'silenceClip',
+          methodName: 'updateSceneGuide',
+          parameters: _i1.testObjectToJson({
+            'clipId': clipId,
+            'sceneGuide': sceneGuide,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue = await (_localCallContext.method.call(
+          _localUniqueSession,
+          _localCallContext.arguments,
+        ) as _i3.Future<_i5.SilenceClip>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
   _i3.Future<_i5.SilenceClip> createClip(
     _i1.TestSessionBuilder sessionBuilder,
     String title,
@@ -476,6 +517,81 @@ class _SilenceClipEndpoint {
           _localUniqueSession,
           _localCallContext.arguments,
         ) as _i3.Future<_i5.SilenceClip>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+}
+
+class _SilenceCoWriterEndpoint {
+  _SilenceCoWriterEndpoint(
+    this._endpointDispatch,
+    this._serializationManager,
+  );
+
+  final _i2.EndpointDispatch _endpointDispatch;
+
+  final _i2.SerializationManager _serializationManager;
+
+  _i3.Future<List<String>> openers(
+    _i1.TestSessionBuilder sessionBuilder,
+    int clipId,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+        endpoint: 'silenceCoWriter',
+        method: 'openers',
+      );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'silenceCoWriter',
+          methodName: 'openers',
+          parameters: _i1.testObjectToJson({'clipId': clipId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue = await (_localCallContext.method.call(
+          _localUniqueSession,
+          _localCallContext.arguments,
+        ) as _i3.Future<List<String>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<_i6.CoWriterMessage> chat(
+    _i1.TestSessionBuilder sessionBuilder,
+    int clipId,
+    List<_i6.CoWriterMessage> history,
+    String draft,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+        endpoint: 'silenceCoWriter',
+        method: 'chat',
+      );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'silenceCoWriter',
+          methodName: 'chat',
+          parameters: _i1.testObjectToJson({
+            'clipId': clipId,
+            'history': history,
+            'draft': draft,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue = await (_localCallContext.method.call(
+          _localUniqueSession,
+          _localCallContext.arguments,
+        ) as _i3.Future<_i6.CoWriterMessage>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -521,7 +637,7 @@ class _SilenceEntryEndpoint {
     });
   }
 
-  _i3.Future<_i6.SilenceEntryView> generate(
+  _i3.Future<_i7.SilenceEntryView> generate(
     _i1.TestSessionBuilder sessionBuilder,
     int clipId,
     String displayName,
@@ -550,7 +666,7 @@ class _SilenceEntryEndpoint {
         var _localReturnValue = await (_localCallContext.method.call(
           _localUniqueSession,
           _localCallContext.arguments,
-        ) as _i3.Future<_i6.SilenceEntryView>);
+        ) as _i3.Future<_i7.SilenceEntryView>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -558,11 +674,11 @@ class _SilenceEntryEndpoint {
     });
   }
 
-  _i3.Future<_i6.SilenceEntryView> submit(
+  _i3.Future<_i7.SilenceEntryView> submit(
     _i1.TestSessionBuilder sessionBuilder,
     int clipId,
     String displayName,
-    _i7.ByteData audio,
+    _i8.ByteData audio,
     String audioFormat,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
@@ -587,7 +703,7 @@ class _SilenceEntryEndpoint {
         var _localReturnValue = await (_localCallContext.method.call(
           _localUniqueSession,
           _localCallContext.arguments,
-        ) as _i3.Future<_i6.SilenceEntryView>);
+        ) as _i3.Future<_i7.SilenceEntryView>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -595,7 +711,7 @@ class _SilenceEntryEndpoint {
     });
   }
 
-  _i3.Future<List<_i6.SilenceEntryView>> list(
+  _i3.Future<List<_i7.SilenceEntryView>> list(
     _i1.TestSessionBuilder sessionBuilder,
     int clipId,
   ) async {
@@ -616,7 +732,7 @@ class _SilenceEntryEndpoint {
         var _localReturnValue = await (_localCallContext.method.call(
           _localUniqueSession,
           _localCallContext.arguments,
-        ) as _i3.Future<List<_i6.SilenceEntryView>>);
+        ) as _i3.Future<List<_i7.SilenceEntryView>>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -635,7 +751,7 @@ class _SilenceVoteEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<List<_i8.SilenceLeaderboardRow>> cast(
+  _i3.Future<List<_i9.SilenceLeaderboardRow>> cast(
     _i1.TestSessionBuilder sessionBuilder,
     int entryId,
     String voterToken,
@@ -662,7 +778,7 @@ class _SilenceVoteEndpoint {
         var _localReturnValue = await (_localCallContext.method.call(
           _localUniqueSession,
           _localCallContext.arguments,
-        ) as _i3.Future<List<_i8.SilenceLeaderboardRow>>);
+        ) as _i3.Future<List<_i9.SilenceLeaderboardRow>>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -670,7 +786,7 @@ class _SilenceVoteEndpoint {
     });
   }
 
-  _i3.Future<List<_i8.SilenceLeaderboardRow>> leaderboard(
+  _i3.Future<List<_i9.SilenceLeaderboardRow>> leaderboard(
     _i1.TestSessionBuilder sessionBuilder,
     int clipId,
   ) async {
@@ -691,7 +807,7 @@ class _SilenceVoteEndpoint {
         var _localReturnValue = await (_localCallContext.method.call(
           _localUniqueSession,
           _localCallContext.arguments,
-        ) as _i3.Future<List<_i8.SilenceLeaderboardRow>>);
+        ) as _i3.Future<List<_i9.SilenceLeaderboardRow>>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -699,12 +815,12 @@ class _SilenceVoteEndpoint {
     });
   }
 
-  _i3.Stream<List<_i8.SilenceLeaderboardRow>> watchLeaderboard(
+  _i3.Stream<List<_i9.SilenceLeaderboardRow>> watchLeaderboard(
     _i1.TestSessionBuilder sessionBuilder,
     int clipId,
   ) {
     var _localTestStreamManager =
-        _i1.TestStreamManager<List<_i8.SilenceLeaderboardRow>>();
+        _i1.TestStreamManager<List<_i9.SilenceLeaderboardRow>>();
     _i1.callStreamFunctionAndHandleExceptions(
       () async {
         var _localUniqueSession =

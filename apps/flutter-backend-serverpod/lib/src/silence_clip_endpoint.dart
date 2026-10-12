@@ -24,6 +24,23 @@ class SilenceClipEndpoint extends Endpoint {
     );
   }
 
+  /// Stores the vision-generated scene guide for a clip. Sprint admin
+  /// path — same exposure caveat as [createClip].
+  Future<SilenceClip> updateSceneGuide(
+    Session session,
+    int clipId,
+    String sceneGuide,
+  ) async {
+    final clip = await SilenceClip.db.findById(session, clipId);
+    if (clip == null) {
+      throw StateError('Clip not found');
+    }
+    return SilenceClip.db.updateRow(
+      session,
+      clip.copyWith(sceneGuide: sceneGuide),
+    );
+  }
+
   /// Creates a clip. Sprint admin path — no auth for now; do not expose
   /// publicly without adding an admin check.
   Future<SilenceClip> createClip(

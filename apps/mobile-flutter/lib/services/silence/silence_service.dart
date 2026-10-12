@@ -60,6 +60,19 @@ class SilenceService {
   }) =>
       _client.silenceEntry.generate(clipId, displayName, script, voice);
 
+  /// Cold-start riff directions for the co-writer sheet.
+  Future<List<String>> coWriterOpeners(int clipId) =>
+      _client.silenceCoWriter.openers(clipId);
+
+  /// One co-writer turn — [history] must end with the new user message,
+  /// [draft] is the user's current script so the model iterates on it.
+  Future<CoWriterMessage> coWriterChat(
+    int clipId,
+    List<CoWriterMessage> history,
+    String draft,
+  ) =>
+      _client.silenceCoWriter.chat(clipId, history, draft);
+
   /// Returns the updated leaderboard after the vote is recorded.
   Future<List<SilenceLeaderboardRow>> castVote(int entryId, int score) async {
     final token = await _getVoterToken();

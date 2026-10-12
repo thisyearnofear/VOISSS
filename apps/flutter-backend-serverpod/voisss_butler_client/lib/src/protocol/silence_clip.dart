@@ -22,8 +22,9 @@ abstract class SilenceClip implements _i1.SerializableModel {
     required this.rightsNote,
     required this.weekStart,
     required this.active,
+    String? sceneGuide,
     required this.createdAt,
-  });
+  }) : sceneGuide = sceneGuide ?? '';
 
   factory SilenceClip({
     int? id,
@@ -33,6 +34,7 @@ abstract class SilenceClip implements _i1.SerializableModel {
     required String rightsNote,
     required DateTime weekStart,
     required bool active,
+    String? sceneGuide,
     required DateTime createdAt,
   }) = _SilenceClipImpl;
 
@@ -46,6 +48,7 @@ abstract class SilenceClip implements _i1.SerializableModel {
       weekStart:
           _i1.DateTimeJsonExtension.fromJson(jsonSerialization['weekStart']),
       active: jsonSerialization['active'] as bool,
+      sceneGuide: jsonSerialization['sceneGuide'] as String,
       createdAt:
           _i1.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
     );
@@ -74,6 +77,10 @@ abstract class SilenceClip implements _i1.SerializableModel {
   /// Whether this clip is the currently active contest clip.
   bool active;
 
+  /// Timestamped scene descriptions distilled from sampled frames by a
+  /// vision model (seeded per clip). Powers the co-writer's on-screen context.
+  String sceneGuide;
+
   DateTime createdAt;
 
   /// Returns a shallow copy of this [SilenceClip]
@@ -87,6 +94,7 @@ abstract class SilenceClip implements _i1.SerializableModel {
     String? rightsNote,
     DateTime? weekStart,
     bool? active,
+    String? sceneGuide,
     DateTime? createdAt,
   });
   @override
@@ -99,6 +107,7 @@ abstract class SilenceClip implements _i1.SerializableModel {
       'rightsNote': rightsNote,
       'weekStart': weekStart.toJson(),
       'active': active,
+      'sceneGuide': sceneGuide,
       'createdAt': createdAt.toJson(),
     };
   }
@@ -120,6 +129,7 @@ class _SilenceClipImpl extends SilenceClip {
     required String rightsNote,
     required DateTime weekStart,
     required bool active,
+    String? sceneGuide,
     required DateTime createdAt,
   }) : super._(
           id: id,
@@ -129,6 +139,7 @@ class _SilenceClipImpl extends SilenceClip {
           rightsNote: rightsNote,
           weekStart: weekStart,
           active: active,
+          sceneGuide: sceneGuide,
           createdAt: createdAt,
         );
 
@@ -144,6 +155,7 @@ class _SilenceClipImpl extends SilenceClip {
     String? rightsNote,
     DateTime? weekStart,
     bool? active,
+    String? sceneGuide,
     DateTime? createdAt,
   }) {
     return SilenceClip(
@@ -154,6 +166,7 @@ class _SilenceClipImpl extends SilenceClip {
       rightsNote: rightsNote ?? this.rightsNote,
       weekStart: weekStart ?? this.weekStart,
       active: active ?? this.active,
+      sceneGuide: sceneGuide ?? this.sceneGuide,
       createdAt: createdAt ?? this.createdAt,
     );
   }

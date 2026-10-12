@@ -23,8 +23,9 @@ abstract class SilenceClip
     required this.rightsNote,
     required this.weekStart,
     required this.active,
+    String? sceneGuide,
     required this.createdAt,
-  });
+  }) : sceneGuide = sceneGuide ?? '';
 
   factory SilenceClip({
     int? id,
@@ -34,6 +35,7 @@ abstract class SilenceClip
     required String rightsNote,
     required DateTime weekStart,
     required bool active,
+    String? sceneGuide,
     required DateTime createdAt,
   }) = _SilenceClipImpl;
 
@@ -47,6 +49,7 @@ abstract class SilenceClip
       weekStart:
           _i1.DateTimeJsonExtension.fromJson(jsonSerialization['weekStart']),
       active: jsonSerialization['active'] as bool,
+      sceneGuide: jsonSerialization['sceneGuide'] as String,
       createdAt:
           _i1.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
     );
@@ -77,6 +80,10 @@ abstract class SilenceClip
   /// Whether this clip is the currently active contest clip.
   bool active;
 
+  /// Timestamped scene descriptions distilled from sampled frames by a
+  /// vision model (seeded per clip). Powers the co-writer's on-screen context.
+  String sceneGuide;
+
   DateTime createdAt;
 
   @override
@@ -93,6 +100,7 @@ abstract class SilenceClip
     String? rightsNote,
     DateTime? weekStart,
     bool? active,
+    String? sceneGuide,
     DateTime? createdAt,
   });
   @override
@@ -105,6 +113,7 @@ abstract class SilenceClip
       'rightsNote': rightsNote,
       'weekStart': weekStart.toJson(),
       'active': active,
+      'sceneGuide': sceneGuide,
       'createdAt': createdAt.toJson(),
     };
   }
@@ -119,6 +128,7 @@ abstract class SilenceClip
       'rightsNote': rightsNote,
       'weekStart': weekStart.toJson(),
       'active': active,
+      'sceneGuide': sceneGuide,
       'createdAt': createdAt.toJson(),
     };
   }
@@ -164,6 +174,7 @@ class _SilenceClipImpl extends SilenceClip {
     required String rightsNote,
     required DateTime weekStart,
     required bool active,
+    String? sceneGuide,
     required DateTime createdAt,
   }) : super._(
           id: id,
@@ -173,6 +184,7 @@ class _SilenceClipImpl extends SilenceClip {
           rightsNote: rightsNote,
           weekStart: weekStart,
           active: active,
+          sceneGuide: sceneGuide,
           createdAt: createdAt,
         );
 
@@ -188,6 +200,7 @@ class _SilenceClipImpl extends SilenceClip {
     String? rightsNote,
     DateTime? weekStart,
     bool? active,
+    String? sceneGuide,
     DateTime? createdAt,
   }) {
     return SilenceClip(
@@ -198,6 +211,7 @@ class _SilenceClipImpl extends SilenceClip {
       rightsNote: rightsNote ?? this.rightsNote,
       weekStart: weekStart ?? this.weekStart,
       active: active ?? this.active,
+      sceneGuide: sceneGuide ?? this.sceneGuide,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -229,6 +243,11 @@ class SilenceClipTable extends _i1.Table<int?> {
       'active',
       this,
     );
+    sceneGuide = _i1.ColumnString(
+      'sceneGuide',
+      this,
+      hasDefault: true,
+    );
     createdAt = _i1.ColumnDateTime(
       'createdAt',
       this,
@@ -253,6 +272,10 @@ class SilenceClipTable extends _i1.Table<int?> {
   /// Whether this clip is the currently active contest clip.
   late final _i1.ColumnBool active;
 
+  /// Timestamped scene descriptions distilled from sampled frames by a
+  /// vision model (seeded per clip). Powers the co-writer's on-screen context.
+  late final _i1.ColumnString sceneGuide;
+
   late final _i1.ColumnDateTime createdAt;
 
   @override
@@ -264,6 +287,7 @@ class SilenceClipTable extends _i1.Table<int?> {
         rightsNote,
         weekStart,
         active,
+        sceneGuide,
         createdAt,
       ];
 }

@@ -14,12 +14,14 @@ import 'package:serverpod_client/serverpod_client.dart' as _i1;
 import 'dart:async' as _i2;
 import 'package:voisss_butler_client/src/protocol/greeting.dart' as _i3;
 import 'package:voisss_butler_client/src/protocol/silence_clip.dart' as _i4;
-import 'package:voisss_butler_client/src/protocol/silence_entry_view.dart'
+import 'package:voisss_butler_client/src/protocol/co_writer_message.dart'
     as _i5;
-import 'dart:typed_data' as _i6;
+import 'package:voisss_butler_client/src/protocol/silence_entry_view.dart'
+    as _i6;
+import 'dart:typed_data' as _i7;
 import 'package:voisss_butler_client/src/protocol/silence_leaderboard_row.dart'
-    as _i7;
-import 'protocol.dart' as _i8;
+    as _i8;
+import 'protocol.dart' as _i9;
 
 /// {@category Endpoint}
 class EndpointButler extends _i1.EndpointRef {
@@ -130,6 +132,21 @@ class EndpointSilenceClip extends _i1.EndpointRef {
         {},
       );
 
+  /// Stores the vision-generated scene guide for a clip. Sprint admin
+  /// path — same exposure caveat as [createClip].
+  _i2.Future<_i4.SilenceClip> updateSceneGuide(
+    int clipId,
+    String sceneGuide,
+  ) =>
+      caller.callServerEndpoint<_i4.SilenceClip>(
+        'silenceClip',
+        'updateSceneGuide',
+        {
+          'clipId': clipId,
+          'sceneGuide': sceneGuide,
+        },
+      );
+
   /// Creates a clip. Sprint admin path — no auth for now; do not expose
   /// publicly without adding an admin check.
   _i2.Future<_i4.SilenceClip> createClip(
@@ -154,6 +171,42 @@ class EndpointSilenceClip extends _i1.EndpointRef {
       );
 }
 
+/// AI writing partner for "Voice the Silence" — riffs on voiceover ideas
+/// with on-screen context from the clip's vision-distilled scene guide.
+/// Accessed as `client.silenceCoWriter`.
+/// {@category Endpoint}
+class EndpointSilenceCoWriter extends _i1.EndpointRef {
+  EndpointSilenceCoWriter(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'silenceCoWriter';
+
+  /// Three cold-start directions a user could take the voiceover.
+  _i2.Future<List<String>> openers(int clipId) =>
+      caller.callServerEndpoint<List<String>>(
+        'silenceCoWriter',
+        'openers',
+        {'clipId': clipId},
+      );
+
+  /// One riff turn. [history] is prior turns; [draft] is the user's current
+  /// script so the model iterates on it rather than starting over.
+  _i2.Future<_i5.CoWriterMessage> chat(
+    int clipId,
+    List<_i5.CoWriterMessage> history,
+    String draft,
+  ) =>
+      caller.callServerEndpoint<_i5.CoWriterMessage>(
+        'silenceCoWriter',
+        'chat',
+        {
+          'clipId': clipId,
+          'history': history,
+          'draft': draft,
+        },
+      );
+}
+
 /// Voiceover entry submission and listing. Accessed as `client.silenceEntry`.
 /// {@category Endpoint}
 class EndpointSilenceEntry extends _i1.EndpointRef {
@@ -173,13 +226,13 @@ class EndpointSilenceEntry extends _i1.EndpointRef {
   /// Synthesize a take via Featherless (Kokoro-82M) and submit it flagged
   /// `isAiGenerated` — the crowd votes blind, the flag powers the
   /// post-vote "this one was a machine" reveal.
-  _i2.Future<_i5.SilenceEntryView> generate(
+  _i2.Future<_i6.SilenceEntryView> generate(
     int clipId,
     String displayName,
     String script,
     String voice,
   ) =>
-      caller.callServerEndpoint<_i5.SilenceEntryView>(
+      caller.callServerEndpoint<_i6.SilenceEntryView>(
         'silenceEntry',
         'generate',
         {
@@ -192,13 +245,13 @@ class EndpointSilenceEntry extends _i1.EndpointRef {
 
   /// Submit a voiceover for the active clip.
   /// [audio] is the raw encoded file (e.g. m4a from the `record` package).
-  _i2.Future<_i5.SilenceEntryView> submit(
+  _i2.Future<_i6.SilenceEntryView> submit(
     int clipId,
     String displayName,
-    _i6.ByteData audio,
+    _i7.ByteData audio,
     String audioFormat,
   ) =>
-      caller.callServerEndpoint<_i5.SilenceEntryView>(
+      caller.callServerEndpoint<_i6.SilenceEntryView>(
         'silenceEntry',
         'submit',
         {
@@ -210,8 +263,8 @@ class EndpointSilenceEntry extends _i1.EndpointRef {
       );
 
   /// All entries for a clip, newest first.
-  _i2.Future<List<_i5.SilenceEntryView>> list(int clipId) =>
-      caller.callServerEndpoint<List<_i5.SilenceEntryView>>(
+  _i2.Future<List<_i6.SilenceEntryView>> list(int clipId) =>
+      caller.callServerEndpoint<List<_i6.SilenceEntryView>>(
         'silenceEntry',
         'list',
         {'clipId': clipId},
@@ -228,12 +281,12 @@ class EndpointSilenceVote extends _i1.EndpointRef {
 
   /// Cast (or change) a vote. One vote per voter token per entry;
   /// repeat calls update the score. Returns the updated leaderboard.
-  _i2.Future<List<_i7.SilenceLeaderboardRow>> cast(
+  _i2.Future<List<_i8.SilenceLeaderboardRow>> cast(
     int entryId,
     String voterToken,
     int score,
   ) =>
-      caller.callServerEndpoint<List<_i7.SilenceLeaderboardRow>>(
+      caller.callServerEndpoint<List<_i8.SilenceLeaderboardRow>>(
         'silenceVote',
         'cast',
         {
@@ -244,8 +297,8 @@ class EndpointSilenceVote extends _i1.EndpointRef {
       );
 
   /// Current leaderboard for a clip, ordered by average score.
-  _i2.Future<List<_i7.SilenceLeaderboardRow>> leaderboard(int clipId) =>
-      caller.callServerEndpoint<List<_i7.SilenceLeaderboardRow>>(
+  _i2.Future<List<_i8.SilenceLeaderboardRow>> leaderboard(int clipId) =>
+      caller.callServerEndpoint<List<_i8.SilenceLeaderboardRow>>(
         'silenceVote',
         'leaderboard',
         {'clipId': clipId},
@@ -253,10 +306,10 @@ class EndpointSilenceVote extends _i1.EndpointRef {
 
   /// Streams leaderboard updates for a clip. The client calls
   /// `client.silenceVote.watchLeaderboard(clipId)` and listens.
-  _i2.Stream<List<_i7.SilenceLeaderboardRow>> watchLeaderboard(int clipId) =>
+  _i2.Stream<List<_i8.SilenceLeaderboardRow>> watchLeaderboard(int clipId) =>
       caller.callStreamingServerEndpoint<
-          _i2.Stream<List<_i7.SilenceLeaderboardRow>>,
-          List<_i7.SilenceLeaderboardRow>>(
+          _i2.Stream<List<_i8.SilenceLeaderboardRow>>,
+          List<_i8.SilenceLeaderboardRow>>(
         'silenceVote',
         'watchLeaderboard',
         {'clipId': clipId},
@@ -280,7 +333,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
           host,
-          _i8.Protocol(),
+          _i9.Protocol(),
           securityContext: securityContext,
           authenticationKeyManager: authenticationKeyManager,
           streamingConnectionTimeout: streamingConnectionTimeout,
@@ -293,6 +346,7 @@ class Client extends _i1.ServerpodClientShared {
     butler = EndpointButler(this);
     greeting = EndpointGreeting(this);
     silenceClip = EndpointSilenceClip(this);
+    silenceCoWriter = EndpointSilenceCoWriter(this);
     silenceEntry = EndpointSilenceEntry(this);
     silenceVote = EndpointSilenceVote(this);
   }
@@ -303,6 +357,8 @@ class Client extends _i1.ServerpodClientShared {
 
   late final EndpointSilenceClip silenceClip;
 
+  late final EndpointSilenceCoWriter silenceCoWriter;
+
   late final EndpointSilenceEntry silenceEntry;
 
   late final EndpointSilenceVote silenceVote;
@@ -312,6 +368,7 @@ class Client extends _i1.ServerpodClientShared {
         'butler': butler,
         'greeting': greeting,
         'silenceClip': silenceClip,
+        'silenceCoWriter': silenceCoWriter,
         'silenceEntry': silenceEntry,
         'silenceVote': silenceVote,
       };

@@ -79,6 +79,18 @@ class SilenceProvider extends ChangeNotifier {
   /// AI voice menu (name → display label) served by the backend.
   Future<Map<String, String>> aiVoices() => _service.aiVoices();
 
+  /// Cold-start riff directions from the co-writer (vision-aware — it's
+  /// seen the clip's scene guide).
+  Future<List<String>> coWriterOpeners() =>
+      _service.coWriterOpeners(clip!.id!);
+
+  /// One riff turn; [history] must end with the user's latest message.
+  Future<CoWriterMessage> coWriterChat(
+    List<CoWriterMessage> history,
+    String draft,
+  ) =>
+      _service.coWriterChat(clip!.id!, history, draft);
+
   /// Synthesize an AI take — script + chosen voice → Featherless (Kokoro) on the
   /// backend → lands in the gallery flagged `isAiGenerated`.
   Future<bool> generateEntry({

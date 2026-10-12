@@ -78,12 +78,12 @@ class SilenceEntryEndpoint extends Endpoint {
       request.headers.set('Authorization', 'Bearer $apiKey');
       request.headers.set('Content-Type', 'application/json');
       request.headers.set('User-Agent', 'voisss-butler/1.0');
-      request.write(jsonEncode({
+      request.add(utf8.encode(jsonEncode({
         'model': 'hexgrad/Kokoro-82M',
         'input': text,
         'voice': voiceId,
         'response_format': 'mp3',
-      }));
+      })));
       final response = await request.close().timeout(
             const Duration(seconds: 60),
           );

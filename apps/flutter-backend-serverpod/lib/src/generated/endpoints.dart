@@ -14,9 +14,12 @@ import 'package:serverpod/serverpod.dart' as _i1;
 import '../butler_endpoint.dart' as _i2;
 import '../greeting_endpoint.dart' as _i3;
 import '../silence_clip_endpoint.dart' as _i4;
-import '../silence_entry_endpoint.dart' as _i5;
-import '../silence_vote_endpoint.dart' as _i6;
-import 'dart:typed_data' as _i7;
+import '../silence_co_writer_endpoint.dart' as _i5;
+import '../silence_entry_endpoint.dart' as _i6;
+import '../silence_vote_endpoint.dart' as _i7;
+import 'package:voisss_butler_server/src/generated/co_writer_message.dart'
+    as _i8;
+import 'dart:typed_data' as _i9;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -40,13 +43,19 @@ class Endpoints extends _i1.EndpointDispatch {
           'silenceClip',
           null,
         ),
-      'silenceEntry': _i5.SilenceEntryEndpoint()
+      'silenceCoWriter': _i5.SilenceCoWriterEndpoint()
+        ..initialize(
+          server,
+          'silenceCoWriter',
+          null,
+        ),
+      'silenceEntry': _i6.SilenceEntryEndpoint()
         ..initialize(
           server,
           'silenceEntry',
           null,
         ),
-      'silenceVote': _i6.SilenceVoteEndpoint()
+      'silenceVote': _i7.SilenceVoteEndpoint()
         ..initialize(
           server,
           'silenceVote',
@@ -213,6 +222,31 @@ class Endpoints extends _i1.EndpointDispatch {
               (endpoints['silenceClip'] as _i4.SilenceClipEndpoint)
                   .listArchive(session),
         ),
+        'updateSceneGuide': _i1.MethodConnector(
+          name: 'updateSceneGuide',
+          params: {
+            'clipId': _i1.ParameterDescription(
+              name: 'clipId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'sceneGuide': _i1.ParameterDescription(
+              name: 'sceneGuide',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call: (
+            _i1.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['silenceClip'] as _i4.SilenceClipEndpoint)
+                  .updateSceneGuide(
+            session,
+            params['clipId'],
+            params['sceneGuide'],
+          ),
+        ),
         'createClip': _i1.MethodConnector(
           name: 'createClip',
           params: {
@@ -263,6 +297,62 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
+    connectors['silenceCoWriter'] = _i1.EndpointConnector(
+      name: 'silenceCoWriter',
+      endpoint: endpoints['silenceCoWriter']!,
+      methodConnectors: {
+        'openers': _i1.MethodConnector(
+          name: 'openers',
+          params: {
+            'clipId': _i1.ParameterDescription(
+              name: 'clipId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            )
+          },
+          call: (
+            _i1.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['silenceCoWriter'] as _i5.SilenceCoWriterEndpoint)
+                  .openers(
+            session,
+            params['clipId'],
+          ),
+        ),
+        'chat': _i1.MethodConnector(
+          name: 'chat',
+          params: {
+            'clipId': _i1.ParameterDescription(
+              name: 'clipId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'history': _i1.ParameterDescription(
+              name: 'history',
+              type: _i1.getType<List<_i8.CoWriterMessage>>(),
+              nullable: false,
+            ),
+            'draft': _i1.ParameterDescription(
+              name: 'draft',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call: (
+            _i1.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['silenceCoWriter'] as _i5.SilenceCoWriterEndpoint)
+                  .chat(
+            session,
+            params['clipId'],
+            params['history'],
+            params['draft'],
+          ),
+        ),
+      },
+    );
     connectors['silenceEntry'] = _i1.EndpointConnector(
       name: 'silenceEntry',
       endpoint: endpoints['silenceEntry']!,
@@ -274,7 +364,7 @@ class Endpoints extends _i1.EndpointDispatch {
             _i1.Session session,
             Map<String, dynamic> params,
           ) async =>
-              (endpoints['silenceEntry'] as _i5.SilenceEntryEndpoint)
+              (endpoints['silenceEntry'] as _i6.SilenceEntryEndpoint)
                   .aiVoices(session),
         ),
         'generate': _i1.MethodConnector(
@@ -305,7 +395,7 @@ class Endpoints extends _i1.EndpointDispatch {
             _i1.Session session,
             Map<String, dynamic> params,
           ) async =>
-              (endpoints['silenceEntry'] as _i5.SilenceEntryEndpoint).generate(
+              (endpoints['silenceEntry'] as _i6.SilenceEntryEndpoint).generate(
             session,
             params['clipId'],
             params['displayName'],
@@ -328,7 +418,7 @@ class Endpoints extends _i1.EndpointDispatch {
             ),
             'audio': _i1.ParameterDescription(
               name: 'audio',
-              type: _i1.getType<_i7.ByteData>(),
+              type: _i1.getType<_i9.ByteData>(),
               nullable: false,
             ),
             'audioFormat': _i1.ParameterDescription(
@@ -341,7 +431,7 @@ class Endpoints extends _i1.EndpointDispatch {
             _i1.Session session,
             Map<String, dynamic> params,
           ) async =>
-              (endpoints['silenceEntry'] as _i5.SilenceEntryEndpoint).submit(
+              (endpoints['silenceEntry'] as _i6.SilenceEntryEndpoint).submit(
             session,
             params['clipId'],
             params['displayName'],
@@ -362,7 +452,7 @@ class Endpoints extends _i1.EndpointDispatch {
             _i1.Session session,
             Map<String, dynamic> params,
           ) async =>
-              (endpoints['silenceEntry'] as _i5.SilenceEntryEndpoint).list(
+              (endpoints['silenceEntry'] as _i6.SilenceEntryEndpoint).list(
             session,
             params['clipId'],
           ),
@@ -396,7 +486,7 @@ class Endpoints extends _i1.EndpointDispatch {
             _i1.Session session,
             Map<String, dynamic> params,
           ) async =>
-              (endpoints['silenceVote'] as _i6.SilenceVoteEndpoint).cast(
+              (endpoints['silenceVote'] as _i7.SilenceVoteEndpoint).cast(
             session,
             params['entryId'],
             params['voterToken'],
@@ -416,7 +506,7 @@ class Endpoints extends _i1.EndpointDispatch {
             _i1.Session session,
             Map<String, dynamic> params,
           ) async =>
-              (endpoints['silenceVote'] as _i6.SilenceVoteEndpoint).leaderboard(
+              (endpoints['silenceVote'] as _i7.SilenceVoteEndpoint).leaderboard(
             session,
             params['clipId'],
           ),
@@ -437,7 +527,7 @@ class Endpoints extends _i1.EndpointDispatch {
             Map<String, dynamic> params,
             Map<String, Stream> streamParams,
           ) =>
-              (endpoints['silenceVote'] as _i6.SilenceVoteEndpoint)
+              (endpoints['silenceVote'] as _i7.SilenceVoteEndpoint)
                   .watchLeaderboard(
             session,
             params['clipId'],

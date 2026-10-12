@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:record/record.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'package:voisss_butler_client/voisss_butler_client.dart'
+    show CoWriterMessage;
 
 import '../../providers/silence_provider.dart';
 import 'silence_recording_stub.dart'
@@ -198,6 +200,21 @@ class _SilenceRecorderState extends State<SilenceRecorder>
     );
   }
 
+  void _openCoWriter() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF16131F),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => _CoWriterSheet(
+        scriptController: _scriptController,
+        parentContext: context,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final submitting = context.watch<SilenceProvider>().submitting;
@@ -239,9 +256,34 @@ class _SilenceRecorderState extends State<SilenceRecorder>
                           ),
                         ),
                       ),
-                      Text(
-                        'optional',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: _openCoWriter,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.auto_awesome,
+                                size: 14,
+                                color: scheme.primary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Riff with AI',
+                                style: TextStyle(
+                                  color: scheme.primary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -785,6 +827,340 @@ class _AiVoiceSheetState extends State<_AiVoiceSheet> {
             label: Text(_generating ? 'Generating…' : 'Generate take'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Bottom sheet: riff with the AI co-writer — it has watched the clip
+/// (vision-distilled scene guide server-side), so its suggestions are
+/// tied to actual on-screen moments. Insert anything it writes straight
+/// into your draft.
+class _CoWriterSheet extends StatefulWidget {
+  final TextEditingController scriptController;
+  final BuildContext parentContext;
+  const _CoWriterSheet({
+    required this.scriptController,
+    required this.parentContext,
+  });
+
+  @override
+  State<_CoWriterSheet> createState() => _CoWriterSheetState();
+}
+
+class _CoWriterSheetState extends State<_CoWriterSheet> {
+  final _input = TextEditingController();
+  final _scroll = ScrollController();
+  final List<CoWriterMessage> _history = [];
+  List<String>? _openers;
+  bool _sending = false;
+
+  SilenceProvider get _provider =>
+      widget.parentContext.read<SilenceProvider>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOpeners();
+  }
+
+  Future<void> _loadOpeners() async {
+    try {
+      final openers = await _provider.coWriterOpeners();
+      if (mounted) setState(() => _openers = openers);
+    } catch (_) {
+      if (mounted) setState(() => _openers = const []);
+    }
+  }
+
+  Future<void> _send(String text) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty || _sending) return;
+    _input.clear();
+    setState(() {
+      _history.add(CoWriterMessage(role: 'user', content: trimmed));
+      _sending = true;
+    });
+    _scrollToBottom();
+    try {
+      final reply = await _provider.coWriterChat(
+        _history,
+        widget.scriptController.text,
+      );
+      if (!mounted) return;
+      setState(() => _history.add(reply));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _history.add(
+          CoWriterMessage(
+            role: 'assistant',
+            content: 'Lost my train of thought — try that again.',
+          ),
+        );
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _sending = false);
+        _scrollToBottom();
+      }
+    }
+  }
+
+  void _insertIntoDraft(String content) {
+    final controller = widget.scriptController;
+    // Prefer `LINE:`-marked speakable lines; otherwise strip markdown
+    // noise and take the whole reply.
+    final lines = content
+        .split('\n')
+        .where((l) => l.trimLeft().startsWith('LINE:'))
+        .map((l) => l.trimLeft().substring(5).trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
+    final clean = lines.isNotEmpty
+        ? lines.join('\n')
+        : content.replaceAll(RegExp(r'[*_`#]'), '').trim();
+    final current = controller.text.trimRight();
+    final next = current.isEmpty ? clean : '$current\n$clean';
+    controller.text =
+        next.length > 1200 ? next.substring(0, 1200) : next;
+    ScaffoldMessenger.of(widget.parentContext).showSnackBar(
+      const SnackBar(content: Text('Added to your draft')),
+    );
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scroll.hasClients) {
+        _scroll.animateTo(
+          _scroll.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _input.dispose();
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.82,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 12,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.auto_awesome, size: 18, color: scheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Riff with the co-writer',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        'It’s watched every frame — ask for lines, angles, or punch-ups.',
+                        style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView(
+                controller: _scroll,
+                children: [
+                  if (_history.isEmpty) ...[
+                    Text(
+                      'Pick a direction, or just start typing:',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                    ),
+                    const SizedBox(height: 8),
+                    if (_openers == null)
+                      const Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else
+                      for (final opener in _openers!)
+                        _OpenerCard(
+                          text: opener,
+                          onTap: _sending ? null : () => _send(opener),
+                        ),
+                  ],
+                  for (final m in _history)
+                    _CoWriterBubble(
+                      message: m,
+                      onInsert: m.role == 'assistant'
+                          ? () => _insertIntoDraft(m.content)
+                          : null,
+                    ),
+                  if (_sending)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'thinking…',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _input,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: _send,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. “make it weirder” or “line for 0:26”',
+                      hintStyle:
+                          TextStyle(color: Colors.grey[600], fontSize: 13),
+                      isDense: true,
+                      filled: true,
+                      fillColor: const Color(0xFF0B0A12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filled(
+                  onPressed: _sending ? null : () => _send(_input.text),
+                  icon: const Icon(Icons.arrow_upward, size: 18),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OpenerCard extends StatelessWidget {
+  final String text;
+  final VoidCallback? onTap;
+  const _OpenerCard({required this.text, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: scheme.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: scheme.primary.withValues(alpha: 0.25),
+            ),
+          ),
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 13, height: 1.4),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CoWriterBubble extends StatelessWidget {
+  final CoWriterMessage message;
+  final VoidCallback? onInsert;
+  const _CoWriterBubble({required this.message, this.onInsert});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isUser = message.role == 'user';
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.78,
+        ),
+        decoration: BoxDecoration(
+          color: isUser
+              ? scheme.primary.withValues(alpha: 0.22)
+              : const Color(0xFF0B0A12),
+          borderRadius: BorderRadius.circular(14),
+          border: isUser
+              ? null
+              : Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SelectableText(
+              // `LINE:` prefixes exist for draft extraction — hide them.
+              message.content.replaceAll(
+                RegExp(r'^\s*LINE:\s*', multiLine: true),
+                '',
+              ),
+              style: const TextStyle(fontSize: 13, height: 1.45),
+            ),
+            if (onInsert != null) ...[
+              const SizedBox(height: 6),
+              GestureDetector(
+                onTap: onInsert,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add, size: 14, color: scheme.primary),
+                    Text(
+                      'Insert into draft',
+                      style: TextStyle(
+                        color: scheme.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

@@ -13,17 +13,21 @@
 import 'package:serverpod/serverpod.dart' as _i1;
 import 'package:serverpod/protocol.dart' as _i2;
 import 'greeting.dart' as _i3;
-import 'silence_clip.dart' as _i4;
-import 'silence_entry.dart' as _i5;
-import 'silence_entry_view.dart' as _i6;
-import 'silence_leaderboard_row.dart' as _i7;
-import 'silence_vote.dart' as _i8;
-import 'package:voisss_butler_server/src/generated/silence_clip.dart' as _i9;
-import 'package:voisss_butler_server/src/generated/silence_entry_view.dart'
-    as _i10;
-import 'package:voisss_butler_server/src/generated/silence_leaderboard_row.dart'
+import 'co_writer_message.dart' as _i4;
+import 'silence_clip.dart' as _i5;
+import 'silence_entry.dart' as _i6;
+import 'silence_entry_view.dart' as _i7;
+import 'silence_leaderboard_row.dart' as _i8;
+import 'silence_vote.dart' as _i9;
+import 'package:voisss_butler_server/src/generated/silence_clip.dart' as _i10;
+import 'package:voisss_butler_server/src/generated/co_writer_message.dart'
     as _i11;
+import 'package:voisss_butler_server/src/generated/silence_entry_view.dart'
+    as _i12;
+import 'package:voisss_butler_server/src/generated/silence_leaderboard_row.dart'
+    as _i13;
 export 'greeting.dart';
+export 'co_writer_message.dart';
 export 'silence_clip.dart';
 export 'silence_entry.dart';
 export 'silence_entry_view.dart';
@@ -86,6 +90,13 @@ class Protocol extends _i1.SerializationManagerServer {
           columnType: _i2.ColumnType.boolean,
           isNullable: false,
           dartType: 'bool',
+        ),
+        _i2.ColumnDefinition(
+          name: 'sceneGuide',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+          columnDefault: '\'\'::text',
         ),
         _i2.ColumnDefinition(
           name: 'createdAt',
@@ -300,39 +311,45 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i3.Greeting) {
       return _i3.Greeting.fromJson(data) as T;
     }
-    if (t == _i4.SilenceClip) {
-      return _i4.SilenceClip.fromJson(data) as T;
+    if (t == _i4.CoWriterMessage) {
+      return _i4.CoWriterMessage.fromJson(data) as T;
     }
-    if (t == _i5.SilenceEntry) {
-      return _i5.SilenceEntry.fromJson(data) as T;
+    if (t == _i5.SilenceClip) {
+      return _i5.SilenceClip.fromJson(data) as T;
     }
-    if (t == _i6.SilenceEntryView) {
-      return _i6.SilenceEntryView.fromJson(data) as T;
+    if (t == _i6.SilenceEntry) {
+      return _i6.SilenceEntry.fromJson(data) as T;
     }
-    if (t == _i7.SilenceLeaderboardRow) {
-      return _i7.SilenceLeaderboardRow.fromJson(data) as T;
+    if (t == _i7.SilenceEntryView) {
+      return _i7.SilenceEntryView.fromJson(data) as T;
     }
-    if (t == _i8.SilenceVote) {
-      return _i8.SilenceVote.fromJson(data) as T;
+    if (t == _i8.SilenceLeaderboardRow) {
+      return _i8.SilenceLeaderboardRow.fromJson(data) as T;
+    }
+    if (t == _i9.SilenceVote) {
+      return _i9.SilenceVote.fromJson(data) as T;
     }
     if (t == _i1.getType<_i3.Greeting?>()) {
       return (data != null ? _i3.Greeting.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i4.SilenceClip?>()) {
-      return (data != null ? _i4.SilenceClip.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i4.CoWriterMessage?>()) {
+      return (data != null ? _i4.CoWriterMessage.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i5.SilenceEntry?>()) {
-      return (data != null ? _i5.SilenceEntry.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i5.SilenceClip?>()) {
+      return (data != null ? _i5.SilenceClip.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i6.SilenceEntryView?>()) {
-      return (data != null ? _i6.SilenceEntryView.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i6.SilenceEntry?>()) {
+      return (data != null ? _i6.SilenceEntry.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i7.SilenceLeaderboardRow?>()) {
-      return (data != null ? _i7.SilenceLeaderboardRow.fromJson(data) : null)
+    if (t == _i1.getType<_i7.SilenceEntryView?>()) {
+      return (data != null ? _i7.SilenceEntryView.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i8.SilenceLeaderboardRow?>()) {
+      return (data != null ? _i8.SilenceLeaderboardRow.fromJson(data) : null)
           as T;
     }
-    if (t == _i1.getType<_i8.SilenceVote?>()) {
-      return (data != null ? _i8.SilenceVote.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i9.SilenceVote?>()) {
+      return (data != null ? _i9.SilenceVote.fromJson(data) : null) as T;
     }
     if (t == Map<String, dynamic>) {
       return (data as Map).map((k, v) =>
@@ -352,22 +369,28 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == List<String>) {
       return (data as List).map((e) => deserialize<String>(e)).toList() as T;
     }
-    if (t == List<_i9.SilenceClip>) {
-      return (data as List).map((e) => deserialize<_i9.SilenceClip>(e)).toList()
-          as T;
+    if (t == List<_i10.SilenceClip>) {
+      return (data as List)
+          .map((e) => deserialize<_i10.SilenceClip>(e))
+          .toList() as T;
+    }
+    if (t == List<_i11.CoWriterMessage>) {
+      return (data as List)
+          .map((e) => deserialize<_i11.CoWriterMessage>(e))
+          .toList() as T;
     }
     if (t == Map<String, String>) {
       return (data as Map).map((k, v) =>
           MapEntry(deserialize<String>(k), deserialize<String>(v))) as T;
     }
-    if (t == List<_i10.SilenceEntryView>) {
+    if (t == List<_i12.SilenceEntryView>) {
       return (data as List)
-          .map((e) => deserialize<_i10.SilenceEntryView>(e))
+          .map((e) => deserialize<_i12.SilenceEntryView>(e))
           .toList() as T;
     }
-    if (t == List<_i11.SilenceLeaderboardRow>) {
+    if (t == List<_i13.SilenceLeaderboardRow>) {
       return (data as List)
-          .map((e) => deserialize<_i11.SilenceLeaderboardRow>(e))
+          .map((e) => deserialize<_i13.SilenceLeaderboardRow>(e))
           .toList() as T;
     }
     try {
@@ -383,26 +406,29 @@ class Protocol extends _i1.SerializationManagerServer {
     if (data is _i3.Greeting) {
       return 'Greeting';
     }
-    if (data is _i4.SilenceClip) {
+    if (data is _i4.CoWriterMessage) {
+      return 'CoWriterMessage';
+    }
+    if (data is _i5.SilenceClip) {
       return 'SilenceClip';
     }
-    if (data is _i5.SilenceEntry) {
+    if (data is _i6.SilenceEntry) {
       return 'SilenceEntry';
     }
-    if (data is _i6.SilenceEntryView) {
+    if (data is _i7.SilenceEntryView) {
       return 'SilenceEntryView';
     }
-    if (data is _i7.SilenceLeaderboardRow) {
+    if (data is _i8.SilenceLeaderboardRow) {
       return 'SilenceLeaderboardRow';
     }
-    if (data is _i8.SilenceVote) {
+    if (data is _i9.SilenceVote) {
       return 'SilenceVote';
     }
     className = _i2.Protocol().getClassNameForObject(data);
     if (className != null) {
       return 'serverpod.$className';
     }
-    if (data is List<_i11.SilenceLeaderboardRow>) {
+    if (data is List<_i13.SilenceLeaderboardRow>) {
       return 'List<SilenceLeaderboardRow>';
     }
     return null;
@@ -417,27 +443,30 @@ class Protocol extends _i1.SerializationManagerServer {
     if (dataClassName == 'Greeting') {
       return deserialize<_i3.Greeting>(data['data']);
     }
+    if (dataClassName == 'CoWriterMessage') {
+      return deserialize<_i4.CoWriterMessage>(data['data']);
+    }
     if (dataClassName == 'SilenceClip') {
-      return deserialize<_i4.SilenceClip>(data['data']);
+      return deserialize<_i5.SilenceClip>(data['data']);
     }
     if (dataClassName == 'SilenceEntry') {
-      return deserialize<_i5.SilenceEntry>(data['data']);
+      return deserialize<_i6.SilenceEntry>(data['data']);
     }
     if (dataClassName == 'SilenceEntryView') {
-      return deserialize<_i6.SilenceEntryView>(data['data']);
+      return deserialize<_i7.SilenceEntryView>(data['data']);
     }
     if (dataClassName == 'SilenceLeaderboardRow') {
-      return deserialize<_i7.SilenceLeaderboardRow>(data['data']);
+      return deserialize<_i8.SilenceLeaderboardRow>(data['data']);
     }
     if (dataClassName == 'SilenceVote') {
-      return deserialize<_i8.SilenceVote>(data['data']);
+      return deserialize<_i9.SilenceVote>(data['data']);
     }
     if (dataClassName.startsWith('serverpod.')) {
       data['className'] = dataClassName.substring(10);
       return _i2.Protocol().deserializeByClassName(data);
     }
     if (dataClassName == 'List<SilenceLeaderboardRow>') {
-      return deserialize<List<_i11.SilenceLeaderboardRow>>(data['data']);
+      return deserialize<List<_i13.SilenceLeaderboardRow>>(data['data']);
     }
     return super.deserializeByClassName(data);
   }
@@ -451,12 +480,12 @@ class Protocol extends _i1.SerializationManagerServer {
       }
     }
     switch (t) {
-      case _i4.SilenceClip:
-        return _i4.SilenceClip.t;
-      case _i5.SilenceEntry:
-        return _i5.SilenceEntry.t;
-      case _i8.SilenceVote:
-        return _i8.SilenceVote.t;
+      case _i5.SilenceClip:
+        return _i5.SilenceClip.t;
+      case _i6.SilenceEntry:
+        return _i6.SilenceEntry.t;
+      case _i9.SilenceVote:
+        return _i9.SilenceVote.t;
     }
     return null;
   }

@@ -10,7 +10,11 @@ greeting:
 silenceClip:
   - getActive:
   - listArchive:
+  - updateSceneGuide:
   - createClip:
+silenceCoWriter:
+  - openers:
+  - chat:
 silenceEntry:
   - aiVoices:
   - generate:
