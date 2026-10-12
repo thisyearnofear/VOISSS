@@ -5,9 +5,10 @@ services:
       dockerfile: Dockerfile
     container_name: voisss_butler_server
     ports:
-      - 8090:8080
-      - 8091:8081
-      - 8092:8082
+      # Localhost-only: nginx is the only public path to the API.
+      - 127.0.0.1:8090:8080
+      - 127.0.0.1:8091:8081
+      - 127.0.0.1:8092:8082
     environment:
       - RUNMODE=production
       - VENICE_API_KEY=${VENICE_API_KEY:-}
@@ -31,7 +32,9 @@ services:
       POSTGRES_PASSWORD: voisss_butler_password
       POSTGRES_DB: voisss_butler
     ports:
-      - 8093:5432
+      # Localhost-only: Postgres is not a public service (docker-published
+      # ports bypass ufw entirely).
+      - 127.0.0.1:8093:5432
     volumes:
       - voisss_butler_postgres_data:/var/lib/postgresql/data
     networks:
