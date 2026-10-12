@@ -7,8 +7,6 @@ services:
     ports:
       # Localhost-only: nginx is the only public path to the API.
       - 127.0.0.1:8090:8080
-      - 127.0.0.1:8091:8081
-      - 127.0.0.1:8092:8082
     environment:
       - RUNMODE=production
       - VENICE_API_KEY=${VENICE_API_KEY:-}
@@ -17,7 +15,8 @@ services:
       - BUTLER_LLM_URL=${BUTLER_LLM_URL:-}
       - BUTLER_LLM_MODEL=${BUTLER_LLM_MODEL:-}
     volumes:
-      - ./config:/app/config:ro
+      # Server runs from / — it reads /config, not /app/config.
+      - ./config:/config:ro
     depends_on:
       - voisss_butler_postgres
     networks:
@@ -29,7 +28,7 @@ services:
     container_name: voisss_butler_postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: voisss_butler_password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: voisss_butler
     ports:
       # Localhost-only: Postgres is not a public service (docker-published

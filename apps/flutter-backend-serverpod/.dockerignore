@@ -1,0 +1,7 @@
+# Secrets must never be baked into the image.
+config/passwords.yaml
+.env
+
+# Local build/dev noise.
+build/
+.dart_tool/
