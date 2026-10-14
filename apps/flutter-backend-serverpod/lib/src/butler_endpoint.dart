@@ -79,7 +79,8 @@ class VeniceAIClient {
       });
 
       request.write(body);
-      final response = await request.close();
+      final response =
+          await request.close().timeout(const Duration(seconds: 45));
 
       if (response.statusCode == 200) {
         final responseBody = await response.transform(utf8.decoder).join();
@@ -96,6 +97,7 @@ class VeniceAIClient {
 
 class ButlerEndpoint extends Endpoint {
   AcpComputeClient? _acpClient;
+  VeniceAIClient? _llmClient;
   VeniceAIClient? _veniceClient;
   final Map<String, List<Map<String, String>>> _chatHistories = {};
   bool _aiEnabled = false;
@@ -108,46 +110,89 @@ class ButlerEndpoint extends Endpoint {
   void initialize(Server server, String endpointName, String? methodName) {
     super.initialize(server, endpointName, methodName);
     
-    // Try ACP Compute first (primary - free Venice credits)
+    // Primary: BUTLER_LLM_* — any OpenAI-compatible host (Featherless in
+    // prod, aligned with the Silence AI voices).
+    final llmKey = Platform.environment['BUTLER_LLM_KEY'] ?? '';
+    if (llmKey.isNotEmpty) {
+      _llmClient = VeniceAIClient(
+        apiKey: llmKey,
+        baseUrl: Platform.environment['BUTLER_LLM_URL'] ??
+            'https://api.featherless.ai/v1',
+        model: Platform.environment['BUTLER_LLM_MODEL'] ??
+            'Qwen/Qwen3-Next-80B-A3B-Instruct',
+      );
+      _aiEnabled = true;
+      _activeProvider = 'llm';
+      print('LLM provider initialized (primary)');
+    }
+    
+    // Secondary: Venice direct (VENICE_API_KEY → api.venice.ai).
+    final veniceKey = Platform.environment['VENICE_API_KEY'] ?? '';
+    if (veniceKey.isNotEmpty) {
+      _veniceClient = VeniceAIClient(
+        apiKey: veniceKey,
+        baseUrl: 'https://api.venice.ai/api/v1',
+        model: 'llama-3.3-70b',
+      );
+      if (!_aiEnabled) {
+        _aiEnabled = true;
+        _activeProvider = 'venice';
+      }
+      print('Venice initialized (fallback)');
+    }
+    
+    // Last resort: ACP Compute (Virtuals Protocol free Venice credits) —
+    // only attempted when both creds are configured.
     final acpKey = Platform.environment['ACP_COMPUTE_KEY'] ?? '';
     final acpAgentId = Platform.environment['ACP_AGENT_ID'] ?? '';
-    
     if (acpKey.isNotEmpty && acpAgentId.isNotEmpty) {
       _acpClient = AcpComputeClient(
         apiKey: acpKey,
         agentId: acpAgentId,
         baseUrl: Platform.environment['ACP_COMPUTE_URL'] ?? 'https://api.venice.ai/api/v1',
       );
-      _aiEnabled = true;
-      _activeProvider = 'acpCompute';
-      print('ACP Compute initialized successfully (primary provider)');
-    }
-    
-    // Initialize the fallback LLM provider. BUTLER_LLM_* vars point it at
-    // any OpenAI-compatible host (Featherless in prod); VENICE_API_KEY is
-    // kept as the key env for backward compat.
-    final llmKey = Platform.environment['BUTLER_LLM_KEY'] ??
-        Platform.environment['VENICE_API_KEY'] ??
-        '';
-    if (llmKey.isNotEmpty) {
-      _veniceClient = VeniceAIClient(
-        apiKey: llmKey,
-        baseUrl: Platform.environment['BUTLER_LLM_URL'] ??
-            'https://api.venice.ai/api/v1',
-        model: Platform.environment['BUTLER_LLM_MODEL'] ?? 'llama-3.3-70b',
-      );
       if (!_aiEnabled) {
         _aiEnabled = true;
-        _activeProvider = 'llm';
-        print('LLM provider initialized (fallback)');
-      } else {
-        print('LLM provider initialized as fallback');
+        _activeProvider = 'acpCompute';
       }
+      print('ACP Compute initialized (last-resort fallback)');
     }
     
     if (!_aiEnabled) {
-      print('WARNING: No AI providers configured. Set ACP_COMPUTE_KEY or VENICE_API_KEY.');
+      print('WARNING: No AI providers configured. Set BUTLER_LLM_KEY or VENICE_API_KEY.');
     }
+  }
+  
+  /// Provider chain: primary LLM → Venice → ACP (only configured providers
+  /// are attempted). Records which one served the request.
+  Future<String> _complete(List<Map<String, String>> messages) async {
+    final chain = <(String, VeniceAIClient?)>[
+      ('llm', _llmClient),
+      ('venice', _veniceClient),
+    ];
+    Object? lastErr;
+    for (final (name, client) in chain) {
+      if (client == null) continue;
+      try {
+        final result = await client.chatCompletion(messages);
+        _activeProvider = name;
+        return result;
+      } catch (e) {
+        lastErr = e;
+        print('$name provider failed: $e');
+      }
+    }
+    if (_acpClient != null) {
+      try {
+        final result = await _acpClient!.chatCompletion(messages);
+        _activeProvider = 'acpCompute';
+        return result;
+      } catch (e) {
+        lastErr = e;
+        print('acpCompute provider failed: $e');
+      }
+    }
+    throw Exception('All AI providers failed: $lastErr');
   }
 
   Future<String> health(Session session) async {
@@ -160,10 +205,10 @@ class ButlerEndpoint extends Endpoint {
     String? recordingId,
     Map<String, dynamic>? context,
   }) async {
-    if (!_aiEnabled || (_acpClient == null && _veniceClient == null)) {
+    if (!_aiEnabled || (_llmClient == null && _veniceClient == null && _acpClient == null)) {
       return {
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'content': 'AI is not configured. Please set ACP_COMPUTE_KEY or VENICE_API_KEY.',
+        'content': 'AI is not configured. Please set BUTLER_LLM_KEY or VENICE_API_KEY.',
         'isFromUser': false,
         'type': 'text',
         'timestamp': DateTime.now().toIso8601String(),
@@ -190,24 +235,8 @@ class ButlerEndpoint extends Endpoint {
       }
       messages.add({'role': 'user', 'content': userMessage});
       
-      // Try ACP Compute first, then Venice fallback
-      String responseText;
-      try {
-        if (_acpClient != null) {
-          responseText = await _acpClient!.chatCompletion(messages);
-          _activeProvider = 'acpCompute';
-        } else {
-          throw Exception('ACP Compute not available');
-        }
-      } catch (e) {
-        print('ACP Compute failed, falling back to Venice: $e');
-        if (_veniceClient != null) {
-          responseText = await _veniceClient!.chatCompletion(messages);
-          _activeProvider = 'venice';
-        } else {
-          throw Exception('All AI providers failed');
-        }
-      }
+      // Provider chain: primary LLM → Venice → ACP (guarded)
+      final responseText = await _complete(messages);
       
       // Add assistant response to history
       messages.add({'role': 'assistant', 'content': responseText});
@@ -246,7 +275,7 @@ class ButlerEndpoint extends Endpoint {
     required String audioUrl,
     String? prompt,
   }) async {
-    if (!_aiEnabled || (_acpClient == null && _veniceClient == null)) {
+    if (!_aiEnabled || (_llmClient == null && _veniceClient == null && _acpClient == null)) {
       return {
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'content': 'AI is not configured.',
@@ -270,24 +299,8 @@ class ButlerEndpoint extends Endpoint {
         {'role': 'user', 'content': analysisPrompt},
       ];
       
-      // Try ACP Compute first, then Venice fallback
-      String responseText;
-      try {
-        if (_acpClient != null) {
-          responseText = await _acpClient!.chatCompletion(messages);
-          _activeProvider = 'acpCompute';
-        } else {
-          throw Exception('ACP Compute not available');
-        }
-      } catch (e) {
-        print('ACP Compute failed, falling back to Venice: $e');
-        if (_veniceClient != null) {
-          responseText = await _veniceClient!.chatCompletion(messages);
-          _activeProvider = 'venice';
-        } else {
-          throw Exception('All AI providers failed');
-        }
-      }
+      // Provider chain: primary LLM → Venice → ACP (guarded)
+      final responseText = await _complete(messages);
       
       return {
         'id': DateTime.now().millisecondsSinceEpoch.toString(),

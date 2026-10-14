@@ -27,6 +27,9 @@ class Protocol extends _i1.SerializationManager {
     Type? t,
   ]) {
     t ??= T;
+    if (t == dynamic) {
+      return data as T;
+    }
     if (t == _i2.Greeting) {
       return _i2.Greeting.fromJson(data) as T;
     }

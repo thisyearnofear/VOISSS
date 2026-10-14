@@ -76,8 +76,8 @@ class SilenceCoWriterEndpoint extends Endpoint {
     final apiKey = Platform.environment['BUTLER_LLM_KEY'] ?? '';
     final baseUrl = Platform.environment['BUTLER_LLM_URL'] ??
         'https://api.featherless.ai/v1';
-    final model =
-        Platform.environment['BUTLER_LLM_MODEL'] ?? 'Qwen/Qwen3-32B';
+    final model = Platform.environment['BUTLER_LLM_MODEL'] ??
+        'Qwen/Qwen3-Next-80B-A3B-Instruct';
     if (apiKey.isEmpty) {
       throw StateError('Co-writer LLM is not configured on this server');
     }
@@ -197,8 +197,8 @@ class SilenceCoWriterEndpoint extends Endpoint {
     final apiKey = Platform.environment['BUTLER_LLM_KEY'] ?? '';
     final baseUrl = Platform.environment['BUTLER_LLM_URL'] ??
         'https://api.featherless.ai/v1';
-    final model =
-        Platform.environment['BUTLER_LLM_MODEL'] ?? 'Qwen/Qwen3-32B';
+    final model = Platform.environment['BUTLER_LLM_MODEL'] ??
+        'Qwen/Qwen3-Next-80B-A3B-Instruct';
     if (apiKey.isEmpty) {
       throw StateError('Co-writer LLM is not configured on this server');
     }
@@ -206,33 +206,42 @@ class SilenceCoWriterEndpoint extends Endpoint {
     final client = HttpClient();
     client.connectionTimeout = const Duration(seconds: 15);
     try {
-      final request =
-          await client.postUrl(Uri.parse('$baseUrl/chat/completions'));
-      request.headers.set('Authorization', 'Bearer $apiKey');
-      request.headers.set('Content-Type', 'application/json');
-      request.add(utf8.encode(jsonEncode({
-        'model': model,
-        'messages': messages,
-        'max_tokens': maxTokens,
-        'temperature': 0.9,
-        // Qwen3 is a thinking model — without this it burns the token
-        // budget on reasoning and returns empty content.
-        'chat_template_kwargs': {'enable_thinking': false},
-      })));
-      final response =
-          await request.close().timeout(const Duration(seconds: 45));
-      final body = await response.transform(utf8.decoder).join();
-      if (response.statusCode != 200) {
-        session.log(
-          'CoWriter LLM failed (${response.statusCode}): $body',
-          level: LogLevel.error,
-        );
-        throw StateError('Co-writer request failed');
+      // Featherless occasionally concatenates an error payload onto a
+      // successful response — retry once on malformed/non-200 results.
+      Object? lastErr;
+      for (var attempt = 0; attempt < 2; attempt++) {
+        if (attempt > 0) await Future<void>.delayed(const Duration(seconds: 1));
+        try {
+          final request =
+              await client.postUrl(Uri.parse('$baseUrl/chat/completions'));
+          request.headers.set('Authorization', 'Bearer $apiKey');
+          request.headers.set('Content-Type', 'application/json');
+          request.add(utf8.encode(jsonEncode({
+            'model': model,
+            'messages': messages,
+            'max_tokens': maxTokens,
+            'temperature': 0.9,
+            // Qwen3 is a thinking model — without this it burns the token
+            // budget on reasoning and returns empty content.
+            'chat_template_kwargs': {'enable_thinking': false},
+          })));
+          final response =
+              await request.close().timeout(const Duration(seconds: 45));
+          final body = await response.transform(utf8.decoder).join();
+          if (response.statusCode != 200) {
+            throw StateError('Co-writer request failed (${response.statusCode})');
+          }
+          final decoded = jsonDecode(body) as Map<String, dynamic>;
+          return ((decoded['choices'] as List).first['message']
+                  ['content'] as String)
+              .trim();
+        } catch (e) {
+          lastErr = e;
+          session.log('CoWriter LLM attempt ${attempt + 1} failed: $e',
+              level: LogLevel.warning);
+        }
       }
-      final decoded = jsonDecode(body) as Map<String, dynamic>;
-      return ((decoded['choices'] as List).first['message']
-              ['content'] as String)
-          .trim();
+      throw StateError('Co-writer request failed: $lastErr');
     } finally {
       client.close();
     }
