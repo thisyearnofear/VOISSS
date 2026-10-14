@@ -1,6 +1,6 @@
 # VOISSS Agent API & Multi-Chain Payments
 
-**Base URL:** https://voisss.netlify.app
+**Base URL:** https://voisss.famile.xyz
 
 Agents are first-class customers: no account, no monthly fee. You give a public
 wallet address (never a private key), pay per use, and get audio back.
@@ -12,7 +12,7 @@ wallet address (never a private key), pay per use, and get audio back.
 Generate speech, no signup:
 
 ```bash
-curl -s -X POST https://voisss.netlify.app/api/agents/vocalize \
+curl -s -X POST https://voisss.famile.xyz/api/agents/vocalize \
   -H "Content-Type: application/json" \
   -H "User-Agent: MyAgent/1.0" \
   -d '{"text":"Hello from MY VOSSS.","voiceId":"21m00Tcm4TlvDq8ikWAM","preview":true}'
@@ -33,10 +33,10 @@ bootstrap without reading prose:
 
 | File | Purpose |
 |------|---------|
-| [`/llms.txt`](https://voisss.netlify.app/llms.txt) | LLM-oriented index of every endpoint, pricing, and how a paid call works |
-| [`/.well-known/agent.json`](https://voisss.netlify.app/.well-known/agent.json) | This platform's own agent identity card (capabilities, payment, supported chains, WebMCP tools) |
-| [`/.well-known/money-transport-parameters`](https://voisss.netlify.app/.well-known/money-transport-parameters) | x402 **standard** payment-params discovery (asset address, `payTo`, max amounts, per-resource pricing) |
-| [`/api/agents/openapi.json`](https://voisss.netlify.app/api/agents/openapi.json) | Generated OpenAPI spec of the endpoints |
+| [`/llms.txt`](https://voisss.famile.xyz/llms.txt) | LLM-oriented index of every endpoint, pricing, and how a paid call works |
+| [`/.well-known/agent.json`](https://voisss.famile.xyz/.well-known/agent.json) | This platform's own agent identity card (capabilities, payment, supported chains, WebMCP tools) |
+| [`/.well-known/money-transport-parameters`](https://voisss.famile.xyz/.well-known/money-transport-parameters) | x402 **standard** payment-params discovery (asset address, `payTo`, max amounts, per-resource pricing) |
+| [`/api/agents/openapi.json`](https://voisss.famile.xyz/api/agents/openapi.json) | Generated OpenAPI spec of the endpoints |
 | [`SKILL.md`](https://raw.githubusercontent.com/thisyearnofear/VOISSS/main/SKILL.md) | Drop-in agent skill file (address-only, credits-first workflow) |
 
 ### WebMCP — in-browser tools for AI agents
@@ -149,7 +149,7 @@ an RPC endpoint; Cosmos/TON/XRP validation lands after Solana.
 ### cURL Example
 
 ```bash
-curl -X POST https://voisss.netlify.app/api/agents/vocalize \
+curl -X POST https://voisss.famile.xyz/api/agents/vocalize \
   -H "X-OWS-Wallet: 0xYourAddress" -H "X-OWS-Chain: eip155:8453" \
   -H "User-Agent: MyAgent/1.0" \
   -d '{"text":"Hello!","voiceId":"21m00Tcm4TlvDq8ikWAM"}'
@@ -162,7 +162,7 @@ import requests
 from ows_sdk import OWSWallet
 
 wallet = OWSWallet.from_env()
-url = "https://voisss.netlify.app/api/agents/vocalize"
+url = "https://voisss.famile.xyz/api/agents/vocalize"
 payload = {"text": "Hello!", "voiceId": "21m00Tcm4TlvDq8ikWAM"}
 headers = {"X-OWS-Wallet": wallet.address, "X-OWS-Chain": "eip155:8453", "User-Agent": "MyAgent/1.0"}
 
@@ -212,7 +212,7 @@ million APIs." Three transports:
   { "agentId": "0x...", "eventTypes": ["voice.generation.completed", "payment.*"],
     "webhook": { "url": "https://your.agent/hook" } }
   ```
-- **WebSocket:** *(planned)* `wss://voisss.netlify.app/api/agents/events/ws`
+- **WebSocket:** *(planned)* `wss://voisss.famile.xyz/api/agents/events/ws`
 
 **Event Types:** `voice.generation.*`, `mission.*`, `payment.*`, `system.*`, `agent.*`
 

@@ -11,7 +11,7 @@
 set -e
 
 OUTPUT_FILE="docs/AGENT_EXECUTION_LOGS.md"
-APP_URL="${NEXT_PUBLIC_APP_URL:-https://voisss.netlify.app}"
+APP_URL="${NEXT_PUBLIC_APP_URL:-https://voisss.famile.xyz}"
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 

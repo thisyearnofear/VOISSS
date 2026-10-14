@@ -9,7 +9,7 @@
 
 **VOISSS** is a B2B voice licensing marketplace where AI agents purchase authentic human voices with blockchain provenance and instant API access.
 
-**Live:** https://voisss.netlify.app
+**Live:** https://voisss.famile.xyz
 
 ---
 

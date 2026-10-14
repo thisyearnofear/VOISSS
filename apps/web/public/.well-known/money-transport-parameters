@@ -3,7 +3,7 @@
     {
       "network": "base",
       "maxAmountRequired": "10000",
-      "resource": "https://voisss.netlify.app/api/agents/vocalize",
+      "resource": "https://voisss.famile.xyz/api/agents/vocalize",
       "description": "Generate speech in a licensed VOISSS voice. Pay-per-character at 1 micro-USDC per character (USDC 6-decimal wei). Caps at 5000 chars per request.",
       "icon": "🎤",
       "paymentProcessor": "manual-query",
@@ -21,7 +21,7 @@
     {
       "network": "base",
       "maxAmountRequired": "490000000",
-      "resource": "https://voisss.netlify.app/api/marketplace/license",
+      "resource": "https://voisss.famile.xyz/api/marketplace/license",
       "description": "License a VOISSS voice. Non-exclusive 49 USDC, exclusive 490 USDC. One payment; the license activates instantly.",
       "icon": "📜",
       "paymentProcessor": "manual-query",

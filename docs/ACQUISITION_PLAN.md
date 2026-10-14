@@ -27,7 +27,7 @@ Each channel targets a specific persona with a tailored message. Execute in this
 >
 > AI agents discover voice jobs on the Virtuals Protocol marketplace → auto-bid → generate voice via ElevenLabs → pay in USDC → split 70% to the human voice contributor. No human approves any step.
 >
-> The demo page gives you 3 free generations to try it: https://voisss.netlify.app/demo
+> The demo page gives you 3 free generations to try it: https://voisss.famile.xyz/demo
 >
 > Tech stack:
 > - Next.js 15 + Tailwind on Netlify (most of the UI)
@@ -74,7 +74,7 @@ Find and DM (or reply to) people posting about:
 
 **Direct message template:**
 ```
-Hey! Saw you're working on [voice/AI agent stuff]. I built VOISSS — a voice marketplace where you can license human voices for $0.000001/char, no subscription. Would love your feedback: voisss.netlify.app/demo
+Hey! Saw you're working on [voice/AI agent stuff]. I built VOISSS — a voice marketplace where you can license human voices for $0.000001/char, no subscription. Would love your feedback: voisss.famile.xyz/demo
 ```
 
 ---

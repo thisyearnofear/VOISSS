@@ -35,8 +35,8 @@ export function getConfig() {
           metadata: {
             name: 'VOISSS',
             description: 'License authentic human voices for AI agents — on Base.',
-            url: typeof window !== 'undefined' ? window.location.origin : 'https://voisss.netlify.app',
-            icons: ['https://voisss.netlify.app/logo.png'],
+            url: typeof window !== 'undefined' ? window.location.origin : 'https://voisss.famile.xyz',
+            icons: ['https://voisss.famile.xyz/logo.png'],
           },
         })
       );

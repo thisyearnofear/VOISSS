@@ -10,7 +10,7 @@ Welcome! This guide will help you get started with VOISSS in under 5 minutes.
 
 ```bash
 # Get a voice sample (preview mode - free)
-curl -X POST https://voisss.netlify.app/api/agents/vocalize \
+curl -X POST https://voisss.famile.xyz/api/agents/vocalize \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Hello from VOISSS!",
@@ -21,7 +21,7 @@ curl -X POST https://voisss.netlify.app/api/agents/vocalize \
 
 ### 2. Browse Available Voices
 
-Visit https://voisss.netlify.app/marketplace to see all available voices with samples.
+Visit https://voisss.famile.xyz/marketplace to see all available voices with samples.
 
 ### 3. Integrate with Your Agent
 
@@ -36,12 +36,12 @@ console.log(audio.data?.audioUrl); // ipfs://...
 **Direct API (no install — works today):**
 ```bash
 # Free preview — no wallet required
-curl -X POST https://voisss.netlify.app/api/agents/vocalize \
+curl -X POST https://voisss.famile.xyz/api/agents/vocalize \
   -H "Content-Type: application/json" \
   -d '{"text":"Hello!","voiceId":"21m00Tcm4TlvDq8ikWAM","preview":true}'
 
 # Paid — add X-OWS-Wallet header; retry on 402 with X-PAYMENT
-curl -X POST https://voisss.netlify.app/api/agents/vocalize \
+curl -X POST https://voisss.famile.xyz/api/agents/vocalize \
   -H "X-OWS-Wallet: 0xYOUR_ADDR" -H "X-OWS-Chain: eip155:8453" \
   -d '{"text":"Hello!","voiceId":"21m00Tcm4TlvDq8ikWAM"}'
 ```
@@ -83,11 +83,11 @@ See [AGENT_API.md](./AGENT_API.md) for the full x402 signing flow.
 
 ### 1. Connect Your Wallet
 
-Visit https://voisss.netlify.app and click "Sign In" to connect your Base wallet.
+Visit https://voisss.famile.xyz and click "Sign In" to connect your Base wallet.
 
 ### 2. Record Your Voice
 
-1. Go to https://voisss.netlify.app/studio
+1. Go to https://voisss.famile.xyz/studio
 2. Click "Start Recording"
 3. Record a 30-60 second sample
 4. Add metadata (name, description, tags)
@@ -116,7 +116,7 @@ Your voice will be reviewed for quality and authenticity. Once approved, it goes
 
 ### 6. Track Your Earnings
 
-Visit https://voisss.netlify.app/marketplace/dashboard to see:
+Visit https://voisss.famile.xyz/marketplace/dashboard to see:
 - Active licenses
 - Monthly earnings
 - Usage statistics
@@ -134,7 +134,7 @@ Visit https://voisss.netlify.app/marketplace/dashboard to see:
 
 ## Quick Links
 
-- **Live App:** https://voisss.netlify.app
-- **Marketplace:** https://voisss.netlify.app/marketplace
-- **API Docs:** https://voisss.netlify.app/agents
+- **Live App:** https://voisss.famile.xyz
+- **Marketplace:** https://voisss.famile.xyz/marketplace
+- **API Docs:** https://voisss.famile.xyz/agents
 - **GitHub:** https://github.com/thisyearnofear/VOISSS

@@ -2,7 +2,7 @@
 
 **Category:** Entrepreneurship & Job Creation  
 **Google Cloud Product:** Google Gemini 3.0 Flash  
-**Live:** https://voisss.netlify.app  
+**Live:** https://voisss.famile.xyz  
 **GitHub:** https://github.com/thisyearnofear/VOISSS
 
 ---

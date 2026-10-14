@@ -4,7 +4,7 @@
 
 B2B voice licensing marketplace where AI agents purchase authentic human voices. Built on Base blockchain with ElevenLabs TTS, IPFS storage, and OWS multi-chain payments.
 
-**Live:** https://voisss.netlify.app
+**Live:** https://voisss.famile.xyz
 
 ---
 
@@ -80,7 +80,7 @@ voisss/
 ├── docs/                 # Documentation
 │   └── adr/              # Architecture decision records
 ├── scripts/              # Test and utility scripts (incl. check:routes)
-└── netlify.toml          # Web app deploy config
+└── apps/web/cloudflare.config.ts  # Web app deploy config (Cloudflare Workers via vinext)
 ```
 
 ## Platform Status
@@ -121,7 +121,7 @@ voisss/
 ## Links
 
 - **GitHub:** https://github.com/thisyearnofear/VOISSS
-- **Live App:** https://voisss.netlify.app
+- **Live App:** https://voisss.famile.xyz
 - **Getting Started:** [GETTING_STARTED.md](./GETTING_STARTED.md)
 - **Telegram:** https://t.me/+jG3_jEJF8YFmOTY1
 - **CDP Portal:** https://portal.cdp.coinbase.com

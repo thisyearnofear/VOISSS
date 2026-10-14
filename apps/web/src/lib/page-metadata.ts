@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 const siteUrl = new URL(
-  process.env.NEXT_PUBLIC_BASE_URL || "https://voisss.netlify.app"
+  process.env.NEXT_PUBLIC_BASE_URL || "https://voisss.famile.xyz"
 );
 
 export type PageMetadata = {

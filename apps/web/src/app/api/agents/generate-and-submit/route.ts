@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     const baseUrl = req.nextUrl?.origin || 
                     (typeof window !== 'undefined' ? window.location.origin : '') ||
                     process.env.NEXT_PUBLIC_BASE_URL ||
-                    'https://voisss.netlify.app';
+                    'https://voisss.famile.xyz';
     
     console.log(`🎙️ Step 1: Generating voice... (baseUrl: ${baseUrl})`);
     const vocalizeResponse = await fetch(`${baseUrl}/api/agents/vocalize`, {

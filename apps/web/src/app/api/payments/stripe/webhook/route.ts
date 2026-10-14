@@ -123,7 +123,7 @@ async function addCreditsToAgent(
 ) {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || "https://voisss.netlify.app"}/api/agents/register`,
+      `${process.env.NEXT_PUBLIC_APP_URL || "https://voisss.famile.xyz"}/api/agents/register`,
       {
         method: "POST",
         headers: {

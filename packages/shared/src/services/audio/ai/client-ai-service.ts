@@ -22,7 +22,7 @@ import {
 import { LanguageInfo } from "../../../constants/languages";
 
 export interface AIServiceConfig {
-  apiBaseUrl: string; // e.g., 'https://voisss.netlify.app/api' or 'http://localhost:3000/api'
+  apiBaseUrl: string; // e.g., 'https://voisss.famile.xyz/api' or 'http://localhost:3000/api'
   platform: "web" | "mobile";
 }
 
@@ -266,7 +266,7 @@ export class ClientAIService implements AIServiceClient {
  * @example
  * // Mobile usage
  * const aiService = createAIServiceClient({
- *   apiBaseUrl: 'https://voisss.netlify.app/api',
+ *   apiBaseUrl: 'https://voisss.famile.xyz/api',
  *   platform: 'mobile'
  * });
  */

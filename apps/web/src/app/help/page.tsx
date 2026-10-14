@@ -45,9 +45,9 @@ export default function HelpPage() {
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
-          <a href="mailto:support@voisss.netlify.app" className="lr-card text-center">
+          <a href="mailto:support@voisss.famile.xyz" className="lr-card text-center">
             <h3 className="font-semibold text-white mb-1">Email</h3>
-            <p className="text-gray-400 text-sm" style={{ margin: 0 }}>support@voisss.netlify.app</p>
+            <p className="text-gray-400 text-sm" style={{ margin: 0 }}>support@voisss.famile.xyz</p>
           </a>
           <a href="https://discord.gg/voisss" target="_blank" rel="noopener noreferrer" className="lr-card text-center">
             <h3 className="font-semibold text-white mb-1">Discord</h3>

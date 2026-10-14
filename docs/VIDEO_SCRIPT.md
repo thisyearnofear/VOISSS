@@ -8,7 +8,7 @@
 
 ## [0:00–0:30] Hook & Value Proposition
 
-**Visual:** Open on VOISSS landing page (voisss.netlify.app). Zoom into the hero section showing "Voice Marketplace for AI Agents."
+**Visual:** Open on VOISSS landing page (voisss.famile.xyz). Zoom into the hero section showing "Voice Marketplace for AI Agents."
 
 **Voiceover:**
 "This is VOISSS — a voice licensing marketplace where the primary customers are AI agents. Not humans. AI agents.
@@ -93,7 +93,7 @@ This is Entrepreneurship & Job Creation in practice: new income streams for voic
 VOISSS is live. The contracts are on Base Mainnet. The API is serving requests. And the AI is running the show.
 
 **Final text overlay:** VOISSS — A voice marketplace, run by AI agents.  
-**URL:** voisss.netlify.app  
+**URL:** voisss.famile.xyz  
 **GitHub:** github.com/thisyearnofear/VOISSS"
 
 ---

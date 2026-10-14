@@ -35,7 +35,7 @@
 | Hosting (Netlify, Hetzner) | $0 | [monthly hosting costs] |
 | API costs (ElevenLabs) | $0 | [voice synthesis API usage] |
 | API costs (Google Gemini) | $0 | [Gemini inference costs] |
-| Domain registration | $0 | [voisss.netlify.app or custom domain] |
+| Domain registration | $0 | [voisss.famile.xyz or custom domain] |
 | Smart contract deployment | $0 | [Gas fees for Base Mainnet deployment] |
 | Stripe processing fees | $0 | [2.9% + $0.30 per transaction] |
 | Legal / incorporation | $0 | [if applicable] |

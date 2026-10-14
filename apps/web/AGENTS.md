@@ -10,10 +10,37 @@ pnpm dev              # Runs on http://localhost:4445
 pnpm build            # Production build with type checking
 pnpm lint             # ESLint
 
+# Production deploy (Cloudflare Workers via vinext)
+pnpm deploy:vinext    # Builds + deploys to https://voisss-web.snapflip.workers.dev
+
 # Smart Contracts
 pnpm deploy:base-sepolia   # Deploy to Base Sepolia
 pnpm test:gasless          # Test gasless flow
 ```
+
+## Deployment (production)
+
+Live at **https://voisss.famile.xyz**. nginx on the Hetzner box (`snel-bot`)
+path-splits traffic: backend routes (`/api/voices`, `/api/transform`,
+`/api/request|complete|start`, `/api/dubbing/*`, `/api/export/*`,
+`/api/user/<0x…>`, `/api/<x>/status`, `/health`, `/exports/*`) go to
+`voisss-backend` on `127.0.0.1:5577`; everything else proxies to the
+`voisss-web` Cloudflare Worker. Config: `/etc/nginx/sites-available/voisss`
+on snel-bot (backup: `voisss.bak-20261014-precf`).
+
+- Worker config: `cloudflare.config.ts` (deployed via `pnpm deploy:vinext`
+  / `vinext-cloudflare deploy`, which uses the `cf` CLI).
+- Secrets: `npx wrangler secret put <NAME> --name voisss-web`. **Caveat:**
+  `wrangler secret put` creates a worker version that may resurrect stale
+  code — always run `pnpm deploy:vinext` after changing secrets.
+- Lead storage (`/api/newsletter`, `/api/contact`): D1 database
+  `voisss-leads` bound as `env.DB` (schema:
+  `scripts/migrations/003_leads_d1.sql`). Outside Workers, the routes fall
+  back to Postgres via `DATABASE_URL`
+  (`scripts/migrations/002_contact_newsletter.sql`).
+- `NEXT_PUBLIC_*` values are inlined at build time — set them in
+  `.env.local` or the build env before deploying; runtime secrets won't
+  change bundled output.
 
 ## Architecture
 
@@ -150,15 +177,15 @@ ELEVENLABS_TOOL_SECRET_KEY=   # Webhook auth
 
 ```bash
 # Get themes
-curl https://voisss.netlify.app/api/agents/themes
+curl https://voisss.famile.xyz/api/agents/themes
 
 # Generate voice (requires payment)
-curl -X POST https://voisss.netlify.app/api/agents/vocalize \
+curl -X POST https://voisss.famile.xyz/api/agents/vocalize \
   -H "Content-Type: application/json" \
   -d '{"text":"Hello","voiceId":"21m00Tcm4TlvDq8ikWAM","agentAddress":"0x..."}'
 
 # Check agent info
-curl "https://voisss.netlify.app/api/agents/vocalize?agentAddress=0x..."
+curl "https://voisss.famile.xyz/api/agents/vocalize?agentAddress=0x..."
 ```
 
 ## Local build prerequisites and Listening Room checks

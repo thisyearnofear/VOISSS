@@ -34,9 +34,11 @@
     "@neynar/nodejs-sdk": "^1.71.0",
     "axios": "1.14.0",
     "pg": "8.16.3",
-    "react": "19.0.0",
     "redis": "^4.7.0",
     "zod": "^3.22.4"
+  },
+  "peerDependencies": {
+    "react": ">=18"
   },
   "devDependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -44,6 +46,7 @@
     "@types/node": "^20",
     "@types/pg": "8.16.0",
     "@types/react": "^18.2.45",
+    "react": "19.3.0",
     "tsup": "^8.0.2",
     "typescript": "^5",
     "typescript-eslint": "^8",

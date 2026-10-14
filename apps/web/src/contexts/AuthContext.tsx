@@ -169,7 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Generic SIWE via personal_sign / signMessage
-      const domain = typeof window !== "undefined" ? window.location.host : "voisss.netlify.app";
+      const domain = typeof window !== "undefined" ? window.location.host : "voisss.famile.xyz";
       const message = buildSignInMessage({ address: addr, nonce, chainId: base.id, domain });
       let signature: string;
       try {

@@ -100,7 +100,12 @@ export function validateX402Config() {
   return status;
 }
 
-// Run check if executed directly
-if (require.main === module) {
+// Run check if executed directly (CommonJS entrypoint only — typeof guards
+// keep this inert in ESM bundles like the Cloudflare worker build).
+if (
+  typeof require !== "undefined" &&
+  typeof module !== "undefined" &&
+  require.main === module
+) {
   validateX402Config();
 }

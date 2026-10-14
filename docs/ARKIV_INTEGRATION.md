@@ -81,7 +81,7 @@ Every entity links to the Arkiv Explorer at:
 
 ### 1. Create an entity
 ```bash
-curl -X POST https://voisss.netlify.app/api/arkiv/save-insight \
+curl -X POST https://voisss.famile.xyz/api/arkiv/save-insight \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: demo123" \
   -d '{
@@ -94,7 +94,7 @@ curl -X POST https://voisss.netlify.app/api/arkiv/save-insight \
 
 ### 2. Query entities
 ```bash
-curl "https://voisss.netlify.app/api/arkiv/query?entityType=VoiceInsight&limit=5"
+curl "https://voisss.famile.xyz/api/arkiv/query?entityType=VoiceInsight&limit=5"
 ```
 
 ### 3. Verify on Arkiv Explorer
@@ -102,7 +102,7 @@ Every response includes an `explorerUrl` linking to the Arkiv Explorer.
 
 ### 4. Batch create with ownership
 ```bash
-curl -X POST https://voisss.netlify.app/api/arkiv/save-batch \
+curl -X POST https://voisss.famile.xyz/api/arkiv/save-batch \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: batch-demo-1" \
   -d '{
@@ -119,7 +119,7 @@ curl -X POST https://voisss.netlify.app/api/arkiv/save-batch \
 ## Health Check
 
 ```bash
-curl https://voisss.netlify.app/api/health
+curl https://voisss.famile.xyz/api/health
 ```
 
 Returns Arkiv configuration, explorer URL, and available features.

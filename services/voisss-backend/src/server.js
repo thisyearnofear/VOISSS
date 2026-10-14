@@ -42,7 +42,7 @@ const DEV_ORIGINS = [
   "http://localhost:4445",
   "http://localhost:3000",
 ];
-const prodOrigins = (process.env.CORS_ORIGINS || "https://voisss.netlify.app")
+const prodOrigins = (process.env.CORS_ORIGINS || "https://voisss.famile.xyz")
   .split(",")
   .map(o => o.trim())
   .filter(Boolean);

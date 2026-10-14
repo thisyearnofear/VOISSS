@@ -8,7 +8,7 @@ import type {
 } from './types';
 import { VoisssError, PaymentRequiredError, RateLimitError } from './errors';
 
-const DEFAULT_API_URL = 'https://voisss.netlify.app';
+const DEFAULT_API_URL = 'https://voisss.famile.xyz';
 const DEFAULT_TIMEOUT = 30000;
 
 /**

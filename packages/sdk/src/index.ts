@@ -2,7 +2,7 @@
  * @voisss/sdk - Official JavaScript/TypeScript SDK for VOISSS
  * 
  * Voice licensing marketplace for AI agents
- * https://voisss.netlify.app
+ * https://voisss.famile.xyz
  */
 
 export { VoisssClient } from './client';

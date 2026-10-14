@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://voisss.netlify.app'
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://voisss.famile.xyz'
 
   const routes: Array<{
     path: string

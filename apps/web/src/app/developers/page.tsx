@@ -32,7 +32,7 @@ const QUICKSTART_SNIPPETS = [
     id: "curl",
     name: "cURL",
     icon: "⎈",
-    code: `curl -X POST https://voisss.netlify.app/api/agents/vocalize \\
+    code: `curl -X POST https://voisss.famile.xyz/api/agents/vocalize \\
   -H "Content-Type: application/json" \\
   -d '{
     "text": "AI agents deserve authentic human voices.",
@@ -47,7 +47,7 @@ const QUICKSTART_SNIPPETS = [
     icon: "◆",
     code: `// Any fetch-compatible stack works — Node, edge, browser.
 const response = await fetch(
-  "https://voisss.netlify.app/api/agents/vocalize",
+  "https://voisss.famile.xyz/api/agents/vocalize",
   {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -77,7 +77,7 @@ export const speakTool = new DynamicStructuredTool({
   schema: z.object({ text: z.string() }),
   func: async ({ text }) => {
     const res = await fetch(
-      "https://voisss.netlify.app/api/agents/vocalize",
+      "https://voisss.famile.xyz/api/agents/vocalize",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -104,7 +104,7 @@ const voisssPlugin = {
       name: "GENERATE_SPEECH",
       handler: async (runtime, message, state) => {
         const response = await fetch(
-          "https://voisss.netlify.app/api/agents/vocalize",
+          "https://voisss.famile.xyz/api/agents/vocalize",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -123,7 +123,7 @@ const voisssPlugin = {
   },
 ];
 
-const AGENTIC_SNIPPET = `fetch("https://voisss.netlify.app/api/agents/vocalize", {
+const AGENTIC_SNIPPET = `fetch("https://voisss.famile.xyz/api/agents/vocalize", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",

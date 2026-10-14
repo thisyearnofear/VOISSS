@@ -112,7 +112,7 @@ function generateSpec() {
       version: '1.0.0',
       contact: {
         email: 'hello@voisss.xyz',
-        url: 'https://voisss.netlify.app',
+        url: 'https://voisss.famile.xyz',
       },
       license: {
         name: 'MIT',
@@ -121,7 +121,7 @@ function generateSpec() {
     },
     servers: [
       {
-        url: 'https://voisss.netlify.app',
+        url: 'https://voisss.famile.xyz',
         description: 'Production',
       },
     ],

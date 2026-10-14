@@ -2,7 +2,7 @@
   "protocol": "voisss-voice-agent/1.0",
   "name": "VOISSS Voice Agent",
   "agentId": "019e98c7-2d39-7374-abaf-87d44e717c3f",
-  "homepage": "https://voisss.netlify.app",
+  "homepage": "https://voisss.famile.xyz",
   "description": "B2B voice licensing marketplace for AI agents. Discover licensed human voice, generate speech per-character pricing, and license voices with autonomous USDC payments (x402 / OWS multi-chain) on Base. Revenue is split 70/30 to contributors on Base mainnet.",
   "capabilities": [
     {

@@ -9,11 +9,11 @@
   },
   "api": {
     "type": "openapi",
-    "url": "https://voisss.netlify.app/api/agents/openapi.json"
+    "url": "https://voisss.famile.xyz/api/agents/openapi.json"
   },
-  "logo_url": "https://voisss.netlify.app/logo.png",
+  "logo_url": "https://voisss.famile.xyz/logo.png",
   "contact_email": "hello@voisss.xyz",
-  "legal_info_url": "https://voisss.netlify.app/terms",
+  "legal_info_url": "https://voisss.famile.xyz/terms",
   "endpoints": {
     "vocalize": {
       "url": "/api/agents/vocalize",

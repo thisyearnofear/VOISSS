@@ -110,7 +110,7 @@ async function fetchBlockchainStats() {
   try {
     // Call our own blockchain-stats endpoint (public endpoint, no auth needed)
     const response = await fetch(
-      `${process.env.NODE_ENV === 'production' ? 'https://voisss.netlify.app' : 'http://localhost:3000'}/api/tools/blockchain-stats`,
+      `${process.env.NODE_ENV === 'production' ? 'https://voisss.famile.xyz' : 'http://localhost:3000'}/api/tools/blockchain-stats`,
       {
         method: 'GET',
       }

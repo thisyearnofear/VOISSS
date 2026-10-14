@@ -22,10 +22,11 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
+      "@voisss/shared/server": ["../../packages/shared/src/index.server.ts"],
       "@voisss/shared/*": ["../../packages/shared/src/*"],
       "@voisss/ui/*": ["../../packages/ui/src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", ".cloudflare/types/**/*.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules", "scripts/deploy-marketplace.ts"]
 }

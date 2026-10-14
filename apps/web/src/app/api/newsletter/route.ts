@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Pool } from "pg";
+import { getLeadsD1, getLeadsPool } from "@/lib/leads-db";
 
 /**
  * POST /api/newsletter
@@ -17,18 +17,9 @@ interface NewsletterBody {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Module-scope pool (same pattern as /api/tools/platform-stats). Table DDL lives
-// in migration `scripts/migrations/002_contact_newsletter.sql` — hot path is INSERT only.
-let pool: Pool | null = null;
-function getPool(): Pool | null {
-  const dbUrl = process.env.DATABASE_URL;
-  if (!dbUrl) return null;
-  if (!pool) {
-    pool = new Pool({ connectionString: dbUrl, max: 5, idleTimeoutMillis: 30_000 });
-    pool.on("error", (err) => console.error("[newsletter] pool error:", err));
-  }
-  return pool;
-}
+// Storage: Cloudflare D1 binding `DB` on Workers, Postgres (pg + DATABASE_URL)
+// elsewhere. Table DDL: scripts/migrations/002_contact_newsletter.sql (pg) and
+// 003_leads_d1.sql (D1). Hot path is INSERT only.
 
 // Minimal in-memory rate limit: 10 subscribes / 10 min per IP (best-effort).
 const RATE_WINDOW_MS = 10 * 60 * 1000;
@@ -47,7 +38,24 @@ function clientIp(request: NextRequest): string {
 }
 
 async function persistSubscriber(email: string, source: string): Promise<{ stored: string }> {
-  const db = getPool();
+  const d1 = await getLeadsD1();
+  if (d1) {
+    try {
+      await d1
+        .prepare(
+          `INSERT INTO voisss_newsletter (email, source)
+           VALUES (?, ?)
+           ON CONFLICT (email) DO UPDATE SET source = excluded.source`
+        )
+        .bind(email, source)
+        .run();
+      return { stored: "d1" };
+    } catch (err) {
+      console.error("[newsletter] D1 persist failed:", err);
+      return { stored: "memory" };
+    }
+  }
+  const db = await getLeadsPool();
   if (!db) return { stored: "memory" };
   try {
     await db.query(
@@ -65,7 +73,7 @@ async function persistSubscriber(email: string, source: string): Promise<{ store
 
 async function sendConfirmation(email: string): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.NEWSLETTER_FROM ?? "VOISSS <hello@voisss.netlify.app>";
+  const from = process.env.NEWSLETTER_FROM ?? "VOISSS <hello@voisss.famile.xyz>";
   if (!apiKey) return false;
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -80,7 +88,7 @@ async function sendConfirmation(email: string): Promise<boolean> {
         subject: "You're on the VOISSS list 🎤",
         html: `<h2>You're on the list</h2>
 <p>Thanks for subscribing to VOISSS — new voices, API features, and creator rewards, no spam.</p>
-<p>Try the demo: <a href="https://voisss.netlify.app/generate">voisss.netlify.app/generate</a></p>`,
+<p>Try the demo: <a href="https://voisss.famile.xyz/generate">voisss.famile.xyz/generate</a></p>`,
       }),
     });
     return res.ok;

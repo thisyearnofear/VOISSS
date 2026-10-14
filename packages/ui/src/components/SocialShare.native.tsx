@@ -29,7 +29,7 @@ export function SocialShare({ recording, style, onShare, userId, generateReferra
   }, [userId, recording.id, generateReferralCode]);
   
   const shareUrl = useMemo(() => {
-    const baseUrl = recording.ipfsUrl || `https://voisss.netlify.app/recording/${recording.id}`;
+    const baseUrl = recording.ipfsUrl || `https://voisss.famile.xyz/recording/${recording.id}`;
     return referralCode ? `${baseUrl}?ref=${referralCode}` : baseUrl;
   }, [recording.ipfsUrl, recording.id, referralCode]);
   

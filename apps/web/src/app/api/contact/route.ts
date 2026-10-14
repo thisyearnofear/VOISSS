@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Pool } from 'pg';
+import { getLeadsD1, getLeadsPool } from '@/lib/leads-db';
 
 interface ContactFormData {
   email: string;
@@ -7,19 +7,10 @@ interface ContactFormData {
   message: string;
 }
 
-// Reuse one pool across invocations (same pattern as
-// /api/tools/platform-stats). Per-request Client + CREATE TABLE on every
-// hit exhausts connections and adds ~100ms+ to each submit.
-let pool: Pool | null = null;
-function getPool(): Pool | null {
-  const dbUrl = process.env.DATABASE_URL;
-  if (!dbUrl) return null;
-  if (!pool) {
-    pool = new Pool({ connectionString: dbUrl, max: 5, idleTimeoutMillis: 30_000 });
-    pool.on('error', (err) => console.error('[contact] pool error:', err));
-  }
-  return pool;
-}
+// Storage: Cloudflare D1 binding `DB` on Workers, Postgres (pg + DATABASE_URL)
+// elsewhere. Table DDL: scripts/migrations/002_contact_newsletter.sql (pg) and
+// 003_leads_d1.sql (D1). Hot path is a single INSERT — per-request Client +
+// CREATE TABLE exhausts connections and adds ~100ms+ to each submit.
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_EMAIL = 254;
@@ -91,19 +82,33 @@ export async function POST(request: NextRequest) {
     
     const ticketId = generateTicketId();
 
-    // NOTE: table is created by migration `scripts/migrations/002_contact_newsletter.sql`
-    // — no DDL here so the hot path is a single INSERT.
-    const db = getPool();
-    if (db) {
+    const d1 = await getLeadsD1();
+    if (d1) {
       try {
-        await db.query(
-          `INSERT INTO voisss_contact_tickets (ticket_id, email, subject, message)
-           VALUES ($1, $2, $3, $4)
-           ON CONFLICT (ticket_id) DO NOTHING`,
-          [ticketId, email, subject, message]
-        );
+        await d1
+          .prepare(
+            `INSERT INTO voisss_contact_tickets (ticket_id, email, subject, message)
+             VALUES (?, ?, ?, ?)
+             ON CONFLICT (ticket_id) DO NOTHING`
+          )
+          .bind(ticketId, email, subject, message)
+          .run();
       } catch (dbErr) {
-        console.error("[contact] persist failed (lead still acknowledged):", dbErr);
+        console.error("[contact] D1 persist failed (lead still acknowledged):", dbErr);
+      }
+    } else {
+      const db = await getLeadsPool();
+      if (db) {
+        try {
+          await db.query(
+            `INSERT INTO voisss_contact_tickets (ticket_id, email, subject, message)
+             VALUES ($1, $2, $3, $4)
+             ON CONFLICT (ticket_id) DO NOTHING`,
+            [ticketId, email, subject, message]
+          );
+        } catch (dbErr) {
+          console.error("[contact] persist failed (lead still acknowledged):", dbErr);
+        }
       }
     }
 
@@ -157,7 +162,7 @@ async function sendSupportNotification(ticket: any) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: process.env.NEWSLETTER_FROM ?? "VOISSS <hello@voisss.netlify.app>",
+        from: process.env.NEWSLETTER_FROM ?? "VOISSS <hello@voisss.famile.xyz>",
         to: [to],
         subject: `New Support Request: ${ticket.subject.slice(0, 120)}`,
         html: `
@@ -188,7 +193,7 @@ async function sendAutoReply(email: string, subject: string) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: process.env.NEWSLETTER_FROM ?? "VOISSS <hello@voisss.netlify.app>",
+        from: process.env.NEWSLETTER_FROM ?? "VOISSS <hello@voisss.famile.xyz>",
         to: [email],
         subject: `Re: ${subject} - We've received your message`,
         html: `

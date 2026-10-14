@@ -2,7 +2,7 @@
  * Configuration for VOISSS client
  */
 export interface VoisssConfig {
-  /** Base URL for VOISSS API (default: https://voisss.netlify.app) */
+  /** Base URL for VOISSS API (default: https://voisss.famile.xyz) */
   apiUrl?: string;
   /** Agent's wallet address (required for payments) */
   agentAddress?: string;

@@ -8,7 +8,7 @@ const snippets = [
     id: "langchain",
     name: "LangChain",
     icon: "🦜",
-    code: `await fetch("https://voisss.netlify.app/api/agents/vocalize", {
+    code: `await fetch("https://voisss.famile.xyz/api/agents/vocalize", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -27,7 +27,7 @@ const snippets = [
 const voisssSpeak = {
   name: "GENERATE_SPEECH",
   handler: async (runtime, message) => {
-    return fetch("https://voisss.netlify.app/api/agents/vocalize", {
+    return fetch("https://voisss.famile.xyz/api/agents/vocalize", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -43,7 +43,7 @@ const voisssSpeak = {
     id: "curl",
     name: "cURL",
     icon: "⎈",
-    code: `curl -X POST https://voisss.netlify.app/api/agents/vocalize \\
+    code: `curl -X POST https://voisss.famile.xyz/api/agents/vocalize \\
   -H "Content-Type: application/json" \\
   -d '{
     "text": "Hello from an AI agent",

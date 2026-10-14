@@ -5,7 +5,7 @@ discover licensed human voice, pay per character (~$0.000001/char in USDC), and 
 back studio-quality audio with on-chain provenance. 70% of every license pays
 automatically to the human voice contributor on Base.
 
-Base URL: https://voisss.netlify.app
+Base URL: https://voisss.famile.xyz
 
 ## Quick actions (no account needed)
 
@@ -36,5 +36,5 @@ Agents only ever give their public wallet address. VOISSS never stores private k
 
 ## Human-readable docs
 
-- Agent API reference: https://voisss.netlify.app/agents
+- Agent API reference: https://voisss.famile.xyz/agents
 - ACP integration: https://voisss.famile.xyz (see repo docs/ACP_SPECIFICATION.md)

@@ -1,9 +1,9 @@
 # WebMCP Integration for VOISSS
 
-**Status:** ✅ **Implemented** (production on voisss.netlify.app)  
+**Status:** ✅ **Implemented** (production on voisss.famile.xyz)  
 **Target:** WebMCP Challenge (Devpost hackathon)  
 **Effort:** ~1.5 days  
-**Deploy target:** voisss.netlify.app (Netlify)
+**Deploy target:** voisss.famile.xyz (Netlify)
 
 ---
 
@@ -17,7 +17,7 @@ All 5 WebMCP imperative tools are live on the marketplace and studio pages:
 4. **`license_voice`** — Open license checkout flow → `/marketplace` with pre-filled params
 5. **`vocalize`** — Generate speech from text → `POST /api/agents/vocalize`
 
-An agent opens `voisss.netlify.app/marketplace` → queries `getTools()` → sees 5 tool definitions with JSON schemas → calls tools with structured args → VOISSS executes client-side JS → returns results → user sees UI update live.
+An agent opens `voisss.famile.xyz/marketplace` → queries `getTools()` → sees 5 tool definitions with JSON schemas → calls tools with structured args → VOISSS executes client-side JS → returns results → user sees UI update live.
 
 ### Agent.json declares WebMCP capability
 
@@ -62,7 +62,7 @@ An agent opens your page → calls `getTools()` → sees tool list with descript
 
 The challenge asks: *"Build an app that becomes meaningfully better when people and their agents can use it together."*
 
-**VOISSS with WebMCP:** An agent opens `voisss.netlify.app/marketplace`, discovers `list_voices` and `vocalize` tools, and says: *"Find me a professional female voice, generate a 15-second intro, and let me hear it."* The agent calls tools → UI updates → audio plays. Before WebMCP, the agent had to scrape the DOM and guess which buttons to click. After, it gets structured tools with JSON schemas.
+**VOISSS with WebMCP:** An agent opens `voisss.famile.xyz/marketplace`, discovers `list_voices` and `vocalize` tools, and says: *"Find me a professional female voice, generate a 15-second intro, and let me hear it."* The agent calls tools → UI updates → audio plays. Before WebMCP, the agent had to scrape the DOM and guess which buttons to click. After, it gets structured tools with JSON schemas.
 
 ---
 
@@ -143,7 +143,7 @@ Add `"webmcp": { "enabled": true, "tools": ["list_voices", "vocalize", ...] }` t
 
 ### Step 8: Demo video (2h)
 Record a Loom:
-1. Open `voisss.netlify.app/marketplace` in ChatGPT browser
+1. Open `voisss.famile.xyz/marketplace` in ChatGPT browser
 2. Agent says: *"Find me a professional female voice, generate a 15-second intro, and play it."*
 3. Agent calls `list_voices(tone='professional')` → filters → picks voice
 4. Agent calls `vocalize(text='Welcome to VOISSS...', voiceId='...')` → gets audio URL
@@ -174,7 +174,7 @@ No state to manage — each tool call is independent. The voice catalog is fetch
 - Voice samples are audio files → `play_voice_sample` finds the existing `<audio>` element and calls `.play()`
 
 ### Devpost submission checklist
-- [ ] Live URL: `https://voisss.netlify.app/marketplace`
+- [ ] Live URL: `https://voisss.famile.xyz/marketplace`
 - [ ] Loom demo video (<3 min public)
 - [ ] Open-source GitHub repo with license
 - [ ] README with WebMCP integration section

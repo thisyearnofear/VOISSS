@@ -1,6 +1,6 @@
 # @voisss/sdk
 
-Official JavaScript/TypeScript SDK for [VOISSS](https://voisss.netlify.app) - Voice licensing marketplace for AI agents.
+Official JavaScript/TypeScript SDK for [VOISSS](https://voisss.famile.xyz) - Voice licensing marketplace for AI agents.
 
 ## Installation
 
@@ -125,8 +125,8 @@ try {
 
 ```typescript
 const client = new VoisssClient({
-  // API URL (default: https://voisss.netlify.app)
-  apiUrl: 'https://voisss.netlify.app',
+  // API URL (default: https://voisss.famile.xyz)
+  apiUrl: 'https://voisss.famile.xyz',
   
   // Agent's wallet address
   agentAddress: '0x...',
@@ -228,7 +228,7 @@ Common voice IDs:
 - `FGY2WhTYpPnrIDTdsKH5` - Laura (Energetic, quirky)
 - `IKne3meq5aSn9XLyUdCD` - Charlie (Deep, energetic)
 
-Browse all voices at: https://voisss.netlify.app/marketplace
+Browse all voices at: https://voisss.famile.xyz/marketplace
 
 ## Examples
 
@@ -240,9 +240,9 @@ See the [examples](./examples) directory for more usage examples:
 
 ## Links
 
-- **Website:** https://voisss.netlify.app
+- **Website:** https://voisss.famile.xyz
 - **Documentation:** https://github.com/thisyearnofear/VOISSS/tree/main/docs
-- **API Reference:** https://voisss.netlify.app/agents
+- **API Reference:** https://voisss.famile.xyz/agents
 - **GitHub:** https://github.com/thisyearnofear/VOISSS
 
 ## License

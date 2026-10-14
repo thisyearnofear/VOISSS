@@ -178,24 +178,24 @@ ACP_AUTO_BID=auto
 ACP_CONFIDENCE_THRESHOLD=80
 ACP_MIN_BUDGET=0.01
 ACP_RESPONSE_TIME_MS=30000
-ACP_WEBHOOK_URL=https://voisss.netlify.app  # Where to execute jobs
+ACP_WEBHOOK_URL=https://voisss.famile.xyz  # Where to execute jobs
 ```
 
 **Control API:**
 
 ```bash
 # Start listening (requires ADMIN_API_KEY)
-curl -X POST https://voisss.netlify.app/api/acp/listener \
+curl -X POST https://voisss.famile.xyz/api/acp/listener \
   -H "Authorization: Bearer $ADMIN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"action":"start"}'
 
 # Check status
-curl https://voisss.netlify.app/api/acp/listener \
+curl https://voisss.famile.xyz/api/acp/listener \
   -H "Authorization: Bearer $ADMIN_API_KEY"
 
 # Stop listening
-curl -X POST https://voisss.netlify.app/api/acp/listener \
+curl -X POST https://voisss.famile.xyz/api/acp/listener \
   -H "Authorization: Bearer $ADMIN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"action":"stop"}'

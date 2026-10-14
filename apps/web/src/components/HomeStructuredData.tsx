@@ -1,4 +1,4 @@
-const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://voisss.netlify.app";
+const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://voisss.famile.xyz";
 
 const structuredData = [
   {

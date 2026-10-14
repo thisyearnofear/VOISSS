@@ -42,7 +42,7 @@ async function testAgentSecurity() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'VoissAgent/1.0 (AI Assistant; +https://voisss.netlify.app)',
+        'User-Agent': 'VoissAgent/1.0 (AI Assistant; +https://voisss.famile.xyz)',
         'X-Agent-ID': 'test-agent-123',
         'X-Skip-Agent-Verification': 'true' // Skip for testing
       },
@@ -85,7 +85,7 @@ async function testAgentSecurity() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'VoissAgent/1.0 (AI Assistant; +https://voisss.netlify.app)',
+        'User-Agent': 'VoissAgent/1.0 (AI Assistant; +https://voisss.famile.xyz)',
         'X-Agent-ID': 'test-agent-123'
       },
       body: JSON.stringify({
@@ -116,7 +116,7 @@ async function testAgentSecurity() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'VoissAgent/1.0 (AI Assistant; +https://voisss.netlify.app)',
+          'User-Agent': 'VoissAgent/1.0 (AI Assistant; +https://voisss.famile.xyz)',
           'X-Agent-ID': 'rate-limit-test-agent',
           'X-Skip-Agent-Verification': 'true'
         },

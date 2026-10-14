@@ -63,12 +63,12 @@ export const metadata: Metadata = {
   },
   ...getPageMetadata("/"),
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_BASE_URL || "https://voisss.netlify.app"
+    process.env.NEXT_PUBLIC_BASE_URL || "https://voisss.famile.xyz"
   ),
   openGraph: {
     title: "VOISSS | Enterprise Voice Licensing Marketplace for AI Agents",
     description: "License authentic human voices for your AI agents and applications. Enterprise-grade API, blockchain-verified provenance, and instant scaling. Built on Base.",
-    url: process.env.NEXT_PUBLIC_BASE_URL || "https://voisss.netlify.app",
+    url: process.env.NEXT_PUBLIC_BASE_URL || "https://voisss.famile.xyz",
     siteName: "VOISSS",
     locale: "en_US",
     type: "website",

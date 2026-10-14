@@ -4,7 +4,7 @@ Use this for your `demoFormat: recorded` submission (`videoUrl` is required — 
 
 ## Setup (30s before you hit record)
 
-- Open 2 windows side-by-side: **left** — `voisss.netlify.app/for-agents`, **right** — terminal + Network inspector.
+- Open 2 windows side-by-side: **left** — `voisss.famile.xyz/for-agents`, **right** — terminal + Network inspector.
 - Pre-connect a wallet so `universalAddress` is filled (or have a `0x...` agent address copied). If `DYNAMIC_WALLET_PRIVATE_KEY` fallback is used, the wallet will be the fallback EOA — still valid for the demo.
 - Confirm env on stage machine: `DYNAMIC_WALLET_PRIVATE_KEY` or `DYNAMIC_API_TOKEN + DYNAMIC_ENVIRONMENT_ID`, plus `X402_PAY_TO_ADDRESS`.
 - Quit Slack/Discord notifications. Set Loom to **720p, tab audio off** (you narrate).
@@ -17,25 +17,25 @@ Use this for your `demoFormat: recorded` submission (`videoUrl` is required — 
 |------|---------------|--------------------------|
 | **0–5s — Hook** | Land on `/for-agents`. Click `Show` on **Self-paying agents**, the two chips slide open. | “VOISSS turns voice IP into a financial primitive. One brief — the agent picks the voice and *pays itself* on Base." |
 | **5–15s — Create wallet** | Click **Create agent wallet**. Confetti + `Wallet created — ready to pay` badge pops (new micro-interaction). Copy the `0x...` pill to prove it's a real address. | "First, the agent gets a server wallet — MPC in prod, EOA fallback for the demo. No private key ever touches the browser." |
-| **15–25s — Pay without a human** | In terminal, run: `curl -X POST https://voisss.netlify.app/api/agents/vocalize -H "Content-Type: application/json" -H "X-DYNAMIC-WALLET: 1" -d '{"text":"warm female ad for NYC coffee shop, 15s","voiceId":"21m00Tcm4TlvDq8ikWAM","agentAddress":"0xYourAgent"}' \| jq '.data.paymentMethod, .data.audioUrl'`  — highlight `paymentMethod: "dynamic"` and `audioUrl`. | "Now the same endpoint — but with one header, `X-DYNAMIC-WALLET: 1`. Server signs `TransferWithAuthorization` via Dynamic, CDP verifies, and we get audio plus IPFS." |
+| **15–25s — Pay without a human** | In terminal, run: `curl -X POST https://voisss.famile.xyz/api/agents/vocalize -H "Content-Type: application/json" -H "X-DYNAMIC-WALLET: 1" -d '{"text":"warm female ad for NYC coffee shop, 15s","voiceId":"21m00Tcm4TlvDq8ikWAM","agentAddress":"0xYourAgent"}' \| jq '.data.paymentMethod, .data.audioUrl'`  — highlight `paymentMethod: "dynamic"` and `audioUrl`. | "Now the same endpoint — but with one header, `X-DYNAMIC-WALLET: 1`. Server signs `TransferWithAuthorization` via Dynamic, CDP verifies, and we get audio plus IPFS." |
 | **25–32s — Settlement & CTA** | Expand `How it settles` → `Base · x402 · 70% to contributor`. Hit play on the returned `audioUrl` for 2s. | "Seventy percent settles to the voice owner on-chain — same checkout Bankr scores for token design. One product, two Runtime tracks. Handbook link in the description." |
 
 ## Exact curls (paste-ready)
 
 ```bash
 # 1 — Create / ensure the server wallet (judges can verify without this, but it reads better)
-curl -s -X POST https://voisss.netlify.app/api/agents/dynamic-wallet \
+curl -s -X POST https://voisss.famile.xyz/api/agents/dynamic-wallet \
   -H "Content-Type: application/json" \
   -d '{"agentAddress":"0xYourAgentAddress"}' | jq
 
 # 2 — Agent decides + pays (the line judges grep for)
-curl -s -X POST https://voisss.netlify.app/api/agents/vocalize \
+curl -s -X POST https://voisss.famile.xyz/api/agents/vocalize \
   -H "Content-Type: application/json" \
   -H "X-DYNAMIC-WALLET: 1" \
   -d '{"text":"warm female ad for NYC coffee shop, 15s","voiceId":"21m00Tcm4TlvDq8ikWAM","agentAddress":"0xYourAgentAddress"}' | jq '.success, .data.paymentMethod, .data.cost, .data.audioUrl'
 
 # 3 — Optional Bankr narrative (shows Grand Prize leg — same checkout)
-curl -s https://voisss.netlify.app/api/bankr | jq '.status'
+curl -s https://voisss.famile.xyz/api/bankr | jq '.status'
 ```
 
 ## What to leave in the Loom description

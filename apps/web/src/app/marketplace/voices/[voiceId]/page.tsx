@@ -15,7 +15,7 @@ interface VoiceDetailPageProps {
 
 async function fetchVoice(voiceId: string): Promise<MarketplaceVoice | null> {
   const baseUrl =
-    process.env.NEXT_PUBLIC_BASE_URL || "https://voisss.netlify.app";
+    process.env.NEXT_PUBLIC_BASE_URL || "https://voisss.famile.xyz";
   try {
     const res = await fetch(`${baseUrl}/api/marketplace/voices?limit=500`, {
       next: { revalidate: 300 }, // 5 min cache

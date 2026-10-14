@@ -1,7 +1,7 @@
 # VOISSS × "90 Days. Ideate. Build. Ship. Grow." — Hackathon Submission
 
 **Category:** Entrepreneurship & Job Creation  
-**Live:** https://voisss.netlify.app  
+**Live:** https://voisss.famile.xyz  
 **GitHub:** https://github.com/thisyearnofear/VOISSS
 
 ---
@@ -94,13 +94,13 @@ Monitors: 3 offerings simultaneously (VoiceVocalize, VoiceInsight, VoiceClone)
 ### API Endpoints (Live Production)
 ```bash
 # Test the live agent API
-curl https://voisss.netlify.app/api/agents/themes
+curl https://voisss.famile.xyz/api/agents/themes
 
 # Agent discovery manifest
-curl https://voisss.netlify.app/.well-known/ai-plugin.json
+curl https://voisss.famile.xyz/.well-known/ai-plugin.json
 
 # Platform stats
-curl https://voisss.netlify.app/api/tools/platform-stats
+curl https://voisss.famile.xyz/api/tools/platform-stats
 ```
 
 ---

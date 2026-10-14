@@ -43,7 +43,7 @@ function notConfigured(detail?: string) {
         step1: 'npm i -g @bankr/cli && bankr login email you@example.com --code 123456 --accept-terms --key-name "VOISSS Runtime" --llm',
         step2: 'Add to env: BANKR_API_KEY=bk_...  (and optionally BANKR_LLM_KEY=...)',
         docs: 'https://docs.bankr.bot/cli/ — see also BankrBot/skills SKILL.md',
-        verify: 'bankr whoami  &&  curl https://voisss.netlify.app/api/bankr',
+        verify: 'bankr whoami  &&  curl https://voisss.famile.xyz/api/bankr',
       },
       status: getBankrStatus(),
     },

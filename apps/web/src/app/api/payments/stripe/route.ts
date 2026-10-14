@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
             product_data: {
               name: `VOISSS ${selectedPack.label}`,
               description: `$${selectedPack.creditsUSD} in voice API credits (~${(selectedPack.creditsUSD * 1_000_000).toLocaleString()} characters). 70% goes to voice contributors.`,
-              images: ["https://voisss.netlify.app/og-image.png"],
+              images: ["https://voisss.famile.xyz/og-image.png"],
             },
             unit_amount: selectedPack.priceUSD * 100, // Stripe uses cents
           },
@@ -68,10 +68,10 @@ export async function POST(request: NextRequest) {
       mode: "payment",
       success_url:
         successUrl ||
-        `${request.headers.get("origin") || "https://voisss.netlify.app"}/studio?credits=success&pack=${pack}`,
+        `${request.headers.get("origin") || "https://voisss.famile.xyz"}/studio?credits=success&pack=${pack}`,
       cancel_url:
         cancelUrl ||
-        `${request.headers.get("origin") || "https://voisss.netlify.app"}/studio?credits=cancelled`,
+        `${request.headers.get("origin") || "https://voisss.famile.xyz"}/studio?credits=cancelled`,
       metadata: {
         agentAddress,
         pack,

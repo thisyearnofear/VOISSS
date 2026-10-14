@@ -127,11 +127,11 @@ export default function PrivacyPage() {
               </p>
               <div className="mt-4 flex flex-col sm:flex-row gap-4">
                 <a
-                  href="mailto:privacy@voisss.netlify.app"
+                  href="mailto:privacy@voisss.famile.xyz"
                   className="inline-flex items-center gap-2 px-5 py-3 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl text-gray-300 hover:border-purple-500/50 transition-all"
                 >
                   <CompatibleMail className="w-4 h-4 text-purple-400" />
-                  privacy@voisss.netlify.app
+                  privacy@voisss.famile.xyz
                 </a>
               </div>
             </Section>

@@ -22,7 +22,7 @@
 
 1. Go to https://dashboard.stripe.com/webhooks
 2. Click **"Add endpoint"**
-3. **Endpoint URL:** `https://voisss.netlify.app/api/payments/stripe/webhook`
+3. **Endpoint URL:** `https://voisss.famile.xyz/api/payments/stripe/webhook`
 4. **Events to listen for:** Select `checkout.session.completed`
 5. Click **"Add endpoint"**
 6. On the endpoint detail page, reveal the **Signing secret** (`whsec_...`)
@@ -38,10 +38,14 @@ STRIPE_SECRET_KEY=sk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 ```
 
-Also add these to Netlify environment variables (if deploying via Netlify):
+For production, set these as secrets on the `voisss-web` Cloudflare Worker:
 
-1. Go to https://app.netlify.com/sites/voisss/settings/env
-2. Add `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`
+```bash
+cd apps/web
+echo -n "sk_live_..." | npx wrangler secret put STRIPE_SECRET_KEY --name voisss-web
+echo -n "whsec_..."  | npx wrangler secret put STRIPE_WEBHOOK_SECRET --name voisss-web
+pnpm exec vinext-cloudflare deploy   # redeploy so the new env is baked in
+```
 
 ## Step 5: Test the Flow
 
@@ -71,5 +75,5 @@ Also add these to Netlify environment variables (if deploying via Netlify):
 - [ ] Secret key starts with `sk_live_` (not `sk_test_`)
 - [ ] Webhook endpoint is active and shows "Enabled"
 - [ ] Webhook signing secret starts with `whsec_`
-- [ ] Netlify env vars set (if deploying there)
-- [ ] Set `NEXT_PUBLIC_APP_URL` to `https://voisss.netlify.app`
+- [ ] Worker secrets set (`wrangler secret list --name voisss-web`) + redeployed via `vinext-cloudflare deploy`
+- [ ] Set `NEXT_PUBLIC_APP_URL` to `https://voisss.famile.xyz`

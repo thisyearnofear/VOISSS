@@ -1,3 +1,6 @@
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
 });
@@ -66,6 +69,18 @@ const nextConfig = {
           },
         ],
       },
+    ];
+  },
+
+  // Proxy to Hetzner backend (voisss.famile.xyz) — formerly netlify.toml
+  // [[redirects]] with status=200/force=true. No local route handlers exist
+  // for these paths; Stripe payments stay local (raw-body webhook).
+  async rewrites() {
+    return [
+      { source: '/api/voices', destination: 'https://voisss.famile.xyz/api/voices' },
+      { source: '/api/transform', destination: 'https://voisss.famile.xyz/api/transform' },
+      { source: '/api/dubbing/:path*', destination: 'https://voisss.famile.xyz/api/dubbing/:path*' },
+      { source: '/api/export/:path*', destination: 'https://voisss.famile.xyz/api/export/:path*' },
     ];
   },
 
@@ -199,4 +214,4 @@ const nextConfig = {
   },
 };
 
-module.exports = withBundleAnalyzer(nextConfig);
+export default withBundleAnalyzer(nextConfig);
