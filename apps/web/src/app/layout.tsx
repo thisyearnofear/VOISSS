@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Inter, Instrument_Serif, IBM_Plex_Mono } from "next/font/google";
 import { BaseProvider } from "./providers";
+import Script from "next/script";
 import ScrollLife from "../components/ScrollLife";
+import Analytics from "../components/Analytics";
 import Ticker from "../components/Ticker";
 import { ReferralTracker } from "./referral-tracker";
 import "./globals.css";
@@ -142,27 +144,17 @@ export default function RootLayout({
         {/* Manifest */}
         <link rel="manifest" href="/manifest.json" />
 
-        {/* Analytics - Google Analytics (next/script for optimal loading) */}
+        {/* Analytics - Google Analytics (afterInteractive: no render-block, no CSP inline-script issue) */}
         {process.env.NEXT_PUBLIC_GA_ID && (
-          <script
-            async
+          <Script
             src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
+            strategy="afterInteractive"
           />
         )}
         {process.env.NEXT_PUBLIC_GA_ID && (
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}', {
-                  page_title: document.title,
-                  page_location: window.location.href,
-                });
-              `,
-            }}
-          />
+          <Script id="ga-init" strategy="afterInteractive">
+            {`window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}', {page_title: document.title, page_location: window.location.href});`}
+          </Script>
         )}
       </head>
       <body
@@ -170,6 +162,7 @@ export default function RootLayout({
         suppressHydrationWarning={true}
       >
         <BaseProvider>
+          <Analytics />
           <ReferralTracker />
           {/* Licensed Signal HUD: global Ticker (phosphor strip) above scroll rail */}
           <Ticker />

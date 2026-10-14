@@ -14,21 +14,32 @@ export default function NewsletterSection() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    const trimmed = email.trim();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setStatus("error");
+      setErrorMessage("Enter a valid email address.");
+      return;
+    }
 
     setStatus("loading");
+    setErrorMessage("");
     try {
-      // Mock API call - in production this would hit /api/newsletter or similar
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      // For now, let's just log it or simulate success
-      console.log("Newsletter subscription for:", email);
-      
+      const res = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed, source: "homepage" }),
+      });
+      let data: { error?: string } = {};
+      try {
+        if (res.headers.get("content-type")?.includes("application/json")) data = await res.json();
+      } catch { /* non-JSON error page — fall through to generic message */ }
+      if (!res.ok) throw new Error(data.error || "Subscription failed");
+
       setStatus("success");
       setEmail("");
     } catch (err) {
       setStatus("error");
-      setErrorMessage("Something went wrong. Please try again.");
+      setErrorMessage(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     }
   };
 
@@ -87,7 +98,7 @@ export default function NewsletterSection() {
                 </button>
               </div>
               {status === "error" && (
-                <p className="mt-4 text-red-400 text-sm">{errorMessage}</p>
+                <p role="alert" aria-live="assertive" className="mt-4 text-red-400 text-sm">{errorMessage}</p>
               )}
               <p className="mt-4 text-gray-500 text-xs">
                 By subscribing, you agree to our <a href="/privacy" className="underline hover:text-gray-400">Privacy Policy</a>. No spam, ever.

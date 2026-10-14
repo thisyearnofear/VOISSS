@@ -16,6 +16,13 @@ import {
 } from "@/lib/listening-preview";
 import { VoiceAuditionRow, voiceDisplayName, voiceMetaLine } from "@/components/listening/VoiceAuditionRow";
 import { Button, Chip, Notice } from "@/components/ui";
+import {
+  trackFirstPlayback,
+  trackGenerationFailed,
+  trackGenerationStarted,
+  trackGenerationSucceeded,
+  trackVoiceSelected,
+} from "@/lib/telemetry";
 
 function GeneratePageInner() {
   const searchParams = useSearchParams();
@@ -33,6 +40,7 @@ function GeneratePageInner() {
 
   const trackVocalize = useCallback(() => {
     if (!selectedVoice) return;
+    trackGenerationSucceeded(selectedVoice.id);
     publishAppEvent({
       type: "voice:complete",
       voiceId: selectedVoice.contractVoiceId || selectedVoice.id,
@@ -53,15 +61,18 @@ function GeneratePageInner() {
 
   const trackStart = useCallback(() => {
     if (!selectedVoice) return;
+    trackGenerationStarted(selectedVoice.id);
     publishAppEvent({
       type: "voice:generate",
       voiceId: selectedVoice.contractVoiceId || selectedVoice.id,
     });
   }, [selectedVoice]);
 
+  const selectedVoiceId = selectedVoice?.id ?? "unknown";
   const trackError = useCallback((message: string) => {
+    trackGenerationFailed(selectedVoiceId, message);
     publishAppEvent({ type: "error", message: `voice generation: ${message}` });
-  }, []);
+  }, [selectedVoiceId]);
 
   const {
     generate,
@@ -158,6 +169,7 @@ function GeneratePageInner() {
     const voice = voices.find((v) => v.id === id) || null;
     setSelectedVoice(voice);
     setVoiceUnavailable(false);
+    if (voice) trackVoiceSelected(voice.id);
     updateDraft({ voiceId: voice?.id ?? "" });
     clearResultAndCopy();
   };
@@ -171,6 +183,21 @@ function GeneratePageInner() {
     generationTrack &&
     playback.track?.id === generationTrack.id &&
     playback.status === "playing";
+
+  // First-win: the generated preview actually playing is the funnel's
+  // terminal event — fire once per result track.
+  const playbackFiredFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      generationPlaying &&
+      generationTrack &&
+      selectedVoice &&
+      playbackFiredFor.current !== generationTrack.id
+    ) {
+      playbackFiredFor.current = generationTrack.id;
+      trackFirstPlayback(selectedVoice.id);
+    }
+  }, [generationPlaying, generationTrack, selectedVoice]);
 
   const shareVoiceLink = useCallback(async () => {
     if (!selectedVoice) return;

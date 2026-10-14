@@ -2,9 +2,11 @@
 
 import { useEffect } from 'react';
 
+type GtagParams = Record<string, string | number | boolean | undefined>;
 declare global {
   interface Window {
-    gtag: (command: string, targetId: string, config?: any) => void;
+    gtag: (command: "event" | "config" | "js", target: string | Date, params?: GtagParams) => void;
+    dataLayer?: unknown[];
   }
 }
 
@@ -26,8 +28,9 @@ export const trackEvent = ({ action, category, label, value }: AnalyticsEvent) =
 };
 
 export const trackPageView = (url: string) => {
-  if (typeof window !== 'undefined' && window.gtag) {
-    window.gtag('config', process.env.NEXT_PUBLIC_GA_ID!, {
+  const gaId = process.env.NEXT_PUBLIC_GA_ID;
+  if (typeof window !== 'undefined' && window.gtag && gaId) {
+    window.gtag('config', gaId, {
       page_path: url,
     });
   }

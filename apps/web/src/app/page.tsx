@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { ArrowRight, Command, Zap } from "lucide-react";
 import HomeStructuredData from "../components/HomeStructuredData";
+import NewsletterSection from "../components/NewsletterSection";
 import SplitBar from "../components/SplitBar";
 import VoiceTerrain from "../components/VoiceTerrain";
 import AsciiField from "../components/hero/AsciiField";
@@ -19,12 +20,15 @@ import { initTelemetry, flushNow } from "../lib/telemetry";
 
 if (typeof window !== "undefined") {
   initTelemetry();
-  window.addEventListener("popstate", flushNow);
 }
 
 const EXAMPLE_BRIEFS = ["Calm narration", "A warm welcome", "An energetic ad"];
 
 export default function Home() {
+  useEffect(() => {
+    window.addEventListener("popstate", flushNow);
+    return () => window.removeEventListener("popstate", flushNow);
+  }, []);
   const router = useRouter();
   const { draft, updateDraft } = useListeningRoom();
   const playback = useListeningPlayback();
@@ -203,6 +207,8 @@ export default function Home() {
             </div>
           </div>
         </Disclosure>
+
+        <NewsletterSection />
 
         <footer className="lr-home-footer">
           <Link href="/help">Help</Link>

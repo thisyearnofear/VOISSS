@@ -13,6 +13,7 @@ import {
   Mic,
 } from "lucide-react";
 import { publishAppEvent } from "@/lib/mascot-events";
+import { trackPaymentInitiated } from "@/lib/telemetry";
 
 interface CreditPack {
   id: string;
@@ -127,6 +128,7 @@ export function BuyCreditsModal({
       }
 
       // Redirect to Stripe Checkout
+      trackPaymentInitiated(selectedPack.id, selectedPack.priceUSD);
       publishAppEvent({ type: "payment:success", amount: selectedPack.priceUSD });
       window.location.href = data.data.url;
     } catch (err) {
