@@ -119,6 +119,13 @@ The app automatically connects to `https://butler.voisss.famile.xyz/`. To use a 
 
 ## 🚀 Deployment
 
+**Live web app:** https://voisss-silence.pages.dev (Cloudflare Pages)
+
+```bash
+flutter build web --release
+wrangler pages deploy build/web --project-name voisss-silence
+```
+
 ### Build for Production
 ```bash
 # macOS

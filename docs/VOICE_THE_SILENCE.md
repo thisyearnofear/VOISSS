@@ -286,7 +286,8 @@ Rule of thumb: **one layer owns CORS** — proxy or app, never both.
 - **Edge:** nginx vhost `butler.voisss.famile.xyz` → `:8090` (certbot TLS;
   Serverpod owns CORS — one layer only).
 - **Flutter web** `apps/mobile-flutter` → `flutter build web --release` →
-  `build/web`; local preview only so far — not publicly deployed.
+  `build/web` deployed to Cloudflare Pages: **https://voisss-silence.pages.dev**
+  (`wrangler pages deploy build/web --project-name voisss-silence`).
 - `apps/web` (vinext web app → `voisss.famile.xyz`, Cloudflare Workers) is a
   **separate app and pipeline** — unrelated to the contest backend.
 
