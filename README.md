@@ -11,6 +11,13 @@
 
 **Live:** https://voisss.famile.xyz
 
+> **🏆 "Build Something Real" (Serverpod) hackathon entry — judges start here:**
+> **Voice the Silence** — a weekly silent-film voiceover contest (Chaplin-era public domain clips; Bad Lip Reading as a community format).
+> - **Live app (Flutter web):** https://voisss-silence.pages.dev
+> - **Serverpod backend:** https://butler.voisss.famile.xyz — endpoints, streaming methods, ORM + Postgres migrations
+> - **Code:** [`apps/mobile-flutter`](./apps/mobile-flutter) (Flutter app) + [`apps/flutter-backend-serverpod`](./apps/flutter-backend-serverpod) (Serverpod server + generated `voisss_butler_client`)
+> - **Details:** [docs/VOICE_THE_SILENCE.md](./docs/VOICE_THE_SILENCE.md)
+
 ---
 
 ## 🚀 Quick Start
