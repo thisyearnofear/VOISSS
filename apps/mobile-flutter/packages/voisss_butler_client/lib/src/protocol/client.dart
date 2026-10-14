@@ -91,6 +91,8 @@ class EndpointButler extends _i1.EndpointRef {
         },
       );
 
+  /// Searches real contest takes — SilenceEntry rows are the voice
+  /// recordings this app actually stores.
   _i2.Future<List<_i5.ButlerRecording>> findRecordings(
           {required String query}) =>
       caller.callServerEndpoint<List<_i5.ButlerRecording>>(
@@ -99,6 +101,7 @@ class EndpointButler extends _i1.EndpointRef {
         {'query': query},
       );
 
+  /// Real contest stats instead of fabricated recording analytics.
   _i2.Future<_i6.ButlerInsights> getInsights() =>
       caller.callServerEndpoint<_i6.ButlerInsights>(
         'butler',

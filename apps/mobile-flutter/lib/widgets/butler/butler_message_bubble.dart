@@ -80,6 +80,13 @@ class ButlerMessageBubble extends StatelessWidget {
                       ),
                     ),
                   
+                  // Structured tool result card (leaderboard, clips, …)
+                  if (message.card != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _ButlerCard(card: message.card!),
+                    ),
+
                   // Message content
                   if (message.type == ButlerMessageType.text)
                     MarkdownBody(
@@ -103,7 +110,7 @@ class ButlerMessageBubble extends StatelessWidget {
                         ),
                       ),
                     )
-                  else
+                  else if (message.content.isNotEmpty)
                     Text(
                       message.content,
                       style: TextStyle(
@@ -143,5 +150,104 @@ class ButlerMessageBubble extends StatelessWidget {
     } else {
       return '${time.day}/${time.month} ${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
     }
+  }
+}
+
+/// Structured tool-result card inside a Butler bubble — the generative-UI
+/// payload the model asked for via a tool call (leaderboard, clips, entries).
+class _ButlerCard extends StatelessWidget {
+  final ButlerCardData card;
+
+  const _ButlerCard({required this.card});
+
+  IconData get _icon => switch (card.kind) {
+        'leaderboard' => Icons.emoji_events_outlined,
+        'clips' => Icons.movie_outlined,
+        'entries' => Icons.graphic_eq,
+        _ => Icons.info_outline,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.25),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF7C5DFA).withOpacity(0.35)),
+      ),
+      padding: const EdgeInsets.all(10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(_icon, size: 15, color: const Color(0xFF9B7BFF)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  card.title ?? 'Result',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF9B7BFF),
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (card.items.isNotEmpty) const SizedBox(height: 8),
+          ...card.items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.title,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (item.subtitle != null)
+                          Text(
+                            item.subtitle!,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[500],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  if (item.audioUrl != null)
+                    const Padding(
+                      padding: EdgeInsets.only(right: 6),
+                      child: Icon(Icons.play_circle_outline,
+                          size: 18, color: Color(0xFF9B7BFF)),
+                    ),
+                  if (item.trailing != null)
+                    Text(
+                      item.trailing!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF9B7BFF),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

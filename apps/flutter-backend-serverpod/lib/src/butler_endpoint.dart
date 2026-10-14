@@ -79,7 +79,8 @@ class VeniceAIClient {
         'max_tokens': 1000,
       });
 
-      request.write(body);
+      // `write()` encodes latin-1 and throws on non-ASCII — send UTF-8 bytes.
+      request.add(utf8.encode(body));
       final response =
           await request.close().timeout(const Duration(seconds: 45));
 
@@ -262,9 +263,23 @@ class ButlerEndpoint extends Endpoint {
     return _chatHistories.putIfAbsent(sessionId, () => [
           {
             'role': 'system',
-            'content': 'You are VOISSS Butler, an AI voice assistant that '
-                'helps users manage their voice recordings. Be helpful, '
-                'concise, and friendly.'
+            'content': 'You are VOISSS Butler, an AI voice assistant inside '
+                'the "Voice the Silence" silent-film voiceover contest app. '
+                'Be helpful, concise, and friendly.\n\n'
+                'You can call tools over the live contest data. When the '
+                'user asks about contest clips, submitted voice entries, or '
+                'the leaderboard, reply with EXACTLY one line as your '
+                'ENTIRE response — no other text:\n'
+                '<<tool:NAME {"arg": value}>>\n'
+                'Available tools:\n'
+                '- list_clips {} — the silent-film clips in the contest\n'
+                '- get_leaderboard {"clipId": <int>} — ranked entries; omit '
+                'clipId for the currently active clip\n'
+                '- list_entries {"clipId": <int>} — voice takes for a clip; '
+                'omit clipId for the active clip\n'
+                'Never emit the sentinel for other questions — answer those '
+                'normally. After a tool runs you receive its JSON result; '
+                'then summarize it for the user naturally and concisely.'
           }
         ]);
   }
@@ -273,6 +288,190 @@ class ButlerEndpoint extends Endpoint {
     if (messages.length > 20) {
       messages.removeRange(1, messages.length - 19);
     }
+  }
+
+  // ---- Tools ---------------------------------------------------------------
+
+  static const _toolSentinel = '<<tool:';
+  static final _toolRe = RegExp(r'<<tool:([a-zA-Z_]+)\s*(\{.*?\})?\s*>>');
+
+  /// Parses a `<<tool:name {json}>>` sentinel emitted by the model.
+  /// Returns (toolName, args) or null when the text isn't a tool call.
+  (String, Map<String, dynamic>)? _parseToolCall(String text) {
+    final m = _toolRe.firstMatch(text.trimLeft());
+    if (m == null) return null;
+    var args = <String, dynamic>{};
+    final raw = m.group(2);
+    if (raw != null) {
+      try {
+        args = (jsonDecode(raw) as Map).cast<String, dynamic>();
+      } catch (_) {}
+    }
+    return (m.group(1)!, args);
+  }
+
+  Future<SilenceClip?> _activeClip(Session session) =>
+      SilenceClip.db.findFirstRow(
+        session,
+        where: (t) => t.active.equals(true),
+        orderBy: (t) => t.weekStart,
+        orderDescending: true,
+      );
+
+  Future<List<SilenceLeaderboardRow>> _leaderboardRows(
+      Session session, int clipId) async {
+    final all = await SilenceEntry.db.find(
+      session,
+      where: (t) => t.clipId.equals(clipId),
+      orderBy: (t) => t.voteScoreTotal,
+      orderDescending: true,
+    );
+    final entries = all.where((e) => e.voteCount > 0).toList()
+      ..sort((a, b) => (b.voteScoreTotal / b.voteCount)
+          .compareTo(a.voteScoreTotal / a.voteCount));
+    var rank = 0;
+    return entries
+        .map((e) => SilenceLeaderboardRow(
+              entryId: e.id!,
+              displayName: e.displayName,
+              voteCount: e.voteCount,
+              avgScore: e.voteScoreTotal / e.voteCount,
+              rank: ++rank,
+            ))
+        .toList();
+  }
+
+  /// Runs a model-invoked tool and returns a `card` event for the UI plus
+  /// a compact JSON result that is fed back to the model for grounding.
+  Future<(ButlerStreamEvent, String)> _runTool(
+      Session session, String name, Map<String, dynamic> args) async {
+    Future<int?> resolveClipId() async {
+      final arg = args['clipId'];
+      if (arg is int) return arg;
+      return (await _activeClip(session))?.id;
+    }
+
+    try {
+      switch (name) {
+        case 'list_clips':
+          final clips = await SilenceClip.db.find(
+            session,
+            orderBy: (t) => t.weekStart,
+            orderDescending: true,
+            limit: 10,
+          );
+          return (
+            ButlerStreamEvent(
+                kind: 'card',
+                cardKind: 'clips',
+                text: 'Contest clips',
+                clips: clips),
+            jsonEncode(clips
+                .map((c) => {
+                      'id': c.id,
+                      'title': c.title,
+                      'durationSec': c.durationSec,
+                      'active': c.active,
+                      'rightsNote': c.rightsNote,
+                    })
+                .toList()),
+          );
+        case 'get_leaderboard':
+          final clipId = await resolveClipId();
+          if (clipId == null) {
+            return (
+              ButlerStreamEvent(
+                  kind: 'card',
+                  cardKind: 'error',
+                  text: 'No active clip right now'),
+              jsonEncode({'error': 'no active clip'}),
+            );
+          }
+          final clip = await SilenceClip.db.findById(session, clipId);
+          final rows = await _leaderboardRows(session, clipId);
+          return (
+            ButlerStreamEvent(
+                kind: 'card',
+                cardKind: 'leaderboard',
+                text: clip?.title ?? 'Leaderboard',
+                leaderboard: rows),
+            jsonEncode({
+              'clip': clip?.title,
+              'entries': rows
+                  .map((r) => {
+                        'rank': r.rank,
+                        'name': r.displayName,
+                        'votes': r.voteCount,
+                        'avgScore': r.avgScore,
+                      })
+                  .toList(),
+            }),
+          );
+        case 'list_entries':
+          final clipId = await resolveClipId();
+          if (clipId == null) {
+            return (
+              ButlerStreamEvent(
+                  kind: 'card',
+                  cardKind: 'error',
+                  text: 'No active clip right now'),
+              jsonEncode({'error': 'no active clip'}),
+            );
+          }
+          final clip = await SilenceClip.db.findById(session, clipId);
+          final entries = await SilenceEntry.db.find(
+            session,
+            where: (t) => t.clipId.equals(clipId),
+            orderBy: (t) => t.createdAt,
+            orderDescending: true,
+            limit: 10,
+          );
+          final cards = entries
+              .map((e) => ButlerEntryCard(
+                    id: e.id!,
+                    clipId: e.clipId,
+                    displayName: e.displayName,
+                    audioUrl: e.audioUrl,
+                    audioFormat: e.audioFormat,
+                    isAiGenerated: e.isAiGenerated,
+                    voteCount: e.voteCount,
+                    avgScore:
+                        e.voteCount > 0 ? e.voteScoreTotal / e.voteCount : 0,
+                  ))
+              .toList();
+          return (
+            ButlerStreamEvent(
+                kind: 'card',
+                cardKind: 'entries',
+                text: clip?.title ?? 'Entries',
+                entries: cards),
+            jsonEncode({
+              'clip': clip?.title,
+              'entries': cards
+                  .map((c) => {
+                        'id': c.id,
+                        'name': c.displayName,
+                        'aiGenerated': c.isAiGenerated,
+                        'votes': c.voteCount,
+                        'avgScore': c.avgScore,
+                      })
+                  .toList(),
+            }),
+          );
+      }
+    } catch (e) {
+      print('Tool $name failed: $e');
+      return (
+        ButlerStreamEvent(
+            kind: 'card', cardKind: 'error', text: 'Tool lookup failed'),
+        jsonEncode({'error': 'tool $name failed'}),
+      );
+    }
+    return (
+      ButlerStreamEvent(
+          kind: 'card', cardKind: 'error', text: 'Unknown tool: $name'),
+      jsonEncode({'error': 'unknown tool $name'}),
+    );
   }
 
   Future<ButlerChatResponse> chat(
@@ -293,7 +492,20 @@ class ButlerEndpoint extends Endpoint {
         userMessage = '[Recording: $recordingId] $userMessage';
       }
       messages.add({'role': 'user', 'content': userMessage});
-      final responseText = await _complete(messages);
+      var responseText = await _complete(messages);
+      // Model may open with a tool sentinel — run the tool and re-ask with
+      // the result so the final answer is grounded in real data.
+      final call = _parseToolCall(responseText);
+      if (call != null) {
+        messages.add({'role': 'assistant', 'content': responseText});
+        final (_, resultJson) = await _runTool(session, call.$1, call.$2);
+        messages.add({
+          'role': 'user',
+          'content': 'Tool result:\n$resultJson\n\n'
+              'Now answer the user, summarizing this data naturally.',
+        });
+        responseText = await _complete(messages);
+      }
       messages.add({'role': 'assistant', 'content': responseText});
       _trim(messages);
       return _response(responseText, recordingId);
@@ -339,11 +551,69 @@ class ButlerEndpoint extends Endpoint {
       var emittedThisAttempt = false;
       try {
         final buf = StringBuffer();
-        await for (final delta in client.chatCompletionStream(messages)) {
-          buf.write(delta);
-          emittedThisAttempt = true;
-          emitted = true;
-          yield ButlerStreamEvent(kind: 'delta', text: delta);
+        var flushed = false;
+        await for (final chunk in client.chatCompletionStream(messages)) {
+          if (flushed) {
+            buf.write(chunk);
+            yield ButlerStreamEvent(kind: 'delta', text: chunk);
+            continue;
+          }
+          buf.write(chunk);
+          final s = buf.toString();
+          final t = s.trimLeft();
+          if (t.startsWith(_toolSentinel)) {
+            // Possible tool call — wait for the closing '>>'.
+            final end = t.indexOf('>>');
+            if (end < 0) {
+              if (t.length > 256) {
+                // Pathologically long sentinel — flush as normal text.
+                flushed = true;
+                emittedThisAttempt = emitted = true;
+                yield ButlerStreamEvent(kind: 'delta', text: t);
+              }
+              continue;
+            }
+            final call = _parseToolCall(t.substring(0, end + 2));
+            if (call == null) {
+              flushed = true;
+              emittedThisAttempt = emitted = true;
+              yield ButlerStreamEvent(kind: 'delta', text: t);
+              continue;
+            }
+            // Tool call: run it, emit the card, then stream a second
+            // grounded answer from the same provider.
+            emittedThisAttempt = emitted = true;
+            final (card, resultJson) =
+                await _runTool(session, call.$1, call.$2);
+            yield card;
+            messages.add({'role': 'assistant', 'content': t.substring(0, end + 2)});
+            messages.add({
+              'role': 'user',
+              'content': 'Tool result:\n$resultJson\n\n'
+                  'Now answer the user, summarizing this data naturally '
+                  'and concisely.',
+            });
+            buf.clear();
+            final leftover = t.substring(end + 2).trim();
+            if (leftover.isNotEmpty) {
+              buf.write(leftover);
+              yield ButlerStreamEvent(kind: 'delta', text: leftover);
+            }
+            await for (final chunk2
+                in client.chatCompletionStream(messages)) {
+              buf.write(chunk2);
+              yield ButlerStreamEvent(kind: 'delta', text: chunk2);
+            }
+            break;
+          }
+          if (t.length <= _toolSentinel.length &&
+              _toolSentinel.startsWith(t)) {
+            // Still could become a sentinel — keep buffering.
+            continue;
+          }
+          flushed = true;
+          emittedThisAttempt = emitted = true;
+          yield ButlerStreamEvent(kind: 'delta', text: t);
         }
         accumulated = buf.toString();
         _activeProvider = name;
@@ -412,45 +682,63 @@ class ButlerEndpoint extends Endpoint {
     }
   }
 
+  /// Searches real contest takes — SilenceEntry rows are the voice
+  /// recordings this app actually stores.
   Future<List<ButlerRecording>> findRecordings(Session session,
       {required String query}) async {
-    return [
-      ButlerRecording(
-          id: '1',
-          title: 'Meeting with team',
-          duration: 300,
-          date: '2026-01-28'),
-      ButlerRecording(
-          id: '2',
-          title: 'Project ideas',
-          duration: 180,
-          date: '2026-01-27'),
-    ];
+    final entries = await SilenceEntry.db.find(
+      session,
+      orderBy: (t) => t.createdAt,
+      orderDescending: true,
+      limit: 50,
+    );
+    final q = query.toLowerCase();
+    return entries
+        .where((e) => e.displayName.toLowerCase().contains(q))
+        .take(10)
+        .map((e) => ButlerRecording(
+              id: '${e.id}',
+              title: e.displayName,
+              duration: 0,
+              date: e.createdAt.toIso8601String().substring(0, 10),
+            ))
+        .toList();
   }
 
+  /// Real contest stats instead of fabricated recording analytics.
   Future<ButlerInsights> getInsights(Session session) async {
+    final entries = await SilenceEntry.db.find(session, limit: 200);
+    final clips = await SilenceClip.db.find(session, limit: 50);
+    final totalVotes =
+        entries.fold<int>(0, (sum, e) => sum + e.voteCount);
+    final active = clips.where((c) => c.active).length;
+    final contributors = entries.map((e) => e.displayName).toSet();
+    final top = entries.toList()
+      ..sort((a, b) => b.voteCount.compareTo(a.voteCount));
     return ButlerInsights(
       summary:
-          'You have been actively using voice recordings for meetings and ideas.',
-      topTopics: ['Meetings', 'Project Planning', 'Personal Notes'],
-      recordingFrequency: '3-4 recordings per week',
+          '${entries.length} voice takes across ${clips.length} clips '
+          '($active active) with $totalVotes votes cast so far.',
+      topTopics: top.take(3).map((e) => e.displayName).toList(),
+      recordingFrequency:
+          '${contributors.length} contributor${contributors.length == 1 ? '' : 's'}',
       suggestions: [
-        'Try organizing recordings with tags',
-        'Consider transcribing important meetings',
-        'Set reminders for follow-ups',
+        'Show me the leaderboard',
+        'What clips are in the contest?',
+        'List the latest voice takes',
       ],
-      totalRecordings: 12,
-      totalDuration: 3600,
+      totalRecordings: entries.length,
+      // Entry rows don't store clip duration — unknown, so 0.
+      totalDuration: 0,
     );
   }
 
   Future<List<String>> getSuggestions(Session session) async {
     return [
-      'Summarize my latest recording',
-      'Find recordings about work',
-      'What did I record yesterday?',
-      'Transcribe my last voice memo',
-      'Extract action items from my meeting',
+      'What\'s on the leaderboard?',
+      'Which clips can I voice?',
+      'Show me the latest voice takes',
+      'Help me write lines for the active clip',
     ];
   }
 }

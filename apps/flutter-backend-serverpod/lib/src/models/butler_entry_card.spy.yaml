@@ -1,0 +1,14 @@
+### Lightweight voice-take card for Butler tool results. The full
+### SilenceEntry row carries raw audio bytes (bytea) — far too heavy to
+### ship inside a chat event, so this carries just what a card needs.
+class: ButlerEntryCard
+fields:
+  id: int
+  clipId: int
+  displayName: String
+  ### Grove gateway URL for playback ('' when only DB bytes exist).
+  audioUrl: String
+  audioFormat: String
+  isAiGenerated: bool
+  voteCount: int
+  avgScore: double

@@ -14,26 +14,28 @@ import 'package:serverpod/serverpod.dart' as _i1;
 import 'package:serverpod/protocol.dart' as _i2;
 import 'greeting.dart' as _i3;
 import 'butler_chat_response.dart' as _i4;
-import 'butler_insights.dart' as _i5;
-import 'butler_recording.dart' as _i6;
-import 'butler_stream_event.dart' as _i7;
-import 'co_writer_message.dart' as _i8;
-import 'silence_clip.dart' as _i9;
-import 'silence_entry.dart' as _i10;
-import 'silence_entry_view.dart' as _i11;
-import 'silence_leaderboard_row.dart' as _i12;
-import 'silence_vote.dart' as _i13;
+import 'butler_entry_card.dart' as _i5;
+import 'butler_insights.dart' as _i6;
+import 'butler_recording.dart' as _i7;
+import 'butler_stream_event.dart' as _i8;
+import 'co_writer_message.dart' as _i9;
+import 'silence_clip.dart' as _i10;
+import 'silence_entry.dart' as _i11;
+import 'silence_entry_view.dart' as _i12;
+import 'silence_leaderboard_row.dart' as _i13;
+import 'silence_vote.dart' as _i14;
 import 'package:voisss_butler_server/src/generated/butler_recording.dart'
-    as _i14;
-import 'package:voisss_butler_server/src/generated/silence_clip.dart' as _i15;
+    as _i15;
+import 'package:voisss_butler_server/src/generated/silence_clip.dart' as _i16;
 import 'package:voisss_butler_server/src/generated/co_writer_message.dart'
-    as _i16;
-import 'package:voisss_butler_server/src/generated/silence_entry_view.dart'
     as _i17;
-import 'package:voisss_butler_server/src/generated/silence_leaderboard_row.dart'
+import 'package:voisss_butler_server/src/generated/silence_entry_view.dart'
     as _i18;
+import 'package:voisss_butler_server/src/generated/silence_leaderboard_row.dart'
+    as _i19;
 export 'greeting.dart';
 export 'butler_chat_response.dart';
+export 'butler_entry_card.dart';
 export 'butler_insights.dart';
 export 'butler_recording.dart';
 export 'butler_stream_event.dart';
@@ -345,32 +347,35 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i4.ButlerChatResponse) {
       return _i4.ButlerChatResponse.fromJson(data) as T;
     }
-    if (t == _i5.ButlerInsights) {
-      return _i5.ButlerInsights.fromJson(data) as T;
+    if (t == _i5.ButlerEntryCard) {
+      return _i5.ButlerEntryCard.fromJson(data) as T;
     }
-    if (t == _i6.ButlerRecording) {
-      return _i6.ButlerRecording.fromJson(data) as T;
+    if (t == _i6.ButlerInsights) {
+      return _i6.ButlerInsights.fromJson(data) as T;
     }
-    if (t == _i7.ButlerStreamEvent) {
-      return _i7.ButlerStreamEvent.fromJson(data) as T;
+    if (t == _i7.ButlerRecording) {
+      return _i7.ButlerRecording.fromJson(data) as T;
     }
-    if (t == _i8.CoWriterMessage) {
-      return _i8.CoWriterMessage.fromJson(data) as T;
+    if (t == _i8.ButlerStreamEvent) {
+      return _i8.ButlerStreamEvent.fromJson(data) as T;
     }
-    if (t == _i9.SilenceClip) {
-      return _i9.SilenceClip.fromJson(data) as T;
+    if (t == _i9.CoWriterMessage) {
+      return _i9.CoWriterMessage.fromJson(data) as T;
     }
-    if (t == _i10.SilenceEntry) {
-      return _i10.SilenceEntry.fromJson(data) as T;
+    if (t == _i10.SilenceClip) {
+      return _i10.SilenceClip.fromJson(data) as T;
     }
-    if (t == _i11.SilenceEntryView) {
-      return _i11.SilenceEntryView.fromJson(data) as T;
+    if (t == _i11.SilenceEntry) {
+      return _i11.SilenceEntry.fromJson(data) as T;
     }
-    if (t == _i12.SilenceLeaderboardRow) {
-      return _i12.SilenceLeaderboardRow.fromJson(data) as T;
+    if (t == _i12.SilenceEntryView) {
+      return _i12.SilenceEntryView.fromJson(data) as T;
     }
-    if (t == _i13.SilenceVote) {
-      return _i13.SilenceVote.fromJson(data) as T;
+    if (t == _i13.SilenceLeaderboardRow) {
+      return _i13.SilenceLeaderboardRow.fromJson(data) as T;
+    }
+    if (t == _i14.SilenceVote) {
+      return _i14.SilenceVote.fromJson(data) as T;
     }
     if (t == _i1.getType<_i3.Greeting?>()) {
       return (data != null ? _i3.Greeting.fromJson(data) : null) as T;
@@ -378,67 +383,89 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i1.getType<_i4.ButlerChatResponse?>()) {
       return (data != null ? _i4.ButlerChatResponse.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i5.ButlerInsights?>()) {
-      return (data != null ? _i5.ButlerInsights.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i5.ButlerEntryCard?>()) {
+      return (data != null ? _i5.ButlerEntryCard.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i6.ButlerRecording?>()) {
-      return (data != null ? _i6.ButlerRecording.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i6.ButlerInsights?>()) {
+      return (data != null ? _i6.ButlerInsights.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i7.ButlerStreamEvent?>()) {
-      return (data != null ? _i7.ButlerStreamEvent.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i7.ButlerRecording?>()) {
+      return (data != null ? _i7.ButlerRecording.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i8.CoWriterMessage?>()) {
-      return (data != null ? _i8.CoWriterMessage.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i8.ButlerStreamEvent?>()) {
+      return (data != null ? _i8.ButlerStreamEvent.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i9.SilenceClip?>()) {
-      return (data != null ? _i9.SilenceClip.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i9.CoWriterMessage?>()) {
+      return (data != null ? _i9.CoWriterMessage.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i10.SilenceEntry?>()) {
-      return (data != null ? _i10.SilenceEntry.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i10.SilenceClip?>()) {
+      return (data != null ? _i10.SilenceClip.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i11.SilenceEntryView?>()) {
-      return (data != null ? _i11.SilenceEntryView.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i11.SilenceEntry?>()) {
+      return (data != null ? _i11.SilenceEntry.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i12.SilenceLeaderboardRow?>()) {
-      return (data != null ? _i12.SilenceLeaderboardRow.fromJson(data) : null)
+    if (t == _i1.getType<_i12.SilenceEntryView?>()) {
+      return (data != null ? _i12.SilenceEntryView.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i13.SilenceLeaderboardRow?>()) {
+      return (data != null ? _i13.SilenceLeaderboardRow.fromJson(data) : null)
           as T;
     }
-    if (t == _i1.getType<_i13.SilenceVote?>()) {
-      return (data != null ? _i13.SilenceVote.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i14.SilenceVote?>()) {
+      return (data != null ? _i14.SilenceVote.fromJson(data) : null) as T;
     }
     if (t == List<String>) {
       return (data as List).map((e) => deserialize<String>(e)).toList() as T;
     }
-    if (t == List<_i14.ButlerRecording>) {
+    if (t == _i1.getType<List<_i13.SilenceLeaderboardRow>?>()) {
+      return (data != null
+          ? (data as List)
+              .map((e) => deserialize<_i13.SilenceLeaderboardRow>(e))
+              .toList()
+          : null) as T;
+    }
+    if (t == _i1.getType<List<_i10.SilenceClip>?>()) {
+      return (data != null
+          ? (data as List).map((e) => deserialize<_i10.SilenceClip>(e)).toList()
+          : null) as T;
+    }
+    if (t == _i1.getType<List<_i5.ButlerEntryCard>?>()) {
+      return (data != null
+          ? (data as List)
+              .map((e) => deserialize<_i5.ButlerEntryCard>(e))
+              .toList()
+          : null) as T;
+    }
+    if (t == List<_i15.ButlerRecording>) {
       return (data as List)
-          .map((e) => deserialize<_i14.ButlerRecording>(e))
+          .map((e) => deserialize<_i15.ButlerRecording>(e))
           .toList() as T;
     }
     if (t == List<String>) {
       return (data as List).map((e) => deserialize<String>(e)).toList() as T;
     }
-    if (t == List<_i15.SilenceClip>) {
+    if (t == List<_i16.SilenceClip>) {
       return (data as List)
-          .map((e) => deserialize<_i15.SilenceClip>(e))
+          .map((e) => deserialize<_i16.SilenceClip>(e))
           .toList() as T;
     }
-    if (t == List<_i16.CoWriterMessage>) {
+    if (t == List<_i17.CoWriterMessage>) {
       return (data as List)
-          .map((e) => deserialize<_i16.CoWriterMessage>(e))
+          .map((e) => deserialize<_i17.CoWriterMessage>(e))
           .toList() as T;
     }
     if (t == Map<String, String>) {
       return (data as Map).map((k, v) =>
           MapEntry(deserialize<String>(k), deserialize<String>(v))) as T;
     }
-    if (t == List<_i17.SilenceEntryView>) {
+    if (t == List<_i18.SilenceEntryView>) {
       return (data as List)
-          .map((e) => deserialize<_i17.SilenceEntryView>(e))
+          .map((e) => deserialize<_i18.SilenceEntryView>(e))
           .toList() as T;
     }
-    if (t == List<_i18.SilenceLeaderboardRow>) {
+    if (t == List<_i19.SilenceLeaderboardRow>) {
       return (data as List)
-          .map((e) => deserialize<_i18.SilenceLeaderboardRow>(e))
+          .map((e) => deserialize<_i19.SilenceLeaderboardRow>(e))
           .toList() as T;
     }
     try {
@@ -457,38 +484,41 @@ class Protocol extends _i1.SerializationManagerServer {
     if (data is _i4.ButlerChatResponse) {
       return 'ButlerChatResponse';
     }
-    if (data is _i5.ButlerInsights) {
+    if (data is _i5.ButlerEntryCard) {
+      return 'ButlerEntryCard';
+    }
+    if (data is _i6.ButlerInsights) {
       return 'ButlerInsights';
     }
-    if (data is _i6.ButlerRecording) {
+    if (data is _i7.ButlerRecording) {
       return 'ButlerRecording';
     }
-    if (data is _i7.ButlerStreamEvent) {
+    if (data is _i8.ButlerStreamEvent) {
       return 'ButlerStreamEvent';
     }
-    if (data is _i8.CoWriterMessage) {
+    if (data is _i9.CoWriterMessage) {
       return 'CoWriterMessage';
     }
-    if (data is _i9.SilenceClip) {
+    if (data is _i10.SilenceClip) {
       return 'SilenceClip';
     }
-    if (data is _i10.SilenceEntry) {
+    if (data is _i11.SilenceEntry) {
       return 'SilenceEntry';
     }
-    if (data is _i11.SilenceEntryView) {
+    if (data is _i12.SilenceEntryView) {
       return 'SilenceEntryView';
     }
-    if (data is _i12.SilenceLeaderboardRow) {
+    if (data is _i13.SilenceLeaderboardRow) {
       return 'SilenceLeaderboardRow';
     }
-    if (data is _i13.SilenceVote) {
+    if (data is _i14.SilenceVote) {
       return 'SilenceVote';
     }
     className = _i2.Protocol().getClassNameForObject(data);
     if (className != null) {
       return 'serverpod.$className';
     }
-    if (data is List<_i18.SilenceLeaderboardRow>) {
+    if (data is List<_i19.SilenceLeaderboardRow>) {
       return 'List<SilenceLeaderboardRow>';
     }
     return null;
@@ -506,39 +536,42 @@ class Protocol extends _i1.SerializationManagerServer {
     if (dataClassName == 'ButlerChatResponse') {
       return deserialize<_i4.ButlerChatResponse>(data['data']);
     }
+    if (dataClassName == 'ButlerEntryCard') {
+      return deserialize<_i5.ButlerEntryCard>(data['data']);
+    }
     if (dataClassName == 'ButlerInsights') {
-      return deserialize<_i5.ButlerInsights>(data['data']);
+      return deserialize<_i6.ButlerInsights>(data['data']);
     }
     if (dataClassName == 'ButlerRecording') {
-      return deserialize<_i6.ButlerRecording>(data['data']);
+      return deserialize<_i7.ButlerRecording>(data['data']);
     }
     if (dataClassName == 'ButlerStreamEvent') {
-      return deserialize<_i7.ButlerStreamEvent>(data['data']);
+      return deserialize<_i8.ButlerStreamEvent>(data['data']);
     }
     if (dataClassName == 'CoWriterMessage') {
-      return deserialize<_i8.CoWriterMessage>(data['data']);
+      return deserialize<_i9.CoWriterMessage>(data['data']);
     }
     if (dataClassName == 'SilenceClip') {
-      return deserialize<_i9.SilenceClip>(data['data']);
+      return deserialize<_i10.SilenceClip>(data['data']);
     }
     if (dataClassName == 'SilenceEntry') {
-      return deserialize<_i10.SilenceEntry>(data['data']);
+      return deserialize<_i11.SilenceEntry>(data['data']);
     }
     if (dataClassName == 'SilenceEntryView') {
-      return deserialize<_i11.SilenceEntryView>(data['data']);
+      return deserialize<_i12.SilenceEntryView>(data['data']);
     }
     if (dataClassName == 'SilenceLeaderboardRow') {
-      return deserialize<_i12.SilenceLeaderboardRow>(data['data']);
+      return deserialize<_i13.SilenceLeaderboardRow>(data['data']);
     }
     if (dataClassName == 'SilenceVote') {
-      return deserialize<_i13.SilenceVote>(data['data']);
+      return deserialize<_i14.SilenceVote>(data['data']);
     }
     if (dataClassName.startsWith('serverpod.')) {
       data['className'] = dataClassName.substring(10);
       return _i2.Protocol().deserializeByClassName(data);
     }
     if (dataClassName == 'List<SilenceLeaderboardRow>') {
-      return deserialize<List<_i18.SilenceLeaderboardRow>>(data['data']);
+      return deserialize<List<_i19.SilenceLeaderboardRow>>(data['data']);
     }
     return super.deserializeByClassName(data);
   }
@@ -552,12 +585,12 @@ class Protocol extends _i1.SerializationManagerServer {
       }
     }
     switch (t) {
-      case _i9.SilenceClip:
-        return _i9.SilenceClip.t;
-      case _i10.SilenceEntry:
-        return _i10.SilenceEntry.t;
-      case _i13.SilenceVote:
-        return _i13.SilenceVote.t;
+      case _i10.SilenceClip:
+        return _i10.SilenceClip.t;
+      case _i11.SilenceEntry:
+        return _i11.SilenceEntry.t;
+      case _i14.SilenceVote:
+        return _i14.SilenceVote.t;
     }
     return null;
   }

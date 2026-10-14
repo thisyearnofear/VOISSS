@@ -12,6 +12,35 @@ enum ButlerMessageType {
   action,
 }
 
+/// One row on a Butler data card — normalized across card kinds.
+class ButlerCardItem {
+  final String title;
+  final String? subtitle;
+  final String? trailing;
+  final String? audioUrl;
+
+  const ButlerCardItem({
+    required this.title,
+    this.subtitle,
+    this.trailing,
+    this.audioUrl,
+  });
+}
+
+/// A structured tool result Butler renders as a card above/inside its reply.
+/// `kind` is 'leaderboard' | 'clips' | 'entries' | 'error'.
+class ButlerCardData {
+  final String kind;
+  final String? title;
+  final List<ButlerCardItem> items;
+
+  const ButlerCardData({
+    required this.kind,
+    this.title,
+    this.items = const [],
+  });
+}
+
 /// A message in the Butler chat
 class ButlerMessage {
   final String id;
@@ -22,6 +51,7 @@ class ButlerMessage {
   final Map<String, dynamic>? metadata;
   final String? audioUrl;
   final String? recordingId;
+  final ButlerCardData? card;
 
   ButlerMessage({
     required this.id,
@@ -32,6 +62,7 @@ class ButlerMessage {
     this.metadata,
     this.audioUrl,
     this.recordingId,
+    this.card,
   });
 
   factory ButlerMessage.fromJson(Map<String, dynamic> json) {
@@ -44,6 +75,7 @@ class ButlerMessage {
       metadata: json['metadata'],
       audioUrl: json['audioUrl'],
       recordingId: json['recordingId'],
+      // `card` is runtime-only — not persisted via toJson.
     );
   }
 

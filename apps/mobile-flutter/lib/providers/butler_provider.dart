@@ -30,11 +30,11 @@ class ButlerProvider extends ChangeNotifier {
       id: 'welcome',
       content: 'Hello! I\'m your VOISSS Butler. 🎙️\n\n'
           'I can help you:\n'
-          '• Transcribe and summarize your recordings\n'
-          '• Find specific recordings\n'
-          '• Extract action items and tasks\n'
-          '• Answer questions about your voice memos\n\n'
-          'Try asking me something or send me a recording!',
+          '• Show the live contest leaderboard\n'
+          '• List the clips you can voice\n'
+          '• Show the latest voice takes\n'
+          '• Answer questions about the contest\n\n'
+          'Try asking me something!',
       isFromUser: false,
       timestamp: DateTime.now(),
     ));
@@ -73,6 +73,7 @@ class ButlerProvider extends ChangeNotifier {
 
     const streamingId = '__streaming';
     final buf = StringBuffer();
+    ButlerCardData? liveCard;
 
     void upsertLive() {
       final idx = _messages.indexWhere((m) => m.id == streamingId);
@@ -82,6 +83,7 @@ class ButlerProvider extends ChangeNotifier {
         isFromUser: false,
         timestamp: DateTime.now(),
         recordingId: recordingId,
+        card: liveCard,
       );
       if (idx >= 0) {
         _messages[idx] = live;
@@ -102,6 +104,13 @@ class ButlerProvider extends ChangeNotifier {
             _isTyping = false;
             upsertLive();
             break;
+          case 'card':
+            // Tool result — attach the structured payload so the card
+            // renders while the grounded answer streams in below it.
+            liveCard = ServerpodButlerService.cardFromEvent(event);
+            _isTyping = false;
+            upsertLive();
+            break;
           case 'done':
             final r = event.response;
             _messages.removeWhere((m) => m.id == streamingId);
@@ -111,6 +120,7 @@ class ButlerProvider extends ChangeNotifier {
               isFromUser: false,
               timestamp: r?.timestamp.toLocal() ?? DateTime.now(),
               recordingId: r?.recordingId ?? recordingId,
+              card: liveCard,
             ));
             break;
           case 'error':

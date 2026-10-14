@@ -1,5 +1,6 @@
 ### One event on the Butler streaming chat channel. `kind` is:
 ### 'delta'  – incremental text chunk, append to the live bubble
+### 'card'   – structured tool result; `cardKind` says which payload is set
 ### 'done'   – final message; carries the full ButlerChatResponse
 ### 'error'  – the chain failed; carries a human-readable message in `text`
 class: ButlerStreamEvent
@@ -7,3 +8,9 @@ fields:
   kind: String
   text: String?
   response: ButlerChatResponse?
+  ### For kind 'card': 'leaderboard' | 'clips' | 'entries' | 'error'.
+  ### `text` doubles as the card title (e.g. the clip name).
+  cardKind: String?
+  leaderboard: List<SilenceLeaderboardRow>?
+  clips: List<SilenceClip>?
+  entries: List<ButlerEntryCard>?

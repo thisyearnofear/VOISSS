@@ -37,13 +37,62 @@ class ServerpodButlerService implements ButlerServiceInterface {
 
   /// Streaming variant — yields the generated [ButlerStreamEvent]s so the
   /// caller can render tokens as they land (`delta`), swap in the final
-  /// message on `done`, or show `error` text.
+  /// message on `done`, show `card` payloads from Butler's tool calls, or
+  /// show `error` text.
   @override
   Stream<ButlerStreamEvent> sendMessageStream(
     String message, {
     String? recordingId,
   }) =>
       _client.butler.chatStream(message: message, recordingId: recordingId);
+
+  /// Maps a `card` event's typed payload to a UI-ready [ButlerCardData].
+  static ButlerCardData cardFromEvent(ButlerStreamEvent e) {
+    switch (e.cardKind) {
+      case 'leaderboard':
+        return ButlerCardData(
+          kind: 'leaderboard',
+          title: e.text,
+          items: (e.leaderboard ?? [])
+              .map((r) => ButlerCardItem(
+                    title: r.displayName,
+                    subtitle: '${r.voteCount} vote${r.voteCount == 1 ? '' : 's'}',
+                    trailing: '#${r.rank}  ${r.avgScore.toStringAsFixed(1)}★',
+                  ))
+              .toList(),
+        );
+      case 'clips':
+        return ButlerCardData(
+          kind: 'clips',
+          title: e.text,
+          items: (e.clips ?? [])
+              .map((c) => ButlerCardItem(
+                    title: c.title,
+                    subtitle: '${c.durationSec}s · ${c.rightsNote}',
+                    trailing: c.active ? 'LIVE' : null,
+                  ))
+              .toList(),
+        );
+      case 'entries':
+        return ButlerCardData(
+          kind: 'entries',
+          title: e.text,
+          items: (e.entries ?? [])
+              .map((c) => ButlerCardItem(
+                    title: c.displayName,
+                    subtitle:
+                        '${c.isAiGenerated ? 'AI voice' : 'Mic take'} · ${c.voteCount} votes',
+                    trailing: c.avgScore > 0
+                        ? '${c.avgScore.toStringAsFixed(1)}★'
+                        : null,
+                    audioUrl: c.audioUrl.isNotEmpty ? c.audioUrl : null,
+                  ))
+              .toList(),
+        );
+      default:
+        return ButlerCardData(kind: 'error', title: e.text);
+    }
+  }
 
   ButlerMessage _toMessage(ButlerChatResponse response) => ButlerMessage(
         id: response.id,
