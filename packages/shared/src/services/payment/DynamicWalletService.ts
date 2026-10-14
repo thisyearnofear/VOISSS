@@ -13,7 +13,7 @@
  *
  * Design: graceful degradation — the service compiles and runs even when the
  * native MPC package is not installed or env is not set. That lets the
- * codebase build on Netlify/Vercel and lets the Runtime demo fall back to a
+ * codebase build on serverless platforms and lets the Runtime demo fall back to a
  * viem EOA server wallet (DYNAMIC_WALLET_PRIVATE_KEY) until Dynamic dashboard
  * access is provisioned. When DYNAMIC_API_TOKEN + DYNAMIC_ENVIRONMENT_ID are
  * set AND the native package is installed, the MPC path is used.

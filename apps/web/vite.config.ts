@@ -38,6 +38,35 @@ export default defineConfig({
       },
     ],
   },
+  environments: {
+    rsc: {
+      resolve: {
+        // @cloudflare/vite-plugin sets workerd/worker/module/browser but not
+        // "import" — exports maps then fall through to "default" (CJS), which
+        // crashes the dev module runner (__cjs_module_runner_transform).
+        conditions: ["import"],
+      },
+    },
+    ssr: {
+      resolve: {
+        conditions: ["import"],
+      },
+      optimizeDeps: {
+        // CJS-only deps from the wallet stack crash the workerd dev module
+        // runner (__cjs_module_runner_transform) — pre-bundle them to ESM.
+        // cloudflare/vinext#1219 / #666
+        include: [
+          "wagmi",
+          "@wagmi/core",
+          "viem",
+          "abitype",
+          "@base-org/account",
+          "@tanstack/react-query",
+          "@coinbase/cdp-sdk",
+        ],
+      },
+    },
+  },
   plugins: [
     vinext({
       images: { optimizer: imagesOptimizer() },

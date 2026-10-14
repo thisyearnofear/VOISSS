@@ -56,7 +56,7 @@ module.exports = {
       kill_timeout: 10000
     },
     // voisss-acp-listener — DISABLED (VPS cleanup Phase 2, harmonized architecture).
-    // The ACP autonomous bidder is now single-homed on Netlify at
+    // The ACP autonomous bidder is now single-homed on the Cloudflare Worker at
     // apps/web/src/app/api/acp/listener (controlled via ADMIN_API_KEY).
     // Keeping this entry disabled prevents double-bidding (two listeners polling
     // the Virtuals marketplace with the same ACP_AGENT_ID / keys). The shim file

@@ -32,7 +32,7 @@
 
 | Category | Amount (USD) | Details |
 |---|---|---|
-| Hosting (Netlify, Hetzner) | $0 | [monthly hosting costs] |
+| Hosting (Cloudflare Workers, Hetzner) | $0 | [monthly hosting costs] |
 | API costs (ElevenLabs) | $0 | [voice synthesis API usage] |
 | API costs (Google Gemini) | $0 | [Gemini inference costs] |
 | Domain registration | $0 | [voisss.famile.xyz or custom domain] |
@@ -63,7 +63,7 @@
 ## Evidence
 
 Attach receipts, invoices, or dashboard screenshots as needed:
-- [ ] Netlify billing page screenshot
+- [ ] Cloudflare billing page screenshot
 - [ ] ElevenLabs usage dashboard
 - [ ] Stripe payout/transaction history
 - [ ] Google Cloud billing page

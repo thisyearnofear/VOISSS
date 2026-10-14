@@ -8,7 +8,10 @@ import { base } from "viem/chains";
 import { WagmiProvider } from "wagmi";
 import { getConfig } from "@/wagmi";
 import { AuthProvider } from "../contexts/AuthContext";
+import { BaseContext } from "../contexts/BaseContext";
 
+// Re-exported for existing import sites (@/app/providers)
+export { useBase } from "../contexts/BaseContext";
 
 // Create query client
 const queryClient = new QueryClient({
@@ -19,17 +22,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
-// Base context
-const BaseContext = React.createContext<{
-  sdk: ReturnType<typeof createBaseAccountSDK>;
-  provider: ReturnType<ReturnType<typeof createBaseAccountSDK>["getProvider"]>;
-} | null>(null);
-
-export function useBase() {
-  const context = React.useContext(BaseContext);
-  return context;
-}
 
 /**
  * BaseProvider — heavy wallet/SDK logic.

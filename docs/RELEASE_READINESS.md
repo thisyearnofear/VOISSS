@@ -206,8 +206,8 @@ WHERE payment_intent = 'pi_xxx';
 - [ ] Generate signed APK/AAB
 - [ ] Set up Play Console listing
 
-### Web (Netlify)
-- [ ] Verify `NEXT_PUBLIC_BASE_URL` is set to production URL
+### Web (Cloudflare Workers)
+- [ ] Verify `NEXT_PUBLIC_BASE_URL` is set to production URL (Worker secret + build env)
 - [ ] Verify `STRIPE_SECRET_KEY` is configured
 - [ ] Verify `STRIPE_WEBHOOK_SECRET` endpoint is registered in Stripe dashboard
 - [ ] Verify `DATABASE_URL` is configured for entitlement storage

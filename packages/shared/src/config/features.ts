@@ -30,7 +30,7 @@ export interface FeatureFlags {
   elevenlabsImport: boolean;
 }
 
-const ENV = typeof process !== 'undefined' ? process.env : {};
+const ENV: Record<string, string | undefined> = typeof process !== 'undefined' ? process.env : {};
 
 export const PLATFORM_FEATURES: FeatureFlags = {
   missions: ENV.NEXT_PUBLIC_FEATURE_MISSIONS === 'true',

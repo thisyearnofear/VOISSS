@@ -30,7 +30,7 @@ Each channel targets a specific persona with a tailored message. Execute in this
 > The demo page gives you 3 free generations to try it: https://voisss.famile.xyz/demo
 >
 > Tech stack:
-> - Next.js 15 + Tailwind on Netlify (most of the UI)
+> - Next.js 15 (vinext) + Tailwind on Cloudflare Workers (most of the UI)
 > - Base Mainnet smart contracts for 70/30 revenue split
 > - Google Gemini for content analysis / AI butler
 > - ElevenLabs for voice synthesis

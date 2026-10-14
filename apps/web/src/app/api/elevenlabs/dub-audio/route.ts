@@ -76,9 +76,9 @@ export async function POST(req: NextRequest) {
         const dubbingId = startData.dubbing_id;
         console.log('Dubbing job started:', { dubbingId, targetLanguage });
 
-        // Step 2: Poll for completion (with Netlify timeout protection)
+        // Step 2: Poll for completion (bounded — client-side polling takes over)
         const pollStart = Date.now();
-        const maxWaitMs = 20_000; // 20 seconds (well within Netlify's 26s limit)
+        const maxWaitMs = 20_000; // keep responses quick; client polls for the result
         const pollIntervalMs = 2000; // 2 seconds
         let status = 'dubbing';
         let pollCount = 0;
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
         while (status !== 'dubbed') {
             const elapsed = Date.now() - pollStart;
             
-            // Return early if we're approaching Netlify's timeout
+            // Return early and hand polling off to the client
             if (elapsed > maxWaitMs) {
                 console.log('Polling timeout, returning job ID for client-side polling');
                 return new Response(JSON.stringify({

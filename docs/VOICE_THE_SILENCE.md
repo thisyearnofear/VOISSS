@@ -120,7 +120,7 @@ challenge/entry sharing.
 
 - `maxRequestSize: 52428800` (50 MB) already set in `config/development.yaml` —
   enough for short audio uploads via `ByteData`/`Uint8List` in `submit()`.
-- Clip video: host on Netlify/static or Serverpod's `serverpod_cloud_storage`
+- Clip video: host on a static/CDN host or Serverpod's `serverpod_cloud_storage`
   tables (already in the migration — the module is present).
 - For the sprint, storing entry audio as files under `web/` or Postgres blobs
   is acceptable; move to S3/Serverpod Cloud Storage after.
@@ -287,7 +287,7 @@ Rule of thumb: **one layer owns CORS** — proxy or app, never both.
   Serverpod owns CORS — one layer only).
 - **Flutter web** `apps/mobile-flutter` → `flutter build web --release` →
   `build/web`; local preview only so far — not publicly deployed.
-- `apps/web` (Next.js marketing site → `voisss.famile.xyz`, Netlify) is a
+- `apps/web` (vinext web app → `voisss.famile.xyz`, Cloudflare Workers) is a
   **separate app and pipeline** — unrelated to the contest backend.
 
 **Backend deploy process (manual, no CI):**

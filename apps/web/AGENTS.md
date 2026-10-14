@@ -4,10 +4,12 @@
 
 ```bash
 # Development
-pnpm dev              # Runs on http://localhost:4445
+pnpm dev:vinext       # vinext/Vite dev on http://localhost:3001 (matches prod runtime)
+pnpm dev              # Legacy Next.js dev on http://localhost:4445
 
 # Build & Verify
-pnpm build            # Production build with type checking
+pnpm build:vinext     # Production build (what ships to Workers)
+pnpm build            # Legacy Next build with type checking
 pnpm lint             # ESLint
 
 # Production deploy (Cloudflare Workers via vinext)
@@ -41,13 +43,19 @@ on snel-bot (backup: `voisss.bak-20261014-precf`).
 - `NEXT_PUBLIC_*` values are inlined at build time — set them in
   `.env.local` or the build env before deploying; runtime secrets won't
   change bundled output.
+- Local dev (`pnpm dev:vinext`) runs in workerd via the Cloudflare Vite
+  plugin — the D1 binding is emulated locally (`.cloudflare/state/`). If
+  lead tables are missing locally, apply the schema to the sqlite file
+  under `.cloudflare/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite`.
+- `pnpm build`/`pnpm dev` (legacy Next) still work but clean `.next`
+  first — vinext also writes `.next/types/` and the typegen formats clash.
 
 ## Architecture
 
 ```
 apps/web/
 ├── src/
-│   ├── app/              # Next.js 14 App Router
+│   ├── app/              # App Router (Next.js 15, deployed via vinext/Vite)
 │   │   ├── api/          # API routes
 │   │   │   ├── agents/   # External agent integration (OpenClaw, etc.)
 │   │   │   ├── arkiv/    # Arkiv Braga Testnet data layer

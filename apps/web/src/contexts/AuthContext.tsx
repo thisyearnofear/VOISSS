@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import { useAccount, useSignMessage, useDisconnect, useConnect } from "wagmi";
 import { base } from "viem/chains";
 import { useBaseAccount } from "../hooks/useBaseAccount";
-import { useBase } from "../app/providers";
+import { useBase } from "../contexts/BaseContext";
 import { buildSignInMessage } from "@/lib/auth";
 import { PLATFORM_CONFIG, meetsCreatorRequirements } from "@voisss/shared/config/platform";
 import { convertReferralOnSignIn } from "../utils/referral-handler";

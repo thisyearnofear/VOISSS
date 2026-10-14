@@ -93,7 +93,7 @@ const ipfsGateway =
 const envioIndexerUrl = process.env.ENVIO_INDEXER_URL;
 // Canonical: VOISSS_BACKEND_URL (harmonized). Legacy aliases kept for zero-downtime
 // migration — VOISSS_API / NEXT_PUBLIC_VOISSS_API / VOISSS_PROCESSING_URL are
-// all honored. Remove aliases once Netlify + Hetzner envs are rotated.
+// all honored. Remove aliases once Worker + Hetzner envs are rotated.
 const backendApiUrl =
   process.env.VOISSS_BACKEND_URL ||
   process.env.VOISSS_PROCESSING_URL ||
@@ -595,7 +595,7 @@ async function fetchPlatformVoices(origin?: string): Promise<MarketplaceVoice[]>
     return platformCache.voices;
   }
 
-  // Prefer the same-origin /api/voices path — on Netlify it proxies to the
+  // Prefer the same-origin /api/voices path — nginx proxies it to the
   // voice backend (allowlisted origin); fall back to the backend URL directly
   // when explicitly configured. Hardcoded voisss.famile.xyz is not a default —
   // it only participates when backendApiUrl is set.

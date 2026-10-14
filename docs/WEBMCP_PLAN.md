@@ -3,7 +3,7 @@
 **Status:** ✅ **Implemented** (production on voisss.famile.xyz)  
 **Target:** WebMCP Challenge (Devpost hackathon)  
 **Effort:** ~1.5 days  
-**Deploy target:** voisss.famile.xyz (Netlify)
+**Deploy target:** voisss.famile.xyz (Cloudflare Workers via vinext)
 
 ---
 
@@ -136,7 +136,7 @@ pnpm add -D webmcp-types
 Add `"webmcp": { "enabled": true, "tools": ["list_voices", "vocalize", ...] }` to `.well-known/agent.json`
 
 ### Step 7: Deploy + test (2h)
-- Push to main → Netlify deploys
+- `cd apps/web && pnpm deploy:vinext` → deploys to the `voisss-web` Worker
 - Test in ChatGPT in-app browser (supports WebMCP natively)
 - Test in Chrome with `chrome://flags/#enable-webmcp-testing`
 - Verify `getTools()` returns 5 tools via browser console
@@ -187,7 +187,7 @@ No state to manage — each tool call is independent. The voice catalog is fetch
 | Risk | Mitigation |
 |------|-----------|
 | ChatGPT browser version doesn't have WebMCP | Use ChatGPT Plus/Pro with latest version; fallback test in Chrome origin trial |
-| Netlify deploy delays demo | Pre-deploy to a custom domain if needed |
+| Worker deploy delays demo | Deploy is manual — run `pnpm deploy:vinext` well before demo time |
 | Tool descriptions must be accurate to real behavior | Test each tool end-to-end before recording demo |
 | Voice samples require auth for some voices | Preview mode works without auth; use preview voices for demo |
 

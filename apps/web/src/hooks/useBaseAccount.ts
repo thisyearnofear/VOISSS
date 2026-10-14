@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useBase } from "../app/providers";
+import { useBase } from "../contexts/BaseContext";
 import { crossPlatformStorage } from "@voisss/shared";
 
 const STORAGE_KEY = "voisss_base_account_address";
