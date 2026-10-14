@@ -1,6 +1,7 @@
 butler:
   - health:
   - chat:
+  - chatStream:
   - analyzeAudio:
   - findRecordings:
   - getInsights:

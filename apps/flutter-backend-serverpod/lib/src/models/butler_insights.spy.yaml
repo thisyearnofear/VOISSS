@@ -1,0 +1,9 @@
+### Usage insights returned by Butler's getInsights.
+class: ButlerInsights
+fields:
+  summary: String
+  topTopics: List<String>
+  recordingFrequency: String
+  suggestions: List<String>
+  totalRecordings: int
+  totalDuration: int

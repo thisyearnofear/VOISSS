@@ -1,0 +1,18 @@
+### A Butler chat message exchanged with the client. Replaces the loose
+### Map<String, dynamic> responses so generated clients can deserialize them.
+class: ButlerChatResponse
+fields:
+  ### Unique message id.
+  id: String
+  ### The message text (markdown).
+  content: String
+  ### True when authored by the user, false when authored by Butler.
+  isFromUser: bool
+  ### Bubble variant: 'text' or 'transcription'.
+  type: String
+  ### When the message was produced.
+  timestamp: DateTime
+  ### Recording the message refers to, if any.
+  recordingId: String?
+  ### Which LLM provider served the reply (llm, venice, acpCompute).
+  provider: String?

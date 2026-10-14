@@ -1,0 +1,9 @@
+### One event on the Butler streaming chat channel. `kind` is:
+### 'delta'  – incremental text chunk, append to the live bubble
+### 'done'   – final message; carries the full ButlerChatResponse
+### 'error'  – the chain failed; carries a human-readable message in `text`
+class: ButlerStreamEvent
+fields:
+  kind: String
+  text: String?
+  response: ButlerChatResponse?

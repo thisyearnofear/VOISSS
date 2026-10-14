@@ -2,6 +2,7 @@ import 'package:serverpod/serverpod.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'dart:async';
+import 'generated/protocol.dart';
 
 /// ACP Compute Client (Virtuals Protocol - Free Venice AI Credits)
 class AcpComputeClient {
@@ -88,6 +89,50 @@ class VeniceAIClient {
         return data['choices'][0]['message']['content'] ?? 'No response';
       } else {
         throw Exception('LLM provider error: ${response.statusCode}');
+      }
+    } finally {
+      client.close();
+    }
+  }
+
+  /// Token-streaming variant — OpenAI-compatible SSE (`stream: true`).
+  Stream<String> chatCompletionStream(
+      List<Map<String, String>> messages) async* {
+    final client = HttpClient();
+    client.connectionTimeout = const Duration(seconds: 15);
+    try {
+      final request =
+          await client.postUrl(Uri.parse('$baseUrl/chat/completions'));
+      request.headers.set('Content-Type', 'application/json');
+      request.headers.set('Authorization', 'Bearer $apiKey');
+      request.headers.set('User-Agent', 'voisss-butler/1.0');
+      request.add(utf8.encode(jsonEncode({
+        'model': model,
+        'messages': messages,
+        'temperature': 0.7,
+        'max_tokens': 1000,
+        'stream': true,
+      })));
+      final response =
+          await request.close().timeout(const Duration(seconds: 45));
+      if (response.statusCode != 200) {
+        final errBody = await response.transform(utf8.decoder).join();
+        throw Exception('LLM provider stream error: ${response.statusCode} '
+            '${errBody.substring(0, errBody.length.clamp(0, 200))}');
+      }
+      await for (final line in response
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())) {
+        if (!line.startsWith('data:')) continue;
+        final payload = line.substring(5).trim();
+        if (payload == '[DONE]') break;
+        try {
+          final delta = (jsonDecode(payload)['choices'] as List)
+              .first['delta']['content'] as String?;
+          if (delta != null && delta.isNotEmpty) yield delta;
+        } catch (_) {
+          // Heartbeat/partial lines — skip.
+        }
       }
     } finally {
       client.close();
@@ -199,154 +244,204 @@ class ButlerEndpoint extends Endpoint {
     return 'Butler is ready to serve! AI enabled: $_aiEnabled, Provider: $_activeProvider';
   }
 
-  Future<Map<String, dynamic>> chat(
+  ButlerChatResponse _response(String content, String? recordingId,
+      {String type = 'text'}) {
+    return ButlerChatResponse(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      content: content,
+      isFromUser: false,
+      type: type,
+      timestamp: DateTime.now(),
+      recordingId: recordingId,
+      provider: _activeProvider == 'none' ? null : _activeProvider,
+    );
+  }
+
+  List<Map<String, String>> _historyFor(Session session) {
+    final sessionId = session.sessionId.toString();
+    return _chatHistories.putIfAbsent(sessionId, () => [
+          {
+            'role': 'system',
+            'content': 'You are VOISSS Butler, an AI voice assistant that '
+                'helps users manage their voice recordings. Be helpful, '
+                'concise, and friendly.'
+          }
+        ]);
+  }
+
+  void _trim(List<Map<String, String>> messages) {
+    if (messages.length > 20) {
+      messages.removeRange(1, messages.length - 19);
+    }
+  }
+
+  Future<ButlerChatResponse> chat(
     Session session, {
     required String message,
     String? recordingId,
-    Map<String, dynamic>? context,
   }) async {
-    if (!_aiEnabled || (_llmClient == null && _veniceClient == null && _acpClient == null)) {
-      return {
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'content': 'AI is not configured. Please set BUTLER_LLM_KEY or VENICE_API_KEY.',
-        'isFromUser': false,
-        'type': 'text',
-        'timestamp': DateTime.now().toIso8601String(),
-        'recordingId': recordingId,
-      };
+    if (!_aiEnabled) {
+      return _response(
+        'AI is not configured. Please set BUTLER_LLM_KEY or VENICE_API_KEY.',
+        recordingId,
+      );
     }
-    
     try {
-      final sessionId = session.sessionId.toString();
-      
-      // Get or create chat history
-      var messages = _chatHistories[sessionId];
-      if (messages == null) {
-        messages = [
-          {'role': 'system', 'content': 'You are VOISSS Butler, an AI voice assistant that helps users manage their voice recordings. Be helpful, concise, and friendly.'}
-        ];
-        _chatHistories[sessionId] = messages;
-      }
-      
-      // Add user message with context
+      final messages = _historyFor(session);
       var userMessage = message;
       if (recordingId != null) {
         userMessage = '[Recording: $recordingId] $userMessage';
       }
       messages.add({'role': 'user', 'content': userMessage});
-      
-      // Provider chain: primary LLM → Venice → ACP (guarded)
       final responseText = await _complete(messages);
-      
-      // Add assistant response to history
       messages.add({'role': 'assistant', 'content': responseText});
-      
-      // Keep only last 20 messages to prevent memory issues
-      if (messages.length > 20) {
-        messages.removeRange(1, messages.length - 19);
-      }
-      
-      return {
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'content': responseText,
-        'isFromUser': false,
-        'type': 'text',
-        'timestamp': DateTime.now().toIso8601String(),
-        'recordingId': recordingId,
-        'provider': _activeProvider,
-      };
-      
+      _trim(messages);
+      return _response(responseText, recordingId);
     } catch (e) {
       print('Butler chat error: $e');
-      return {
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'content': 'I apologize, but I encountered an error: ${e.toString()}',
-        'isFromUser': false,
-        'type': 'text',
-        'timestamp': DateTime.now().toIso8601String(),
-        'recordingId': recordingId,
-      };
+      return _response('I apologize, but I encountered an error: $e',
+          recordingId);
     }
   }
 
-  Future<Map<String, dynamic>> analyzeAudio(
+  /// Streaming chat — yields `delta` events as tokens land, then a final
+  /// `done` event carrying the full [ButlerChatResponse]. Provider order is
+  /// the same as [chat]: primary LLM → Venice → ACP (guarded). A provider
+  /// is only skipped before it has emitted any deltas; a mid-stream failure
+  /// surfaces an `error` event rather than silently restarting (which would
+  /// emit a doubled answer).
+  Stream<ButlerStreamEvent> chatStream(
+    Session session, {
+    required String message,
+    String? recordingId,
+  }) async* {
+    if (!_aiEnabled) {
+      yield ButlerStreamEvent(
+          kind: 'error',
+          text: 'AI is not configured on this server.');
+      return;
+    }
+
+    final messages = _historyFor(session);
+    var userMessage = message;
+    if (recordingId != null) {
+      userMessage = '[Recording: $recordingId] $userMessage';
+    }
+    messages.add({'role': 'user', 'content': userMessage});
+
+    String? accumulated;
+    var emitted = false;
+    for (final (name, client) in <(String, VeniceAIClient?)>[
+      ('llm', _llmClient),
+      ('venice', _veniceClient),
+    ]) {
+      if (client == null || accumulated != null) continue;
+      var emittedThisAttempt = false;
+      try {
+        final buf = StringBuffer();
+        await for (final delta in client.chatCompletionStream(messages)) {
+          buf.write(delta);
+          emittedThisAttempt = true;
+          emitted = true;
+          yield ButlerStreamEvent(kind: 'delta', text: delta);
+        }
+        accumulated = buf.toString();
+        _activeProvider = name;
+      } catch (e) {
+        print('$name stream failed: $e');
+        if (emittedThisAttempt) {
+          yield ButlerStreamEvent(
+              kind: 'error', text: 'Response stream interrupted.');
+          return;
+        }
+      }
+    }
+
+    // Last resort: ACP Compute — no stream support, emit as one delta.
+    if (accumulated == null && _acpClient != null) {
+      try {
+        accumulated = await _acpClient!.chatCompletion(messages);
+        _activeProvider = 'acpCompute';
+        yield ButlerStreamEvent(kind: 'delta', text: accumulated);
+      } catch (e) {
+        print('acpCompute provider failed: $e');
+      }
+    }
+
+    if (accumulated == null) {
+      yield ButlerStreamEvent(
+          kind: 'error',
+          text: emitted
+              ? 'Response stream interrupted.'
+              : 'All AI providers failed. Please try again.');
+      return;
+    }
+
+    messages.add({'role': 'assistant', 'content': accumulated});
+    _trim(messages);
+    yield ButlerStreamEvent(
+        kind: 'done', response: _response(accumulated, recordingId));
+  }
+
+  Future<ButlerChatResponse> analyzeAudio(
     Session session, {
     required String recordingId,
     required String audioUrl,
     String? prompt,
   }) async {
-    if (!_aiEnabled || (_llmClient == null && _veniceClient == null && _acpClient == null)) {
-      return {
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'content': 'AI is not configured.',
-        'isFromUser': false,
-        'type': 'transcription',
-        'timestamp': DateTime.now().toIso8601String(),
-        'recordingId': recordingId,
-      };
+    if (!_aiEnabled) {
+      return _response('AI is not configured.', recordingId,
+          type: 'transcription');
     }
-    
     try {
-      final analysisPrompt = prompt ?? 
+      final analysisPrompt = prompt ??
         'Please analyze this voice recording and provide:\n'
         '1. A transcript of what was said\n'
         '2. A brief summary of the content\n'
         '3. Any key points or action items mentioned\n\n'
         'Recording ID: $recordingId';
-      
       final messages = [
         {'role': 'system', 'content': 'You are an audio transcription and analysis assistant.'},
         {'role': 'user', 'content': analysisPrompt},
       ];
-      
-      // Provider chain: primary LLM → Venice → ACP (guarded)
       final responseText = await _complete(messages);
-      
-      return {
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'content': responseText,
-        'isFromUser': false,
-        'type': 'transcription',
-        'timestamp': DateTime.now().toIso8601String(),
-        'recordingId': recordingId,
-        'provider': _activeProvider,
-        'metadata': {
-          'audioUrl': audioUrl,
-          'analyzed': true,
-        },
-      };
+      return _response(responseText, recordingId, type: 'transcription');
     } catch (e) {
-      return {
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'content': 'Error analyzing audio: ${e.toString()}',
-        'isFromUser': false,
-        'type': 'transcription',
-        'timestamp': DateTime.now().toIso8601String(),
-        'recordingId': recordingId,
-      };
+      return _response('Error analyzing audio: $e', recordingId,
+          type: 'transcription');
     }
   }
 
-  Future<List<Map<String, dynamic>>> findRecordings(Session session, {required String query}) async {
+  Future<List<ButlerRecording>> findRecordings(Session session,
+      {required String query}) async {
     return [
-      {'id': '1', 'title': 'Meeting with team', 'duration': 300, 'date': '2026-01-28'},
-      {'id': '2', 'title': 'Project ideas', 'duration': 180, 'date': '2026-01-27'},
+      ButlerRecording(
+          id: '1',
+          title: 'Meeting with team',
+          duration: 300,
+          date: '2026-01-28'),
+      ButlerRecording(
+          id: '2',
+          title: 'Project ideas',
+          duration: 180,
+          date: '2026-01-27'),
     ];
   }
 
-  Future<Map<String, dynamic>> getInsights(Session session) async {
-    return {
-      'summary': 'You have been actively using voice recordings for meetings and ideas.',
-      'topTopics': ['Meetings', 'Project Planning', 'Personal Notes'],
-      'recordingFrequency': '3-4 recordings per week',
-      'suggestions': [
+  Future<ButlerInsights> getInsights(Session session) async {
+    return ButlerInsights(
+      summary:
+          'You have been actively using voice recordings for meetings and ideas.',
+      topTopics: ['Meetings', 'Project Planning', 'Personal Notes'],
+      recordingFrequency: '3-4 recordings per week',
+      suggestions: [
         'Try organizing recordings with tags',
         'Consider transcribing important meetings',
         'Set reminders for follow-ups',
       ],
-      'totalRecordings': 12,
-      'totalDuration': 3600,
-    };
+      totalRecordings: 12,
+      totalDuration: 3600,
+    );
   }
 
   Future<List<String>> getSuggestions(Session session) async {

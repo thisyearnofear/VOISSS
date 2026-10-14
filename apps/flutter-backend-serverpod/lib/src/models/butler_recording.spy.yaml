@@ -1,0 +1,8 @@
+### A recording reference returned by Butler's findRecordings.
+class: ButlerRecording
+fields:
+  id: String
+  title: String
+  ### Duration in seconds.
+  duration: int
+  date: String

@@ -88,11 +88,6 @@ class Endpoints extends _i1.EndpointDispatch {
               type: _i1.getType<String?>(),
               nullable: true,
             ),
-            'context': _i1.ParameterDescription(
-              name: 'context',
-              type: _i1.getType<Map<String, dynamic>?>(),
-              nullable: true,
-            ),
           },
           call: (
             _i1.Session session,
@@ -102,7 +97,6 @@ class Endpoints extends _i1.EndpointDispatch {
             session,
             message: params['message'],
             recordingId: params['recordingId'],
-            context: params['context'],
           ),
         ),
         'analyzeAudio': _i1.MethodConnector(
@@ -171,6 +165,33 @@ class Endpoints extends _i1.EndpointDispatch {
           ) async =>
               (endpoints['butler'] as _i2.ButlerEndpoint)
                   .getSuggestions(session),
+        ),
+        'chatStream': _i1.MethodStreamConnector(
+          name: 'chatStream',
+          params: {
+            'message': _i1.ParameterDescription(
+              name: 'message',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'recordingId': _i1.ParameterDescription(
+              name: 'recordingId',
+              type: _i1.getType<String?>(),
+              nullable: true,
+            ),
+          },
+          streamParams: {},
+          returnType: _i1.MethodStreamReturnType.streamType,
+          call: (
+            _i1.Session session,
+            Map<String, dynamic> params,
+            Map<String, Stream> streamParams,
+          ) =>
+              (endpoints['butler'] as _i2.ButlerEndpoint).chatStream(
+            session,
+            message: params['message'],
+            recordingId: params['recordingId'],
+          ),
         ),
       },
     );

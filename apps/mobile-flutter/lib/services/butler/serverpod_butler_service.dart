@@ -1,5 +1,4 @@
 import 'package:voisss_butler_client/voisss_butler_client.dart';
-import 'package:serverpod_flutter/serverpod_flutter.dart';
 import 'butler_service.dart';
 
 /// Serverpod implementation of the Butler service
@@ -24,17 +23,8 @@ class ServerpodButlerService implements ButlerServiceInterface {
       final response = await _client.butler.chat(
         message: message,
         recordingId: recordingId,
-        context: context,
       );
-      
-      return ButlerMessage(
-        id: response['id'] as String,
-        content: response['content'] as String,
-        isFromUser: false,
-        type: ButlerMessageType.text,
-        timestamp: DateTime.parse(response['timestamp'] as String),
-        recordingId: response['recordingId'] as String?,
-      );
+      return _toMessage(response);
     } catch (e) {
       return ButlerMessage(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -44,6 +34,30 @@ class ServerpodButlerService implements ButlerServiceInterface {
       );
     }
   }
+
+  /// Streaming variant — yields the generated [ButlerStreamEvent]s so the
+  /// caller can render tokens as they land (`delta`), swap in the final
+  /// message on `done`, or show `error` text.
+  @override
+  Stream<ButlerStreamEvent> sendMessageStream(
+    String message, {
+    String? recordingId,
+  }) =>
+      _client.butler.chatStream(message: message, recordingId: recordingId);
+
+  ButlerMessage _toMessage(ButlerChatResponse response) => ButlerMessage(
+        id: response.id,
+        content: response.content,
+        isFromUser: response.isFromUser,
+        type: response.type == 'transcription'
+            ? ButlerMessageType.transcription
+            : ButlerMessageType.text,
+        timestamp: response.timestamp.toLocal(),
+        recordingId: response.recordingId,
+        metadata: response.provider != null
+            ? {'provider': response.provider}
+            : null,
+      );
 
   @override
   Future<ButlerMessage> sendAudioRecording(
@@ -57,15 +71,7 @@ class ServerpodButlerService implements ButlerServiceInterface {
         audioUrl: audioUrl,
         prompt: prompt,
       );
-      
-      return ButlerMessage(
-        id: response['id'] as String,
-        content: response['content'] as String,
-        isFromUser: false,
-        type: ButlerMessageType.transcription,
-        timestamp: DateTime.parse(response['timestamp'] as String),
-        recordingId: response['recordingId'] as String?,
-      );
+      return _toMessage(response);
     } catch (e) {
       return ButlerMessage(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -79,7 +85,7 @@ class ServerpodButlerService implements ButlerServiceInterface {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> findRecordings(String query) async {
+  Future<List<ButlerRecording>> findRecordings(String query) async {
     try {
       return await _client.butler.findRecordings(query: query);
     } catch (e) {
@@ -88,7 +94,7 @@ class ServerpodButlerService implements ButlerServiceInterface {
   }
 
   @override
-  Future<Map<String, dynamic>?> getInsights() async {
+  Future<ButlerInsights?> getInsights() async {
     try {
       return await _client.butler.getInsights();
     } catch (e) {
@@ -136,6 +142,11 @@ abstract class ButlerServiceInterface {
     String? recordingId,
     Map<String, dynamic>? context,
   });
+
+  Stream<ButlerStreamEvent> sendMessageStream(
+    String message, {
+    String? recordingId,
+  });
   
   Future<ButlerMessage> sendAudioRecording(
     String recordingId,
@@ -143,9 +154,9 @@ abstract class ButlerServiceInterface {
     String? prompt,
   });
   
-  Future<List<Map<String, dynamic>>> findRecordings(String query);
-  
-  Future<Map<String, dynamic>?> getInsights();
+  Future<List<ButlerRecording>> findRecordings(String query);
+
+  Future<ButlerInsights?> getInsights();
   
   Future<List<String>> getSuggestions();
   

@@ -67,26 +67,69 @@ class ButlerProvider extends ChangeNotifier {
     );
     _addMessage(userMessage);
 
-    // Show typing indicator
+    // Show typing indicator until the first token lands
     _isTyping = true;
     notifyListeners();
 
-    try {
-      // Get context from recent recordings if available
-      final context = recordingId != null ? {'recordingId': recordingId} : null;
+    const streamingId = '__streaming';
+    final buf = StringBuffer();
 
-      // Send to Butler service
-      final response = await _butlerService.sendMessage(
+    void upsertLive() {
+      final idx = _messages.indexWhere((m) => m.id == streamingId);
+      final live = ButlerMessage(
+        id: streamingId,
+        content: buf.toString(),
+        isFromUser: false,
+        timestamp: DateTime.now(),
+        recordingId: recordingId,
+      );
+      if (idx >= 0) {
+        _messages[idx] = live;
+      } else {
+        _messages.add(live);
+      }
+      notifyListeners();
+    }
+
+    try {
+      await for (final event in _butlerService.sendMessageStream(
         content,
         recordingId: recordingId,
-        context: context,
-      );
-
-      _addMessage(response);
+      )) {
+        switch (event.kind) {
+          case 'delta':
+            buf.write(event.text ?? '');
+            _isTyping = false;
+            upsertLive();
+            break;
+          case 'done':
+            final r = event.response;
+            _messages.removeWhere((m) => m.id == streamingId);
+            _addMessage(ButlerMessage(
+              id: r?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+              content: r?.content ?? buf.toString(),
+              isFromUser: false,
+              timestamp: r?.timestamp.toLocal() ?? DateTime.now(),
+              recordingId: r?.recordingId ?? recordingId,
+            ));
+            break;
+          case 'error':
+            _messages.removeWhere((m) => m.id == streamingId);
+            _addMessage(ButlerMessage(
+              id: DateTime.now().millisecondsSinceEpoch.toString(),
+              content: event.text ??
+                  'I apologize, but I encountered an error. Please try again.',
+              isFromUser: false,
+              timestamp: DateTime.now(),
+            ));
+            break;
+        }
+      }
     } catch (e) {
+      _messages.removeWhere((m) => m.id == streamingId);
       _addMessage(ButlerMessage(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        content: 'I apologize, but I encountered an error. Please try again.',
+        content: 'Sorry, I had trouble connecting to my brain. Please try again.',
         isFromUser: false,
         timestamp: DateTime.now(),
       ));
@@ -163,7 +206,7 @@ class ButlerProvider extends ChangeNotifier {
           timestamp: DateTime.now(),
         ));
       } else {
-        final recordingList = results.map((r) => '• ${r['title']}').join('\n');
+        final recordingList = results.map((r) => '• ${r.title}').join('\n');
         _addMessage(ButlerMessage(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           content: 'I found ${results.length} recording(s) matching "$query":\n\n$recordingList',
