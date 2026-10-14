@@ -8,7 +8,7 @@ VOISSS Flutter Butler is an AI-powered voice assistant application that provides
 
 **Part of**: [VOISSS Ecosystem](https://github.com/thisyearnofear/VOISSS)  
 **Live Backend**: https://butler.voisss.famile.xyz/  
-**Architecture**: Serverpod (Dart) + Venice AI (Llama 3.3 70B)
+**Architecture**: Serverpod (Dart) + Featherless/Venice AI (provider chain)
 
 ---
 
@@ -31,7 +31,7 @@ flutter run -d android
 ## 📱 Features
 
 - 🎤 **Voice Recording** - High-quality audio recording
-- 🤖 **AI Butler** - Chat with Venice AI (Llama 3.3 70B)
+- 🤖 **AI Butler** - Token-streamed chat via `butler.chatStream`; Featherless (`Qwen3-Next-80B-A3B-Instruct`) primary, Venice direct fallback, ACP Compute last-resort
 - 🔒 **HTTPS** - Secure connection to Serverpod backend
 - ⚡ **Real-time** - WebSocket support for live updates
 
@@ -71,13 +71,13 @@ Unlike the main VOISSS apps (Web and React Native), the Flutter Butler uses a **
 |-----------|---------------|----------------|
 | State | Blockchain (Base/Scroll) | PostgreSQL |
 | Real-time | Polling/Events | WebSocket |
-| AI | ElevenLabs/Gemini | Venice AI |
+| AI | ElevenLabs/Gemini | Featherless + Venice AI |
 | Backend | Client-side heavy | Serverpod (Dart) |
 
 This architectural choice prioritizes:
 - **Real-time conversational AI** via WebSocket
 - **Simpler deployment** for hackathon/demo scenarios
-- **Server-side AI processing** with Venice AI
+- **Server-side AI processing** with a Featherless → Venice → ACP provider chain
 
 ---
 

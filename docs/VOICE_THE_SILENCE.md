@@ -70,7 +70,8 @@ Vote:   table: silence_vote
 | `silence_clip` | `getActive()`, `listArchive()`, `createClip(...)`, `updateSceneGuide(clipId, guide)` | `createClip`/`updateSceneGuide` have **no auth** — gate before public exposure |
 | `silence_entry` | `submit(clipId, displayName, audioBytes, audioFormat)`, `list(clipId)`, `aiVoices()`, `generate(...)` | `list` returns `SilenceEntryView` — audio as `ByteData`, `displayName` visible (blindness is client-side personas for now) |
 | `silence_vote` | `cast(entryId, voterToken, score)`, `leaderboard(clipId)`, `watchLeaderboard(clipId)` | dedupe on (entryId, voterToken); `watchLeaderboard` is a 2s polling stream w/ change-signature dedupe — not true pub/sub |
-| `silence_co_writer` | `openers(clipId)`, `chat(clipId, history, draft)` | AI riffing partner; system prompt carries the clip's vision-seeded `sceneGuide` + user's live draft. Uses `BUTLER_LLM_*` env (Featherless, Qwen3-32B, thinking disabled) |
+| `silence_co_writer` | `openers(clipId)`, `chat(clipId, history, draft)`, `riff(clipId, history, draft)` | AI riffing partner; system prompt carries the clip's vision-seeded `sceneGuide` + user's live draft. `riff` is a `Stream<String>` token stream. Uses `BUTLER_LLM_*` env (Featherless, `Qwen/Qwen3-Next-80B-A3B-Instruct`) with one bounded retry on malformed upstream payloads |
+| `butler` | `chat(message, recordingId?)`, `chatStream(message, recordingId?)`, `analyzeAudio`, `findRecordings`, `getInsights`, `getSuggestions`, `health` | `chatStream` yields `ButlerStreamEvent` (delta/done/error) — token-streamed replies in the app. Provider chain: `BUTLER_LLM_*` (Featherless) → `VENICE_API_KEY` direct → ACP Compute (last, only when both ACP creds set). All responses are typed models (ButlerChatResponse etc.) — regenerated clients deserialize them; earlier Map<String,dynamic> returns broke client-side decode |
 
 ### Screens (`mobile-flutter`) — ✅ implemented
 
